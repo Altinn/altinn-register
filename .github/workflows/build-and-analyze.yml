@@ -14,6 +14,7 @@ jobs:
       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false)
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
       - name: Setup .NET
         uses: actions/setup-dotnet@v1
         with:
@@ -72,7 +73,7 @@ jobs:
 
           dotnet build Altinn.Platform.Register.sln
           dotnet test Altinn.Platform.Register.sln `
-          --no-build `
+          --no-build
           --results-directory TestResults/ `
           --collect:"XPlat Code Coverage" `
           -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
