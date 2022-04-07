@@ -8,6 +8,7 @@ on:
   workflow_dispatch:
 jobs:
   build-and-test:
+    name: Build and Test
     if: |
       github.repository_owner == 'Altinn' &&
       (github.event_name != 'pull_request' && github.event.repository.fork == false) ||
@@ -29,7 +30,7 @@ jobs:
      github.repository_owner == 'Altinn' &&
      (github.event_name != 'pull_request' && github.event.repository.fork == false) ||
      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false)
-    name: Static code analysis
+    name: Analyze
     runs-on: windows-latest
     steps:
       - name: Setup .NET
