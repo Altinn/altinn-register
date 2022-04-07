@@ -10,11 +10,12 @@ on:
       - 'Dockerfile'
   pull_request:
     branches: [ main ]
+    types: [opened, synchronize, reopened]
     paths:
       - 'src/**'
       - 'Dockerfile'
 jobs:
-  build:
+  scan:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
