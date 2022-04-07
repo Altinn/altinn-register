@@ -140,7 +140,7 @@ namespace Altinn.Platform.Register.Tests.UnitTests
         public async Task GetPerson_WrongInput_FailedAttemptsBeingResetAtCacheTimeout()
         {
             // Arrange
-            Party party = new Party
+            Party party = new()
             {
                 Person = new Person
                 {

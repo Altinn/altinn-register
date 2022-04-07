@@ -44,7 +44,7 @@ namespace Altinn.Platform.Register.Core
             // Å is not a special character in Norwegian hence handling this character differently
             if (text.ToUpper().Contains('Å'))
             {
-                StringBuilder firstPassBuilder = new StringBuilder();
+                StringBuilder firstPassBuilder = new();
                 foreach (char ch in text)
                 {
                     if (ch == 'Å' || ch == 'å')

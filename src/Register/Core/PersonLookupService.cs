@@ -68,7 +68,7 @@ namespace Altinn.Platform.Register.Core
             }
 
             failedAttempts += 1;
-            MemoryCacheEntryOptions memoryCacheOptions = new MemoryCacheEntryOptions
+            MemoryCacheEntryOptions memoryCacheOptions = new()
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(_personLookupSettings.FailedAttemptsCacheLifetimeSeconds)
             };
