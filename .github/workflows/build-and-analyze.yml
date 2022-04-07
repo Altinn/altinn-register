@@ -7,6 +7,22 @@ on:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
 jobs:
+  build-and-test:
+    if: |
+      github.repository_owner == 'Altinn' &&
+      (github.event_name != 'pull_request' && github.event.repository.fork == false) ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: |
+            6.0.x
+      - name: Build & Test
+        run: |
+           dotnet build Altinn.Platform.Register.sln -v m
+           dotnet test Altinn.Platform.Register.sln -v m
   analyze:
     if: |
      github.repository_owner == 'Altinn' &&
@@ -46,10 +62,6 @@ jobs:
         run: |
           New-Item -Path .\.sonar\scanner -ItemType Directory
           dotnet tool update dotnet-sonarscanner --tool-path .\.sonar\scanner
-      - name: Build & Test
-        run: |
-           dotnet build Altinn.Platform.Register.sln -v m
-           dotnet test Altinn.Platform.Register.sln -v m
       - name: Analyze
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
