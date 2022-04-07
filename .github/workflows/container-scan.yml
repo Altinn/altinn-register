@@ -19,7 +19,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Build the Docker image
-      run: docker build src/Altinn.Platform/Altinn.Platform.Register --file src/Altinn.Platform/Altinn.Platform.Register/Register/Dockerfile --tag altinn-register:${{github.sha}}
+      run: docker build . --tag altinn-register:${{github.sha}}
 
     - uses: Azure/container-scan@v0
       with:
