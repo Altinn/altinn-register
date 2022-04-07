@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{DFD11A0E-FC6D-4979-87A4-7A7B5DC66695}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Altinn.Platform.Register", "src\Register\Altinn.Platform.Register.csproj", "{245B9C40-E4F7-47CB-96C8-E027078FE1B5}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Altinn.Platform.Register.Tests", "test\Altinn.Platform.Register.Tests\Altinn.Platform.Register.Tests.csproj", "{99F14DD7-ED8E-44E3-A0B9-DAC59E33E56A}"
@@ -15,10 +13,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{DFD11A0E-FC6D-4979-87A4-7A7B5DC66695}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DFD11A0E-FC6D-4979-87A4-7A7B5DC66695}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DFD11A0E-FC6D-4979-87A4-7A7B5DC66695}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DFD11A0E-FC6D-4979-87A4-7A7B5DC66695}.Release|Any CPU.Build.0 = Release|Any CPU
 		{245B9C40-E4F7-47CB-96C8-E027078FE1B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{245B9C40-E4F7-47CB-96C8-E027078FE1B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{245B9C40-E4F7-47CB-96C8-E027078FE1B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
