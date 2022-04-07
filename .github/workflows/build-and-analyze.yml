@@ -73,7 +73,7 @@ jobs:
 
           dotnet build Altinn.Platform.Register.sln
           dotnet test Altinn.Platform.Register.sln `
-          --no-build
+          --no-build `
           --results-directory TestResults/ `
           --collect:"XPlat Code Coverage" `
           -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
