@@ -5,7 +5,7 @@ VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Altinn.Platform.Register", "src\Register\Altinn.Platform.Register.csproj", "{245B9C40-E4F7-47CB-96C8-E027078FE1B5}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Altinn.Platform.Register.Tests", "test\Altinn.Platform.Register.Tests\Altinn.Platform.Register.Tests.csproj", "{99F14DD7-ED8E-44E3-A0B9-DAC59E33E56A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Altinn.Platform.Register.Tests", "test\Altinn.Platform.Register.Tests\Altinn.Platform.Register.Tests.csproj", "{47B54B20-2C71-42DA-AEC1-E68758F1456B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{245B9C40-E4F7-47CB-96C8-E027078FE1B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{245B9C40-E4F7-47CB-96C8-E027078FE1B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{245B9C40-E4F7-47CB-96C8-E027078FE1B5}.Release|Any CPU.Build.0 = Release|Any CPU
-		{99F14DD7-ED8E-44E3-A0B9-DAC59E33E56A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{99F14DD7-ED8E-44E3-A0B9-DAC59E33E56A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{99F14DD7-ED8E-44E3-A0B9-DAC59E33E56A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{99F14DD7-ED8E-44E3-A0B9-DAC59E33E56A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{47B54B20-2C71-42DA-AEC1-E68758F1456B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{47B54B20-2C71-42DA-AEC1-E68758F1456B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{47B54B20-2C71-42DA-AEC1-E68758F1456B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{47B54B20-2C71-42DA-AEC1-E68758F1456B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
