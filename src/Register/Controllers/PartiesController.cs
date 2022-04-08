@@ -103,13 +103,7 @@ namespace Altinn.Platform.Register.Controllers
         /// </summary>
         private static bool IsOrg(HttpContext context)
         {
-            bool isOrg = false;
-            foreach (Claim claim in context.User.Claims.Where(claim => claim.Type.Equals(AltinnCoreClaimTypes.Org)))
-            {
-                isOrg = true;
-            }
-
-            return isOrg;
+            return context.User.Claims.Any(claim => claim.Type.Equals(AltinnCoreClaimTypes.Org));
         }
 
         /// <summary>
@@ -117,12 +111,9 @@ namespace Altinn.Platform.Register.Controllers
         /// </summary>
         private static int? GetUserId(HttpContext context)
         {
-            foreach (Claim claim in context.User.Claims.Where(claim => claim.Type.Equals(AltinnCoreClaimTypes.UserId)))
-            {
-                return Convert.ToInt32(claim.Value);
-            }
+            Claim claim = context.User.Claims.FirstOrDefault(claim => claim.Type.Equals(AltinnCoreClaimTypes.UserId));
 
-            return null;
+            return claim != null ? Convert.ToInt32(claim.Value) : null;
         }
     }
 }
