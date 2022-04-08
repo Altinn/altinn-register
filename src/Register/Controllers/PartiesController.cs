@@ -1,11 +1,14 @@
 using System;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Filters;
 using Altinn.Platform.Register.Models;
 using Altinn.Platform.Register.Services.Interfaces;
+
 using AltinnCore.Authentication.Constants;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -81,7 +84,7 @@ namespace Altinn.Platform.Register.Controllers
         [ProducesResponseType(404)]
         [ProducesResponseType(200)]
         [Produces("application/json")]
-        public async Task<ActionResult<Party>> PostPartyLookup([FromBody]PartyLookup partyLookup)
+        public async Task<ActionResult<Party>> PostPartyLookup([FromBody] PartyLookup partyLookup)
         {
             string lookupValue = partyLookup.OrgNo ?? partyLookup.Ssn;
 
@@ -101,13 +104,9 @@ namespace Altinn.Platform.Register.Controllers
         private static bool IsOrg(HttpContext context)
         {
             bool isOrg = false;
-
-            foreach (Claim claim in context.User.Claims)
+            foreach (Claim claim in context.User.Claims.Where(claim => claim.Type.Equals(AltinnCoreClaimTypes.Org)))
             {
-                if (claim.Type.Equals(AltinnCoreClaimTypes.Org))
-                {
-                    isOrg = true;
-                }
+                isOrg = true;
             }
 
             return isOrg;
@@ -118,12 +117,9 @@ namespace Altinn.Platform.Register.Controllers
         /// </summary>
         private static int? GetUserId(HttpContext context)
         {
-            foreach (Claim claim in context.User.Claims)
+            foreach (Claim claim in context.User.Claims.Where(claim => claim.Type.Equals(AltinnCoreClaimTypes.UserId)))
             {
-                if (claim.Type.Equals(AltinnCoreClaimTypes.UserId))
-                {
-                    return Convert.ToInt32(claim.Value);
-                }
+                return Convert.ToInt32(claim.Value);
             }
 
             return null;
