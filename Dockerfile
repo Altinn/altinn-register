@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:6.0.201-alpine3.14 AS build
 WORKDIR Register/
 
-COPY Register ./Register
+COPY src/Register ./Register
 WORKDIR Register/
 
 RUN dotnet build Altinn.Platform.Register.csproj -c Release -o /app_output

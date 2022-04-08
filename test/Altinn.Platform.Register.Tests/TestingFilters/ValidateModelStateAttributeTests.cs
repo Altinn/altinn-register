@@ -66,7 +66,7 @@ namespace Altinn.Platform.Register.Tests.TestingFilters
         public void OnActionExecuting_ModelStateIsEmpty_ReturnsNullResult()
         {
             // Arrange
-            ModelStateDictionary modelState = new ModelStateDictionary();
+            ModelStateDictionary modelState = new();
 
             ActionExecutingContext context = CreateActionExecutingContext(modelState);
 

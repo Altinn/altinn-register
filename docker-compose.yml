@@ -19,4 +19,4 @@ services:
       - "5020:5020"
     build:
       context: .
-      dockerfile: Register/Dockerfile
+      dockerfile: Dockerfile
