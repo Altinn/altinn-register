@@ -115,7 +115,7 @@ namespace Altinn.Platform.Register.Tests.TestingControllers
             // Assert
             partiesService.VerifyAll();
 
-            Assert.Equal(HttpStatusCode.Ok, response.StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
         [Fact]
