@@ -1,5 +1,7 @@
 # Altinn Platform Register
 
+## Test for checking integration (Borge) 
+
 ## Build status
 [![Register build status](https://dev.azure.com/brreg/altinn-studio/_apis/build/status/altinn-platform/register-master?label=platform/register)](https://dev.azure.com/brreg/altinn-studio/_build/latest?definitionId=35)
 
