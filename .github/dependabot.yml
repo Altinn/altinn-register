@@ -3,9 +3,6 @@ updates:
   ## Register
   - directory: "src/"
     package-ecosystem: "nuget"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "thursday"
@@ -15,9 +12,6 @@ updates:
 ## Test
   - directory: "test/"
     package-ecosystem: "nuget"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "thursday"
