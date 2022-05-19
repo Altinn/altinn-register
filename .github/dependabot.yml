@@ -1,7 +1,7 @@
 version: 2
 updates:
   ## Register
-  - directory: "src/"
+  - directory: "src/Register"
     package-ecosystem: "nuget"
     schedule:
       interval: "weekly"
