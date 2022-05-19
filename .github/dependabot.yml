@@ -10,7 +10,7 @@ updates:
       timezone: "Europe/Oslo"
 
 ## Test
-  - directory: "test/"
+  - directory: "test/Altinn.Platform.Register.Tests"
     package-ecosystem: "nuget"
     schedule:
       interval: "weekly"
