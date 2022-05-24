@@ -2,18 +2,15 @@ name: Auto Assign to Project
 
 on:
   issues:
-    types: [opened]
-env:
-  MY_GITHUB_TOKEN: ${{ secrets.ASSIGN_PROJECT_TOKEN }}
+    types:
+      - opened
 
 jobs:
-  assign_to_project:
+  add-to-project:
+    name: Add issue to Team Platform project
     runs-on: ubuntu-latest
-    name: Team Platform
     steps:
-    - name: Assign NEW issues to Team Platform - All Issues project
-      uses: srggrs/assign-one-project-github-action@1.2.1
-      if: github.event.action == 'opened'
-      with:
-        project: 'https://github.com/orgs/Altinn/projects/20'
-        column_name: 'Needs triage'
+      - uses: actions/add-to-project@main
+        with:
+          project-url: https://github.com/orgs/Altinn/projects/20
+          github-token: ${{ secrets.ASSIGN_PROJECT_TOKEN }}
