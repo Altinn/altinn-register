@@ -15,5 +15,5 @@ jobs:
       uses: srggrs/assign-one-project-github-action@1.2.1
       if: github.event.action == 'opened'
       with:
-        project: 'https://github.com/orgs/Altinn/projects/20/views/1?layout=board'
+        project: 'https://github.com/orgs/Altinn/projects/20'
         column_name: 'Needs triage'
