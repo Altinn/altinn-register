@@ -11,9 +11,9 @@ jobs:
     name: Build and Test
     if: |
       github.repository_owner == 'Altinn' &&
-      github.actor != 'dependabot[bot]' &&
+      ${{ github.actor == 'dependabot[bot]' }} &&
       (github.event_name != 'pull_request' && github.event.repository.fork == false) ||
-      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false) ||
+      github.event.pull_request.head.repo.fork == false
       
     runs-on: ubuntu-latest
     steps:
@@ -30,9 +30,9 @@ jobs:
   analyze:
     if: |
       github.repository_owner == 'Altinn' &&
-      github.actor != 'dependabot[bot]' &&
+      ${{ github.actor == 'dependabot[bot]' }} &&
       (github.event_name != 'pull_request' && github.event.repository.fork == false) ||
-      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false) ||
+      github.event.pull_request.head.repo.fork == false
     name: Analyze
     runs-on: windows-latest
     steps:
