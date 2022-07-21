@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:6.0.301-alpine3.16 AS build
+FROM mcr.microsoft.com/dotnet/sdk:6.0.302-alpine3.16 AS build
 WORKDIR Register/
 
 COPY src/Register ./Register
