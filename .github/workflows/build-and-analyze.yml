@@ -20,8 +20,8 @@ jobs:
             6.0.x
       - name: Build & Test
         run: |
-           dotnet build Altinn.Platform.Register.sln -v m
-           dotnet test Altinn.Platform.Register.sln -v m
+           dotnet build Register.sln -v m
+           dotnet test Register.sln -v m
   analyze:
     if: github.repository_owner == 'Altinn' && github.actor != 'dependabot[bot]' && (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false)
     name: Analyze
@@ -66,8 +66,8 @@ jobs:
         run: |
           .\.sonar\scanner\dotnet-sonarscanner begin /k:"Altinn_altinn-register" /o:"altinn" /d:sonar.login="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vstest.reportsPaths="**/*.trx" /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml"
 
-          dotnet build Altinn.Platform.Register.sln
-          dotnet test Altinn.Platform.Register.sln `
+          dotnet build Register.sln
+          dotnet test Register.sln `
           --no-build `
           --results-directory TestResults/ `
           --collect:"XPlat Code Coverage" `
