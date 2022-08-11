@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:6.0.302-alpine3.16 AS build
+FROM mcr.microsoft.com/dotnet/sdk:6.0.400-alpine3.16 AS build
 WORKDIR Register/
 
 COPY src/Register ./Register
@@ -7,7 +7,7 @@ WORKDIR Register/
 RUN dotnet build Altinn.Platform.Register.csproj -c Release -o /app_output
 RUN dotnet publish Altinn.Platform.Register.csproj -c Release -o /app_output
 
-FROM mcr.microsoft.com/dotnet/aspnet:6.0.7-alpine3.16 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:6.0.8-alpine3.16 AS final
 EXPOSE 5020
 WORKDIR /app
 COPY --from=build /app_output .
