@@ -5,8 +5,8 @@ updates:
     package-ecosystem: "nuget"
     schedule:
       interval: "weekly"
-      day: "thursday"
-      time: "07:00"
+      day: "monday"
+      time: "09:50"
       timezone: "Europe/Oslo"
 
 ## Test
