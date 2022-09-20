@@ -1,11 +1,9 @@
 ﻿#nullable enable
-
-using System.Threading;
 using System.Threading.Tasks;
 
-using Altinn.Platform.Register.Core;
 using Altinn.Platform.Register.Models;
-using Altinn.Platform.Register.Services;
+using Altinn.Register.Core;
+using Altinn.Register.Services;
 
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
@@ -14,7 +12,7 @@ using Moq;
 
 using Xunit;
 
-namespace Altinn.Platform.Register.Tests.UnitTests
+namespace Altinn.Register.Tests.UnitTests
 {
     public class PersonLookupCacheDecoratorTests
     {

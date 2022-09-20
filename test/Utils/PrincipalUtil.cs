@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
+
 using Altinn.Common.AccessToken.Constants;
-using Altinn.Platform.Register.Tests.Mocks;
+using Altinn.Register.Tests.Mocks;
+
 using AltinnCore.Authentication.Constants;
 
-namespace Altinn.Platform.Register.Tests.Utils
+namespace Altinn.Register.Tests.Utils
 {
     public static class PrincipalUtil
     {
@@ -24,7 +26,7 @@ namespace Altinn.Platform.Register.Tests.Utils
 
             ClaimsIdentity identity = new ClaimsIdentity("mock");
             identity.AddClaims(claims);
-            ClaimsPrincipal principal = new ClaimsPrincipal(identity);
+            ClaimsPrincipal principal = new(identity);
             string token = JwtTokenMock.GenerateToken(principal, new TimeSpan(0, 1, 5));
 
             return token;
@@ -66,7 +68,7 @@ namespace Altinn.Platform.Register.Tests.Utils
             claims.Add(new Claim(AltinnCoreClaimTypes.AuthenticationLevel, "3", ClaimValueTypes.Integer32, issuer));
             claims.Add(new Claim("urn:altinn:scope", scope, ClaimValueTypes.String, "maskinporten"));
 
-            ClaimsIdentity identity = new ClaimsIdentity("mock-org");
+            ClaimsIdentity identity = new("mock-org");
             identity.AddClaims(claims);
             ClaimsPrincipal principal = new(identity);
             string token = JwtTokenMock.GenerateToken(principal, new TimeSpan(1, 1, 1));

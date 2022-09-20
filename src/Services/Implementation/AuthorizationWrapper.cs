@@ -3,6 +3,10 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 
+using Altinn.Register.Configuration;
+using Altinn.Register.Extensions;
+using Altinn.Register.Services.Interfaces;
+
 using AltinnCore.Authentication.Utils;
 
 using Microsoft.AspNetCore.Http;
@@ -11,11 +15,7 @@ using Microsoft.Extensions.Options;
 
 using Newtonsoft.Json;
 
-using Register.Configuration;
-using Register.Extensions;
-using Register.Services.Interfaces;
-
-namespace Register.Services.Implementation
+namespace Altinn.Register.Services.Implementation
 {
     /// <summary>
     /// App implementation of the authorization service where the app uses the Altinn platform api.

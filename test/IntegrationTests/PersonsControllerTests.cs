@@ -8,19 +8,18 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
-using Altinn.Platform.Register.Tests.IntegrationTests.Utils;
-using Altinn.Platform.Register.Tests.Mocks;
-using Altinn.Platform.Register.Tests.Utils;
+using Altinn.Register.Configuration;
+using Altinn.Register.Controllers;
+using Altinn.Register.Tests.IntegrationTests.Utils;
+using Altinn.Register.Tests.Mocks;
+using Altinn.Register.Tests.Utils;
 
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Caching.Memory;
 
-using Register.Configuration;
-using Register.Controllers;
-
 using Xunit;
 
-namespace Altinn.Platform.Register.Tests.IntegrationTests
+namespace Altinn.Register.Tests.IntegrationTests
 {
     public class PersonsControllerTests : IClassFixture<WebApplicationFactory<PersonsController>>
     {
@@ -39,7 +38,7 @@ namespace Altinn.Platform.Register.Tests.IntegrationTests
         {
             // Arrange
             HttpRequestMessage sblRequest = null;
-            DelegatingHandlerStub messageHandler = new(async (HttpRequestMessage request, CancellationToken token) =>
+            DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
                 sblRequest = request;
 
@@ -94,7 +93,7 @@ namespace Altinn.Platform.Register.Tests.IntegrationTests
         {
             // Arrange
             HttpRequestMessage sblRequest = null;
-            DelegatingHandlerStub messageHandler = new(async (HttpRequestMessage request, CancellationToken token) =>
+            DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
                 sblRequest = request;
 
@@ -125,7 +124,7 @@ namespace Altinn.Platform.Register.Tests.IntegrationTests
         {
             // Arrange
             HttpRequestMessage sblRequest = null;
-            DelegatingHandlerStub messageHandler = new(async (HttpRequestMessage request, CancellationToken token) =>
+            DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
                 sblRequest = request;
 
@@ -162,7 +161,7 @@ namespace Altinn.Platform.Register.Tests.IntegrationTests
         {
             // Arrange
             HttpRequestMessage sblRequest = null;
-            DelegatingHandlerStub messageHandler = new(async (HttpRequestMessage request, CancellationToken token) =>
+            DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
                 sblRequest = request;
 

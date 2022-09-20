@@ -3,9 +3,9 @@ using System;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
-
-using Altinn.Platform.Register.Core;
 using Altinn.Platform.Register.Models;
+using Altinn.Register.Core;
+using Altinn.Register.Models;
 
 using AltinnCore.Authentication.Constants;
 
@@ -13,9 +13,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-using Register.Models;
-
-namespace Register.Controllers
+namespace Altinn.Register.Controllers
 {
     /// <summary>
     /// The <see cref="PersonsController"/> provides the API endpoints related to persons.

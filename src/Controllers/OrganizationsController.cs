@@ -1,13 +1,12 @@
 using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
+using Altinn.Register.Services.Interfaces;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-using Register.Services.Interfaces;
-
-namespace Register.Controllers
+namespace Altinn.Register.Controllers
 {
     /// <summary>
     /// The organizations controller provides access to organization information in the SBL Register component.

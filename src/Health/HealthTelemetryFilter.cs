@@ -3,7 +3,7 @@ using Microsoft.ApplicationInsights.Channel;
 using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.ApplicationInsights.Extensibility;
 
-namespace Register.Health
+namespace Altinn.Register.Health
 {
     /// <summary>
     /// Filter to exclude health check request from Application Insights

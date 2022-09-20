@@ -3,7 +3,7 @@ using System;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace Register.Filters
+namespace Altinn.Register.Filters
 {
     /// <summary>
     /// An action filter for automatically checking model state before a controller action is executed.

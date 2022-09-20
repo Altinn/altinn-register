@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
 
-namespace Altinn.Platform.Register.Core
+namespace Altinn.Register.Core
 {
     /// <summary>
     /// Describes the methods required by a person check service.

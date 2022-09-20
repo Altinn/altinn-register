@@ -1,4 +1,4 @@
-namespace Register.Configuration
+namespace Altinn.Register.Configuration
 {
     /// <summary>
     /// General configuration settings

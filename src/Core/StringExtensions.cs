@@ -3,7 +3,7 @@ using System;
 using System.Globalization;
 using System.Text;
 
-namespace Altinn.Platform.Register.Core
+namespace Altinn.Register.Core
 {
     /// <summary>
     /// Represents a collection of extension methods for string

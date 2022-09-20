@@ -4,14 +4,13 @@ using System.Text.Json;
 using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
+using Altinn.Register.Configuration;
+using Altinn.Register.Services.Interfaces;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-using Register.Configuration;
-using Register.Services.Interfaces;
-
-namespace Register.Services.Implementation
+namespace Altinn.Register.Services.Implementation
 {
     /// <summary>
     /// The organization wrapper

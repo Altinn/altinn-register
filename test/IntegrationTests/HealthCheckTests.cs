@@ -2,14 +2,14 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 
+using Altinn.Register.Health;
+
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 
-using Register.Health;
-
 using Xunit;
 
-namespace Altinn.Platform.Register.Tests.IntegrationTests
+namespace Altinn.Register.Tests.IntegrationTests
 {
     /// <summary>
     /// Health check

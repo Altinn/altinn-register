@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Register.Controllers
+namespace Altinn.Register.Controllers
 {
     /// <summary>
     /// Handles the presentation of unhandled exceptions during the execution of a request.

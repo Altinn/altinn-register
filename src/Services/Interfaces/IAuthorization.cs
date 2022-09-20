@@ -1,8 +1,6 @@
-using System.Collections.Generic;
 using System.Threading.Tasks;
-using Altinn.Platform.Register.Models;
 
-namespace Register.Services.Interfaces
+namespace Altinn.Register.Services.Interfaces
 {
     /// <summary>
     /// Interface for authorization functionality.

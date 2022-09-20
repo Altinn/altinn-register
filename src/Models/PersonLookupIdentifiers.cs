@@ -4,7 +4,7 @@ using System.Text;
 
 using Microsoft.AspNetCore.Mvc;
 
-namespace Register.Models
+namespace Altinn.Register.Models
 {
     /// <summary>
     /// Represents the input parameters for the Person lookup endpoint.

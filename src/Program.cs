@@ -7,9 +7,13 @@ using System.Threading.Tasks;
 using Altinn.Common.AccessToken;
 using Altinn.Common.AccessToken.Configuration;
 using Altinn.Common.AccessToken.Services;
-using Altinn.Platform.Register.Core;
-using Altinn.Platform.Register.Services;
-using Altinn.Platform.Telemetry;
+using Altinn.Register.Configuration;
+using Altinn.Register.Core;
+using Altinn.Register.Filters;
+using Altinn.Register.Health;
+using Altinn.Register.Services;
+using Altinn.Register.Services.Implementation;
+using Altinn.Register.Services.Interfaces;
 
 using AltinnCore.Authentication.JwtCookie;
 
@@ -32,12 +36,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-
-using Register.Configuration;
-using Register.Filters;
-using Register.Health;
-using Register.Services.Implementation;
-using Register.Services.Interfaces;
 
 using Swashbuckle.AspNetCore.SwaggerGen;
 

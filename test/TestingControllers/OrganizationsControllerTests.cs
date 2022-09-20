@@ -7,9 +7,11 @@ using System.Threading.Tasks;
 
 using Altinn.Common.AccessToken.Services;
 using Altinn.Platform.Register.Models;
-using Altinn.Platform.Register.Tests.Mocks;
-using Altinn.Platform.Register.Tests.Mocks.Authentication;
-using Altinn.Platform.Register.Tests.Utils;
+using Altinn.Register.Controllers;
+using Altinn.Register.Services.Interfaces;
+using Altinn.Register.Tests.Mocks;
+using Altinn.Register.Tests.Mocks.Authentication;
+using Altinn.Register.Tests.Utils;
 
 using AltinnCore.Authentication.JwtCookie;
 
@@ -21,12 +23,9 @@ using Microsoft.Extensions.Options;
 
 using Moq;
 
-using Register.Controllers;
-using Register.Services.Interfaces;
-
 using Xunit;
 
-namespace Altinn.Platform.Register.Tests.TestingControllers
+namespace Altinn.Register.Tests.TestingControllers
 {
     public class OrganizationsControllerTests : IClassFixture<WebApplicationFactory<OrganizationsController>>
     {

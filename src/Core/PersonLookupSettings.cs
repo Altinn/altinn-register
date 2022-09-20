@@ -1,4 +1,4 @@
-namespace Altinn.Platform.Register.Core
+namespace Altinn.Register.Core
 {
     /// <summary>
     /// Represents settings related to the person lookup endpoint.

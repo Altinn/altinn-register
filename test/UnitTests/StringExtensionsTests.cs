@@ -1,8 +1,8 @@
-using Altinn.Platform.Register.Core;
+using Altinn.Register.Core;
 
 using Xunit;
 
-namespace Altinn.Platform.Register.Tests.UnitTests
+namespace Altinn.Register.Tests.UnitTests
 {
     public class StringExtensionsTests
     {

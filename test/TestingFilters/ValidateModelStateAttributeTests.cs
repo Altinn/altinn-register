@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 
+using Altinn.Register.Filters;
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
@@ -9,11 +11,9 @@ using Microsoft.AspNetCore.Routing;
 
 using Moq;
 
-using Register.Filters;
-
 using Xunit;
 
-namespace Altinn.Platform.Register.Tests.TestingFilters
+namespace Altinn.Register.Tests.TestingFilters
 {
     public class ValidateModelStateAttributeTests
     {
@@ -87,7 +87,8 @@ namespace Altinn.Platform.Register.Tests.TestingFilters
                     modelState),
                 new List<IFilterMetadata>(),
                 new Dictionary<string, object>(),
-                new Mock<Controller>().Object) { Result = result };
+                new Mock<Controller>().Object)
+            { Result = result };
 
             return context;
         }

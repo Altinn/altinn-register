@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.Serialization;
 
-namespace Altinn.Platform.Register.Core
+namespace Altinn.Register.Core
 {
     /// <summary>
     /// Represents a situation where a user has performed too many failed lookup requests.

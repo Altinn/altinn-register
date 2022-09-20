@@ -7,9 +7,9 @@ using Altinn.Common.AccessToken.Services;
 
 using Microsoft.IdentityModel.Tokens;
 
-namespace Altinn.Platform.Register.Tests.Mocks
+namespace Altinn.Register.Tests.Mocks
 {
-    public class SigningKeyResolverMock: ISigningKeysResolver
+    public class SigningKeyResolverMock : ISigningKeysResolver
     {
         public Task<IEnumerable<SecurityKey>> GetSigningKeys(string issuer)
         {

@@ -4,6 +4,8 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
+using Altinn.Register.Filters;
+using Altinn.Register.Services.Interfaces;
 
 using AltinnCore.Authentication.Constants;
 
@@ -11,10 +13,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-using Register.Filters;
-using Register.Services.Interfaces;
-
-namespace Register.Controllers
+namespace Altinn.Register.Controllers
 {
     /// <summary>
     /// The parties controller provides access to party information in the SBL Register component.

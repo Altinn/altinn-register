@@ -53,7 +53,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\Register.csproj" />
+    <ProjectReference Include="..\src\Altinn.Register.csproj" />
   </ItemGroup>
 
   <ItemGroup>

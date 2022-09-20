@@ -3,13 +3,11 @@
 using System;
 using System.Text;
 
-using Altinn.Platform.Register.Models;
-
-using Register.Models;
+using Altinn.Register.Models;
 
 using Xunit;
 
-namespace Altinn.Platform.Register.Tests.UnitTests
+namespace Altinn.Register.Tests.UnitTests
 {
     public class PersonLookupIdentifiersTests
     {

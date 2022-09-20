@@ -3,14 +3,14 @@ using System;
 using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
+using Altinn.Register.Core;
+using Altinn.Register.Services.Interfaces;
 
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-using Register.Services.Interfaces;
-
-namespace Altinn.Platform.Register.Core
+namespace Altinn.Register.Core
 {
     /// <summary>
     /// Represents the business logic related to checking if a national identity number is in use.

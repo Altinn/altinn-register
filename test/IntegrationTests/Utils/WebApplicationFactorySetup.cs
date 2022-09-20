@@ -1,8 +1,11 @@
 using System.Net.Http;
 
 using Altinn.Common.AccessToken.Services;
-using Altinn.Platform.Register.Tests.Mocks;
-using Altinn.Platform.Register.Tests.Mocks.Authentication;
+using Altinn.Register.Configuration;
+using Altinn.Register.Services.Implementation;
+using Altinn.Register.Services.Interfaces;
+using Altinn.Register.Tests.Mocks;
+using Altinn.Register.Tests.Mocks.Authentication;
 
 using AltinnCore.Authentication.JwtCookie;
 
@@ -15,11 +18,7 @@ using Microsoft.Extensions.Options;
 
 using Moq;
 
-using Register.Configuration;
-using Register.Services.Implementation;
-using Register.Services.Interfaces;
-
-namespace Altinn.Platform.Register.Tests.IntegrationTests.Utils
+namespace Altinn.Register.Tests.IntegrationTests.Utils
 {
     public class WebApplicationFactorySetup<T>
         where T : class

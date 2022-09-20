@@ -1,7 +1,8 @@
 using System.Threading.Tasks;
-using Register.Services.Interfaces;
 
-namespace Altinn.Platform.Register.Tests.Mocks
+using Altinn.Register.Services.Interfaces;
+
+namespace Altinn.Register.Tests.Mocks
 {
     public class AuthorizationWrapperMock : IAuthorization
     {
