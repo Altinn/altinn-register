@@ -17,7 +17,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
-    "Altinn.Platform.Register": {
+    "Altinn.Register": {
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "http://localhost:5020/register/swagger",

@@ -121,7 +121,7 @@ void ConfigureSetupLogging()
     var logFactory = LoggerFactory.Create(builder =>
     {
         builder
-            .AddFilter("Altinn.Platform.Register.Program", LogLevel.Debug)
+            .AddFilter("Altinn.Register.Program", LogLevel.Debug)
             .AddConsole();
     });
 
