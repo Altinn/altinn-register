@@ -1,7 +1,7 @@
 version: 2
 updates:
   ## Register
-  - directory: "src/Register"
+  - directory: "src"
     package-ecosystem: "nuget"
     schedule:
       interval: "weekly"
@@ -10,7 +10,7 @@ updates:
       timezone: "Europe/Oslo"
 
 ## Test
-  - directory: "test/Altinn.Platform.Register.Tests"
+  - directory: "test"
     package-ecosystem: "nuget"
     schedule:
       interval: "weekly"

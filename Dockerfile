@@ -1,11 +1,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:6.0.401-alpine3.16 AS build
-WORKDIR Register/
+WORKDIR Altinn.Register/
 
-COPY src/Register ./Register
-WORKDIR Register/
+COPY src ./Altinn.Register
+WORKDIR Altinn.Register/
 
-RUN dotnet build Altinn.Platform.Register.csproj -c Release -o /app_output
-RUN dotnet publish Altinn.Platform.Register.csproj -c Release -o /app_output
+RUN dotnet build Altinn.Register.csproj -c Release -o /app_output
+RUN dotnet publish Altinn.Register.csproj -c Release -o /app_output
 
 FROM mcr.microsoft.com/dotnet/aspnet:6.0.9-alpine3.16 AS final
 EXPOSE 5020
@@ -18,4 +18,4 @@ RUN addgroup -g 3000 dotnet && adduser -u 1000 -G dotnet -D -s /bin/false dotnet
 USER dotnet
 RUN mkdir /tmp/logtelemetry
 
-ENTRYPOINT ["dotnet", "Altinn.Platform.Register.dll"]
+ENTRYPOINT ["dotnet", "Register.dll"]
