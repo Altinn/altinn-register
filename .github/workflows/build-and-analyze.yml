@@ -9,7 +9,7 @@ on:
 jobs:
   build-and-test:
     name: Build and Test
-    if: ((github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false) || github.event_name == 'push') && github.repository_owner == 'Altinn' && github.actor != 'dependabot[bot]' 
+    if: ((github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false) || github.event_name == 'push') && github.repository_owner == 'Altinn' && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -23,7 +23,7 @@ jobs:
            dotnet build Altinn.Register.sln -v m
            dotnet test Altinn.Register.sln -v m
   analyze:
-    if: ((github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false) || github.event_name == 'push') && github.repository_owner == 'Altinn' && github.actor != 'dependabot[bot]' 
+    if: ((github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false) || github.event_name == 'push') && github.repository_owner == 'Altinn' && github.actor != 'dependabot[bot]'
     name: Analyze
     runs-on: windows-latest
     steps:
@@ -71,7 +71,7 @@ jobs:
           dotnet test Altinn.Register.sln `
           --no-build `
           --results-directory TestResults/ `
-          --collect:"XPlat Code Coverage" `
+          --collect:"XPlat Code Coverage" /p:Exclude="src/**/Program.cs" `
           -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
 
           .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
