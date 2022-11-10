@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:6.0.403-alpine3.16 AS build
+FROM mcr.microsoft.com/dotnet/sdk:7.0.100-alpine3.16 AS build
 WORKDIR Altinn.Register/
 
 COPY src ./Altinn.Register
