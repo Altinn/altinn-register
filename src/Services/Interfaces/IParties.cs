@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
@@ -29,5 +30,12 @@ namespace Altinn.Register.Services.Interfaces
         /// <param name="lookupValue">SSN or org number</param>
         /// <returns></returns>
         Task<Party> LookupPartyBySSNOrOrgNo(string lookupValue);
+
+        /// <summary>
+        /// Returns a list of Parties based on a list of partyIds.
+        /// </summary>
+        /// <param name="partyIds">List of partyIds.</param>
+        /// <returns>A list of Parties.</returns>
+        Task<List<Party>> GetPartyList(List<int> partyIds);
     }
 }

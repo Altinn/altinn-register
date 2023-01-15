@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -7,6 +9,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 
 using Altinn.Common.AccessToken.Services;
+using Altinn.Platform.Register.Enums;
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Controllers;
 using Altinn.Register.Services.Interfaces;
@@ -278,6 +281,74 @@ namespace Altinn.Register.Tests.TestingControllers
 
             // Assert
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        }
+
+        /// <summary>
+        /// Test for GetPartyListForUser
+        /// </summary>
+        [Fact]
+        public async Task GetPartyListForPartyIds_Validtoken()
+        {
+            string token = PrincipalUtil.GetToken(1);
+            List<int> partyIds = new List<int>();
+            List<Party> partyList = new List<Party>();
+
+            partyIds.Add(500000);
+            partyIds.Add(500001);
+
+            partyList.Add(GetParty(500000, PartyType.Organisation));
+            partyList.Add(GetParty(500001, PartyType.Person));
+
+            // Arrange
+            Mock<IParties> partiesService = new Mock<IParties>();
+            partiesService.Setup(s => s.GetPartyList(It.Is<List<int>>(o => o.All(partyIds.Contains) && o.Count == partyIds.Count))).ReturnsAsync(partyList);
+
+            HttpClient client = GetTestClient(partiesService.Object);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            StringContent requestBody = new StringContent(JsonSerializer.Serialize(partyIds), Encoding.UTF8, "application/json");
+
+            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, "/register/api/v1/parties/partylist") { Content = requestBody };
+            httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
+
+            // Act
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+
+            // Assert
+            partiesService.VerifyAll();
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            List<Party> actual = await JsonSerializer.DeserializeAsync<List<Party>>(await response.Content.ReadAsStreamAsync());
+
+            Assert.NotNull(actual);
+            Assert.Equal(2, actual.Count);
+        }
+
+        private Party GetParty(int partyId, PartyType partyType)
+        {
+            if (partyType == PartyType.Organisation)
+            {
+                return new Party()
+                {
+                    PartyId = partyId,
+                    PartyTypeName = partyType,
+                    OrgNumber = "945325674",
+                    Name = "OrgA"
+                };
+            }
+            else if (partyType == PartyType.Person)
+            {
+                return new Party()
+                {
+                    PartyId = partyId,
+                    PartyTypeName = partyType,
+                    SSN = "12076822341",
+                    Name = "PersonA"
+                };
+            }
+
+            return null;
         }
 
         private HttpClient GetTestClient(IParties partiesService)
