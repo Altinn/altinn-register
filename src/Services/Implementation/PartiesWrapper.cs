@@ -19,7 +19,6 @@ namespace Altinn.Register.Services.Implementation
     /// <summary>
     /// The parties wrapper
     /// </summary>
-    [ExcludeFromCodeCoverage]
     public class PartiesWrapper : IParties
     {
         private readonly GeneralSettings _generalSettings;
@@ -117,28 +116,20 @@ namespace Altinn.Register.Services.Implementation
         /// <inheritdoc />
         public async Task<List<Party>> GetPartyList(List<int> partyIds)
         {
-            try
+            UriBuilder uriBuilder = new UriBuilder($"{_generalSettings.BridgeApiEndpoint}parties");
+
+            StringContent requestBody = new StringContent(JsonSerializer.Serialize(partyIds), Encoding.UTF8, "application/json");
+            HttpResponseMessage response = await _client.PostAsync(uriBuilder.Uri, requestBody);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.OK)
             {
-                UriBuilder uriBuilder = new UriBuilder($"{_generalSettings.BridgeApiEndpoint}parties");
-
-                StringContent requestBody = new StringContent(JsonSerializer.Serialize(partyIds), Encoding.UTF8, "application/json");
-                HttpResponseMessage response = await _client.PostAsync(uriBuilder.Uri, requestBody);
-
-                if (response.StatusCode == System.Net.HttpStatusCode.OK)
-                {
-                    string responseContent = await response.Content.ReadAsStringAsync();
-                    List<Party> partiesInfo = JsonSerializer.Deserialize<List<Party>>(responseContent);
-                    return partiesInfo;
-                }
-                else
-                {
-                    _logger.LogError("Getting parties information from bridge failed with {StatusCode}", response.StatusCode);
-                }
+                string responseContent = await response.Content.ReadAsStringAsync();
+                List<Party> partiesInfo = JsonSerializer.Deserialize<List<Party>>(responseContent);
+                return partiesInfo;
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, "Register // PartiesWrapper // GetPartyListAsync // Exception");
-                throw;
+                _logger.LogError("Getting parties information from bridge failed with {StatusCode}", response.StatusCode);
             }
 
             return null;
