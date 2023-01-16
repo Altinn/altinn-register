@@ -1,11 +1,8 @@
-﻿using Altinn.Register.Tests.IntegrationTests;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Altinn.Register.Tests.IntegrationTests;
 
 namespace Altinn.Register.Tests.Utils
 {

@@ -1,11 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http.Headers;
-using System.Net.Http;
+﻿using System.Collections.Generic;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text;
-using System.Threading.Tasks;
+using System.Text.Json;
+using System.Threading.Tasks;   
+using Altinn.Platform.Register.Enums;
+using Altinn.Platform.Register.Models;
 using Altinn.Register.Configuration;
 using Altinn.Register.Controllers;
 using Altinn.Register.Tests.IntegrationTests.Utils;
@@ -13,14 +15,6 @@ using Altinn.Register.Tests.Mocks;
 using Altinn.Register.Tests.Utils;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
-using Altinn.Platform.Register.Models;
-using Altinn.Platform.Register.Enums;
-using System.Text.Json;
-using Altinn.Register.Services.Interfaces;
-using Moq;
-using Altinn.Platform.Profile.Models;
-using static Microsoft.ApplicationInsights.MetricDimensionNames.TelemetryContext;
-using System.Net.Http.Json;
 
 namespace Altinn.Register.Tests.IntegrationTests
 {
