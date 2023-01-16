@@ -115,9 +115,9 @@ namespace Altinn.Register.Controllers
             {
                 parties = await _partiesWrapper.GetPartyList(partyIds);
             }
-            catch (ArgumentException e)
+            catch (Exception)
             {
-                return BadRequest(e.Message);
+                return StatusCode(500);
             }
 
             if (parties == null || parties.Count < 1)

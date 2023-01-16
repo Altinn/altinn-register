@@ -325,6 +325,40 @@ namespace Altinn.Register.Tests.TestingControllers
             Assert.Equal(2, actual.Count);
         }
 
+        /// <summary>
+        /// Test for GetPartyListForUser with no data for fail partyids
+        /// </summary>
+        [Fact]
+        public async Task GetPartyListForPartyIds_Notfound_Validtoken()
+        {
+            string token = PrincipalUtil.GetToken(1);
+            List<int> partyIds = new List<int>();
+            List<Party> partyList = new List<Party>();
+
+            partyIds.Add(1);
+            partyIds.Add(2);
+
+            // Arrange
+            Mock<IParties> partiesService = new Mock<IParties>();
+            partiesService.Setup(s => s.GetPartyList(It.Is<List<int>>(o => o.All(partyIds.Contains) && o.Count == partyIds.Count))).ReturnsAsync(partyList);
+
+            HttpClient client = GetTestClient(partiesService.Object);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            StringContent requestBody = new StringContent(JsonSerializer.Serialize(partyIds), Encoding.UTF8, "application/json");
+
+            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, "/register/api/v1/parties/partylist") { Content = requestBody };
+            httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
+
+            // Act
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+
+            // Assert
+            partiesService.VerifyAll();
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+
         private Party GetParty(int partyId, PartyType partyType)
         {
             if (partyType == PartyType.Organisation)

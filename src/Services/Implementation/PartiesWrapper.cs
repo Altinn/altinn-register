@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -18,6 +19,7 @@ namespace Altinn.Register.Services.Implementation
     /// <summary>
     /// The parties wrapper
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public class PartiesWrapper : IParties
     {
         private readonly GeneralSettings _generalSettings;
