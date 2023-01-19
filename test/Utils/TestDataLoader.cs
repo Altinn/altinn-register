@@ -18,7 +18,7 @@ namespace Altinn.Register.Tests.Utils
 
         private static string GetPath(string id)
         {
-            string? unitTestFolder = Path.GetDirectoryName(new Uri(typeof(PartiesControllerTests).Assembly.Location).LocalPath);
+            string unitTestFolder = Path.GetDirectoryName(new Uri(typeof(PartiesControllerTests).Assembly.Location).LocalPath);
             return Path.Combine(unitTestFolder, "Testdata", $"{id}.json");
         }
     }

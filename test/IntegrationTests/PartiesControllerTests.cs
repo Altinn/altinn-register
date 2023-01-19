@@ -38,10 +38,8 @@ namespace Altinn.Register.Tests.IntegrationTests
             partyIds.Add(50004216);
             partyIds.Add(50004219);
 
-            HttpRequestMessage sblRequest = null;
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
-                sblRequest = request;
                 List<Party> partyList = new List<Party>();
 
                 foreach (int id in partyIds)
@@ -66,6 +64,8 @@ namespace Altinn.Register.Tests.IntegrationTests
             HttpResponseMessage response = await client.SendAsync(testRequest);
 
             // Assert
+            Assert.Equal(response.RequestMessage.RequestUri, testRequest.RequestUri);
+            Assert.Equal(response.RequestMessage.Content, testRequest.Content);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
@@ -80,10 +80,8 @@ namespace Altinn.Register.Tests.IntegrationTests
             partyIds.Add(1);
             partyIds.Add(2);
 
-            HttpRequestMessage sblRequest = null;
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
-                sblRequest = request;
                 return await Task.FromResult(new HttpResponseMessage() { StatusCode = HttpStatusCode.NotFound });
             });
             _webApplicationFactorySetup.SblBridgeHttpMessageHandler = messageHandler;
@@ -101,6 +99,9 @@ namespace Altinn.Register.Tests.IntegrationTests
             HttpResponseMessage response = await client.SendAsync(testRequest);
 
             // Assert
+            Assert.Equal(response.RequestMessage.RequestUri, testRequest.RequestUri);
+            Assert.Equal(response.RequestMessage.Content, testRequest.Content);
+
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
