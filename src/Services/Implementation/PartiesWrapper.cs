@@ -26,6 +26,10 @@ namespace Altinn.Register.Services.Implementation
         private readonly HttpClient _client;
         private readonly IMemoryCache _memoryCache;
         private const int _cacheTimeout = 5;
+        private readonly JsonSerializerOptions options = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PartiesWrapper"/> class
@@ -124,7 +128,7 @@ namespace Altinn.Register.Services.Implementation
             if (response.StatusCode == System.Net.HttpStatusCode.OK)
             {
                 string responseContent = await response.Content.ReadAsStringAsync();
-                List<Party> partiesInfo = JsonSerializer.Deserialize<List<Party>>(responseContent);
+                List<Party> partiesInfo = JsonSerializer.Deserialize<List<Party>>(responseContent, options);
                 return partiesInfo;
             }
             else

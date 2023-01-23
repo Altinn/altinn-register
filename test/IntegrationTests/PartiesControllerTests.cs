@@ -15,12 +15,17 @@ using Altinn.Register.Tests.Mocks;
 using Altinn.Register.Tests.Utils;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
+using static Microsoft.ApplicationInsights.MetricDimensionNames.TelemetryContext;
 
 namespace Altinn.Register.Tests.IntegrationTests
 {
     public class PartiesControllerTests : IClassFixture<WebApplicationFactory<PartiesController>>
     {
         private readonly WebApplicationFactorySetup<PartiesController> _webApplicationFactorySetup;
+        private readonly JsonSerializerOptions options = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
 
         public PartiesControllerTests(WebApplicationFactory<PartiesController> factory)
         {
@@ -37,9 +42,14 @@ namespace Altinn.Register.Tests.IntegrationTests
             List<int> partyIds = new List<int>();
             partyIds.Add(50004216);
             partyIds.Add(50004219);
+            List<Party> expectedParties = new List<Party>();
+            expectedParties.Add(await TestDataLoader.Load<Party>("50004216"));
+            expectedParties.Add(await TestDataLoader.Load<Party>("50004219"));
 
+            HttpRequestMessage sblRequest = null;
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
+                sblRequest = request;
                 List<Party> partyList = new List<Party>();
 
                 foreach (int id in partyIds)
@@ -62,11 +72,17 @@ namespace Altinn.Register.Tests.IntegrationTests
 
             // Act
             HttpResponseMessage response = await client.SendAsync(testRequest);
+            string responseContent = await response.Content.ReadAsStringAsync();
+
+            List<Party> actualParties = JsonSerializer.Deserialize<List<Party>>(
+                responseContent, options);
 
             // Assert
-            Assert.Equal(response.RequestMessage.RequestUri, testRequest.RequestUri);
-            Assert.Equal(response.RequestMessage.Content, testRequest.Content);
+            Assert.NotNull(sblRequest);
+            Assert.Equal(HttpMethod.Post, sblRequest.Method);
+            Assert.EndsWith($"/parties", sblRequest.RequestUri.ToString());
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            AssertionUtil.AssertEqual(expectedParties, actualParties);
         }
 
         /// <summary>
@@ -99,43 +115,7 @@ namespace Altinn.Register.Tests.IntegrationTests
             HttpResponseMessage response = await client.SendAsync(testRequest);
 
             // Assert
-            Assert.Equal(response.RequestMessage.RequestUri, testRequest.RequestUri);
-            Assert.Equal(response.RequestMessage.Content, testRequest.Content);
-
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-        }
-
-        private static async Task<HttpResponseMessage> CreateHttpResponseMessage(object obj)
-        {
-            string content = JsonSerializer.Serialize(obj);
-            StringContent stringContent = new StringContent(content, Encoding.UTF8, "application/json");
-            return await Task.FromResult(new HttpResponseMessage { Content = stringContent });
-        }
-
-        private Party GetParty(int partyId, PartyType partyType)
-        {
-            if (partyType == PartyType.Organisation)
-            {
-                return new Party()
-                {
-                    PartyId = partyId,
-                    PartyTypeName = partyType,
-                    OrgNumber = "945325674",
-                    Name = "OrgA"
-                };
-            }
-            else if (partyType == PartyType.Person)
-            {
-                return new Party()
-                {
-                    PartyId = partyId,
-                    PartyTypeName = partyType,
-                    SSN = "12076822341",
-                    Name = "PersonA"
-                };
-            }
-
-            return null;
         }
     }
 }
