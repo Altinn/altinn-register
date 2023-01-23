@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -24,6 +26,10 @@ namespace Altinn.Register.Services.Implementation
         private readonly HttpClient _client;
         private readonly IMemoryCache _memoryCache;
         private const int _cacheTimeout = 5;
+        private readonly JsonSerializerOptions options = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PartiesWrapper"/> class
@@ -109,6 +115,28 @@ namespace Altinn.Register.Services.Implementation
             }
 
             return -1;
+        }
+
+        /// <inheritdoc />
+        public async Task<List<Party>> GetPartyList(List<int> partyIds)
+        {
+            UriBuilder uriBuilder = new UriBuilder($"{_generalSettings.BridgeApiEndpoint}parties");
+
+            StringContent requestBody = new StringContent(JsonSerializer.Serialize(partyIds), Encoding.UTF8, "application/json");
+            HttpResponseMessage response = await _client.PostAsync(uriBuilder.Uri, requestBody);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.OK)
+            {
+                string responseContent = await response.Content.ReadAsStringAsync();
+                List<Party> partiesInfo = JsonSerializer.Deserialize<List<Party>>(responseContent, options);
+                return partiesInfo;
+            }
+            else
+            {
+                _logger.LogError("Getting parties information from bridge failed with {StatusCode}", response.StatusCode);
+            }
+
+            return null;
         }
     }
 }

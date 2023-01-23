@@ -75,6 +75,11 @@
     <None Update="ttd-org.pfx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-  </ItemGroup>
+ </ItemGroup>
+   <ItemGroup>
+		<Content Include="Testdata\**">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
 
 </Project>

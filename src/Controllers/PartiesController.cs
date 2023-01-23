@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -96,6 +97,28 @@ namespace Altinn.Register.Controllers
             }
 
             return Ok(party);
+        }
+
+        /// <summary>
+        /// Gets the party list for the list of party ids.
+        /// </summary>
+        /// <param name="partyIds">List of partyIds for parties to retrieve.</param>
+        /// <returns>List of parties based on the partyIds.</returns>
+        [HttpPost("partylist")]
+        [Consumes("application/json")]
+        [Produces("application/json")]
+        public async Task<ActionResult<List<Party>>> GetPartyListForPartyIds([FromBody] List<int> partyIds)
+        {
+            List<Party> parties;
+
+            parties = await _partiesWrapper.GetPartyList(partyIds);
+
+            if (parties == null || parties.Count < 1)
+            {
+                return NotFound();
+            }
+
+            return Ok(parties);
         }
 
         /// <summary>
