@@ -28,7 +28,7 @@ namespace Altinn.Register.Services.Implementation
         private const int _cacheTimeout = 5;
         private readonly JsonSerializerOptions options = new()
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            PropertyNameCaseInsensitive = true,
         };
 
         /// <summary>

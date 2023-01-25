@@ -24,7 +24,7 @@ namespace Altinn.Register.Tests.IntegrationTests
         private readonly WebApplicationFactorySetup<PartiesController> _webApplicationFactorySetup;
         private readonly JsonSerializerOptions options = new()
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            PropertyNameCaseInsensitive = true,
         };
 
         public PartiesControllerTests(WebApplicationFactory<PartiesController> factory)
