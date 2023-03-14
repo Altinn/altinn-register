@@ -55,7 +55,11 @@ namespace Altinn.Register.Controllers
                 bool? isValid = false;
                 if (userId.HasValue)
                 {
-                    isValid = await _authorization.ValidateSelectedParty(userId.Value, partyId);
+                    isValid = PartyIsCallingUser(partyId);
+                    if ((bool)!isValid)
+                    {
+                        isValid = await _authorization.ValidateSelectedParty(userId.Value, partyId);
+                    }
                 }
 
                 if (!isValid.HasValue || !isValid.Value)
@@ -119,6 +123,15 @@ namespace Altinn.Register.Controllers
             }
 
             return Ok(parties);
+        }
+
+        /// <summary>
+        /// Check whether the party id is the user's party id
+        /// </summary>
+        private bool PartyIsCallingUser(int partyId)
+        {
+            string partyIdFromClaim = HttpContext.User.Claims.First(claim => claim.Type.Equals(AltinnCoreClaimTypes.PartyID))?.Value;
+            return partyIdFromClaim != null ? int.Parse(partyIdFromClaim) == partyId : false;
         }
 
         /// <summary>
