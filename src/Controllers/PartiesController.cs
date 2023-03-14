@@ -49,6 +49,7 @@ namespace Altinn.Register.Controllers
         [Produces("application/json")]
         public async Task<ActionResult<Party>> Get(int partyId)
         {
+            Console.WriteLine("Inside get party");
             if (!IsOrg(HttpContext))
             {
                 int? userId = GetUserId(HttpContext);
@@ -130,7 +131,9 @@ namespace Altinn.Register.Controllers
         /// </summary>
         private bool PartyIsCallingUser(int partyId)
         {
+            Console.WriteLine("Inside PartyIsCallingUser");
             string partyIdFromClaim = HttpContext.User.Claims.First(claim => claim.Type.Equals(AltinnCoreClaimTypes.PartyID))?.Value;
+            Console.WriteLine("Inside PartyIsCallingUser: " + partyIdFromClaim + ", " + partyId);
             return partyIdFromClaim != null ? int.Parse(partyIdFromClaim) == partyId : false;
         }
 
