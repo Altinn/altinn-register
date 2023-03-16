@@ -130,7 +130,7 @@ namespace Altinn.Register.Controllers
         /// </summary>
         private bool PartyIsCallingUser(int partyId)
         {
-            Claim claim = HttpContext.User.Claims.First(claim => claim.Type.Equals(AltinnCoreClaimTypes.PartyID));
+            Claim claim = HttpContext.User.Claims.FirstOrDefault(claim => claim.Type.Equals(AltinnCoreClaimTypes.PartyID));
             return claim != null ? (int.Parse(claim.Value) == partyId) : false;
         }
 
