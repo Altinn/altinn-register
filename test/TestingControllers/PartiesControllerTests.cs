@@ -200,8 +200,6 @@ namespace Altinn.Register.Tests.TestingControllers
         [Fact]
         public async Task PostPartyLookup_InputIsOrgNo_BackendServiceRespondsWithParty_ControllerRespondsWithOkAndParty()
         {
-            string token = PrincipalUtil.GetToken(1);
-
             // Arrange
             string orgNo = "555000103";
 
@@ -214,7 +212,6 @@ namespace Altinn.Register.Tests.TestingControllers
             partiesService.Setup(s => s.LookupPartyBySSNOrOrgNo(It.Is<string>(p => p == orgNo))).ReturnsAsync(party);
 
             HttpClient client = GetTestClient(partiesService.Object);
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             PartyLookup lookUp = new PartyLookup { OrgNo = orgNo };
 
