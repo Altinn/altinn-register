@@ -112,7 +112,6 @@ namespace Altinn.Register.Controllers
         [HttpPost("partylist")]
         [Consumes("application/json")]
         [Produces("application/json")]
-        [Authorize]
         [Authorize(Policy = "PlatformAccess")]
         public async Task<ActionResult<List<Party>>> GetPartyListForPartyIds([FromBody] List<int> partyIds)
         {
