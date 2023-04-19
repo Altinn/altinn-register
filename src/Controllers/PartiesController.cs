@@ -19,6 +19,7 @@ namespace Altinn.Register.Controllers
     /// <summary>
     /// The parties controller provides access to party information in the SBL Register component.
     /// </summary>
+    [Authorize(Policy = "PlatformAccess")]
     [Route("register/api/v1/parties")]
     public class PartiesController : Controller
     {
@@ -46,7 +47,6 @@ namespace Altinn.Register.Controllers
         [ProducesResponseType(200)]
         [Produces("application/json")]
         [Authorize]
-        [Authorize(Policy = "PlatformAccess")]
         public async Task<ActionResult<Party>> Get(int partyId)
         {
             if (!IsOrg(HttpContext))
@@ -89,7 +89,6 @@ namespace Altinn.Register.Controllers
         [ProducesResponseType(404)]
         [ProducesResponseType(200)]
         [Produces("application/json")]
-        [Authorize(Policy = "PlatformAccess")]
         public async Task<ActionResult<Party>> PostPartyLookup([FromBody] PartyLookup partyLookup)
         {
             string lookupValue = partyLookup.OrgNo ?? partyLookup.Ssn;
@@ -112,7 +111,6 @@ namespace Altinn.Register.Controllers
         [HttpPost("partylist")]
         [Consumes("application/json")]
         [Produces("application/json")]
-        [Authorize(Policy = "PlatformAccess")]
         public async Task<ActionResult<List<Party>>> GetPartyListForPartyIds([FromBody] List<int> partyIds)
         {
             List<Party> parties;
