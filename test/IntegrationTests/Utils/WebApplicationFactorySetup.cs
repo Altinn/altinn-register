@@ -45,7 +45,7 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
                 builder.ConfigureTestServices(services =>
                 {
                     services.AddSingleton<IPostConfigureOptions<JwtCookieOptions>, JwtCookiePostConfigureOptionsStub>();
-                    services.AddSingleton<ISigningKeysResolver, SigningKeyResolverMock>();
+                    services.AddSingleton<IPublicSigningKeyProvider, PublicSigningKeyProviderMock>();
                     services.AddSingleton<IMemoryCache>(MemoryCache);
 
                     // Using the real/actual implementation of IParties, but with a mocked message handler.

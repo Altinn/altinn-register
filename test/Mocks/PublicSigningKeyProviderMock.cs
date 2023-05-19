@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
@@ -9,7 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace Altinn.Register.Tests.Mocks
 {
-    public class SigningKeyResolverMock : ISigningKeysResolver
+    public class PublicSigningKeyProviderMock : IPublicSigningKeyProvider
     {
         public Task<IEnumerable<SecurityKey>> GetSigningKeys(string issuer)
         {
