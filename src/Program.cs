@@ -181,7 +181,7 @@ void ConfigureServices(IServiceCollection services, IConfiguration config)
 
     services.AddSingleton<IAuthorizationHandler, AccessTokenHandler>();
     services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-    services.AddSingleton<ISigningKeysResolver, SigningKeysResolver>();
+    services.AddSingleton<IPublicSigningKeyProvider, PublicSigningKeyProvider>();
 
     services.AddTransient<IPersonLookup, PersonLookupService>();
     services.Decorate<IPersonLookup, PersonLookupCacheDecorator>();
