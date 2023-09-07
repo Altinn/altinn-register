@@ -1,13 +1,12 @@
-namespace Altinn.Register.Configuration
+namespace Altinn.Register.Configuration;
+
+/// <summary>
+/// Platform configuration settings
+/// </summary>
+public class PlatformSettings
 {
     /// <summary>
-    /// Platform configuration settings
+    /// Gets or sets the authorization endpoint
     /// </summary>
-    public class PlatformSettings
-    {
-        /// <summary>
-        /// Gets or sets the authorization endpoint
-        /// </summary>
-        public string ApiAuthorizationEndpoint { get; set; }
-    }
+    public string ApiAuthorizationEndpoint { get; set; } = string.Empty;
 }

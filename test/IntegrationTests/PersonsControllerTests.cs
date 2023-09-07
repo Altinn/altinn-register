@@ -4,7 +4,6 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
@@ -42,8 +41,8 @@ namespace Altinn.Register.Tests.IntegrationTests
             {
                 sblRequest = request;
 
-                Party party = new Party { Person = new Person { LastName = "làstnâme" } };
-                return await CreateHttpResponseMessage(party);
+                Person person = new Person { LastName = "làstnâme" };
+                return await CreateHttpResponseMessage(person);
             });
             _webApplicationFactorySetup.SblBridgeHttpMessageHandler = messageHandler;
 

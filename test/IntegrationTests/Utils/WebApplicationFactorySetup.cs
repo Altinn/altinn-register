@@ -32,6 +32,8 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
 
         public Mock<ILogger<PartiesWrapper>> PartiesWrapperLogger { get; set; } = new();
 
+        public Mock<ILogger<PersonsWrapper>> PersonsWrapperLogger { get; set; } = new();
+
         public Mock<IOptions<GeneralSettings>> GeneralSettingsOptions { get; set; } = new();
 
         public MemoryCache MemoryCache { get; set; } = new MemoryCache(new MemoryCacheOptions());
@@ -48,7 +50,7 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
                     services.AddSingleton<IPublicSigningKeyProvider, PublicSigningKeyProviderMock>();
                     services.AddSingleton<IMemoryCache>(MemoryCache);
 
-                    // Using the real/actual implementation of IParties, but with a mocked message handler.
+                    // Using the real/actual implementation of IParties and IPersons, but with a mocked message handler.
                     // Haven't found any other ways of injecting a mocked message handler to simulate SBL Bridge.
                     services.AddSingleton<IParties>(
                         new PartiesWrapper(
@@ -56,6 +58,11 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
                             GeneralSettingsOptions.Object,
                             PartiesWrapperLogger.Object,
                             MemoryCache));
+                    services.AddSingleton<IPersons>(
+                        new PersonsWrapper(
+                            new HttpClient(SblBridgeHttpMessageHandler),
+                            GeneralSettingsOptions.Object,
+                            PersonsWrapperLogger.Object));
                 });
             }).CreateClient();
         }

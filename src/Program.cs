@@ -216,6 +216,7 @@ void ConfigureServices(IServiceCollection services, IConfiguration config)
     });
 
     services.AddHttpClient<IOrganizations, OrganizationsWrapper>();
+    services.AddHttpClient<IPersons, PersonsWrapper>(); 
     services.AddHttpClient<IParties, PartiesWrapper>();
     services.AddHttpClient<IAuthorization, AuthorizationWrapper>();
 
