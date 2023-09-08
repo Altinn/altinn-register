@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,39 +19,36 @@ namespace Altinn.Register.Tests.UnitTests;
 
 public class PersonLookupServiceTests
 {
-    private readonly Mock<IParties> parties;
-    private readonly Mock<IOptions<PersonLookupSettings>> settingsMock;
-    private readonly Mock<ILogger<PersonLookupService>> logger;
+    private readonly Mock<IPersons> _persons;
+    private readonly Mock<IOptions<PersonLookupSettings>> _settingsMock;
+    private readonly Mock<ILogger<PersonLookupService>> _logger;
 
     private readonly MemoryCache memoryCache;
     private readonly PersonLookupSettings lookupSettings;
 
     public PersonLookupServiceTests()
     {
-        parties = new Mock<IParties>();
+        _persons = new Mock<IPersons>();
         lookupSettings = new PersonLookupSettings();
 
-        settingsMock = new Mock<IOptions<PersonLookupSettings>>();
-        settingsMock.Setup(s => s.Value).Returns(lookupSettings);
+        _settingsMock = new Mock<IOptions<PersonLookupSettings>>();
+        _settingsMock.Setup(s => s.Value).Returns(lookupSettings);
 
         memoryCache = new MemoryCache(new MemoryCacheOptions());
-        logger = new Mock<ILogger<PersonLookupService>>();
+        _logger = new Mock<ILogger<PersonLookupService>>();
     }
 
     [Fact]
     public async Task GetPerson_NoFailedAttempts_CorrectInput_ReturnsParty()
     {
         // Arrange
-        Party party = new Party
+        Person person = new Person
         {
-            Person = new Person
-            {
-                LastName = "lastname"
-            }
+            LastName = "lastname"
         };
-        parties.Setup(s => s.LookupPartyBySSNOrOrgNo(It.IsAny<string>())).ReturnsAsync(party);
+        _persons.Setup(s => s.GetPerson(It.IsAny<string>())).ReturnsAsync(person);
 
-        var target = new PersonLookupService(parties.Object, settingsMock.Object, memoryCache, logger.Object);
+        var target = new PersonLookupService(_persons.Object, _settingsMock.Object, memoryCache, _logger.Object);
 
         // Act
         var actual = await target.GetPerson("personnumber", "lastname", 777);
@@ -63,18 +62,15 @@ public class PersonLookupServiceTests
     public async Task GetPerson_OneFailedAttempt_MoreToGo_CorrectInput_ReturnsParty()
     {
         // Arrange
-        Party party = new Party
+        Person person = new Person
         {
-            Person = new Person
-            {
-                LastName = "lastname"
-            }
+            LastName = "lastname"
         };
-        parties.Setup(s => s.LookupPartyBySSNOrOrgNo(It.IsAny<string>())).ReturnsAsync(party);
+        _persons.Setup(s => s.GetPerson(It.IsAny<string>())).ReturnsAsync(person);
         memoryCache.Set("Person-Lookup-Failed-Attempts777", 1);
         lookupSettings.MaximumFailedAttempts = 2;
 
-        var target = new PersonLookupService(parties.Object, settingsMock.Object, memoryCache, logger.Object);
+        var target = new PersonLookupService(_persons.Object, _settingsMock.Object, memoryCache, _logger.Object);
 
         // Act
         var actual = await target.GetPerson("personnumber", "lastname", 777);
@@ -88,11 +84,11 @@ public class PersonLookupServiceTests
     public async Task GetPerson_OneFailedAttempt_MoreToGo_WrongInput_ReturnsNull()
     {
         // Arrange
-        parties.Setup(s => s.LookupPartyBySSNOrOrgNo(It.IsAny<string>())).ReturnsAsync((Party)null);
+        _persons.Setup(s => s.GetPerson(It.IsAny<string>())).ReturnsAsync((Person?)null);
         memoryCache.Set("Person-Lookup-Failed-Attempts777", 1);
         lookupSettings.MaximumFailedAttempts = 2;
 
-        var target = new PersonLookupService(parties.Object, settingsMock.Object, memoryCache, logger.Object);
+        var target = new PersonLookupService(_persons.Object, _settingsMock.Object, memoryCache, _logger.Object);
 
         // Act
         var actual = await target.GetPerson("personnumber", "lastname", 777);
@@ -106,20 +102,17 @@ public class PersonLookupServiceTests
     public async Task GetPerson_TooManyFailedAttempts_CorrectInput_ThrowsTooManyFailedLookupsException()
     {
         // Arrange
-        Party party = new Party
+        Person person = new Person
         {
-            Person = new Person
-            {
-                LastName = "lastname"
-            }
+            LastName = "lastname"
         };
-        parties.Setup(s => s.LookupPartyBySSNOrOrgNo(It.IsAny<string>())).ReturnsAsync(party);
+        _persons.Setup(s => s.GetPerson(It.IsAny<string>())).ReturnsAsync(person);
         memoryCache.Set("Person-Lookup-Failed-Attempts777", 1);
         lookupSettings.MaximumFailedAttempts = 1;
 
-        var target = new PersonLookupService(parties.Object, settingsMock.Object, memoryCache, logger.Object);
+        var target = new PersonLookupService(_persons.Object, _settingsMock.Object, memoryCache, _logger.Object);
 
-        TooManyFailedLookupsException actual = null;
+        TooManyFailedLookupsException? actual = null;
 
         // Act
         try
@@ -140,19 +133,16 @@ public class PersonLookupServiceTests
     public async Task GetPerson_WrongInput_FailedAttemptsBeingResetAtCacheTimeout()
     {
         // Arrange
-        Party party = new()
+        Person person = new Person
         {
-            Person = new Person
-            {
-                LastName = "lastname"
-            }
+            LastName = "lastname"
         };
-        parties.Setup(s => s.LookupPartyBySSNOrOrgNo(It.IsAny<string>())).ReturnsAsync(party);
+        _persons.Setup(s => s.GetPerson(It.IsAny<string>())).ReturnsAsync(person);
         memoryCache.Set("Person-Lookup-Failed-Attempts777", 1);
         lookupSettings.MaximumFailedAttempts = 2;
         lookupSettings.FailedAttemptsCacheLifetimeSeconds = 1;
 
-        var target = new PersonLookupService(parties.Object, settingsMock.Object, memoryCache, logger.Object);
+        var target = new PersonLookupService(_persons.Object, _settingsMock.Object, memoryCache, _logger.Object);
 
         // Act
         _ = await target.GetPerson("personnumber", "wrongname", 777);

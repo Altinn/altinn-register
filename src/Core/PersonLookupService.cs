@@ -3,7 +3,6 @@ using System;
 using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
-using Altinn.Register.Core;
 using Altinn.Register.Services.Interfaces;
 
 using Microsoft.Extensions.Caching.Memory;
@@ -19,7 +18,7 @@ namespace Altinn.Register.Core
     {
         private const string PersonLookupFailedAttempts = "Person-Lookup-Failed-Attempts";
 
-        private readonly IParties _partiesService;
+        private readonly IPersons _personsService;
         private readonly PersonLookupSettings _personLookupSettings;
         private readonly IMemoryCache _memoryCache;
         private readonly ILogger<PersonLookupService> _logger;
@@ -28,12 +27,12 @@ namespace Altinn.Register.Core
         /// Initialize a new instance of the <see cref="PersonLookupService"/> class.
         /// </summary>
         public PersonLookupService(
-            IParties partiesService,
+            IPersons personsService,
             IOptions<PersonLookupSettings> personLookupSettings,
             IMemoryCache memoryCache,
             ILogger<PersonLookupService> logger)
         {
-            _partiesService = partiesService;
+            _personsService = personsService;
             _personLookupSettings = personLookupSettings.Value;
             _memoryCache = memoryCache;
             _logger = logger;
@@ -59,13 +58,13 @@ namespace Altinn.Register.Core
                 throw new TooManyFailedLookupsException();
             }
 
-            Party? party = await _partiesService.LookupPartyBySSNOrOrgNo(nationalIdentityNumber);
+            Person? person = await _personsService.GetPerson(nationalIdentityNumber);
 
-            string nameFromParty = party?.Person?.LastName ?? string.Empty;
+            string nameFromParty = person?.LastName ?? string.Empty;
 
             if (nameFromParty.Length > 0 && nameFromParty.IsSimilarTo(lastName))
             {
-                return party!.Person;
+                return person;
             }
 
             failedAttempts += 1;
