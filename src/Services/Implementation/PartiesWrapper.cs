@@ -96,27 +96,6 @@ public class PartiesWrapper : IParties
     }
 
     /// <inheritdoc />
-    public async Task<int> LookupPartyIdBySSNOrOrgNo(string lookupValue)
-    {
-        Uri endpointUrl = new($"{_generalSettings.BridgeApiEndpoint}parties/lookup");
-
-        StringContent requestBody = new(JsonSerializer.Serialize(lookupValue), Encoding.UTF8, "application/json");
-
-        HttpResponseMessage response = await _client.PostAsync(endpointUrl, requestBody);
-
-        if (response.StatusCode == System.Net.HttpStatusCode.OK)
-        {
-            return await JsonSerializer.DeserializeAsync<int>(await response.Content.ReadAsStreamAsync());
-        }
-        else
-        {
-            _logger.LogError("Getting party id by lookup value failed with statuscode {StatusCode}", response.StatusCode);
-        }
-
-        return -1;
-    }
-
-    /// <inheritdoc />
     public async Task<List<Party>> GetPartyList(List<int> partyIds)
     {
         UriBuilder uriBuilder = new UriBuilder($"{_generalSettings.BridgeApiEndpoint}parties");
