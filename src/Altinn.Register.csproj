@@ -3,6 +3,8 @@
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <UserSecretsId>40079649-62e9-487c-9e6b-e632fd6e7617</UserSecretsId>
     <!-- SonarCloud needs this -->
     <ProjectGuid>{245b9c40-e4f7-47cb-96c8-e027078fe1b5}</ProjectGuid>
   </PropertyGroup>
@@ -30,15 +32,5 @@
       <Link>stylecop.json</Link>
     </AdditionalFiles>
   </ItemGroup>
-
-  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-    <CodeAnalysisRuleSet>..\Altinn3.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn>
-    <UserSecretsId>40079649-62e9-487c-9e6b-e632fd6e7617</UserSecretsId>
-  </PropertyGroup>
 
 </Project>
