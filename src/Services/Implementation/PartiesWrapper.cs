@@ -60,7 +60,7 @@ public class PartiesWrapper : IParties
 
         if (response.StatusCode == System.Net.HttpStatusCode.OK)
         {
-            party = await JsonSerializer.DeserializeAsync<Party>(await response.Content.ReadAsStreamAsync());
+            party = await JsonSerializer.DeserializeAsync<Party>(await response.Content.ReadAsStreamAsync(), options);
             _memoryCache.Set(cacheKey, party, new TimeSpan(0, _cacheTimeout, 0));
             return party;
         }
@@ -101,6 +101,55 @@ public class PartiesWrapper : IParties
         UriBuilder uriBuilder = new UriBuilder($"{_generalSettings.BridgeApiEndpoint}parties");
 
         StringContent requestBody = new StringContent(JsonSerializer.Serialize(partyIds), Encoding.UTF8, "application/json");
+        HttpResponseMessage response = await _client.PostAsync(uriBuilder.Uri, requestBody);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.OK)
+        {
+            string responseContent = await response.Content.ReadAsStringAsync();
+            List<Party> partiesInfo = JsonSerializer.Deserialize<List<Party>>(responseContent, options);
+            return partiesInfo;
+        }
+        else
+        {
+            _logger.LogError("Getting parties information from bridge failed with {StatusCode}", response.StatusCode);
+        }
+
+        return null;
+    }
+
+    /// <inheritdoc />
+    public async Task<Party> GetPartyByUuid(Guid partyUuid)
+    {
+        string cacheKey = $"PartyUUID:{partyUuid}";
+        if (_memoryCache.TryGetValue(cacheKey, out Party party))
+        {
+            return party;
+        }
+
+        Uri endpointUrl = new($"{_generalSettings.BridgeApiEndpoint}parties?partyuuid={partyUuid}");
+
+        HttpResponseMessage response = await _client.GetAsync(endpointUrl);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.OK)
+        {
+            party = await JsonSerializer.DeserializeAsync<Party>(await response.Content.ReadAsStreamAsync(), options);
+            _memoryCache.Set(cacheKey, party, new TimeSpan(0, _cacheTimeout, 0));
+            return party;
+        }
+        else
+        {
+            _logger.LogError("Getting party with party Id {PartyId} failed with statuscode {StatusCode}", partyUuid, response.StatusCode);
+        }
+
+        return null;
+    }
+
+    /// <inheritdoc />
+    public async Task<List<Party>> GetPartyListByUuid(List<Guid> partyUuids)
+    {
+        UriBuilder uriBuilder = new UriBuilder($"{_generalSettings.BridgeApiEndpoint}parties/byuuid");
+
+        StringContent requestBody = new StringContent(JsonSerializer.Serialize(partyUuids), Encoding.UTF8, "application/json");
         HttpResponseMessage response = await _client.PostAsync(uriBuilder.Uri, requestBody);
 
         if (response.StatusCode == System.Net.HttpStatusCode.OK)

@@ -78,6 +78,29 @@ namespace Altinn.Register.Controllers
         }
 
         /// <summary>
+        /// Gets the party for a given party uuid.
+        /// </summary>
+        /// <param name="partyUuid">The party uuid.</param>
+        /// <returns>The information about a given party.</returns>
+        [HttpGet("partybyuuid")]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(200)]
+        [Produces("application/json")]
+        public async Task<ActionResult<Party>> GetByUuid(Guid partyUuid)
+        {
+            Party party;
+
+            party = await _partiesWrapper.GetPartyByUuid(partyUuid);
+
+            if (party == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(party);
+        }
+
+        /// <summary>
         /// Perform a lookup/search for a specific party by using one of the provided ids.
         /// </summary>
         /// <param name="partyLookup">The lookup criteria. One and only one of the properties must be a valid value.</param>
@@ -116,6 +139,28 @@ namespace Altinn.Register.Controllers
             List<Party> parties;
 
             parties = await _partiesWrapper.GetPartyList(partyIds);
+
+            if (parties == null || parties.Count < 1)
+            {
+                return NotFound();
+            }
+
+            return Ok(parties);
+        }
+
+        /// <summary>
+        /// Gets the party list for the list of party uuids.
+        /// </summary>
+        /// <param name="partyUuids">List of partyUuids for parties to retrieve.</param>
+        /// <returns>List of parties based on the party uuids.</returns>
+        [HttpPost("partylistbyuuid")]
+        [Consumes("application/json")]
+        [Produces("application/json")]
+        public async Task<ActionResult<List<Party>>> GetPartyListForPartyUuids([FromBody] List<Guid> partyUuids)
+        {
+            List<Party> parties;
+
+            parties = await _partiesWrapper.GetPartyListByUuid(partyUuids);
 
             if (parties == null || parties.Count < 1)
             {

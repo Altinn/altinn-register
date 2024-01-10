@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -187,6 +188,103 @@ namespace Altinn.Register.Tests.TestingControllers
             HttpRequestMessage httpRequestMessage =
                 new HttpRequestMessage(HttpMethod.Post, "/register/api/v1/parties/lookup") { Content = requestBody };
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
+
+            // Act
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+
+            // Assert
+            partiesService.VerifyAll();
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetPartyListByUuid_SameLengthRequestAsResponse_ReturnsPartyList()
+        {
+            List<Guid> partyUuids = new List<Guid> { new("93630D41-CA61-4B5C-B8FB-3346B561F6FF"), new("E622554E-3DE5-44CD-A822-C66024768013") };
+
+            // Arrange
+            Mock<IParties> partiesService = new Mock<IParties>();
+            partiesService.Setup(s => s.GetPartyListByUuid(It.IsAny<List<Guid>>())).ReturnsAsync(new List<Party> { new(), new() });
+
+            HttpClient client = GetTestClient(partiesService.Object);
+            
+            StringContent requestBody = new StringContent(JsonSerializer.Serialize(partyUuids), Encoding.UTF8, "application/json");
+
+            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, "/register/api/v1/parties/partylistbyuuid") { Content = requestBody };
+            
+            // Act
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+
+            // Assert
+            partiesService.VerifyAll();
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            List<Party> actual = await JsonSerializer.DeserializeAsync<List<Party>>(await response.Content.ReadAsStreamAsync());
+
+            Assert.NotNull(actual);
+            Assert.Equal(partyUuids.Count, actual.Count);
+        }
+
+        [Fact]
+        public async Task GetPartyByUuid_FetchParty_ReturnsParty()
+        {
+            // Arrange
+            Mock<IParties> partiesService = new Mock<IParties>();
+            partiesService.Setup(s => s.GetPartyByUuid(It.Is<Guid>(g => g == new Guid("93630D41-CA61-4B5C-B8FB-3346B561F6FF")))).ReturnsAsync(new Party());
+
+            HttpClient client = GetTestClient(partiesService.Object);
+
+            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/partybyuuid?partyuuid=93630D41-CA61-4B5C-B8FB-3346B561F6FF");
+
+            // Act
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+
+            // Assert
+            partiesService.VerifyAll();
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            Party actual = await JsonSerializer.DeserializeAsync<Party>(await response.Content.ReadAsStreamAsync());
+
+            Assert.NotNull(actual);
+        }
+
+        [Fact]
+        public async Task GetPartyByUuid_FetchParty_ReturnsNothing()
+        {
+            // Arrange
+            Mock<IParties> partiesService = new Mock<IParties>();
+            partiesService.Setup(s => s.GetPartyByUuid(It.Is<Guid>(g => g == new Guid("93630D41-CA61-4B5C-B8FB-3346B561F6FF")))).ReturnsAsync((Party)null);
+
+            HttpClient client = GetTestClient(partiesService.Object);
+
+            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/partybyuuid?partyuuid=93630D41-CA61-4B5C-B8FB-3346B561F6FF");
+
+            // Act
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+
+            // Assert
+            partiesService.VerifyAll();
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetPartyListByUuid_NoResponse_ReturnsNotFound()
+        {
+            List<Guid> partyUuids = new List<Guid> { new("93630D41-CA61-4B5C-B8FB-3346B561F6FF"), new("E622554E-3DE5-44CD-A822-C66024768013") };
+
+            // Arrange
+            Mock<IParties> partiesService = new Mock<IParties>();
+            partiesService.Setup(s => s.GetPartyListByUuid(It.IsAny<List<Guid>>())).ReturnsAsync(new List<Party>());
+
+            HttpClient client = GetTestClient(partiesService.Object);
+
+            StringContent requestBody = new StringContent(JsonSerializer.Serialize(partyUuids), Encoding.UTF8, "application/json");
+
+            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, "/register/api/v1/parties/partylistbyuuid") { Content = requestBody };
 
             // Act
             HttpResponseMessage response = await client.SendAsync(httpRequestMessage);

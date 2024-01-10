@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -18,6 +19,13 @@ public interface IParties
     Task<Party> GetParty(int partyId);
 
     /// <summary>
+    /// Method that fetches a party based on a party uuid
+    /// </summary>
+    /// <param name="partyUuid">The party uuid</param>
+    /// <returns></returns>
+    Task<Party> GetPartyByUuid(Guid partyUuid);
+
+    /// <summary>
     /// Method that fetches a party based on social security number or organisation number.
     /// </summary>
     /// <param name="lookupValue">SSN or org number</param>
@@ -30,4 +38,11 @@ public interface IParties
     /// <param name="partyIds">List of partyIds.</param>
     /// <returns>A list of Parties.</returns>
     Task<List<Party>> GetPartyList(List<int> partyIds);
+
+    /// <summary>
+    /// Returns a list of Parties based on a list of party uuids.
+    /// </summary>
+    /// <param name="partyUuids">List of party uuids.</param>
+    /// <returns>A list of Parties.</returns>
+    Task<List<Party>> GetPartyListByUuid(List<Guid> partyUuids);
 }
