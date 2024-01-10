@@ -208,11 +208,12 @@ namespace Altinn.Register.Tests.TestingControllers
             partiesService.Setup(s => s.GetPartyListByUuid(It.IsAny<List<Guid>>())).ReturnsAsync(new List<Party> { new(), new() });
 
             HttpClient client = GetTestClient(partiesService.Object);
-            
+
             StringContent requestBody = new StringContent(JsonSerializer.Serialize(partyUuids), Encoding.UTF8, "application/json");
 
             HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, "/register/api/v1/parties/partylistbyuuid") { Content = requestBody };
-            
+            httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
+
             // Act
             HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
 
@@ -237,6 +238,7 @@ namespace Altinn.Register.Tests.TestingControllers
             HttpClient client = GetTestClient(partiesService.Object);
 
             HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/partybyuuid?partyuuid=93630D41-CA61-4B5C-B8FB-3346B561F6FF");
+            httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
             HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
@@ -261,6 +263,7 @@ namespace Altinn.Register.Tests.TestingControllers
             HttpClient client = GetTestClient(partiesService.Object);
 
             HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/partybyuuid?partyuuid=93630D41-CA61-4B5C-B8FB-3346B561F6FF");
+            httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
             HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
@@ -285,6 +288,7 @@ namespace Altinn.Register.Tests.TestingControllers
             StringContent requestBody = new StringContent(JsonSerializer.Serialize(partyUuids), Encoding.UTF8, "application/json");
 
             HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, "/register/api/v1/parties/partylistbyuuid") { Content = requestBody };
+            httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
             HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
