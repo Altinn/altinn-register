@@ -22,8 +22,8 @@ namespace Altinn.Register.Tests.UnitTests
 {
     public class PartyWrapperTest
     {
-        private Mock<IOptions<GeneralSettings>> _generalSettingsOptions = new();
-        private Mock<ILogger<PartiesWrapper>> _partyWrapperLogger = new();
+        private readonly Mock<IOptions<GeneralSettings>> _generalSettingsOptions = new();
+        private readonly Mock<ILogger<PartiesWrapper>> _partyWrapperLogger = new();
         private readonly IMemoryCache _memoryCache;
 
         public PartyWrapperTest()
@@ -37,7 +37,7 @@ namespace Altinn.Register.Tests.UnitTests
         public async Task GetParty_SblBridge_finds_party_Target_returns_Party()
         {
             // Arrange
-            HttpRequestMessage? sblRequest = null;
+            HttpRequestMessage sblRequest = null;
             Guid partyUuid = new Guid("4c3b4909-eb17-45d5-bde1-256e065e196a");
             string cacheKey = $"PartyUUID:{partyUuid}";
             bool inCache = _memoryCache.TryGetValue(cacheKey, out Party fromCache);
@@ -45,7 +45,7 @@ namespace Altinn.Register.Tests.UnitTests
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
                 sblRequest = request;
-                Party party= new Party
+                Party party = new Party
                 {
                     PartyId = 50002114,
                     PartyUuid = new Guid("4c3b4909-eb17-45d5-bde1-256e065e196a"),
@@ -95,7 +95,7 @@ namespace Altinn.Register.Tests.UnitTests
         public async Task GetParty_SblBridge_finds_party_Target_returns_NotFound()
         {
             // Arrange
-            HttpRequestMessage? sblRequest = null;
+            HttpRequestMessage sblRequest = null;
             Guid partyUuid = new Guid("4c3b4909-eb17-45d5-bde1-256e065e196a");
             string cacheKey = $"PartyUUID:{partyUuid}";
             bool inCache = _memoryCache.TryGetValue(cacheKey, out Party fromCache);
@@ -124,8 +124,8 @@ namespace Altinn.Register.Tests.UnitTests
         public async Task GetParty_SblBridge_finds_partylist_Target_returns_PartyList()
         {
             // Arrange
-            HttpRequestMessage? sblRequest = null;
-            List<Guid> partyUuids = new List<Guid>{ new("4c3b4909-eb17-45d5-bde1-256e065e196a"), new("93630d41-ca61-4b5c-b8fb-3346b561f6ff"), new("e622554e-3de5-44cd-a822-c66024768013") };
+            HttpRequestMessage sblRequest = null;
+            List<Guid> partyUuids = new List<Guid> { new("4c3b4909-eb17-45d5-bde1-256e065e196a"), new("93630d41-ca61-4b5c-b8fb-3346b561f6ff"), new("e622554e-3de5-44cd-a822-c66024768013") };
             
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
@@ -151,7 +151,7 @@ namespace Altinn.Register.Tests.UnitTests
                     },
                     new()
                     {
-                        PartyId =  50002118,
+                        PartyId = 50002118,
                         PartyUuid = new("93630d41-ca61-4b5c-b8fb-3346b561f6ff"),
                         PartyTypeName = PartyType.Person,
                         SSN = "01035922055",
@@ -208,7 +208,7 @@ namespace Altinn.Register.Tests.UnitTests
         public async Task GetParty_SblBridge_finds_partylist_Target_returns_NotFound()
         {
             // Arrange
-            HttpRequestMessage? sblRequest = null;
+            HttpRequestMessage sblRequest = null;
             List<Guid> partyUuids = new List<Guid> { new("4c3b4909-eb17-45d5-bde1-256e065e196a"), new("93630d41-ca61-4b5c-b8fb-3346b561f6ff"), new("e622554e-3de5-44cd-a822-c66024768013") };
 
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
@@ -240,7 +240,7 @@ namespace Altinn.Register.Tests.UnitTests
 
         private static async Task<HttpResponseMessage> CreateHttpErrorResponse(HttpStatusCode responseCode)
         {
-            return await Task.FromResult(new HttpResponseMessage { StatusCode = responseCode});
+            return await Task.FromResult(new HttpResponseMessage { StatusCode = responseCode });
         }
     }
 }
