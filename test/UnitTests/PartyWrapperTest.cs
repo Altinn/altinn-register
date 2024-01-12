@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -91,6 +92,35 @@ namespace Altinn.Register.Tests.UnitTests
         }
 
         [Fact]
+        public async Task GetParty_SblBridge_finds_party_Target_returns_NotFound()
+        {
+            // Arrange
+            HttpRequestMessage? sblRequest = null;
+            Guid partyUuid = new Guid("4c3b4909-eb17-45d5-bde1-256e065e196a");
+            string cacheKey = $"PartyUUID:{partyUuid}";
+            bool inCache = _memoryCache.TryGetValue(cacheKey, out Party fromCache);
+
+            DelegatingHandlerStub messageHandler = new(async (request, token) =>
+            {
+                sblRequest = request;
+                return await CreateHttpErrorResponse(HttpStatusCode.NotFound);
+            });
+
+            var target = new PartiesWrapper(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partyWrapperLogger.Object, _memoryCache);
+
+            // Act
+            var actual = await target.GetPartyByUuid(partyUuid);
+
+            // Assert
+            Assert.Null(actual);
+            Assert.False(inCache);
+            
+            Assert.NotNull(sblRequest);
+            Assert.Equal(HttpMethod.Get, sblRequest.Method);
+            Assert.EndsWith($"parties?partyuuid=4c3b4909-eb17-45d5-bde1-256e065e196a", sblRequest.RequestUri!.ToString());
+        }
+
+        [Fact]
         public async Task GetParty_SblBridge_finds_partylist_Target_returns_PartyList()
         {
             // Arrange
@@ -174,11 +204,43 @@ namespace Altinn.Register.Tests.UnitTests
             Assert.EndsWith($"parties/byuuid", sblRequest.RequestUri!.ToString());
         }
 
+        [Fact]
+        public async Task GetParty_SblBridge_finds_partylist_Target_returns_NotFound()
+        {
+            // Arrange
+            HttpRequestMessage? sblRequest = null;
+            List<Guid> partyUuids = new List<Guid> { new("4c3b4909-eb17-45d5-bde1-256e065e196a"), new("93630d41-ca61-4b5c-b8fb-3346b561f6ff"), new("e622554e-3de5-44cd-a822-c66024768013") };
+
+            DelegatingHandlerStub messageHandler = new(async (request, token) =>
+            {
+                sblRequest = request;
+                
+                return await CreateHttpErrorResponse(HttpStatusCode.NotFound);
+            });
+
+            var target = new PartiesWrapper(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partyWrapperLogger.Object, _memoryCache);
+
+            // Act
+            var actual = await target.GetPartyListByUuid(partyUuids);
+
+            // Assert
+            Assert.Null(actual);
+            
+            Assert.NotNull(sblRequest);
+            Assert.Equal(HttpMethod.Post, sblRequest.Method);
+            Assert.EndsWith($"parties/byuuid", sblRequest.RequestUri!.ToString());
+        }
+
         private static async Task<HttpResponseMessage> CreateHttpResponseMessage(object obj)
         {
             string content = JsonSerializer.Serialize(obj);
             StringContent stringContent = new StringContent(content, Encoding.UTF8, "application/json");
             return await Task.FromResult(new HttpResponseMessage { Content = stringContent });
+        }
+
+        private static async Task<HttpResponseMessage> CreateHttpErrorResponse(HttpStatusCode responseCode)
+        {
+            return await Task.FromResult(new HttpResponseMessage { StatusCode = responseCode});
         }
     }
 }
