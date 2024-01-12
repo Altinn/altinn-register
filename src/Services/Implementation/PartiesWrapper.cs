@@ -137,7 +137,7 @@ public class PartiesWrapper : IParties
             return party;
         }
         
-        _logger.LogError("Getting party with party Id {PartyId} failed with statuscode {StatusCode}", partyUuid, response.StatusCode);
+        _logger.LogError("Getting party with party Id {PartyUuid} failed with statuscode {StatusCode}", partyUuid, response.StatusCode);
         return null;
     }
 
