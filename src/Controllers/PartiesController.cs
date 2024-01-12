@@ -82,7 +82,7 @@ namespace Altinn.Register.Controllers
         /// </summary>
         /// <param name="partyUuid">The party uuid.</param>
         /// <returns>The information about a given party.</returns>
-        [HttpGet("partybyuuid")]
+        [HttpGet("{partyUuid:Guid}")]
         [ProducesResponseType(404)]
         [ProducesResponseType(200)]
         [Produces("application/json")]
@@ -162,7 +162,7 @@ namespace Altinn.Register.Controllers
 
             parties = await _partiesWrapper.GetPartyListByUuid(partyUuids);
 
-            if (parties == null || parties.Count < 1)
+            if (parties == null)
             {
                 return NotFound();
             }

@@ -237,7 +237,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             HttpClient client = GetTestClient(partiesService.Object);
 
-            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/partybyuuid?partyuuid=93630D41-CA61-4B5C-B8FB-3346B561F6FF");
+            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/93630D41-CA61-4B5C-B8FB-3346B561F6FF");
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
@@ -262,7 +262,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             HttpClient client = GetTestClient(partiesService.Object);
 
-            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/partybyuuid?partyuuid=93630D41-CA61-4B5C-B8FB-3346B561F6FF");
+            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/93630D41-CA61-4B5C-B8FB-3346B561F6FF");
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
@@ -281,7 +281,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             // Arrange
             Mock<IParties> partiesService = new Mock<IParties>();
-            partiesService.Setup(s => s.GetPartyListByUuid(It.IsAny<List<Guid>>())).ReturnsAsync(new List<Party>());
+            partiesService.Setup(s => s.GetPartyListByUuid(It.IsAny<List<Guid>>())).ReturnsAsync(null as List<Party>);
 
             HttpClient client = GetTestClient(partiesService.Object);
 

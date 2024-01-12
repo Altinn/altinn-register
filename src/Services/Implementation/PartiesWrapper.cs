@@ -136,11 +136,8 @@ public class PartiesWrapper : IParties
             _memoryCache.Set(cacheKey, party, new TimeSpan(0, _cacheTimeout, 0));
             return party;
         }
-        else
-        {
-            _logger.LogError("Getting party with party Id {PartyId} failed with statuscode {StatusCode}", partyUuid, response.StatusCode);
-        }
-
+        
+        _logger.LogError("Getting party with party Id {PartyId} failed with statuscode {StatusCode}", partyUuid, response.StatusCode);
         return null;
     }
 
@@ -158,11 +155,8 @@ public class PartiesWrapper : IParties
             List<Party> partiesInfo = JsonSerializer.Deserialize<List<Party>>(responseContent, options);
             return partiesInfo;
         }
-        else
-        {
-            _logger.LogError("Getting parties information from bridge failed with {StatusCode}", response.StatusCode);
-        }
-
+        
+        _logger.LogError("Getting parties information from bridge failed with {StatusCode}", response.StatusCode);
         return null;
     }
 }
