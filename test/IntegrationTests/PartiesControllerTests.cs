@@ -40,12 +40,12 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Partie
     public async Task GetPartyList_ValidInput_OK()
     {
         // Arrange
-        List<int> partyIds = new List<int>();
-        partyIds.Add(50004216);
-        partyIds.Add(50004219);
-        List<Party> expectedParties = new List<Party>();
-        expectedParties.Add(await TestDataLoader.Load<Party>("50004216"));
-        expectedParties.Add(await TestDataLoader.Load<Party>("50004219"));
+        List<int> partyIds = [50004216, 50004219];
+        List<Party> expectedParties =
+        [
+            await TestDataLoader.Load<Party>("50004216"),
+            await TestDataLoader.Load<Party>("50004219"),
+        ];
 
         HttpRequestMessage sblRequest = null;
         DelegatingHandlerStub messageHandler = new(async (request, token) =>
@@ -93,9 +93,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Partie
     public async Task GetPartyListForPartyIds_InvalidInput_Notfound()
     {
         // Arrange
-        List<int> partyIds = new List<int>();
-        partyIds.Add(1);
-        partyIds.Add(2);
+        List<int> partyIds = [1, 2];
 
         DelegatingHandlerStub messageHandler = new(async (request, token) =>
         {
