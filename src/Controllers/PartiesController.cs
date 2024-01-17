@@ -44,6 +44,7 @@ namespace Altinn.Register.Controllers
         /// <returns>The information about a given party.</returns>
         [HttpGet("{partyId:int}")]
         [ProducesResponseType(404)]
+        [ProducesResponseType(401)]
         [ProducesResponseType(200)]
         [Produces("application/json")]
         [Authorize]
@@ -75,6 +76,50 @@ namespace Altinn.Register.Controllers
             }
 
             return Ok(result);
+        }
+
+        /// <summary>
+        /// Gets the party for a given party uuid.
+        /// </summary>
+        /// <param name="partyUuid">The party uuid.</param>
+        /// <returns>The information about a given party.</returns>
+        [HttpGet("{partyUuid:Guid}")]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(200)]
+        [Produces("application/json")]
+        [Authorize]
+        public async Task<ActionResult<Party>> GetByUuid(Guid partyUuid)
+        {
+            Party party = await _partiesWrapper.GetPartyByUuid(partyUuid);
+
+            if (!IsOrg(HttpContext))
+            {
+                int? userId = GetUserId(HttpContext);
+                bool? isValid = false;
+                
+                if (party != null && userId.HasValue)
+                {
+                    isValid = PartyIsCallingUser(party.PartyId);
+                    
+                    if ((bool)!isValid)
+                    {
+                        isValid = await _authorization.ValidateSelectedParty(userId.Value, party.PartyId);
+                    }
+                }
+                
+                if (!isValid.HasValue || !isValid.Value)
+                {
+                    return Unauthorized();
+                }
+            }
+
+            if (party == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(party);
         }
 
         /// <summary>
@@ -126,12 +171,26 @@ namespace Altinn.Register.Controllers
         }
 
         /// <summary>
+        /// Gets the party list for the list of party uuids.
+        /// </summary>
+        /// <param name="partyUuids">List of partyUuids for parties to retrieve.</param>
+        /// <returns>List of parties based on the party uuids.</returns>
+        [HttpPost("partylistbyuuid")]
+        [Consumes("application/json")]
+        [Produces("application/json")]
+        public async Task<ActionResult<List<Party>>> GetPartyListForPartyUuids([FromBody] List<Guid> partyUuids)
+        {
+            List<Party> parties = await _partiesWrapper.GetPartyListByUuid(partyUuids);
+            return Ok(parties);
+        }
+
+        /// <summary>
         /// Check whether the party id is the user's party id
         /// </summary>
         private bool PartyIsCallingUser(int partyId)
         {
             Claim claim = HttpContext.User.Claims.FirstOrDefault(claim => claim.Type.Equals(AltinnCoreClaimTypes.PartyID));
-            return claim != null ? (int.Parse(claim.Value) == partyId) : false;
+            return claim != null && (int.Parse(claim.Value) == partyId);
         }
 
         /// <summary>
