@@ -97,16 +97,14 @@ namespace Altinn.Register.Controllers
             {
                 int? userId = GetUserId(HttpContext);
                 bool? isValid = false;
-                if (party != null)
+                
+                if (party != null && userId.HasValue)
                 {
-                    if (userId.HasValue)
+                    isValid = PartyIsCallingUser(party.PartyId);
+                    
+                    if ((bool)!isValid)
                     {
-                        isValid = PartyIsCallingUser(party.PartyId);
-                        
-                        if ((bool)!isValid)
-                        {
-                            isValid = await _authorization.ValidateSelectedParty(userId.Value, party.PartyId);
-                        }
+                        isValid = await _authorization.ValidateSelectedParty(userId.Value, party.PartyId);
                     }
                 }
                 
