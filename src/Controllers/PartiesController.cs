@@ -158,15 +158,7 @@ namespace Altinn.Register.Controllers
         [Produces("application/json")]
         public async Task<ActionResult<List<Party>>> GetPartyListForPartyUuids([FromBody] List<Guid> partyUuids)
         {
-            List<Party> parties;
-
-            parties = await _partiesWrapper.GetPartyListByUuid(partyUuids);
-
-            if (parties == null)
-            {
-                return NotFound();
-            }
-
+            List<Party> parties = await _partiesWrapper.GetPartyListByUuid(partyUuids);
             return Ok(parties);
         }
 

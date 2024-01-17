@@ -157,6 +157,6 @@ public class PartiesWrapper : IParties
         }
         
         _logger.LogError("Getting parties information from bridge failed with {StatusCode}", response.StatusCode);
-        return null;
+        return new List<Party>();
     }
 }

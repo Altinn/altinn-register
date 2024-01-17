@@ -275,13 +275,13 @@ namespace Altinn.Register.Tests.TestingControllers
         }
 
         [Fact]
-        public async Task GetPartyListByUuid_NoResponse_ReturnsNotFound()
+        public async Task GetPartyListByUuid_NoResponse_ReturnsEmptyList()
         {
             List<Guid> partyUuids = new List<Guid> { new("93630D41-CA61-4B5C-B8FB-3346B561F6FF"), new("E622554E-3DE5-44CD-A822-C66024768013") };
 
             // Arrange
             Mock<IParties> partiesService = new Mock<IParties>();
-            partiesService.Setup(s => s.GetPartyListByUuid(It.IsAny<List<Guid>>())).ReturnsAsync(null as List<Party>);
+            partiesService.Setup(s => s.GetPartyListByUuid(It.IsAny<List<Guid>>())).ReturnsAsync(new List<Party>());
 
             HttpClient client = GetTestClient(partiesService.Object);
 
@@ -296,7 +296,11 @@ namespace Altinn.Register.Tests.TestingControllers
             // Assert
             partiesService.VerifyAll();
 
-            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            List<Party> actual = await JsonSerializer.DeserializeAsync<List<Party>>(await response.Content.ReadAsStreamAsync());
+
+            Assert.Empty(actual);
         }
 
         [Fact]

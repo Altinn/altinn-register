@@ -224,7 +224,7 @@ namespace Altinn.Register.Tests.UnitTests
             var actual = await target.GetPartyListByUuid(partyUuids);
 
             // Assert
-            Assert.Null(actual);
+            Assert.Empty(actual);
             
             Assert.NotNull(sblRequest);
             Assert.Equal(HttpMethod.Post, sblRequest.Method);
