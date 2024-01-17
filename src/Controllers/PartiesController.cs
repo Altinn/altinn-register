@@ -44,6 +44,7 @@ namespace Altinn.Register.Controllers
         /// <returns>The information about a given party.</returns>
         [HttpGet("{partyId:int}")]
         [ProducesResponseType(404)]
+        [ProducesResponseType(401)]
         [ProducesResponseType(200)]
         [Produces("application/json")]
         [Authorize]
@@ -84,13 +85,36 @@ namespace Altinn.Register.Controllers
         /// <returns>The information about a given party.</returns>
         [HttpGet("{partyUuid:Guid}")]
         [ProducesResponseType(404)]
+        [ProducesResponseType(401)]
         [ProducesResponseType(200)]
         [Produces("application/json")]
+        [Authorize]
         public async Task<ActionResult<Party>> GetByUuid(Guid partyUuid)
         {
-            Party party;
+            Party party = await _partiesWrapper.GetPartyByUuid(partyUuid);
 
-            party = await _partiesWrapper.GetPartyByUuid(partyUuid);
+            if (!IsOrg(HttpContext))
+            {
+                int? userId = GetUserId(HttpContext);
+                bool? isValid = false;
+                if (party != null)
+                {
+                    if (userId.HasValue)
+                    {
+                        isValid = PartyIsCallingUser(party.PartyId);
+                        
+                        if ((bool)!isValid)
+                        {
+                            isValid = await _authorization.ValidateSelectedParty(userId.Value, party.PartyId);
+                        }
+                    }
+                }
+                
+                if (!isValid.HasValue || !isValid.Value)
+                {
+                    return Unauthorized();
+                }
+            }
 
             if (party == null)
             {
@@ -168,7 +192,7 @@ namespace Altinn.Register.Controllers
         private bool PartyIsCallingUser(int partyId)
         {
             Claim claim = HttpContext.User.Claims.FirstOrDefault(claim => claim.Type.Equals(AltinnCoreClaimTypes.PartyID));
-            return claim != null ? (int.Parse(claim.Value) == partyId) : false;
+            return claim != null && (int.Parse(claim.Value) == partyId);
         }
 
         /// <summary>

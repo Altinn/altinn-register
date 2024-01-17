@@ -92,7 +92,7 @@ namespace Altinn.Register.Tests.UnitTests
         }
 
         [Fact]
-        public async Task GetParty_SblBridge_finds_party_Target_returns_NotFound()
+        public async Task GetParty_SblBridge_returns_NotFound_Target_returns_Null()
         {
             // Arrange
             HttpRequestMessage sblRequest = null;
@@ -205,7 +205,7 @@ namespace Altinn.Register.Tests.UnitTests
         }
 
         [Fact]
-        public async Task GetParty_SblBridge_finds_partylist_Target_returns_NotFound()
+        public async Task GetParty_SblBridge_returns_NotFound_Target_returns_EmptyList()
         {
             // Arrange
             HttpRequestMessage sblRequest = null;

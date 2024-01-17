@@ -232,10 +232,13 @@ namespace Altinn.Register.Tests.TestingControllers
         public async Task GetPartyByUuid_FetchParty_ReturnsParty()
         {
             // Arrange
+            string token = PrincipalUtil.GetToken(1);
+
             Mock<IParties> partiesService = new Mock<IParties>();
             partiesService.Setup(s => s.GetPartyByUuid(It.Is<Guid>(g => g == new Guid("93630D41-CA61-4B5C-B8FB-3346B561F6FF")))).ReturnsAsync(new Party());
 
             HttpClient client = GetTestClient(partiesService.Object);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/93630D41-CA61-4B5C-B8FB-3346B561F6FF");
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
@@ -254,13 +257,63 @@ namespace Altinn.Register.Tests.TestingControllers
         }
 
         [Fact]
-        public async Task GetPartyByUuid_FetchParty_ReturnsNothing()
+        public async Task GetPartyByUuid_FetchParty_ReturnsNotAuthorized()
         {
             // Arrange
+            string token = PrincipalUtil.GetToken(1);
+
             Mock<IParties> partiesService = new Mock<IParties>();
             partiesService.Setup(s => s.GetPartyByUuid(It.Is<Guid>(g => g == new Guid("93630D41-CA61-4B5C-B8FB-3346B561F6FF")))).ReturnsAsync((Party)null);
 
             HttpClient client = GetTestClient(partiesService.Object);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/93630D41-CA61-4B5C-B8FB-3346B561F6FF");
+            httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
+
+            // Act
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+
+            // Assert
+            partiesService.VerifyAll();
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetPartyByUuid_FetchPartyExpiredToken_ReturnsNotAuthorized()
+        {
+            // Arrange
+            string token = PrincipalUtil.GetExpiredToken();
+
+            Mock<IParties> partiesService = new Mock<IParties>();
+            
+            HttpClient client = GetTestClient(partiesService.Object);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/93630D41-CA61-4B5C-B8FB-3346B561F6FF");
+            httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
+
+            // Act
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+
+            // Assert
+            partiesService.VerifyAll();
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetPartyByUuid_FetchParty_ReturnsNothing()
+        {
+            // Arrange
+            string token = PrincipalUtil.GetServiceOwnerOrgToken("ttd");
+
+            Mock<IParties> partiesService = new Mock<IParties>();
+            partiesService.Setup(s => s.GetPartyByUuid(It.Is<Guid>(g => g == new Guid("93630D41-CA61-4B5C-B8FB-3346B561F6FF")))).ReturnsAsync((Party)null);
+
+            HttpClient client = GetTestClient(partiesService.Object);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/93630D41-CA61-4B5C-B8FB-3346B561F6FF");
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
