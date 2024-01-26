@@ -36,13 +36,15 @@ public interface IParties
     /// Returns a list of Parties based on a list of partyIds.
     /// </summary>
     /// <param name="partyIds">List of partyIds.</param>
+    /// <param name="fetchSubUnits">flag indicating whether subunits should be included</param>
     /// <returns>A list of Parties.</returns>
-    Task<List<Party>> GetPartyList(List<int> partyIds);
+    Task<List<Party>> GetPartyList(List<int> partyIds, bool fetchSubUnits);
 
     /// <summary>
     /// Returns a list of Parties based on a list of party uuids.
     /// </summary>
     /// <param name="partyUuids">List of party uuids.</param>
+    /// <param name="fetchSubUnits">flag indicating whether subunits should be included</param>
     /// <returns>A list of Parties.</returns>
-    Task<List<Party>> GetPartyListByUuid(List<Guid> partyUuids);
+    Task<List<Party>> GetPartyListByUuid(List<Guid> partyUuids, bool fetchSubUnits);
 }

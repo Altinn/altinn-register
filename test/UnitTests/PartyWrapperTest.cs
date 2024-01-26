@@ -201,7 +201,7 @@ namespace Altinn.Register.Tests.UnitTests
 
             Assert.NotNull(sblRequest);
             Assert.Equal(HttpMethod.Post, sblRequest.Method);
-            Assert.EndsWith($"parties/byuuid", sblRequest.RequestUri!.ToString());
+            Assert.EndsWith($"parties/byuuid?fetchsubunits=false", sblRequest.RequestUri!.ToString().ToLower());
         }
 
         [Fact]
@@ -228,7 +228,7 @@ namespace Altinn.Register.Tests.UnitTests
             
             Assert.NotNull(sblRequest);
             Assert.Equal(HttpMethod.Post, sblRequest.Method);
-            Assert.EndsWith($"parties/byuuid", sblRequest.RequestUri!.ToString());
+            Assert.EndsWith($"parties/byuuid?fetchsubunits=false", sblRequest.RequestUri!.ToString().ToLower());
         }
 
         private static async Task<HttpResponseMessage> CreateHttpResponseMessage(object obj)

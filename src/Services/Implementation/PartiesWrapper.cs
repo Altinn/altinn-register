@@ -96,9 +96,9 @@ public class PartiesWrapper : IParties
     }
 
     /// <inheritdoc />
-    public async Task<List<Party>> GetPartyList(List<int> partyIds)
+    public async Task<List<Party>> GetPartyList(List<int> partyIds, bool fetchSubUnits = false)
     {
-        UriBuilder uriBuilder = new UriBuilder($"{_generalSettings.BridgeApiEndpoint}parties");
+        UriBuilder uriBuilder = new UriBuilder($"{_generalSettings.BridgeApiEndpoint}parties?fetchSubUnits={fetchSubUnits}");
 
         StringContent requestBody = new StringContent(JsonSerializer.Serialize(partyIds), Encoding.UTF8, "application/json");
         HttpResponseMessage response = await _client.PostAsync(uriBuilder.Uri, requestBody);
@@ -142,9 +142,9 @@ public class PartiesWrapper : IParties
     }
 
     /// <inheritdoc />
-    public async Task<List<Party>> GetPartyListByUuid(List<Guid> partyUuids)
+    public async Task<List<Party>> GetPartyListByUuid(List<Guid> partyUuids, bool fetchSubUnits = false)
     {
-        UriBuilder uriBuilder = new UriBuilder($"{_generalSettings.BridgeApiEndpoint}parties/byuuid");
+        UriBuilder uriBuilder = new UriBuilder($"{_generalSettings.BridgeApiEndpoint}parties/byuuid?fetchSubUnits={fetchSubUnits}");
 
         StringContent requestBody = new StringContent(JsonSerializer.Serialize(partyUuids), Encoding.UTF8, "application/json");
         HttpResponseMessage response = await _client.PostAsync(uriBuilder.Uri, requestBody);
