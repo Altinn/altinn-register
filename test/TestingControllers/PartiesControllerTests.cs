@@ -261,7 +261,7 @@ namespace Altinn.Register.Tests.TestingControllers
         [Fact]
         public async Task GetPartyListByUuid_SameLengthRequestAsResponse_ReturnsPartyList()
         {
-            List<Guid> partyUuids = new List<Guid> { new("93630D41-CA61-4B5C-B8FB-3346B561F6FF"), new("E622554E-3DE5-44CD-A822-C66024768013") };
+            List<Guid> partyUuids = new List<Guid> { new("93630d41-ca61-4b5c-b8fb-3346b561f6ff"), new("e622554e-3de5-44cd-a822-c66024768013") };
 
             // Arrange
             Mock<IParties> partiesService = new Mock<IParties>();
@@ -291,7 +291,7 @@ namespace Altinn.Register.Tests.TestingControllers
         [Fact]
         public async Task GetPartyListByUuid_FetchSubUnitsSetToTrue_ReturnsPartyList()
         {
-            List<Guid> partyUuids = new List<Guid> { new("93630D41-CA61-4B5C-B8FB-3346B561F6FF"), new("E622554E-3DE5-44CD-A822-C66024768013") };
+            List<Guid> partyUuids = new List<Guid> { new("93630d41-ca61-4b5c-b8fb-3346b561f6ff"), new("e622554e-3de5-44cd-a822-c66024768013") };
 
             // Arrange
             Mock<IParties> partiesService = new Mock<IParties>();
@@ -325,12 +325,12 @@ namespace Altinn.Register.Tests.TestingControllers
             string token = PrincipalUtil.GetToken(1);
 
             Mock<IParties> partiesService = new Mock<IParties>();
-            partiesService.Setup(s => s.GetPartyByUuid(It.Is<Guid>(g => g == new Guid("93630D41-CA61-4B5C-B8FB-3346B561F6FF")))).ReturnsAsync(new Party());
+            partiesService.Setup(s => s.GetPartyByUuid(It.Is<Guid>(g => g == new Guid("93630d41-ca61-4b5c-b8fb-3346b561f6ff")))).ReturnsAsync(new Party());
 
             HttpClient client = GetTestClient(partiesService.Object);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties?partyuuid=93630D41-CA61-4B5C-B8FB-3346B561F6FF");
+            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/byuuid/93630d41-ca61-4b5c-b8fb-3346b561f6ff");
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
@@ -353,12 +353,12 @@ namespace Altinn.Register.Tests.TestingControllers
             string token = PrincipalUtil.GetToken(1);
 
             Mock<IParties> partiesService = new Mock<IParties>();
-            partiesService.Setup(s => s.GetPartyByUuid(It.Is<Guid>(g => g == new Guid("93630D41-CA61-4B5C-B8FB-3346B561F6FF")))).ReturnsAsync((Party)null);
+            partiesService.Setup(s => s.GetPartyByUuid(It.Is<Guid>(g => g == new Guid("93630d41-ca61-4b5c-b8fb-3346b561f6ff")))).ReturnsAsync((Party)null);
 
             HttpClient client = GetTestClient(partiesService.Object);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties?partyuuid=93630D41-CA61-4B5C-B8FB-3346B561F6FF");
+            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/byuuid/93630d41-ca61-4b5c-b8fb-3346b561f6ff");
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
@@ -381,7 +381,7 @@ namespace Altinn.Register.Tests.TestingControllers
             HttpClient client = GetTestClient(partiesService.Object);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties?partyuuid=93630D41-CA61-4B5C-B8FB-3346B561F6FF");
+            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/byuuid/93630d41-ca61-4b5c-b8fb-3346b561f6ff");
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
@@ -400,12 +400,12 @@ namespace Altinn.Register.Tests.TestingControllers
             string token = PrincipalUtil.GetServiceOwnerOrgToken("ttd");
 
             Mock<IParties> partiesService = new Mock<IParties>();
-            partiesService.Setup(s => s.GetPartyByUuid(It.Is<Guid>(g => g == new Guid("93630D41-CA61-4B5C-B8FB-3346B561F6FF")))).ReturnsAsync((Party)null);
+            partiesService.Setup(s => s.GetPartyByUuid(It.Is<Guid>(g => g == new Guid("93630d41-ca61-4b5c-b8fb-3346b561f6ff")))).ReturnsAsync((Party)null);
 
             HttpClient client = GetTestClient(partiesService.Object);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties?partyuuid=93630D41-CA61-4B5C-B8FB-3346B561F6FF");
+            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/byuuid/93630d41-ca61-4b5c-b8fb-3346b561f6ff");
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
@@ -420,7 +420,7 @@ namespace Altinn.Register.Tests.TestingControllers
         [Fact]
         public async Task GetPartyListByUuid_NoResponse_ReturnsEmptyList()
         {
-            List<Guid> partyUuids = new List<Guid> { new("93630D41-CA61-4B5C-B8FB-3346B561F6FF"), new("E622554E-3DE5-44CD-A822-C66024768013") };
+            List<Guid> partyUuids = new List<Guid> { new("93630d41-ca61-4b5c-b8fb-3346b561f6ff"), new("e622554e-3de5-44cd-a822-c66024768013") };
 
             // Arrange
             Mock<IParties> partiesService = new Mock<IParties>();

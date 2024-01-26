@@ -83,13 +83,13 @@ namespace Altinn.Register.Controllers
         /// </summary>
         /// <param name="partyUuid">The party uuid.</param>
         /// <returns>The information about a given party.</returns>
-        [HttpGet("")]
+        [HttpGet("byuuid/{partyUuid:Guid}")]
         [ProducesResponseType(404)]
         [ProducesResponseType(401)]
         [ProducesResponseType(200)]
         [Produces("application/json")]
         [Authorize]
-        public async Task<ActionResult<Party>> GetByUuid([FromQuery] Guid partyUuid)
+        public async Task<ActionResult<Party>> GetByUuid(Guid partyUuid)
         {
             Party party = await _partiesWrapper.GetPartyByUuid(partyUuid);
 
