@@ -89,7 +89,7 @@ namespace Altinn.Register.Controllers
         [ProducesResponseType(200)]
         [Produces("application/json")]
         [Authorize]
-        public async Task<ActionResult<Party>> GetByUuid(Guid partyUuid)
+        public async Task<ActionResult<Party>> GetByUuid([FromRoute] Guid partyUuid)
         {
             Party party = await _partiesWrapper.GetPartyByUuid(partyUuid);
 
