@@ -83,13 +83,13 @@ namespace Altinn.Register.Controllers
         /// </summary>
         /// <param name="partyUuid">The party uuid.</param>
         /// <returns>The information about a given party.</returns>
-        [HttpGet("{partyUuid:Guid}")]
+        [HttpGet("byuuid/{partyUuid:Guid}")]
         [ProducesResponseType(404)]
         [ProducesResponseType(401)]
         [ProducesResponseType(200)]
         [Produces("application/json")]
         [Authorize]
-        public async Task<ActionResult<Party>> GetByUuid(Guid partyUuid)
+        public async Task<ActionResult<Party>> GetByUuid([FromRoute] Guid partyUuid)
         {
             Party party = await _partiesWrapper.GetPartyByUuid(partyUuid);
 
@@ -152,15 +152,16 @@ namespace Altinn.Register.Controllers
         /// Gets the party list for the list of party ids.
         /// </summary>
         /// <param name="partyIds">List of partyIds for parties to retrieve.</param>
+        /// <param name="fetchSubUnits">flag indicating whether subunits should be included</param>
         /// <returns>List of parties based on the partyIds.</returns>
         [HttpPost("partylist")]
         [Consumes("application/json")]
         [Produces("application/json")]
-        public async Task<ActionResult<List<Party>>> GetPartyListForPartyIds([FromBody] List<int> partyIds)
+        public async Task<ActionResult<List<Party>>> GetPartyListForPartyIds([FromBody] List<int> partyIds, [FromQuery] bool fetchSubUnits = false)
         {
             List<Party> parties;
 
-            parties = await _partiesWrapper.GetPartyList(partyIds);
+            parties = await _partiesWrapper.GetPartyList(partyIds, fetchSubUnits);
 
             if (parties == null || parties.Count < 1)
             {
@@ -174,13 +175,14 @@ namespace Altinn.Register.Controllers
         /// Gets the party list for the list of party uuids.
         /// </summary>
         /// <param name="partyUuids">List of partyUuids for parties to retrieve.</param>
+        /// <param name="fetchSubUnits">flag indicating whether subunits should be included</param>
         /// <returns>List of parties based on the party uuids.</returns>
         [HttpPost("partylistbyuuid")]
         [Consumes("application/json")]
         [Produces("application/json")]
-        public async Task<ActionResult<List<Party>>> GetPartyListForPartyUuids([FromBody] List<Guid> partyUuids)
+        public async Task<ActionResult<List<Party>>> GetPartyListForPartyUuids([FromBody] List<Guid> partyUuids, [FromQuery] bool fetchSubUnits = false)
         {
-            List<Party> parties = await _partiesWrapper.GetPartyListByUuid(partyUuids);
+            List<Party> parties = await _partiesWrapper.GetPartyListByUuid(partyUuids, fetchSubUnits);
             return Ok(parties);
         }
 
