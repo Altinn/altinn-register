@@ -33,6 +33,13 @@ public interface IParties
     Task<Party> LookupPartyBySSNOrOrgNo(string lookupValue);
 
     /// <summary>
+    /// Method that fetches the names of a list of parties based on their social security number or organisation number.
+    /// </summary>
+    /// <param name="partyNamesLookup">The list of SSN or org number</param>
+    /// <returns></returns>
+    Task<PartyNamesLookupResult> LookupPartyNames(PartyNamesLookup partyNamesLookup);
+
+    /// <summary>
     /// Returns a list of Parties based on a list of partyIds.
     /// </summary>
     /// <param name="partyIds">List of partyIds.</param>

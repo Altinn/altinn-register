@@ -19,7 +19,7 @@ namespace Altinn.Register.Controllers
     /// <summary>
     /// The parties controller provides access to party information in the SBL Register component.
     /// </summary>
-    [Authorize(Policy = "PlatformAccess")]
+    [Authorize(Policy = "InternalOrPlatformAccess")]
     [Route("register/api/v1/parties")]
     public class PartiesController : Controller
     {
@@ -146,6 +146,30 @@ namespace Altinn.Register.Controllers
             }
 
             return Ok(party);
+        }
+        
+        /// <summary>
+        /// Perform a name lookup for the list of parties for the provided ids.
+        /// </summary>
+        /// <param name="partyNamesLookup">A list of lookup criteria. For each criteria, one and only one of the properties must be a valid value.</param>
+        /// <returns>The identified party names for the corresponding identifiers.</returns>
+        [ValidateModelState]
+        [HttpPost("nameslookup")]
+        [Consumes("application/json")]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(200)]
+        [Produces("application/json")]
+        public async Task<ActionResult<PartyNamesLookupResult>> PostPartyNamesLookup([FromBody] PartyNamesLookup partyNamesLookup)
+        {
+            PartyNamesLookupResult partyNamesLookupResult = await _partiesWrapper.LookupPartyNames(partyNamesLookup);
+
+            if (partyNamesLookupResult == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(partyNamesLookupResult);
         }
 
         /// <summary>
