@@ -183,6 +183,7 @@ void ConfigureServices(IServiceCollection services, IConfiguration config)
     services.Configure<PersonLookupSettings>(config.GetSection("PersonLookupSettings"));
 
     services.AddSingleton<IAuthorizationHandler, AccessTokenHandler>();
+    services.AddScoped<IAuthorizationHandler, ScopeAccessHandler>();
     services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
     services.AddSingleton<IPublicSigningKeyProvider, PublicSigningKeyProvider>();
 
