@@ -88,7 +88,7 @@ public class PartiesWrapper : IParties
 
         if (response.StatusCode == System.Net.HttpStatusCode.OK)
         {
-            Party party = await JsonSerializer.DeserializeAsync<Party>(await response.Content.ReadAsStreamAsync());
+            Party party = await JsonSerializer.DeserializeAsync<Party>(await response.Content.ReadAsStreamAsync(), options);
             _memoryCache.Set($"PartyId:{party.PartyId}", party, new TimeSpan(0, _cacheTimeout, 0));
             return party;
         }
