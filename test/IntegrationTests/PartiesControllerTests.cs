@@ -147,11 +147,11 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Partie
 
         HttpRequestMessage sblRequest = null;
         int sblEndpointInvoked = 0;
-        DelegatingHandlerStub messageHandler = new(async (request, token) =>
+        DelegatingHandlerStub messageHandler = new(async (request, cancellationToken) =>
         {
             sblRequest = request;
             sblEndpointInvoked++;
-            string orgNo = JsonSerializer.Deserialize<string>(await request.Content!.ReadAsStringAsync());
+            string orgNo = JsonSerializer.Deserialize<string>(await request.Content!.ReadAsStringAsync(cancellationToken));
             Party party = await TestDataLoader.Load<Party>(partyIdsByOrgNo[orgNo].ToString());
 
             return new HttpResponseMessage() { Content = JsonContent.Create(party) };
@@ -215,10 +215,10 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Partie
         };
 
         HttpRequestMessage sblRequest = null;
-        DelegatingHandlerStub messageHandler = new(async (request, token) =>
+        DelegatingHandlerStub messageHandler = new(async (request, cancellationToken) =>
         {
             sblRequest = request;
-            string orgNo = JsonSerializer.Deserialize<string>(await request.Content!.ReadAsStringAsync());
+            string orgNo = JsonSerializer.Deserialize<string>(await request.Content!.ReadAsStringAsync(cancellationToken));
             if (orgNo == validParty.OrgNumber)
             {
                 return new HttpResponseMessage() { Content = JsonContent.Create(validParty) };
