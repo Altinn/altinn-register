@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using Altinn.Common.AccessToken;
 using Altinn.Common.AccessToken.Configuration;
 using Altinn.Common.AccessToken.Services;
+using Altinn.Common.PEP.Authorization;
+using Altinn.Register.Authorization;
 using Altinn.Register.Configuration;
 using Altinn.Register.Core;
 using Altinn.Register.Filters;
@@ -25,6 +27,7 @@ using Microsoft.ApplicationInsights.Channel;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ApplicationInsights.WindowsServer.TelemetryChannel;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -180,6 +183,7 @@ void ConfigureServices(IServiceCollection services, IConfiguration config)
     services.Configure<PersonLookupSettings>(config.GetSection("PersonLookupSettings"));
 
     services.AddSingleton<IAuthorizationHandler, AccessTokenHandler>();
+    services.AddScoped<IAuthorizationHandler, ScopeAccessHandler>();
     services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
     services.AddSingleton<IPublicSigningKeyProvider, PublicSigningKeyProvider>();
 
@@ -213,6 +217,7 @@ void ConfigureServices(IServiceCollection services, IConfiguration config)
         options.AddPolicy("PlatformAccess", policy => policy.Requirements.Add(new AccessTokenRequirement()));
         options.AddPolicy("AuthorizationLevel2", policy =>
             policy.RequireClaim(AltinnCore.Authentication.Constants.AltinnCoreClaimTypes.AuthenticationLevel, "2", "3", "4"));
+        options.AddPolicy("InternalOrPlatformAccess", policy => policy.Requirements.Add(new InternalScopeOrAccessTokenRequirement("altinn:register/partylookup.admin")));
     });
 
     services.AddHttpClient<IOrganizations, OrganizationsWrapper>();

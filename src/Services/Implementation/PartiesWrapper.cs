@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
@@ -24,7 +27,9 @@ public class PartiesWrapper : IParties
     private readonly ILogger _logger;
     private readonly HttpClient _client;
     private readonly IMemoryCache _memoryCache;
+    private static readonly SemaphoreSlim _concurrentNameLookupsLimiter = new(20);
     private const int _cacheTimeout = 5;
+    private const int _cacheTimeoutForPartyNames = 360;
     private readonly JsonSerializerOptions options = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -83,7 +88,7 @@ public class PartiesWrapper : IParties
 
         if (response.StatusCode == System.Net.HttpStatusCode.OK)
         {
-            Party party = await JsonSerializer.DeserializeAsync<Party>(await response.Content.ReadAsStreamAsync());
+            Party party = await JsonSerializer.DeserializeAsync<Party>(await response.Content.ReadAsStreamAsync(), options);
             _memoryCache.Set($"PartyId:{party.PartyId}", party, new TimeSpan(0, _cacheTimeout, 0));
             return party;
         }
@@ -158,5 +163,68 @@ public class PartiesWrapper : IParties
         
         _logger.LogError("Getting parties information from bridge failed with {StatusCode}", response.StatusCode);
         return new List<Party>();
+    }
+
+    /// <inheritdoc />
+    public async Task<PartyNamesLookupResult> LookupPartyNames(PartyNamesLookup partyNamesLookup)
+    {
+        var partyNames = new ConcurrentBag<PartyName>();
+        var tasks = new List<Task>();
+
+        foreach (var partyLookup in partyNamesLookup.Parties)
+        {
+            // The static semaphore is used to limit the number of concurrent name lookups
+            // application wide (ie. per pod) to control load on the bridge API.
+            // ProcessPartyLookupAsync will release the semaphore when it's done,
+            // freeing up a slot for the next lookup.
+            await _concurrentNameLookupsLimiter.WaitAsync();
+            tasks.Add(ProcessPartyLookupAsync(partyLookup, partyNames));
+        }
+
+        await Task.WhenAll(tasks);
+
+        return new PartyNamesLookupResult
+        {
+            PartyNames = partyNames.ToList()
+        };
+    }
+
+    private async Task ProcessPartyLookupAsync(PartyLookup partyLookup, ConcurrentBag<PartyName> partyNames)
+    {
+        try
+        {
+            string lookupValue = !string.IsNullOrEmpty(partyLookup.Ssn) ? partyLookup.Ssn : partyLookup.OrgNo;
+            string cacheKey = $"n:{lookupValue}";
+            string partyName = await GetOrAddPartyNameToCacheAsync(lookupValue, cacheKey);
+
+            partyNames.Add(new PartyName
+            {
+                Ssn = partyLookup.Ssn,
+                OrgNo = partyLookup.OrgNo,
+                Name = partyName
+            });
+        }
+        finally
+        {
+            _concurrentNameLookupsLimiter.Release();
+        }
+    }
+
+    private async Task<string> GetOrAddPartyNameToCacheAsync(string lookupValue, string cacheKey)
+    {
+        if (_memoryCache.TryGetValue(cacheKey, out string partyName))
+        {
+            return partyName;
+        }
+
+        Party party = await LookupPartyBySSNOrOrgNo(lookupValue);
+
+        if (party != null)
+        {
+            partyName = party.Name;
+            _memoryCache.Set(cacheKey, party.Name, new TimeSpan(0, _cacheTimeoutForPartyNames, 0));
+        }
+
+        return partyName;
     }
 }
