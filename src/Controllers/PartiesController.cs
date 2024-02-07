@@ -163,12 +163,6 @@ namespace Altinn.Register.Controllers
         public async Task<ActionResult<PartyNamesLookupResult>> PostPartyNamesLookup([FromBody] PartyNamesLookup partyNamesLookup)
         {
             PartyNamesLookupResult partyNamesLookupResult = await _partiesWrapper.LookupPartyNames(partyNamesLookup);
-
-            if (partyNamesLookupResult == null)
-            {
-                return NotFound();
-            }
-
             return Ok(partyNamesLookupResult);
         }
 
