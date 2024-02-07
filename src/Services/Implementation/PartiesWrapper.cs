@@ -27,9 +27,9 @@ public class PartiesWrapper : IParties
     private readonly ILogger _logger;
     private readonly HttpClient _client;
     private readonly IMemoryCache _memoryCache;
+    private static readonly SemaphoreSlim _concurrentNameLookupsLimiter = new(20);
     private const int _cacheTimeout = 5;
-    private const int _cacheTimeoutForPartyNames = 60;
-    private const int _concurrentNameLookups = 10;
+    private const int _cacheTimeoutForPartyNames = 360;
     private readonly JsonSerializerOptions options = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -170,12 +170,15 @@ public class PartiesWrapper : IParties
     {
         var partyNames = new ConcurrentBag<PartyName>();
         var tasks = new List<Task>();
-        var semaphore = new SemaphoreSlim(_concurrentNameLookups);
 
         foreach (var partyLookup in partyNamesLookup.Parties)
         {
-            await semaphore.WaitAsync();
-            tasks.Add(ProcessPartyLookupAsync(partyLookup, partyNames, semaphore));
+            // The static semaphore is used to limit the number of concurrent name lookups
+            // application wide (ie. per pod) to control load on the bridge API.
+            // ProcessPartyLookupAsync will release the semaphore when it's done,
+            // freeing up a slot for the next lookup.
+            await _concurrentNameLookupsLimiter.WaitAsync();
+            tasks.Add(ProcessPartyLookupAsync(partyLookup, partyNames));
         }
 
         await Task.WhenAll(tasks);
@@ -186,7 +189,7 @@ public class PartiesWrapper : IParties
         };
     }
 
-    private async Task ProcessPartyLookupAsync(PartyLookup partyLookup, ConcurrentBag<PartyName> partyNames, SemaphoreSlim semaphore)
+    private async Task ProcessPartyLookupAsync(PartyLookup partyLookup, ConcurrentBag<PartyName> partyNames)
     {
         try
         {
@@ -203,7 +206,7 @@ public class PartiesWrapper : IParties
         }
         finally
         {
-            semaphore.Release();
+            _concurrentNameLookupsLimiter.Release();
         }
     }
 
