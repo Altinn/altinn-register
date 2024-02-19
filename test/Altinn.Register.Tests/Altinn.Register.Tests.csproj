@@ -39,13 +39,13 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <AdditionalFiles Include="..\stylecop.json">
+    <AdditionalFiles Include="..\..\stylecop.json">
       <Link>stylecop.json</Link>
     </AdditionalFiles>
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\Altinn.Register.csproj" />
+    <ProjectReference Include="..\..\src\Altinn.Register\Altinn.Register.csproj" />
   </ItemGroup>
 
   <ItemGroup>
