@@ -1,11 +1,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0.202-alpine3.18 AS build
-WORKDIR Altinn.Register/
+WORKDIR /src
 
-COPY src/Altinn.Register ./Altinn.Register
-WORKDIR Altinn.Register/
+COPY src/ ./
 
-RUN dotnet build Altinn.Register.csproj -c Release -o /app_output
-RUN dotnet publish Altinn.Register.csproj -c Release -o /app_output
+RUN cd ./Altinn.Register \
+  && dotnet build Altinn.Register.csproj -c Release -o /app_output \
+  && dotnet publish Altinn.Register.csproj -c Release -o /app_output
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0.3-alpine3.18 AS final
 EXPOSE 5020
