@@ -76,7 +76,7 @@ namespace Altinn.Register.Tests.UnitTests
             var target = new PartiesWrapper(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partyWrapperLogger.Object, _memoryCache);
 
             // Act
-            var actual = await target.GetPartyByUuid(partyUuid);
+            var actual = await target.GetPartyById(partyUuid);
 
             // Assert
             Assert.NotNull(actual);
@@ -109,7 +109,7 @@ namespace Altinn.Register.Tests.UnitTests
             var target = new PartiesWrapper(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partyWrapperLogger.Object, _memoryCache);
 
             // Act
-            var actual = await target.GetPartyByUuid(partyUuid);
+            var actual = await target.GetPartyById(partyUuid);
 
             // Assert
             Assert.Null(actual);
@@ -191,7 +191,7 @@ namespace Altinn.Register.Tests.UnitTests
             var target = new PartiesWrapper(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partyWrapperLogger.Object, _memoryCache);
 
             // Act
-            var actual = await target.GetPartyListByUuid(partyUuids);
+            var actual = await target.GetPartiesById(partyUuids).ToListAsync();
 
             // Assert
             Assert.NotNull(actual);
@@ -221,7 +221,7 @@ namespace Altinn.Register.Tests.UnitTests
             var target = new PartiesWrapper(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partyWrapperLogger.Object, _memoryCache);
 
             // Act
-            var actual = await target.GetPartyListByUuid(partyUuids);
+            var actual = await target.GetPartiesById(partyUuids).ToListAsync();
 
             // Assert
             Assert.Empty(actual);

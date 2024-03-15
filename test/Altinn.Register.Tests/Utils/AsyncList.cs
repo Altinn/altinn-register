@@ -1,0 +1,46 @@
+﻿using System.Collections;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Altinn.Register.Tests.Utils;
+
+internal class AsyncList<T>
+    : IAsyncEnumerable<T>
+    , IEnumerable<T>
+{
+    private readonly List<T> _list = new();
+
+    public AsyncList()
+    {
+    }
+
+    public AsyncList(List<T> values)
+    {
+        _list = values;
+    }
+
+    public void Add(T value)
+    {
+        _list.Add(value);
+    }
+
+    public async IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    {
+        foreach (var item in _list)
+        {
+            await Task.Yield();
+            yield return item;
+        }
+    }
+
+    public IEnumerator<T> GetEnumerator()
+    {
+        return _list.GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+}

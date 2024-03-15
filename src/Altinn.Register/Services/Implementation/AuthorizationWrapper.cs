@@ -1,6 +1,7 @@
 using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Altinn.Register.Configuration;
@@ -51,7 +52,7 @@ namespace Altinn.Register.Services.Implementation
         }
 
         /// <inheritdoc />
-        public async Task<bool?> ValidateSelectedParty(int userId, int partyId)
+        public async Task<bool?> ValidateSelectedParty(int userId, int partyId, CancellationToken cancellationToken = default)
         {
             bool? result;
             string apiUrl = $"parties/{partyId}/validate?userid={userId}";

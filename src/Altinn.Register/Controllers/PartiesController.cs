@@ -1,10 +1,14 @@
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Filters;
 using Altinn.Register.Services.Interfaces;
 
@@ -23,17 +27,17 @@ namespace Altinn.Register.Controllers
     [Route("register/api/v1/parties")]
     public class PartiesController : Controller
     {
-        private readonly IParties _partiesWrapper;
+        private readonly IPartyService _partyService;
         private readonly IAuthorization _authorization;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PartiesController"/> class.
         /// </summary>
-        /// <param name="partiesWrapper">The parties wrapper used as a client when calling SBL Bridge.</param>
+        /// <param name="partyService">The parties wrapper used as a client when calling SBL Bridge.</param>
         /// <param name="authorizationWrapper">The authorization wrapper</param>
-        public PartiesController(IParties partiesWrapper, IAuthorization authorizationWrapper)
+        public PartiesController(IPartyService partyService, IAuthorization authorizationWrapper)
         {
-            _partiesWrapper = partiesWrapper;
+            _partyService = partyService;
             _authorization = authorizationWrapper;
         }
 
@@ -41,6 +45,7 @@ namespace Altinn.Register.Controllers
         /// Gets the party for a given party id.
         /// </summary>
         /// <param name="partyId">The party id.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The information about a given party.</returns>
         [HttpGet("{partyId:int}")]
         [ProducesResponseType(404)]
@@ -48,7 +53,7 @@ namespace Altinn.Register.Controllers
         [ProducesResponseType(200)]
         [Produces("application/json")]
         [Authorize]
-        public async Task<ActionResult<Party>> Get(int partyId)
+        public async Task<ActionResult<Party>> Get(int partyId, CancellationToken cancellationToken = default)
         {
             if (!IsOrg(HttpContext))
             {
@@ -59,7 +64,7 @@ namespace Altinn.Register.Controllers
                     isValid = PartyIsCallingUser(partyId);
                     if ((bool)!isValid)
                     {
-                        isValid = await _authorization.ValidateSelectedParty(userId.Value, partyId);
+                        isValid = await _authorization.ValidateSelectedParty(userId.Value, partyId, cancellationToken);
                     }
                 }
 
@@ -69,7 +74,7 @@ namespace Altinn.Register.Controllers
                 }
             }
 
-            Party result = await _partiesWrapper.GetParty(partyId);
+            Party? result = await _partyService.GetPartyById(partyId, cancellationToken);
             if (result == null)
             {
                 return NotFound();
@@ -82,6 +87,7 @@ namespace Altinn.Register.Controllers
         /// Gets the party for a given party uuid.
         /// </summary>
         /// <param name="partyUuid">The party uuid.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The information about a given party.</returns>
         [HttpGet("byuuid/{partyUuid:Guid}")]
         [ProducesResponseType(404)]
@@ -89,9 +95,9 @@ namespace Altinn.Register.Controllers
         [ProducesResponseType(200)]
         [Produces("application/json")]
         [Authorize]
-        public async Task<ActionResult<Party>> GetByUuid([FromRoute] Guid partyUuid)
+        public async Task<ActionResult<Party>> GetByUuid([FromRoute] Guid partyUuid, CancellationToken cancellationToken = default)
         {
-            Party party = await _partiesWrapper.GetPartyByUuid(partyUuid);
+            Party? party = await _partyService.GetPartyById(partyUuid, cancellationToken);
 
             if (!IsOrg(HttpContext))
             {
@@ -104,7 +110,7 @@ namespace Altinn.Register.Controllers
                     
                     if ((bool)!isValid)
                     {
-                        isValid = await _authorization.ValidateSelectedParty(userId.Value, party.PartyId);
+                        isValid = await _authorization.ValidateSelectedParty(userId.Value, party.PartyId, cancellationToken);
                     }
                 }
                 
@@ -126,6 +132,7 @@ namespace Altinn.Register.Controllers
         /// Perform a lookup/search for a specific party by using one of the provided ids.
         /// </summary>
         /// <param name="partyLookup">The lookup criteria. One and only one of the properties must be a valid value.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The identified party.</returns>
         [ValidateModelState]
         [HttpPost("lookup")]
@@ -134,11 +141,11 @@ namespace Altinn.Register.Controllers
         [ProducesResponseType(404)]
         [ProducesResponseType(200)]
         [Produces("application/json")]
-        public async Task<ActionResult<Party>> PostPartyLookup([FromBody] PartyLookup partyLookup)
+        public async Task<ActionResult<Party>> PostPartyLookup([FromBody] PartyLookup partyLookup, CancellationToken cancellationToken = default)
         {
             string lookupValue = partyLookup.OrgNo ?? partyLookup.Ssn;
 
-            Party party = await _partiesWrapper.LookupPartyBySSNOrOrgNo(lookupValue);
+            Party? party = await _partyService.LookupPartyBySSNOrOrgNo(lookupValue, cancellationToken);
 
             if (party == null)
             {
@@ -152,6 +159,7 @@ namespace Altinn.Register.Controllers
         /// Perform a name lookup for the list of parties for the provided ids.
         /// </summary>
         /// <param name="partyNamesLookup">A list of lookup criteria. For each criteria, one and only one of the properties must be a valid value.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The identified party names for the corresponding identifiers.</returns>
         [ValidateModelState]
         [HttpPost("nameslookup")]
@@ -160,9 +168,14 @@ namespace Altinn.Register.Controllers
         [ProducesResponseType(404)]
         [ProducesResponseType(200)]
         [Produces("application/json")]
-        public async Task<ActionResult<PartyNamesLookupResult>> PostPartyNamesLookup([FromBody] PartyNamesLookup partyNamesLookup)
+        public async Task<ActionResult<PartyNamesLookupResult>> PostPartyNamesLookup([FromBody] PartyNamesLookup partyNamesLookup, CancellationToken cancellationToken = default)
         {
-            PartyNamesLookupResult partyNamesLookupResult = await _partiesWrapper.LookupPartyNames(partyNamesLookup);
+            List<PartyName> items = await _partyService.LookupPartyNames(partyNamesLookup.Parties, cancellationToken).ToListAsync(cancellationToken);
+            var partyNamesLookupResult = new PartyNamesLookupResult
+            {
+                PartyNames = items
+            };
+
             return Ok(partyNamesLookupResult);
         }
 
@@ -171,15 +184,14 @@ namespace Altinn.Register.Controllers
         /// </summary>
         /// <param name="partyIds">List of partyIds for parties to retrieve.</param>
         /// <param name="fetchSubUnits">flag indicating whether subunits should be included</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>List of parties based on the partyIds.</returns>
         [HttpPost("partylist")]
         [Consumes("application/json")]
         [Produces("application/json")]
-        public async Task<ActionResult<List<Party>>> GetPartyListForPartyIds([FromBody] List<int> partyIds, [FromQuery] bool fetchSubUnits = false)
+        public async Task<ActionResult<List<Party>>> GetPartyListForPartyIds([FromBody] List<int> partyIds, [FromQuery] bool fetchSubUnits = false, CancellationToken cancellationToken = default)
         {
-            List<Party> parties;
-
-            parties = await _partiesWrapper.GetPartyList(partyIds, fetchSubUnits);
+            List<Party> parties = await _partyService.GetPartiesById(partyIds, fetchSubUnits, cancellationToken).ToListAsync(cancellationToken);
 
             if (parties == null || parties.Count < 1)
             {
@@ -194,13 +206,14 @@ namespace Altinn.Register.Controllers
         /// </summary>
         /// <param name="partyUuids">List of partyUuids for parties to retrieve.</param>
         /// <param name="fetchSubUnits">flag indicating whether subunits should be included</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>List of parties based on the party uuids.</returns>
         [HttpPost("partylistbyuuid")]
         [Consumes("application/json")]
         [Produces("application/json")]
-        public async Task<ActionResult<List<Party>>> GetPartyListForPartyUuids([FromBody] List<Guid> partyUuids, [FromQuery] bool fetchSubUnits = false)
+        public async Task<ActionResult<List<Party>>> GetPartyListForPartyUuids([FromBody] List<Guid> partyUuids, [FromQuery] bool fetchSubUnits = false, CancellationToken cancellationToken = default)
         {
-            List<Party> parties = await _partiesWrapper.GetPartyListByUuid(partyUuids, fetchSubUnits);
+            List<Party> parties = await _partyService.GetPartiesById(partyUuids, fetchSubUnits, cancellationToken).ToListAsync(cancellationToken);
             return Ok(parties);
         }
 
@@ -209,7 +222,7 @@ namespace Altinn.Register.Controllers
         /// </summary>
         private bool PartyIsCallingUser(int partyId)
         {
-            Claim claim = HttpContext.User.Claims.FirstOrDefault(claim => claim.Type.Equals(AltinnCoreClaimTypes.PartyID));
+            Claim? claim = HttpContext.User.Claims.FirstOrDefault(claim => claim.Type.Equals(AltinnCoreClaimTypes.PartyID));
             return claim != null && (int.Parse(claim.Value) == partyId);
         }
 
@@ -226,7 +239,7 @@ namespace Altinn.Register.Controllers
         /// </summary>
         private static int? GetUserId(HttpContext context)
         {
-            Claim claim = context.User.Claims.FirstOrDefault(claim => claim.Type.Equals(AltinnCoreClaimTypes.UserId));
+            Claim? claim = context.User.Claims.FirstOrDefault(claim => claim.Type.Equals(AltinnCoreClaimTypes.UserId));
 
             return claim != null ? Convert.ToInt32(claim.Value) : null;
         }
