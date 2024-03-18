@@ -58,11 +58,11 @@ namespace Altinn.Register.Services.Implementation
             string apiUrl = $"parties/{partyId}/validate?userid={userId}";
             string token = JwtTokenUtil.GetTokenFromContext(_httpContextAccessor.HttpContext, _generalSettings.JwtCookieName);
 
-            HttpResponseMessage response = await _authClient.GetAsync(token, apiUrl);
+            HttpResponseMessage response = await _authClient.GetAsync(token, apiUrl, cancellationToken: cancellationToken);
 
             if (response.StatusCode == System.Net.HttpStatusCode.OK)
             {
-                string responseData = await response.Content.ReadAsStringAsync();
+                string responseData = await response.Content.ReadAsStringAsync(cancellationToken);
                 result = JsonConvert.DeserializeObject<bool>(responseData);
             }
             else

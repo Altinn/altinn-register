@@ -174,11 +174,11 @@ public class PartiesWrapper : IPartyService
         => GetPartiesById(partyIds, fetchSubUnits: false, cancellationToken);
 
     /// <inheritdoc />
-    public async IAsyncEnumerable<Party> GetPartiesById(IEnumerable<Guid> partyUuids, bool fetchSubUnits, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<Party> GetPartiesById(IEnumerable<Guid> partyIds, bool fetchSubUnits, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         UriBuilder uriBuilder = new UriBuilder($"{_generalSettings.BridgeApiEndpoint}parties/byuuid?fetchSubUnits={fetchSubUnits}");
 
-        StringContent requestBody = new StringContent(JsonSerializer.Serialize(partyUuids), Encoding.UTF8, "application/json");
+        StringContent requestBody = new StringContent(JsonSerializer.Serialize(partyIds), Encoding.UTF8, "application/json");
         HttpResponseMessage response = await _client.PostAsync(uriBuilder.Uri, requestBody, cancellationToken);
 
         if (response.StatusCode == System.Net.HttpStatusCode.OK)

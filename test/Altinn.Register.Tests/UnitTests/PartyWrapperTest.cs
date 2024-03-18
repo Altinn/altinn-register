@@ -442,7 +442,7 @@ namespace Altinn.Register.Tests.UnitTests
             {
                 sblRequests.Add(request);
 
-                var body = await request.Content.ReadFromJsonAsync<string>();
+                var body = await request.Content.ReadFromJsonAsync<string>(token);
                 if (body == null)
                 {
                     throw new Exception("No body");
