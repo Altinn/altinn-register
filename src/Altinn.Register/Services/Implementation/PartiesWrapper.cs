@@ -89,6 +89,35 @@ public class PartiesWrapper : IPartyService
     }
 
     /// <inheritdoc />
+    public async Task<Party?> GetPartyById(Guid partyUuid, CancellationToken cancellationToken = default)
+    {
+        string cacheKey = $"PartyUUID:{partyUuid}";
+        if (_memoryCache.TryGetValue(cacheKey, out Party? party))
+        {
+            return party;
+        }
+
+        Uri endpointUrl = new($"{_generalSettings.BridgeApiEndpoint}parties?partyuuid={partyUuid}");
+
+        HttpResponseMessage response = await _client.GetAsync(endpointUrl, cancellationToken);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.OK)
+        {
+            party = await response.Content.ReadFromJsonAsync<Party>(JsonOptions, cancellationToken);
+            if (party is null)
+            {
+                return null;
+            }
+
+            _memoryCache.Set(cacheKey, party, new TimeSpan(0, _cacheTimeout, 0));
+            return party;
+        }
+
+        _logger.LogError("Getting party with party Id {PartyUuid} failed with statuscode {StatusCode}", partyUuid, response.StatusCode);
+        return null;
+    }
+
+    /// <inheritdoc />
     public async Task<Party?> LookupPartyBySSNOrOrgNo(string lookupValue, CancellationToken cancellationToken = default)
     {
         Uri endpointUrl = new($"{_generalSettings.BridgeApiEndpoint}parties/lookupObject");
@@ -145,35 +174,6 @@ public class PartiesWrapper : IPartyService
         => GetPartiesById(partyIds, fetchSubUnits: false, cancellationToken);
 
     /// <inheritdoc />
-    public async Task<Party?> GetPartyById(Guid partyUuid, CancellationToken cancellationToken = default)
-    {
-        string cacheKey = $"PartyUUID:{partyUuid}";
-        if (_memoryCache.TryGetValue(cacheKey, out Party? party))
-        {
-            return party;
-        }
-
-        Uri endpointUrl = new($"{_generalSettings.BridgeApiEndpoint}parties?partyuuid={partyUuid}");
-
-        HttpResponseMessage response = await _client.GetAsync(endpointUrl, cancellationToken);
-
-        if (response.StatusCode == System.Net.HttpStatusCode.OK)
-        {
-            party = await response.Content.ReadFromJsonAsync<Party>(JsonOptions, cancellationToken);
-            if (party is null)
-            {
-                return null;
-            }
-
-            _memoryCache.Set(cacheKey, party, new TimeSpan(0, _cacheTimeout, 0));
-            return party;
-        }
-
-        _logger.LogError("Getting party with party Id {PartyUuid} failed with statuscode {StatusCode}", partyUuid, response.StatusCode);
-        return null;
-    }
-
-    /// <inheritdoc />
     public async IAsyncEnumerable<Party> GetPartiesById(IEnumerable<Guid> partyUuids, bool fetchSubUnits, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         UriBuilder uriBuilder = new UriBuilder($"{_generalSettings.BridgeApiEndpoint}parties/byuuid?fetchSubUnits={fetchSubUnits}");
@@ -216,10 +216,11 @@ public class PartiesWrapper : IPartyService
 
     private async Task<Party?> ProcessPartyBySSNOrOrgNoLookupAsync(string lookupValue, CancellationToken cancellationToken)
     {
+        // limit the concurrent calls to spl bridge
+        await _concurrentNameLookupsLimiter.WaitAsync(cancellationToken);
+
         try
         {
-            // limit the concurrent calls to spl bridge
-            await _concurrentNameLookupsLimiter.WaitAsync();
             return await LookupPartyBySSNOrOrgNo(lookupValue, cancellationToken);
         }
         finally
@@ -250,11 +251,12 @@ public class PartiesWrapper : IPartyService
             return partyName;
         }
 
+        // limit the concurrent calls to spl bridge
+        await _concurrentNameLookupsLimiter.WaitAsync(cancellationToken); 
+        
         Party? party;
         try
         {
-            // limit the concurrent calls to spl bridge
-            await _concurrentNameLookupsLimiter.WaitAsync();
             party = await LookupPartyBySSNOrOrgNo(lookupValue, cancellationToken);
         }
         finally
@@ -271,7 +273,7 @@ public class PartiesWrapper : IPartyService
         return partyName;
     }
 
-    private async IAsyncEnumerable<TResult> RunInParallel<TIn, TResult>(
+    private static async IAsyncEnumerable<TResult> RunInParallel<TIn, TResult>(
         IEnumerable<TIn> input,
         Func<TIn, CancellationToken, Task<TResult>> func,
         [EnumeratorCancellation] CancellationToken cancellationToken)
