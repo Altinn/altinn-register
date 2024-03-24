@@ -251,7 +251,7 @@ public class PartiesWrapper : IPartyService
             return partyName;
         }
 
-        // limit the concurrent calls to spl bridge
+        // limit the concurrent calls to SBL Bridge
         await _concurrentNameLookupsLimiter.WaitAsync(cancellationToken); 
         
         Party? party;
