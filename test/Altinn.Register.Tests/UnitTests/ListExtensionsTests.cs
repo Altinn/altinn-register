@@ -9,18 +9,33 @@ namespace Altinn.Register.Tests.UnitTests;
 
 public class ListExtensionsTests
 {
-    public static TheoryData<List<int>, int, List<int>> SwapRemoveCases => new()
+    public static TheoryData<List<int>, int, List<int>> SwapRemoveIntCases => new()
     {
         { [0, 1, 2, 3, 4, 5, 6, 7], 0, [7, 1, 2, 3, 4, 5, 6] },
         { [0, 1, 2, 3, 4, 5, 6, 7], 3, [0, 1, 2, 7, 4, 5, 6] },
         { [0, 1, 2, 3, 4, 5, 6, 7], 7, [0, 1, 2, 3, 4, 5, 6] },
     };
 
-    [Theory]
-    [MemberData(nameof(SwapRemoveCases))]
-    public void SwapRemove_Test(List<int> list, int index, List<int> expected)
+    public static TheoryData<List<string>, string, List<string>> SwapRemoveStringCases => new()
     {
-        Assert.True(list.SwapRemove(index));
+        { ["0", "1", "2", "3", "4", "5", "6", "7"], "0", ["7", "1", "2", "3", "4", "5", "6"] },
+        { ["0", "1", "2", "3", "4", "5", "6", "7"], "3", ["0", "1", "2", "7", "4", "5", "6"] },
+        { ["0", "1", "2", "3", "4", "5", "6", "7"], "7", ["0", "1", "2", "3", "4", "5", "6"] },
+    };
+
+    [Theory]
+    [MemberData(nameof(SwapRemoveIntCases))]
+    public void SwapRemoveInt_Test(List<int> list, int value, List<int> expected)
+    {
+        Assert.True(list.SwapRemove(value));
+        Assert.Equal(expected, list);
+    }
+
+    [Theory]
+    [MemberData(nameof(SwapRemoveStringCases))]
+    public void SwapRemoveString_Test(List<string> list, string value, List<string> expected)
+    {
+        Assert.True(list.SwapRemove(value));
         Assert.Equal(expected, list);
     }
 
@@ -52,7 +67,7 @@ public class ListExtensionsTests
     public void SwapRemoveAt_Throws_IfIndexIsNegative()
     {
         List<int> list = [0, 1, 2, 3, 4, 5, 6, 7];
-        
+
         Assert.Throws<ArgumentOutOfRangeException>(() => list.SwapRemoveAt(-1));
     }
 
@@ -60,7 +75,7 @@ public class ListExtensionsTests
     public void SwapRemoveAt_Throws_IfIndexIsOutOfRange()
     {
         List<int> list = [0, 1, 2, 3, 4, 5, 6, 7];
-        
+
         Assert.Throws<ArgumentOutOfRangeException>(() => list.SwapRemoveAt(8));
     }
 }
