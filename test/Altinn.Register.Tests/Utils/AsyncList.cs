@@ -6,8 +6,7 @@ using System.Threading.Tasks;
 namespace Altinn.Register.Tests.Utils;
 
 internal class AsyncList<T>
-    : IAsyncEnumerable<T>
-    , IEnumerable<T>
+    : IAsyncEnumerable<T>, IEnumerable<T>
 {
     private readonly List<T> _list = new();
 
