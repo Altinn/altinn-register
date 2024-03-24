@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Altinn.Register.Services.Interfaces
@@ -12,7 +13,8 @@ namespace Altinn.Register.Services.Interfaces
         /// </summary>
         /// <param name="userId">The user id.</param>
         /// <param name="partyId">The party id.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns> Boolean indicating whether or not the user can represent the selected party.</returns>
-        Task<bool?> ValidateSelectedParty(int userId, int partyId);
+        Task<bool?> ValidateSelectedParty(int userId, int partyId, CancellationToken cancellationToken = default);
     }
 }

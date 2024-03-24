@@ -7,12 +7,14 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Altinn.Common.AccessToken.Services;
 using Altinn.Platform.Register.Enums;
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Controllers;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Services.Interfaces;
 using Altinn.Register.Tests.Mocks;
 using Altinn.Register.Tests.Mocks.Authentication;
@@ -52,8 +54,8 @@ namespace Altinn.Register.Tests.TestingControllers
             int partyId = 6565;
 
             // Arrange
-            Mock<IParties> partiesService = new Mock<IParties>();
-            partiesService.Setup(s => s.GetParty(It.Is<int>(o => o == partyId))).ReturnsAsync(new Party());
+            Mock<IPartyService> partiesService = new Mock<IPartyService>();
+            partiesService.Setup(s => s.GetPartyById(It.Is<int>(o => o == partyId), It.IsAny<CancellationToken>())).ReturnsAsync(new Party());
 
             HttpClient client = GetTestClient(partiesService.Object);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -81,8 +83,8 @@ namespace Altinn.Register.Tests.TestingControllers
             int partyId = 6565;
 
             // Arrange
-            Mock<IParties> partiesService = new Mock<IParties>();
-            partiesService.Setup(s => s.GetParty(It.Is<int>(o => o == partyId))).ReturnsAsync(new Party());
+            Mock<IPartyService> partiesService = new Mock<IPartyService>();
+            partiesService.Setup(s => s.GetPartyById(It.Is<int>(o => o == partyId), It.IsAny<CancellationToken>())).ReturnsAsync(new Party());
 
             HttpClient client = GetTestClient(partiesService.Object);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -104,8 +106,8 @@ namespace Altinn.Register.Tests.TestingControllers
             int partyId = 6565;
 
             // Arrange
-            Mock<IParties> partiesService = new Mock<IParties>();
-            partiesService.Setup(s => s.GetParty(It.Is<int>(o => o == partyId))).ReturnsAsync((Party)null);
+            Mock<IPartyService> partiesService = new Mock<IPartyService>();
+            partiesService.Setup(s => s.GetPartyById(It.Is<int>(o => o == partyId), It.IsAny<CancellationToken>())).ReturnsAsync((Party)null);
 
             HttpClient client = GetTestClient(partiesService.Object);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -129,7 +131,7 @@ namespace Altinn.Register.Tests.TestingControllers
             int partyId = 6565;
 
             // Arrange
-            Mock<IParties> partiesService = new Mock<IParties>();
+            Mock<IPartyService> partiesService = new Mock<IPartyService>();
 
             HttpClient client = GetTestClient(partiesService.Object);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -147,7 +149,7 @@ namespace Altinn.Register.Tests.TestingControllers
             string token = PrincipalUtil.GetToken(1);
 
             // Arrange
-            Mock<IParties> partiesService = new Mock<IParties>();
+            Mock<IPartyService> partiesService = new Mock<IPartyService>();
 
             HttpClient client = GetTestClient(partiesService.Object);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -175,8 +177,8 @@ namespace Altinn.Register.Tests.TestingControllers
             // Arrange
             string ssn = "27108775284";
 
-            Mock<IParties> partiesService = new Mock<IParties>();
-            partiesService.Setup(s => s.LookupPartyBySSNOrOrgNo(It.Is<string>(p => p == ssn))).ReturnsAsync((Party)null);
+            Mock<IPartyService> partiesService = new Mock<IPartyService>();
+            partiesService.Setup(s => s.LookupPartyBySSNOrOrgNo(It.Is<string>(p => p == ssn), It.IsAny<CancellationToken>())).ReturnsAsync((Party)null);
 
             HttpClient client = GetTestClient(partiesService.Object);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -204,8 +206,9 @@ namespace Altinn.Register.Tests.TestingControllers
             List<int> partyIds = new List<int> { 1, 2 };
 
             // Arrange
-            Mock<IParties> partiesService = new Mock<IParties>();
-            partiesService.Setup(s => s.GetPartyList(It.IsAny<List<int>>(), It.Is<bool>(b => b == false))).ReturnsAsync(new List<Party> { new(), new() });
+            Mock<IPartyService> partiesService = new Mock<IPartyService>();
+            partiesService.Setup(s => s.GetPartiesById(It.IsAny<List<int>>(), It.Is<bool>(b => b == false), It.IsAny<CancellationToken>()))
+                .Returns(new AsyncList<Party> { new(), new() });
 
             HttpClient client = GetTestClient(partiesService.Object);
 
@@ -234,8 +237,9 @@ namespace Altinn.Register.Tests.TestingControllers
             List<int> partyIds = new List<int> { 1, 2 };
 
             // Arrange
-            Mock<IParties> partiesService = new Mock<IParties>();
-            partiesService.Setup(s => s.GetPartyList(It.IsAny<List<int>>(), It.Is<bool>(b => b == true))).ReturnsAsync(new List<Party> { new(), new() });
+            Mock<IPartyService> partiesService = new Mock<IPartyService>();
+            partiesService.Setup(s => s.GetPartiesById(It.IsAny<List<int>>(), It.Is<bool>(b => b == true), It.IsAny<CancellationToken>()))
+                .Returns(new AsyncList<Party> { new(), new() });
 
             HttpClient client = GetTestClient(partiesService.Object);
 
@@ -264,8 +268,9 @@ namespace Altinn.Register.Tests.TestingControllers
             List<Guid> partyUuids = new List<Guid> { new("93630d41-ca61-4b5c-b8fb-3346b561f6ff"), new("e622554e-3de5-44cd-a822-c66024768013") };
 
             // Arrange
-            Mock<IParties> partiesService = new Mock<IParties>();
-            partiesService.Setup(s => s.GetPartyListByUuid(It.IsAny<List<Guid>>(), It.Is<bool>(b => b == false))).ReturnsAsync(new List<Party> { new(), new() });
+            Mock<IPartyService> partiesService = new Mock<IPartyService>();
+            partiesService.Setup(s => s.GetPartiesById(It.IsAny<List<Guid>>(), It.Is<bool>(b => b == false), It.IsAny<CancellationToken>()))
+                .Returns(new AsyncList<Party> { new(), new() });
 
             HttpClient client = GetTestClient(partiesService.Object);
 
@@ -294,8 +299,9 @@ namespace Altinn.Register.Tests.TestingControllers
             List<Guid> partyUuids = new List<Guid> { new("93630d41-ca61-4b5c-b8fb-3346b561f6ff"), new("e622554e-3de5-44cd-a822-c66024768013") };
 
             // Arrange
-            Mock<IParties> partiesService = new Mock<IParties>();
-            partiesService.Setup(s => s.GetPartyListByUuid(It.IsAny<List<Guid>>(), It.Is<bool>(b => b == true))).ReturnsAsync(new List<Party> { new(), new() });
+            Mock<IPartyService> partiesService = new Mock<IPartyService>();
+            partiesService.Setup(s => s.GetPartiesById(It.IsAny<List<Guid>>(), It.Is<bool>(b => b == true), It.IsAny<CancellationToken>()))
+                .Returns(new AsyncList<Party> { new(), new() });
 
             HttpClient client = GetTestClient(partiesService.Object);
 
@@ -324,8 +330,8 @@ namespace Altinn.Register.Tests.TestingControllers
             // Arrange
             string token = PrincipalUtil.GetToken(1);
 
-            Mock<IParties> partiesService = new Mock<IParties>();
-            partiesService.Setup(s => s.GetPartyByUuid(It.Is<Guid>(g => g == new Guid("93630d41-ca61-4b5c-b8fb-3346b561f6ff")))).ReturnsAsync(new Party());
+            Mock<IPartyService> partiesService = new Mock<IPartyService>();
+            partiesService.Setup(s => s.GetPartyById(It.Is<Guid>(g => g == new Guid("93630d41-ca61-4b5c-b8fb-3346b561f6ff")), It.IsAny<CancellationToken>())).ReturnsAsync(new Party());
 
             HttpClient client = GetTestClient(partiesService.Object);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -352,8 +358,8 @@ namespace Altinn.Register.Tests.TestingControllers
             // Arrange
             string token = PrincipalUtil.GetToken(1);
 
-            Mock<IParties> partiesService = new Mock<IParties>();
-            partiesService.Setup(s => s.GetPartyByUuid(It.Is<Guid>(g => g == new Guid("93630d41-ca61-4b5c-b8fb-3346b561f6ff")))).ReturnsAsync((Party)null);
+            Mock<IPartyService> partiesService = new Mock<IPartyService>();
+            partiesService.Setup(s => s.GetPartyById(It.Is<Guid>(g => g == new Guid("93630d41-ca61-4b5c-b8fb-3346b561f6ff")), It.IsAny<CancellationToken>())).ReturnsAsync((Party)null);
 
             HttpClient client = GetTestClient(partiesService.Object);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -376,7 +382,7 @@ namespace Altinn.Register.Tests.TestingControllers
             // Arrange
             string token = PrincipalUtil.GetExpiredToken();
 
-            Mock<IParties> partiesService = new Mock<IParties>();
+            Mock<IPartyService> partiesService = new Mock<IPartyService>();
             
             HttpClient client = GetTestClient(partiesService.Object);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -399,8 +405,8 @@ namespace Altinn.Register.Tests.TestingControllers
             // Arrange
             string token = PrincipalUtil.GetServiceOwnerOrgToken("ttd");
 
-            Mock<IParties> partiesService = new Mock<IParties>();
-            partiesService.Setup(s => s.GetPartyByUuid(It.Is<Guid>(g => g == new Guid("93630d41-ca61-4b5c-b8fb-3346b561f6ff")))).ReturnsAsync((Party)null);
+            Mock<IPartyService> partiesService = new Mock<IPartyService>();
+            partiesService.Setup(s => s.GetPartyById(It.Is<Guid>(g => g == new Guid("93630d41-ca61-4b5c-b8fb-3346b561f6ff")), It.IsAny<CancellationToken>())).ReturnsAsync((Party)null);
 
             HttpClient client = GetTestClient(partiesService.Object);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -423,8 +429,9 @@ namespace Altinn.Register.Tests.TestingControllers
             List<Guid> partyUuids = new List<Guid> { new("93630d41-ca61-4b5c-b8fb-3346b561f6ff"), new("e622554e-3de5-44cd-a822-c66024768013") };
 
             // Arrange
-            Mock<IParties> partiesService = new Mock<IParties>();
-            partiesService.Setup(s => s.GetPartyListByUuid(It.IsAny<List<Guid>>(), It.Is<bool>(b => b == false))).ReturnsAsync(new List<Party>());
+            Mock<IPartyService> partiesService = new Mock<IPartyService>();
+            partiesService.Setup(s => s.GetPartiesById(It.IsAny<List<Guid>>(), It.Is<bool>(b => b == false), It.IsAny<CancellationToken>()))
+                .Returns(new AsyncList<Party>());
 
             HttpClient client = GetTestClient(partiesService.Object);
 
@@ -457,8 +464,8 @@ namespace Altinn.Register.Tests.TestingControllers
                 OrgNumber = orgNo
             };
 
-            Mock<IParties> partiesService = new Mock<IParties>();
-            partiesService.Setup(s => s.LookupPartyBySSNOrOrgNo(It.Is<string>(p => p == orgNo))).ReturnsAsync(party);
+            Mock<IPartyService> partiesService = new Mock<IPartyService>();
+            partiesService.Setup(s => s.LookupPartyBySSNOrOrgNo(It.Is<string>(p => p == orgNo), It.IsAny<CancellationToken>())).ReturnsAsync(party);
 
             HttpClient client = GetTestClient(partiesService.Object);
 
@@ -491,7 +498,7 @@ namespace Altinn.Register.Tests.TestingControllers
             // Arrange
             string orgNo = "555000103";
 
-            Mock<IParties> partiesService = new Mock<IParties>();
+            Mock<IPartyService> partiesService = new Mock<IPartyService>();
 
             HttpClient client = GetTestClient(partiesService.Object);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -514,8 +521,8 @@ namespace Altinn.Register.Tests.TestingControllers
             int partyId = 6565;
 
             // Arrange
-            Mock<IParties> partiesService = new Mock<IParties>();
-            partiesService.Setup(s => s.GetParty(It.Is<int>(o => o == partyId))).ReturnsAsync(new Party());
+            Mock<IPartyService> partiesService = new Mock<IPartyService>();
+            partiesService.Setup(s => s.GetPartyById(It.Is<int>(o => o == partyId), It.IsAny<CancellationToken>())).ReturnsAsync(new Party());
 
             HttpClient client = GetTestClient(partiesService.Object);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -529,7 +536,7 @@ namespace Altinn.Register.Tests.TestingControllers
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
 
-        private HttpClient GetTestClient(IParties partiesService)
+        private HttpClient GetTestClient(IPartyService partiesService)
         {
             string projectDir = Directory.GetCurrentDirectory();
             string configPath = Path.Combine(projectDir, "appsettings.json");

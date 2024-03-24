@@ -1,8 +1,11 @@
+#nullable enable
+
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Json;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -10,8 +13,8 @@ using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Configuration;
-using Altinn.Register.Services.Interfaces;
-
+using Altinn.Register.Core.Parties;
+using Altinn.Register.Extensions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -21,19 +24,22 @@ namespace Altinn.Register.Services.Implementation;
 /// <summary>
 /// The parties wrapper
 /// </summary>
-public class PartiesWrapper : IParties
+public class PartiesWrapper : IPartyService
 {
+    // TODO: This should be moved into the http client, so that it works for all calls
+    private static readonly SemaphoreSlim _concurrentNameLookupsLimiter = new(20);
+
+    private readonly static JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
+
     private readonly GeneralSettings _generalSettings;
     private readonly ILogger _logger;
     private readonly HttpClient _client;
     private readonly IMemoryCache _memoryCache;
-    private static readonly SemaphoreSlim _concurrentNameLookupsLimiter = new(20);
     private const int _cacheTimeout = 5;
     private const int _cacheTimeoutForPartyNames = 360;
-    private readonly JsonSerializerOptions options = new()
-    {
-        PropertyNameCaseInsensitive = true,
-    };
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PartiesWrapper"/> class
@@ -51,21 +57,26 @@ public class PartiesWrapper : IParties
     }
 
     /// <inheritdoc />
-    public async Task<Party> GetParty(int partyId)
+    public async Task<Party?> GetPartyById(int partyId, CancellationToken cancellationToken = default)
     {
         string cacheKey = $"PartyId:{partyId}";
-        if (_memoryCache.TryGetValue(cacheKey, out Party party))
+        if (_memoryCache.TryGetValue(cacheKey, out Party? party))
         {
             return party;
         }
 
         Uri endpointUrl = new($"{_generalSettings.BridgeApiEndpoint}parties/{partyId}");
 
-        HttpResponseMessage response = await _client.GetAsync(endpointUrl);
+        HttpResponseMessage response = await _client.GetAsync(endpointUrl, cancellationToken);
 
         if (response.StatusCode == System.Net.HttpStatusCode.OK)
         {
-            party = await JsonSerializer.DeserializeAsync<Party>(await response.Content.ReadAsStreamAsync(), options);
+            party = await response.Content.ReadFromJsonAsync<Party>(JsonOptions, cancellationToken);
+            if (party is null)
+            {
+                return null;
+            }
+            
             _memoryCache.Set(cacheKey, party, new TimeSpan(0, _cacheTimeout, 0));
             return party;
         }
@@ -78,17 +89,51 @@ public class PartiesWrapper : IParties
     }
 
     /// <inheritdoc />
-    public async Task<Party> LookupPartyBySSNOrOrgNo(string lookupValue)
+    public async Task<Party?> GetPartyById(Guid partyUuid, CancellationToken cancellationToken = default)
+    {
+        string cacheKey = $"PartyUUID:{partyUuid}";
+        if (_memoryCache.TryGetValue(cacheKey, out Party? party))
+        {
+            return party;
+        }
+
+        Uri endpointUrl = new($"{_generalSettings.BridgeApiEndpoint}parties?partyuuid={partyUuid}");
+
+        HttpResponseMessage response = await _client.GetAsync(endpointUrl, cancellationToken);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.OK)
+        {
+            party = await response.Content.ReadFromJsonAsync<Party>(JsonOptions, cancellationToken);
+            if (party is null)
+            {
+                return null;
+            }
+
+            _memoryCache.Set(cacheKey, party, new TimeSpan(0, _cacheTimeout, 0));
+            return party;
+        }
+
+        _logger.LogError("Getting party with party Id {PartyUuid} failed with statuscode {StatusCode}", partyUuid, response.StatusCode);
+        return null;
+    }
+
+    /// <inheritdoc />
+    public async Task<Party?> LookupPartyBySSNOrOrgNo(string lookupValue, CancellationToken cancellationToken = default)
     {
         Uri endpointUrl = new($"{_generalSettings.BridgeApiEndpoint}parties/lookupObject");
 
         StringContent requestBody = new(JsonSerializer.Serialize(lookupValue), Encoding.UTF8, "application/json");
 
-        HttpResponseMessage response = await _client.PostAsync(endpointUrl, requestBody);
+        HttpResponseMessage response = await _client.PostAsync(endpointUrl, requestBody, cancellationToken);
 
         if (response.StatusCode == System.Net.HttpStatusCode.OK)
         {
-            Party party = await JsonSerializer.DeserializeAsync<Party>(await response.Content.ReadAsStreamAsync(), options);
+            Party? party = await response.Content.ReadFromJsonAsync<Party>(JsonOptions, cancellationToken);
+            if (party is null)
+            {
+                return null;
+            }
+            
             _memoryCache.Set($"PartyId:{party.PartyId}", party, new TimeSpan(0, _cacheTimeout, 0));
             return party;
         }
@@ -101,108 +146,82 @@ public class PartiesWrapper : IParties
     }
 
     /// <inheritdoc />
-    public async Task<List<Party>> GetPartyList(List<int> partyIds, bool fetchSubUnits = false)
+    public async IAsyncEnumerable<Party> GetPartiesById(IEnumerable<int> partyIds, bool fetchSubUnits, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         UriBuilder uriBuilder = new UriBuilder($"{_generalSettings.BridgeApiEndpoint}parties?fetchSubUnits={fetchSubUnits}");
 
         StringContent requestBody = new StringContent(JsonSerializer.Serialize(partyIds), Encoding.UTF8, "application/json");
-        HttpResponseMessage response = await _client.PostAsync(uriBuilder.Uri, requestBody);
+        HttpResponseMessage response = await _client.PostAsync(uriBuilder.Uri, requestBody, cancellationToken);
 
         if (response.StatusCode == System.Net.HttpStatusCode.OK)
         {
-            string responseContent = await response.Content.ReadAsStringAsync();
-            List<Party> partiesInfo = JsonSerializer.Deserialize<List<Party>>(responseContent, options);
-            return partiesInfo;
+            await foreach (var party in response.Content.ReadFromJsonAsAsyncEnumerable<Party>(JsonOptions, cancellationToken))
+            {
+                if (party is not null)
+                {
+                    yield return party;
+                }
+            }
         }
         else
         {
             _logger.LogError("Getting parties information from bridge failed with {StatusCode}", response.StatusCode);
         }
-
-        return null;
     }
 
     /// <inheritdoc />
-    public async Task<Party> GetPartyByUuid(Guid partyUuid)
-    {
-        string cacheKey = $"PartyUUID:{partyUuid}";
-        if (_memoryCache.TryGetValue(cacheKey, out Party party))
-        {
-            return party;
-        }
-
-        Uri endpointUrl = new($"{_generalSettings.BridgeApiEndpoint}parties?partyuuid={partyUuid}");
-
-        HttpResponseMessage response = await _client.GetAsync(endpointUrl);
-
-        if (response.StatusCode == System.Net.HttpStatusCode.OK)
-        {
-            party = await JsonSerializer.DeserializeAsync<Party>(await response.Content.ReadAsStreamAsync(), options);
-            _memoryCache.Set(cacheKey, party, new TimeSpan(0, _cacheTimeout, 0));
-            return party;
-        }
-        
-        _logger.LogError("Getting party with party Id {PartyUuid} failed with statuscode {StatusCode}", partyUuid, response.StatusCode);
-        return null;
-    }
+    public IAsyncEnumerable<Party> GetPartiesById(IEnumerable<int> partyIds, CancellationToken cancellationToken = default)
+        => GetPartiesById(partyIds, fetchSubUnits: false, cancellationToken);
 
     /// <inheritdoc />
-    public async Task<List<Party>> GetPartyListByUuid(List<Guid> partyUuids, bool fetchSubUnits = false)
+    public async IAsyncEnumerable<Party> GetPartiesById(IEnumerable<Guid> partyIds, bool fetchSubUnits, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         UriBuilder uriBuilder = new UriBuilder($"{_generalSettings.BridgeApiEndpoint}parties/byuuid?fetchSubUnits={fetchSubUnits}");
 
-        StringContent requestBody = new StringContent(JsonSerializer.Serialize(partyUuids), Encoding.UTF8, "application/json");
-        HttpResponseMessage response = await _client.PostAsync(uriBuilder.Uri, requestBody);
+        StringContent requestBody = new StringContent(JsonSerializer.Serialize(partyIds), Encoding.UTF8, "application/json");
+        HttpResponseMessage response = await _client.PostAsync(uriBuilder.Uri, requestBody, cancellationToken);
 
         if (response.StatusCode == System.Net.HttpStatusCode.OK)
         {
-            string responseContent = await response.Content.ReadAsStringAsync();
-            List<Party> partiesInfo = JsonSerializer.Deserialize<List<Party>>(responseContent, options);
-            return partiesInfo;
+            await foreach (var party in response.Content.ReadFromJsonAsAsyncEnumerable<Party>(JsonOptions, cancellationToken))
+            {
+                if (party is not null)
+                {
+                    yield return party;
+                }
+            }
+
+            yield break;
         }
-        
+
         _logger.LogError("Getting parties information from bridge failed with {StatusCode}", response.StatusCode);
-        return new List<Party>();
     }
 
     /// <inheritdoc />
-    public async Task<PartyNamesLookupResult> LookupPartyNames(PartyNamesLookup partyNamesLookup)
+    public IAsyncEnumerable<Party> GetPartiesById(IEnumerable<Guid> partyIds, CancellationToken cancellationToken = default)
+        => GetPartiesById(partyIds, fetchSubUnits: false, cancellationToken);
+
+    /// <inheritdoc />
+    public IAsyncEnumerable<PartyName> LookupPartyNames(IEnumerable<PartyLookup> lookupValues, CancellationToken cancellationToken = default)
     {
-        var partyNames = new ConcurrentBag<PartyName>();
-        var tasks = new List<Task>();
-
-        foreach (var partyLookup in partyNamesLookup.Parties)
-        {
-            // The static semaphore is used to limit the number of concurrent name lookups
-            // application wide (ie. per pod) to control load on the bridge API.
-            // ProcessPartyLookupAsync will release the semaphore when it's done,
-            // freeing up a slot for the next lookup.
-            await _concurrentNameLookupsLimiter.WaitAsync();
-            tasks.Add(ProcessPartyLookupAsync(partyLookup, partyNames));
-        }
-
-        await Task.WhenAll(tasks);
-
-        return new PartyNamesLookupResult
-        {
-            PartyNames = partyNames.ToList()
-        };
+        return RunInParallel(lookupValues, ProcessPartyLookupAsync, cancellationToken);
     }
 
-    private async Task ProcessPartyLookupAsync(PartyLookup partyLookup, ConcurrentBag<PartyName> partyNames)
+    /// <inheritdoc />
+    public IAsyncEnumerable<Party> LookupPartiesBySSNOrOrgNos(IEnumerable<string> lookupValues, CancellationToken cancellationToken = default)
     {
+        return RunInParallel(lookupValues, ProcessPartyBySSNOrOrgNoLookupAsync, cancellationToken)
+            .Where(party => party is not null)!;
+    }
+
+    private async Task<Party?> ProcessPartyBySSNOrOrgNoLookupAsync(string lookupValue, CancellationToken cancellationToken)
+    {
+        // limit the concurrent calls to spl bridge
+        await _concurrentNameLookupsLimiter.WaitAsync(cancellationToken);
+
         try
         {
-            string lookupValue = !string.IsNullOrEmpty(partyLookup.Ssn) ? partyLookup.Ssn : partyLookup.OrgNo;
-            string cacheKey = $"n:{lookupValue}";
-            string partyName = await GetOrAddPartyNameToCacheAsync(lookupValue, cacheKey);
-
-            partyNames.Add(new PartyName
-            {
-                Ssn = partyLookup.Ssn,
-                OrgNo = partyLookup.OrgNo,
-                Name = partyName
-            });
+            return await LookupPartyBySSNOrOrgNo(lookupValue, cancellationToken);
         }
         finally
         {
@@ -210,14 +229,40 @@ public class PartiesWrapper : IParties
         }
     }
 
-    private async Task<string> GetOrAddPartyNameToCacheAsync(string lookupValue, string cacheKey)
+    private async Task<PartyName> ProcessPartyLookupAsync(PartyLookup partyLookup, CancellationToken cancellationToken)
     {
-        if (_memoryCache.TryGetValue(cacheKey, out string partyName))
+        string lookupValue = !string.IsNullOrEmpty(partyLookup.Ssn) ? partyLookup.Ssn : partyLookup.OrgNo;
+        string cacheKey = $"n:{lookupValue}";
+        string? partyName = await GetOrAddPartyNameToCacheAsync(lookupValue, cacheKey, cancellationToken);
+
+        return new PartyName
+        {
+            Ssn = partyLookup.Ssn,
+            OrgNo = partyLookup.OrgNo,
+            Name = partyName,
+        };
+    }
+
+    private async Task<string?> GetOrAddPartyNameToCacheAsync(string lookupValue, string cacheKey, CancellationToken cancellationToken)
+    {
+        if (_memoryCache.TryGetValue(cacheKey, out string? partyName) 
+            && partyName is not null)
         {
             return partyName;
         }
 
-        Party party = await LookupPartyBySSNOrOrgNo(lookupValue);
+        // limit the concurrent calls to SBL Bridge
+        await _concurrentNameLookupsLimiter.WaitAsync(cancellationToken); 
+        
+        Party? party;
+        try
+        {
+            party = await LookupPartyBySSNOrOrgNo(lookupValue, cancellationToken);
+        }
+        finally
+        {
+            _concurrentNameLookupsLimiter.Release();
+        }
 
         if (party != null)
         {
@@ -226,5 +271,20 @@ public class PartiesWrapper : IParties
         }
 
         return partyName;
+    }
+
+    private static async IAsyncEnumerable<TResult> RunInParallel<TIn, TResult>(
+        IEnumerable<TIn> input,
+        Func<TIn, CancellationToken, Task<TResult>> func,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var tasks = input.Select(i => func(i, cancellationToken)).ToList();
+
+        while (tasks.Count > 0)
+        {
+            Task<TResult> finishedTask = await Task.WhenAny(tasks);
+            tasks.SwapRemove(finishedTask);
+            yield return await finishedTask;
+        }
     }
 }

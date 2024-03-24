@@ -2,6 +2,7 @@ using System.Net.Http;
 
 using Altinn.Common.AccessToken.Services;
 using Altinn.Register.Configuration;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Services.Implementation;
 using Altinn.Register.Services.Interfaces;
 using Altinn.Register.Tests.Mocks;
@@ -52,7 +53,7 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
 
                     // Using the real/actual implementation of IParties and IPersons, but with a mocked message handler.
                     // Haven't found any other ways of injecting a mocked message handler to simulate SBL Bridge.
-                    services.AddSingleton<IParties>(
+                    services.AddSingleton<IPartyService>(
                         new PartiesWrapper(
                             new HttpClient(SblBridgeHttpMessageHandler),
                             GeneralSettingsOptions.Object,
