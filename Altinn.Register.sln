@@ -14,6 +14,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		stylecop.json = stylecop.json
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{8AE3EFDA-11D9-4E44-B118-33BD2F2764B5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{CB6F46C6-BADF-41A2-999E-C9DB52B14A92}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.Core", "src\Altinn.Register.Core\Altinn.Register.Core.csproj", "{8424D97D-8BDD-483C-B1D6-DBE47F79001B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,9 +34,18 @@ Global
 		{47B54B20-2C71-42DA-AEC1-E68758F1456B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{47B54B20-2C71-42DA-AEC1-E68758F1456B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{47B54B20-2C71-42DA-AEC1-E68758F1456B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8424D97D-8BDD-483C-B1D6-DBE47F79001B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8424D97D-8BDD-483C-B1D6-DBE47F79001B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8424D97D-8BDD-483C-B1D6-DBE47F79001B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8424D97D-8BDD-483C-B1D6-DBE47F79001B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{245B9C40-E4F7-47CB-96C8-E027078FE1B5} = {8AE3EFDA-11D9-4E44-B118-33BD2F2764B5}
+		{47B54B20-2C71-42DA-AEC1-E68758F1456B} = {CB6F46C6-BADF-41A2-999E-C9DB52B14A92}
+		{8424D97D-8BDD-483C-B1D6-DBE47F79001B} = {8AE3EFDA-11D9-4E44-B118-33BD2F2764B5}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F90FFA15-3A79-4299-81E7-CFE0D0179B35}

@@ -11,6 +11,7 @@ using Altinn.Common.PEP.Authorization;
 using Altinn.Register.Authorization;
 using Altinn.Register.Configuration;
 using Altinn.Register.Core;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Filters;
 using Altinn.Register.Health;
 using Altinn.Register.Services;
@@ -222,7 +223,7 @@ void ConfigureServices(IServiceCollection services, IConfiguration config)
 
     services.AddHttpClient<IOrganizations, OrganizationsWrapper>();
     services.AddHttpClient<IPersons, PersonsWrapper>(); 
-    services.AddHttpClient<IParties, PartiesWrapper>();
+    services.AddHttpClient<IPartyService, PartiesWrapper>();
     services.AddHttpClient<IAuthorization, AuthorizationWrapper>();
 
     if (!string.IsNullOrEmpty(applicationInsightsConnectionString))
