@@ -171,16 +171,7 @@ public static class AsyncEnumerableExtensions
                     {
                         try
                         {
-                            await foreach (var item in source.WithCancellation(cancellationToken))
-                            {
-                                if (!await writer.WaitToWriteAsync(cancellationToken))
-                                {
-                                    // Can't write more items, the channel is closed.
-                                    return;
-                                }
-
-                                await writer.WriteAsync(item, cancellationToken);
-                            }
+                            await source.WriteToAsync(writer, cancellationToken);
                         }
                         catch (Exception e)
                         {

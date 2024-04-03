@@ -107,7 +107,23 @@ public class AsyncEnumerableExtensionsTests
         Assert.Equal(cts.Token, ex.CancellationToken);
     }
 
-    private class CancellableEnumerable<T> 
+    [Fact]
+    public async Task Merge_Empty()
+    {
+        var seq = AsyncEnumerableExtensions.Merge<string>([]);
+        var result = await seq.ToListAsync();
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task Merge_Single()
+    {
+        var seq = AsyncEnumerableExtensions.Merge([AsyncEnumerable.Range(0, 10)]);
+        var result = await seq.ToListAsync();
+        Assert.Equal(10, result.Count);
+    }
+
+    private sealed class CancellableEnumerable<T> 
         : IAsyncEnumerable<T>
     {
         private readonly CancellationToken _token;
