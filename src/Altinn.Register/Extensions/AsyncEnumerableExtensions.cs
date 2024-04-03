@@ -57,7 +57,7 @@ public static class AsyncEnumerableExtensions
         {
             [] => AsyncEnumerable.Empty<T>(),
             [var first] => first,
-            [MergedAsyncEnumerable<T> first, .. var rest] => first.Merge(rest),
+            [MergedAsyncEnumerable<T> first, .. var rest] => first.MergeWith(rest),
             _ => MergedAsyncEnumerable<T>.Create(sources),
         };
 
@@ -102,7 +102,7 @@ public static class AsyncEnumerableExtensions
         }
     }
 
-    private class DistinctByComparer<TSource, TKey>
+    private sealed class DistinctByComparer<TSource, TKey>
         : IEqualityComparer<TSource>
     {
         private readonly Func<TSource, TKey> _keySelector;
@@ -141,7 +141,7 @@ public static class AsyncEnumerableExtensions
         }
     }
 
-    private class MergedAsyncEnumerable<T>
+    private sealed class MergedAsyncEnumerable<T>
         : IAsyncEnumerable<T>
     {
         private readonly ImmutableArray<IAsyncEnumerable<T>> _sources;
@@ -190,16 +190,18 @@ public static class AsyncEnumerableExtensions
                     cancellationToken);
             }
 
-            _ = Task.Run(async () =>
-            {
-                await Task.WhenAll(tasks);
-                writer.TryComplete();
-            });
+            _ = Task.Run(
+                async () =>
+                {
+                    await Task.WhenAll(tasks);
+                    writer.TryComplete();
+                }, 
+                cancellationToken);
 
             return channel.Reader.ReadAllAsync(cancellationToken).GetAsyncEnumerator(cancellationToken);
         }
 
-        public MergedAsyncEnumerable<T> Merge(ReadOnlySpan<IAsyncEnumerable<T>> sources)
+        public MergedAsyncEnumerable<T> MergeWith(ReadOnlySpan<IAsyncEnumerable<T>> sources)
         {
             return MergedAsyncEnumerable<T>.Create([.. _sources, .. sources]);
         }
