@@ -1,6 +1,8 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
+using Altinn.Register.Models;
 
 namespace Altinn.Register.Services.Interfaces
 {
@@ -15,5 +17,12 @@ namespace Altinn.Register.Services.Interfaces
         /// <param name="orgNr">The organization number</param>
         /// <returns></returns>
         Task<Organization> GetOrganization(string orgNr);
+
+        /// <summary>
+        /// Method for retriveing contact points for an org 
+        /// </summary>
+        /// <param name="organisationNumbers">A list of organisation numbers to lookup contact points for</param>
+        /// <returns>The orgs contact points</returns>
+        Task<OrgContactPointsList> GetContactPoints(List<string> organisationNumbers);
     }
 }

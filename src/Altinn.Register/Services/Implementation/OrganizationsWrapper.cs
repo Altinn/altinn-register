@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Configuration;
+using Altinn.Register.Models;
 using Altinn.Register.Services.Interfaces;
 
 using Microsoft.Extensions.Logging;
@@ -48,6 +51,27 @@ namespace Altinn.Register.Services.Implementation
             else
             {
                 _logger.LogError("Getting org with org nr {OrgNr} failed with statuscode {StatusCode}", orgNr, response.StatusCode);
+            }
+
+            return null;
+        }
+        
+        /// <inheritdoc/>
+        public async Task<OrgContactPointsList> GetContactPoints(List<string> organisationNumbers)
+        {
+            Uri endpointUrl = new($"{_generalSettings.BridgeApiEndpoint}organizations/contactpoints");
+
+            StringContent requestBody = new(JsonSerializer.Serialize(organisationNumbers), Encoding.UTF8, "application/json");
+
+            HttpResponseMessage response = await _client.PostAsync(endpointUrl, requestBody);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.OK)
+            {
+                return await JsonSerializer.DeserializeAsync<OrgContactPointsList>(await response.Content.ReadAsStreamAsync());
+            }
+            else
+            {
+                _logger.LogError("Getting contact points for orgs failed with statuscode {StatusCode}", response.StatusCode);
             }
 
             return null;
