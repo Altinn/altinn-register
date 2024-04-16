@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Configuration;
+using Altinn.Register.Exceptions;
 using Altinn.Register.Models;
 using Altinn.Register.Services.Interfaces;
 
@@ -72,9 +73,8 @@ namespace Altinn.Register.Services.Implementation
             else
             {
                 _logger.LogError("Getting contact points for orgs failed with statuscode {StatusCode}", response.StatusCode);
+                throw await PlatformHttpException.CreateAsync(response);
             }
-
-            return null;
         }
     }
 }
