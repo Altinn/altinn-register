@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 using Altinn.Register.Models;
 using Altinn.Register.Services.Interfaces;
@@ -22,7 +21,7 @@ public class OrgContactPointService : IOrgContactPoints
     }
 
     /// <inheritdoc />
-    public async Task<OrgContactPointsList> GetContactPoints(List<string> organisationNumbers)
+    public async Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup organisationNumbers)
     {
         OrgContactPointsList contactPointsList = await _organizationClient.GetContactPoints(organisationNumbers);
 

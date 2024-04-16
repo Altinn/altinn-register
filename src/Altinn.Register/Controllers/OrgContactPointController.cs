@@ -35,6 +35,6 @@ public class OrgContactPointController : Controller
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<OrgContactPointsList>> PostLookup([FromBody] OrgContactPointLookup orgContactPointLookup)
     {
-        return await _orgContactPointService.GetContactPoints(orgContactPointLookup.OrganisationNumbers);
+        return await _orgContactPointService.GetContactPoints(orgContactPointLookup);
     }
 }

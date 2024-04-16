@@ -191,6 +191,8 @@ void ConfigureServices(IServiceCollection services, IConfiguration config)
     services.AddTransient<IPersonLookup, PersonLookupService>();
     services.Decorate<IPersonLookup, PersonLookupCacheDecorator>();
 
+    services.AddSingleton<IOrgContactPoints, OrgContactPointService>();
+    
     services.AddAuthentication(JwtCookieDefaults.AuthenticationScheme)
           .AddJwtCookie(JwtCookieDefaults.AuthenticationScheme, options =>
           {

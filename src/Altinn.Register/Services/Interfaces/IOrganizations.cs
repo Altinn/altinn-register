@@ -23,6 +23,6 @@ namespace Altinn.Register.Services.Interfaces
         /// </summary>
         /// <param name="organisationNumbers">A list of organisation numbers to lookup contact points for</param>
         /// <returns>The orgs contact points</returns>
-        Task<OrgContactPointsList> GetContactPoints(List<string> organisationNumbers);
+        Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup organisationNumbers);
     }
 }

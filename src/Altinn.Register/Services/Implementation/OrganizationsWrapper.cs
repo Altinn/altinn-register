@@ -57,7 +57,7 @@ namespace Altinn.Register.Services.Implementation
         }
         
         /// <inheritdoc/>
-        public async Task<OrgContactPointsList> GetContactPoints(List<string> organisationNumbers)
+        public async Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup organisationNumbers)
         {
             Uri endpointUrl = new($"{_generalSettings.BridgeApiEndpoint}organizations/contactpoints");
 
