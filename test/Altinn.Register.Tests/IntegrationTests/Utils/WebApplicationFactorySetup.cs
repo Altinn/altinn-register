@@ -35,6 +35,8 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
 
         public Mock<ILogger<PersonsWrapper>> PersonsWrapperLogger { get; set; } = new();
 
+        public Mock<ILogger<OrganizationsWrapper>> OrganizationsWrapperLogger { get; set; } = new();
+
         public Mock<IOptions<GeneralSettings>> GeneralSettingsOptions { get; set; } = new();
 
         public MemoryCache MemoryCache { get; set; } = new MemoryCache(new MemoryCacheOptions());
@@ -64,6 +66,11 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
                             new HttpClient(SblBridgeHttpMessageHandler),
                             GeneralSettingsOptions.Object,
                             PersonsWrapperLogger.Object));
+                    services.AddSingleton<IOrganizations>(
+                        new OrganizationsWrapper(
+                            new HttpClient(SblBridgeHttpMessageHandler),
+                            GeneralSettingsOptions.Object,
+                            OrganizationsWrapperLogger.Object));
                 });
             }).CreateClient();
         }
