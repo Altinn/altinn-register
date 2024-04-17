@@ -58,7 +58,8 @@ public class OrgContactPointControllerTests : IClassFixture<WebApplicationFactor
         
         HttpClient client = GetTestClient(orgContactPointService.Object);
 
-        HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, "/register/api/v1/organizations/lookup")
+        HttpRequestMessage httpRequestMessage = 
+            new HttpRequestMessage(HttpMethod.Post, "/register/api/v1/organizations/contactpoint/lookup")
         {
             Content = new StringContent(JsonSerializer.Serialize(orgContactPointLookup), Encoding.UTF8, "application/json")
         };

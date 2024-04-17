@@ -10,7 +10,7 @@ namespace Altinn.Register.Controllers;
 /// <summary>
 /// Controller for organisation contact point API endpoints for internal consumption (e.g. Notifications) requiring neither authenticated user token nor access token authorization.
 /// </summary>
-[Route("register/api/v1/organizations")]
+[Route("register/api/v1/organizations/contactpoint")]
 [ApiExplorerSettings(IgnoreApi = true)]
 [Consumes("application/json")]
 [Produces("application/json")]
