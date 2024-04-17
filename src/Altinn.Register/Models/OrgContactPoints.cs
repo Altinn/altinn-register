@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace Altinn.Register.Models;
 
 /// <summary>
-/// A class describing the contact points of a unit
+/// A class describing the official contact points of a unit
 /// </summary>
 public class OrgContactPoints
 {
