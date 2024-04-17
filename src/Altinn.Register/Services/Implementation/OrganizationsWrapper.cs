@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -22,7 +21,7 @@ namespace Altinn.Register.Services.Implementation
     public class OrganizationsWrapper : IOrganizations
     {
         private readonly GeneralSettings _generalSettings;
-        private readonly ILogger _logger;
+        private readonly ILogger<OrganizationsWrapper> _logger;
         private readonly HttpClient _client;
 
         /// <summary>
