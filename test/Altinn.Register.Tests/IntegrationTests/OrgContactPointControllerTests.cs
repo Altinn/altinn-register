@@ -23,7 +23,7 @@ public class OrgContactPointControllerTests : IClassFixture<WebApplicationFactor
     {
         _webApplicationFactorySetup = new WebApplicationFactorySetup<OrgContactPointController>(factory);
 
-        GeneralSettings generalSettings = new() { BridgeApiEndpoint = "http://localhost/" };
+        GeneralSettings generalSettings = new() { BridgeApiEndpoint = "http://localhost/sblbridge/register/api/" };
         _webApplicationFactorySetup.GeneralSettingsOptions.Setup(s => s.Value).Returns(generalSettings);
     }
 
@@ -55,8 +55,12 @@ public class OrgContactPointControllerTests : IClassFixture<WebApplicationFactor
 
         // Act
         HttpResponseMessage response = await client.SendAsync(testRequest);
+        OrgContactPointsList orgContactsPointListResponse = await JsonSerializer.DeserializeAsync<OrgContactPointsList>(await response.Content.ReadAsStreamAsync());
 
         // Assert
+        Assert.NotNull(orgContactsPointListResponse);
+        Assert.NotNull(sblRequest);
+        Assert.Equal(HttpMethod.Post, sblRequest.Method);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -90,6 +94,8 @@ public class OrgContactPointControllerTests : IClassFixture<WebApplicationFactor
         HttpResponseMessage response = await client.SendAsync(testRequest);
 
         // Assert
+        Assert.NotNull(sblRequest);
+        Assert.Equal(HttpMethod.Post, sblRequest.Method);
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
     }
 
