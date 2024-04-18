@@ -53,7 +53,7 @@ public class OrgContactPointControllerTests : IClassFixture<WebApplicationFactor
         orgContactsPointList.ContactPointsList.Add(orgContactPoints);
 
         // Arrange
-        Mock<IOrgContactPoints> orgContactPointService = new();
+        Mock<IOrgContactPoint> orgContactPointService = new();
         orgContactPointService.Setup(s => s.GetContactPoints(It.Is<OrgContactPointLookup>(o => o.OrganisationNumbers.Contains(orgNo)))).ReturnsAsync(orgContactsPointList);
         
         HttpClient client = GetTestClient(orgContactPointService.Object);
@@ -75,7 +75,7 @@ public class OrgContactPointControllerTests : IClassFixture<WebApplicationFactor
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
-    private HttpClient GetTestClient(IOrgContactPoints orgContactPointService)
+    private HttpClient GetTestClient(IOrgContactPoint orgContactPointService)
     {
         HttpClient client = _factory.WithWebHostBuilder(builder =>
         {

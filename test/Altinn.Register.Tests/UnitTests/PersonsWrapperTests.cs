@@ -7,8 +7,8 @@ using System.Text.Json;
 using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
+using Altinn.Register.Clients;
 using Altinn.Register.Configuration;
-using Altinn.Register.Services.Implementation;
 using Altinn.Register.Tests.Mocks;
 
 using Microsoft.Extensions.Logging;
@@ -23,7 +23,7 @@ namespace Altinn.Register.Tests.UnitTests;
 public class PersonsWrapperTests
 {
     private Mock<IOptions<GeneralSettings>> _generalSettingsOptions = new();
-    private Mock<ILogger<PersonsWrapper>> _personsWrapperLogger = new();
+    private Mock<ILogger<PersonsClient>> _personsWrapperLogger = new();
 
     public PersonsWrapperTests()
     {
@@ -44,7 +44,7 @@ public class PersonsWrapperTests
             return await CreateHttpResponseMessage(person);
         });
 
-        var target = new PersonsWrapper(
+        var target = new PersonsClient(
             new HttpClient(messageHandler), _generalSettingsOptions.Object, _personsWrapperLogger.Object);
 
         // Act
@@ -70,7 +70,7 @@ public class PersonsWrapperTests
             return await Task.FromResult(new HttpResponseMessage() { StatusCode = HttpStatusCode.NotFound });
         });
 
-        var target = new PersonsWrapper(
+        var target = new PersonsClient(
             new HttpClient(messageHandler), _generalSettingsOptions.Object, _personsWrapperLogger.Object);
 
         // Act

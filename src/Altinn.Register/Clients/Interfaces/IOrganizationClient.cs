@@ -1,15 +1,14 @@
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Models;
 
-namespace Altinn.Register.Services.Interfaces
+namespace Altinn.Register.Clients.Interfaces
 {
     /// <summary>
     /// Interface handling methods for operations related to organizations
     /// </summary>
-    public interface IOrganizations
+    public interface IOrganizationClient
     {
         /// <summary>
         /// Method that fetches a organization based on a organization number

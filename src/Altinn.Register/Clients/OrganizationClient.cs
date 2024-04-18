@@ -3,34 +3,33 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-
 using Altinn.Platform.Register.Models;
+using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Configuration;
 using Altinn.Register.Exceptions;
 using Altinn.Register.Models;
-using Altinn.Register.Services.Interfaces;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Altinn.Register.Services.Implementation
+namespace Altinn.Register.Clients
 {
     /// <summary>
     /// The organization wrapper
     /// </summary>
-    public class OrganizationsWrapper : IOrganizations
+    public class OrganizationClient : IOrganizationClient
     {
         private readonly GeneralSettings _generalSettings;
-        private readonly ILogger<OrganizationsWrapper> _logger;
+        private readonly ILogger<OrganizationClient> _logger;
         private readonly HttpClient _client;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="OrganizationsWrapper"/> class
+        /// Initializes a new instance of the <see cref="OrganizationClient"/> class
         /// </summary>
         /// <param name="httpClient">HttpClient from default httpclientfactory</param>
         /// <param name="generalSettings">the general settings</param>
         /// <param name="logger">the logger</param>
-        public OrganizationsWrapper(HttpClient httpClient, IOptions<GeneralSettings> generalSettings, ILogger<OrganizationsWrapper> logger)
+        public OrganizationClient(HttpClient httpClient, IOptions<GeneralSettings> generalSettings, ILogger<OrganizationClient> logger)
         {
             _generalSettings = generalSettings.Value;
             _logger = logger;
@@ -55,7 +54,7 @@ namespace Altinn.Register.Services.Implementation
 
             return null;
         }
-        
+
         /// <inheritdoc/>
         public async Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup organisationNumbers)
         {

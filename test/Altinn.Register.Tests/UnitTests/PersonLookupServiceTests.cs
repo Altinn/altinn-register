@@ -4,8 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
+using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Core;
-using Altinn.Register.Services.Interfaces;
 
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -19,7 +19,7 @@ namespace Altinn.Register.Tests.UnitTests;
 
 public class PersonLookupServiceTests
 {
-    private readonly Mock<IPersons> _persons;
+    private readonly Mock<IPersonClient> _persons;
     private readonly Mock<IOptions<PersonLookupSettings>> _settingsMock;
     private readonly Mock<ILogger<PersonLookupService>> _logger;
 
@@ -28,7 +28,7 @@ public class PersonLookupServiceTests
 
     public PersonLookupServiceTests()
     {
-        _persons = new Mock<IPersons>();
+        _persons = new Mock<IPersonClient>();
         lookupSettings = new PersonLookupSettings();
 
         _settingsMock = new Mock<IOptions<PersonLookupSettings>>();

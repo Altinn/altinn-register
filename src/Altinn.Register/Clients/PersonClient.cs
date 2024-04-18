@@ -5,32 +5,30 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-
 using Altinn.Platform.Register.Models;
+using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Configuration;
-using Altinn.Register.Services.Interfaces;
-
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Altinn.Register.Services.Implementation;
+namespace Altinn.Register.Clients;
 
 /// <summary>
 /// The persons wrapper
 /// </summary>
-public class PersonsWrapper : IPersons
+public class PersonsClient : IPersonClient
 {
     private readonly GeneralSettings _generalSettings;
     private readonly ILogger _logger;
     private readonly HttpClient _client;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PersonsWrapper"/> class
+    /// Initializes a new instance of the <see cref="PersonsClient"/> class
     /// </summary>
     /// <param name="httpClient">HttpClient from default httpclientfactory</param>
     /// <param name="generalSettings">The general settings</param>
     /// <param name="logger">The logger</param>
-    public PersonsWrapper(HttpClient httpClient, IOptions<GeneralSettings> generalSettings, ILogger<PersonsWrapper> logger)
+    public PersonsClient(HttpClient httpClient, IOptions<GeneralSettings> generalSettings, ILogger<PersonsClient> logger)
     {
         _generalSettings = generalSettings.Value;
         _logger = logger;

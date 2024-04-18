@@ -1,8 +1,7 @@
 using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
-using Altinn.Register.Services.Interfaces;
-
+using Altinn.Register.Clients.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,13 +15,13 @@ namespace Altinn.Register.Controllers
     [Route("register/api/v1/organizations")]
     public class OrganizationsController : Controller
     {
-        private readonly IOrganizations _organizationsWrapper;
+        private readonly IOrganizationClient _organizationsWrapper;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OrganizationsController"/> class.
         /// </summary>
         /// <param name="organizationsWrapper">The organizations wrapper used as a client when calling the SBLBridge.</param>
-        public OrganizationsController(IOrganizations organizationsWrapper)
+        public OrganizationsController(IOrganizationClient organizationsWrapper)
         {
             _organizationsWrapper = organizationsWrapper;
         }

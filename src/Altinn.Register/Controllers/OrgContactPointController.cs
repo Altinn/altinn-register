@@ -16,13 +16,13 @@ namespace Altinn.Register.Controllers;
 [Produces("application/json")]
 public class OrgContactPointController : Controller
 {
-    private readonly IOrgContactPoints _orgContactPointService;
+    private readonly IOrgContactPoint _orgContactPointService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OrgContactPointController"/> class.
     /// </summary>
     /// <param name="orgContactPointService">The organisation contact point service.</param>
-    public OrgContactPointController(IOrgContactPoints orgContactPointService)
+    public OrgContactPointController(IOrgContactPoint orgContactPointService)
     {
         _orgContactPointService = orgContactPointService;
     }

@@ -3,8 +3,7 @@ using System;
 using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
-using Altinn.Register.Services.Interfaces;
-
+using Altinn.Register.Clients.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -18,7 +17,7 @@ namespace Altinn.Register.Core
     {
         private const string PersonLookupFailedAttempts = "Person-Lookup-Failed-Attempts";
 
-        private readonly IPersons _personsService;
+        private readonly IPersonClient _personsService;
         private readonly PersonLookupSettings _personLookupSettings;
         private readonly IMemoryCache _memoryCache;
         private readonly ILogger<PersonLookupService> _logger;
@@ -27,7 +26,7 @@ namespace Altinn.Register.Core
         /// Initialize a new instance of the <see cref="PersonLookupService"/> class.
         /// </summary>
         public PersonLookupService(
-            IPersons personsService,
+            IPersonClient personsService,
             IOptions<PersonLookupSettings> personLookupSettings,
             IMemoryCache memoryCache,
             ILogger<PersonLookupService> logger)

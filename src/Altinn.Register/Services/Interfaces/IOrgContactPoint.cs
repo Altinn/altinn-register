@@ -8,7 +8,7 @@ namespace Altinn.Register.Services.Interfaces;
 /// <summary>
 /// Class describing the methods required for org contact point service
 /// </summary>
-public interface IOrgContactPoints
+public interface IOrgContactPoint
 {
     /// <summary>
     /// Method for retriveing contact points for an org 

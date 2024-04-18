@@ -6,7 +6,7 @@ namespace Altinn.Register.Services.Interfaces
     /// <summary>
     /// Interface for authorization functionality.
     /// </summary>
-    public interface IAuthorization
+    public interface IAuthorizationClient
     {
         /// <summary>
         /// Verifies that the selected party is contained in the user's party list.

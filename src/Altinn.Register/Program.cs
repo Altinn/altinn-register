@@ -9,6 +9,8 @@ using Altinn.Common.AccessToken.Configuration;
 using Altinn.Common.AccessToken.Services;
 using Altinn.Common.PEP.Authorization;
 using Altinn.Register.Authorization;
+using Altinn.Register.Clients;
+using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Configuration;
 using Altinn.Register.Core;
 using Altinn.Register.Core.Parties;
@@ -191,7 +193,7 @@ void ConfigureServices(IServiceCollection services, IConfiguration config)
     services.AddTransient<IPersonLookup, PersonLookupService>();
     services.Decorate<IPersonLookup, PersonLookupCacheDecorator>();
 
-    services.AddSingleton<IOrgContactPoints, OrgContactPointService>();
+    services.AddSingleton<IOrgContactPoint, OrgContactPointService>();
     
     services.AddAuthentication(JwtCookieDefaults.AuthenticationScheme)
           .AddJwtCookie(JwtCookieDefaults.AuthenticationScheme, options =>
@@ -223,10 +225,10 @@ void ConfigureServices(IServiceCollection services, IConfiguration config)
         options.AddPolicy("InternalOrPlatformAccess", policy => policy.Requirements.Add(new InternalScopeOrAccessTokenRequirement("altinn:register/partylookup.admin")));
     });
 
-    services.AddHttpClient<IOrganizations, OrganizationsWrapper>();
-    services.AddHttpClient<IPersons, PersonsWrapper>(); 
-    services.AddHttpClient<IPartyService, PartiesWrapper>();
-    services.AddHttpClient<IAuthorization, AuthorizationWrapper>();
+    services.AddHttpClient<IOrganizationClient, OrganizationClient>();
+    services.AddHttpClient<IPersonClient, PersonsClient>(); 
+    services.AddHttpClient<IPartyService, PartiesClient>();
+    services.AddHttpClient<IAuthorizationClient, AuthorizationClient>();
 
     if (!string.IsNullOrEmpty(applicationInsightsConnectionString))
     {

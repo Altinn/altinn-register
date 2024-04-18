@@ -5,7 +5,7 @@ using Altinn.Register.Services.Interfaces;
 
 namespace Altinn.Register.Tests.Mocks
 {
-    public class AuthorizationWrapperMock : IAuthorization
+    public class AuthorizationWrapperMock : IAuthorizationClient
     {
         public Task<bool?> ValidateSelectedParty(int userId, int partyId, CancellationToken cancellationToken = default)
         {

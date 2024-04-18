@@ -1,15 +1,14 @@
 #nullable enable
 
 using System.Threading.Tasks;
-
 using Altinn.Platform.Register.Models;
 
-namespace Altinn.Register.Services.Interfaces;
+namespace Altinn.Register.Clients.Interfaces;
 
 /// <summary>
 /// Interface handling methods for operations related to persons
 /// </summary>
-public interface IPersons
+public interface IPersonClient
 {
     /// <summary>
     /// Method that fetches a person based on a national identity number of the person.
