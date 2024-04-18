@@ -21,9 +21,9 @@ using Microsoft.Extensions.Options;
 namespace Altinn.Register.Clients;
 
 /// <summary>
-/// The parties wrapper
+/// Implementation of <see cref="IPartyClient"/> using SBL Bridge Register API as data source
 /// </summary>
-public class PartiesClient : IPartyService
+public class PartiesClient : IPartyClient
 {
     // TODO: This should be moved into the http client, so that it works for all calls
     private static readonly SemaphoreSlim _concurrentNameLookupsLimiter = new(20);

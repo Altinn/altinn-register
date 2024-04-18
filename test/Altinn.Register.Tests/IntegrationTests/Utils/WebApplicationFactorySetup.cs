@@ -31,11 +31,11 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
             _webApplicationFactory = webApplicationFactory;
         }
 
-        public Mock<ILogger<PartiesClient>> PartiesWrapperLogger { get; set; } = new();
+        public Mock<ILogger<PartiesClient>> PartiesClientLogger { get; set; } = new();
 
-        public Mock<ILogger<PersonsClient>> PersonsWrapperLogger { get; set; } = new();
+        public Mock<ILogger<PersonClient>> PersonsClientLogger { get; set; } = new();
 
-        public Mock<ILogger<OrganizationClient>> OrganizationsWrapperLogger { get; set; } = new();
+        public Mock<ILogger<OrganizationClient>> OrganizationsClientsLogger { get; set; } = new();
 
         public Mock<IOptions<GeneralSettings>> GeneralSettingsOptions { get; set; } = new();
 
@@ -55,22 +55,22 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
 
                     // Using the real/actual implementation of IParties and IPersons, but with a mocked message handler.
                     // Haven't found any other ways of injecting a mocked message handler to simulate SBL Bridge.
-                    services.AddSingleton<IPartyService>(
+                    services.AddSingleton<IPartyClient>(
                         new PartiesClient(
                             new HttpClient(SblBridgeHttpMessageHandler),
                             GeneralSettingsOptions.Object,
-                            PartiesWrapperLogger.Object,
+                            PartiesClientLogger.Object,
                             MemoryCache));
                     services.AddSingleton<IPersonClient>(
-                        new PersonsClient(
+                        new PersonClient(
                             new HttpClient(SblBridgeHttpMessageHandler),
                             GeneralSettingsOptions.Object,
-                            PersonsWrapperLogger.Object));
+                            PersonsClientLogger.Object));
                     services.AddSingleton<IOrganizationClient>(
                         new OrganizationClient(
                             new HttpClient(SblBridgeHttpMessageHandler),
                             GeneralSettingsOptions.Object,
-                            OrganizationsWrapperLogger.Object));
+                            OrganizationsClientsLogger.Object));
                 });
             }).CreateClient();
         }

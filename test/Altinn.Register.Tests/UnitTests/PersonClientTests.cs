@@ -20,12 +20,12 @@ using Xunit;
 
 namespace Altinn.Register.Tests.UnitTests;
 
-public class PersonsWrapperTests
+public class PersonClientTests
 {
     private Mock<IOptions<GeneralSettings>> _generalSettingsOptions = new();
-    private Mock<ILogger<PersonsClient>> _personsWrapperLogger = new();
+    private Mock<ILogger<PersonClient>> _personClientLogger = new();
 
-    public PersonsWrapperTests()
+    public PersonClientTests()
     {
         GeneralSettings generalSettings = new() { BridgeApiEndpoint = "http://localhost/" };
         _generalSettingsOptions.Setup(s => s.Value).Returns(generalSettings);
@@ -44,8 +44,8 @@ public class PersonsWrapperTests
             return await CreateHttpResponseMessage(person);
         });
 
-        var target = new PersonsClient(
-            new HttpClient(messageHandler), _generalSettingsOptions.Object, _personsWrapperLogger.Object);
+        var target = new PersonClient(
+            new HttpClient(messageHandler), _generalSettingsOptions.Object, _personClientLogger.Object);
 
         // Act
         var actual = await target.GetPerson("thisperson");
@@ -70,8 +70,8 @@ public class PersonsWrapperTests
             return await Task.FromResult(new HttpResponseMessage() { StatusCode = HttpStatusCode.NotFound });
         });
 
-        var target = new PersonsClient(
-            new HttpClient(messageHandler), _generalSettingsOptions.Object, _personsWrapperLogger.Object);
+        var target = new PersonClient(
+            new HttpClient(messageHandler), _generalSettingsOptions.Object, _personClientLogger.Object);
 
         // Act
         var actual = await target.GetPerson("thisperson");

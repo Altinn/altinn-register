@@ -15,7 +15,7 @@ using Microsoft.Extensions.Options;
 namespace Altinn.Register.Clients
 {
     /// <summary>
-    /// The organization wrapper
+    /// Implementation of <see cref="IOrganizationClient"/> using SBL Bridge Register API as data source
     /// </summary>
     public class OrganizationClient : IOrganizationClient
     {

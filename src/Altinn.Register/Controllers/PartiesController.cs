@@ -27,18 +27,18 @@ namespace Altinn.Register.Controllers
     [Route("register/api/v1/parties")]
     public class PartiesController : Controller
     {
-        private readonly IPartyService _partyService;
+        private readonly IPartyClient _partyService;
         private readonly IAuthorizationClient _authorization;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PartiesController"/> class.
         /// </summary>
-        /// <param name="partyService">The parties wrapper used as a client when calling SBL Bridge.</param>
-        /// <param name="authorizationWrapper">The authorization wrapper</param>
-        public PartiesController(IPartyService partyService, IAuthorizationClient authorizationWrapper)
+        /// <param name="partyService">The parties service used as a client when calling SBL Bridge.</param>
+        /// <param name="authorizationClient">The authorization client</param>
+        public PartiesController(IPartyClient partyService, IAuthorizationClient authorizationClient)
         {
             _partyService = partyService;
-            _authorization = authorizationWrapper;
+            _authorization = authorizationClient;
         }
 
         /// <summary>

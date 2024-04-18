@@ -14,21 +14,21 @@ using Microsoft.Extensions.Options;
 namespace Altinn.Register.Clients;
 
 /// <summary>
-/// The persons wrapper
+/// Implementation of <see cref="IPersonClient"/> using SBL Bridge Register API as data source
 /// </summary>
-public class PersonsClient : IPersonClient
+public class PersonClient : IPersonClient
 {
     private readonly GeneralSettings _generalSettings;
     private readonly ILogger _logger;
     private readonly HttpClient _client;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PersonsClient"/> class
+    /// Initializes a new instance of the <see cref="PersonClient"/> class
     /// </summary>
     /// <param name="httpClient">HttpClient from default httpclientfactory</param>
     /// <param name="generalSettings">The general settings</param>
     /// <param name="logger">The logger</param>
-    public PersonsClient(HttpClient httpClient, IOptions<GeneralSettings> generalSettings, ILogger<PersonsClient> logger)
+    public PersonClient(HttpClient httpClient, IOptions<GeneralSettings> generalSettings, ILogger<PersonClient> logger)
     {
         _generalSettings = generalSettings.Value;
         _logger = logger;

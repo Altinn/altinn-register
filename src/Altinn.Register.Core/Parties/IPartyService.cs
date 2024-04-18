@@ -5,7 +5,7 @@ namespace Altinn.Register.Core.Parties;
 /// <summary>
 /// Service for interfacing with party entities.
 /// </summary>
-public interface IPartyService
+public interface IPartyClient
 {
     /// <summary>
     /// Get a party by party id.
