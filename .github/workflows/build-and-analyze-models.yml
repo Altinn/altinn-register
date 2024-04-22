@@ -52,6 +52,8 @@ jobs:
             --logger "trx;" \
             --configuration release \
             -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+
+            dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
       - name: Complete sonar analysis
         if: always()
         env:
