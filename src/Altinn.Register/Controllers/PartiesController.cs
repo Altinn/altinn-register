@@ -9,7 +9,9 @@ using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Core.Parties;
+using Altinn.Register.Extensions;
 using Altinn.Register.Filters;
+using Altinn.Register.Models;
 using Altinn.Register.Services.Interfaces;
 
 using AltinnCore.Authentication.Constants;
@@ -27,18 +29,18 @@ namespace Altinn.Register.Controllers
     [Route("register/api/v1/parties")]
     public class PartiesController : Controller
     {
-        private readonly IPartyService _partyService;
+        private readonly IPartyClient _partyService;
         private readonly IAuthorizationClient _authorization;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PartiesController"/> class.
         /// </summary>
-        /// <param name="partyService">The parties wrapper used as a client when calling SBL Bridge.</param>
-        /// <param name="authorizationWrapper">The authorization wrapper</param>
-        public PartiesController(IPartyService partyService, IAuthorizationClient authorizationWrapper)
+        /// <param name="partyService">The parties service used as a client when calling SBL Bridge.</param>
+        /// <param name="authorizationClient">The authorization client</param>
+        public PartiesController(IPartyClient partyService, IAuthorizationClient authorizationClient)
         {
             _partyService = partyService;
-            _authorization = authorizationWrapper;
+            _authorization = authorizationClient;
         }
 
         /// <summary>
@@ -154,7 +156,7 @@ namespace Altinn.Register.Controllers
 
             return Ok(party);
         }
-        
+
         /// <summary>
         /// Perform a name lookup for the list of parties for the provided ids.
         /// </summary>
@@ -215,6 +217,112 @@ namespace Altinn.Register.Controllers
         {
             List<Party> parties = await _partyService.GetPartiesById(partyUuids, fetchSubUnits, cancellationToken).ToListAsync(cancellationToken);
             return Ok(parties);
+        }
+
+        /// <summary>
+        /// Gets a set of party identifiers given a list of party uuids or org.nos.
+        /// </summary>
+        /// <param name="idsQuery">The party ids.</param>
+        /// <param name="uuidsQuery">The party uuids.</param>
+        /// <param name="orgNosQuery">The org.nos.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A set of <see cref="PartyIdentifiers"/> for each of the requested parties.</returns>
+        [Authorize]
+        [HttpGet("identifiers")]
+        [Consumes("application/json")]
+        [Produces("application/json")]
+        public ActionResult<IAsyncEnumerable<PartyIdentifiers>> GetPartyIdentifiers(
+            [FromQuery(Name = "ids")] List<string>? idsQuery = null,
+            [FromQuery(Name = "uuids")] List<string>? uuidsQuery = null,
+            [FromQuery(Name = "orgs")] List<string>? orgNosQuery = null,
+            CancellationToken cancellationToken = default)
+        {
+            int count = 0;
+            List<int>? ids = null;
+            List<Guid>? uuids = null;
+            List<string>? orgNos = null;
+
+            if (idsQuery is { Count: > 0 })
+            {
+                ids = new List<int>();
+                foreach (var idString in idsQuery.SelectMany(idsQuery => idsQuery.Split(',')))
+                {
+                    if (!int.TryParse(idString, out int id))
+                    {
+                        ModelState.AddModelError("ids", $"Invalid id: {idString}");
+                    }
+
+                    ids.Add(id);
+                }
+
+                count += ids.Count;
+            }
+
+            if (uuidsQuery is { Count: > 0 })
+            {
+                uuids = new List<Guid>();
+                foreach (var uuidString in uuidsQuery.SelectMany(uuidsQuery => uuidsQuery.Split(',')))
+                {
+                    if (!Guid.TryParse(uuidString, out Guid uuid))
+                    {
+                        ModelState.AddModelError("uuids", $"Invalid uuid: {uuidString}");
+                    }
+
+                    uuids.Add(uuid);
+                }
+
+                count += uuids.Count;
+            }
+
+            if (orgNosQuery is { Count: > 0 })
+            {
+                orgNos = new List<string>();
+                foreach (var orgNo in orgNosQuery.SelectMany(orgNosQuery => orgNosQuery.Split(',')))
+                {
+                    // TODO: Validate orgNo
+                    orgNos.Add(orgNo);
+                }
+
+                count += orgNos.Count;
+            }
+
+            if (count > 100)
+            {
+                ModelState.AddModelError(string.Empty, "Maximum number of identifiers is 100");
+            }
+
+            if (count == 0)
+            {
+                ModelState.AddModelError(string.Empty, "At least one of the query parameters 'ids', 'uuids' or 'orgs' must be provided");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var parties = AsyncEnumerable.Empty<Party>();
+
+            if (ids is { Count: > 0 })
+            {
+                parties = parties.Merge(_partyService.GetPartiesById(ids, cancellationToken));
+            }
+
+            if (uuids is { Count: > 0 })
+            {
+                parties = parties.Merge(_partyService.GetPartiesById(uuids, cancellationToken));
+            }
+
+            if (orgNos is { Count: > 0 })
+            {
+                parties = parties.Merge(_partyService.LookupPartiesBySSNOrOrgNos(orgNos, cancellationToken));
+            }
+
+            var all = parties
+                .DistinctBy(static p => p.PartyId)
+                .Select(static p => PartyIdentifiers.Create(p));
+
+            return Ok(all);
         }
 
         /// <summary>

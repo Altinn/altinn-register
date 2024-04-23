@@ -14,7 +14,7 @@ using Microsoft.Extensions.Options;
 namespace Altinn.Register.Clients;
 
 /// <summary>
-/// The persons wrapper
+/// Implementation of <see cref="IPersonClient"/> using SBL Bridge Register API as data source
 /// </summary>
 public class PersonClient : IPersonClient
 {

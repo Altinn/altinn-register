@@ -226,7 +226,7 @@ void ConfigureServices(IServiceCollection services, IConfiguration config)
 
     services.AddHttpClient<IOrganizationClient, OrganizationClient>();
     services.AddHttpClient<IPersonClient, PersonClient>(); 
-    services.AddHttpClient<IPartyService, PartiesClient>();
+    services.AddHttpClient<IPartyClient, PartiesClient>();
     services.AddHttpClient<IAuthorizationClient, AuthorizationClient>();
 
     if (!string.IsNullOrEmpty(applicationInsightsConnectionString))

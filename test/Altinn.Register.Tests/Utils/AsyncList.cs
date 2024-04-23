@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,6 +18,11 @@ internal class AsyncList<T>
     public AsyncList(List<T> values)
     {
         _list = values;
+    }
+
+    public AsyncList(IEnumerable<T> values)
+    {
+        _list = values.ToList();
     }
 
     public void Add(T value)

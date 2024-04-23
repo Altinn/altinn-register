@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -22,13 +21,13 @@ using Xunit;
 
 namespace Altinn.Register.Tests.UnitTests
 {
-    public class PartyWrapperTest
+    public class PartiesClientTest
     {
         private readonly Mock<IOptions<GeneralSettings>> _generalSettingsOptions = new();
-        private readonly Mock<ILogger<PartiesClient>> _partyWrapperLogger = new();
+        private readonly Mock<ILogger<PartiesClient>> _partiesClientLogger = new();
         private readonly IMemoryCache _memoryCache;
 
-        public PartyWrapperTest()
+        public PartiesClientTest()
         {
             GeneralSettings generalSettings = new() { BridgeApiEndpoint = "http://localhost/" };
             _generalSettingsOptions.Setup(s => s.Value).Returns(generalSettings);
@@ -75,7 +74,7 @@ namespace Altinn.Register.Tests.UnitTests
                 return await CreateHttpResponseMessage(party);
             });
             
-            var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partyWrapperLogger.Object, _memoryCache);
+            var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partiesClientLogger.Object, _memoryCache);
 
             // Act
             var actual = await target.GetPartyById(partyUuid);
@@ -133,7 +132,7 @@ namespace Altinn.Register.Tests.UnitTests
                 return await CreateHttpResponseMessage(party);
             });
 
-            var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partyWrapperLogger.Object, _memoryCache);
+            var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partiesClientLogger.Object, _memoryCache);
 
             // Act
             var actual = await target.GetPartyById(partyId);
@@ -166,7 +165,7 @@ namespace Altinn.Register.Tests.UnitTests
                 return await CreateHttpErrorResponse(HttpStatusCode.NotFound);
             });
 
-            var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partyWrapperLogger.Object, _memoryCache);
+            var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partiesClientLogger.Object, _memoryCache);
 
             // Act
             var actual = await target.GetPartyById(partyUuid);
@@ -195,7 +194,7 @@ namespace Altinn.Register.Tests.UnitTests
                 return await CreateHttpErrorResponse(HttpStatusCode.NotFound);
             });
 
-            var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partyWrapperLogger.Object, _memoryCache);
+            var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partiesClientLogger.Object, _memoryCache);
 
             // Act
             var actual = await target.GetPartyById(partyId);
@@ -277,7 +276,7 @@ namespace Altinn.Register.Tests.UnitTests
                 return await CreateHttpResponseMessage(partyList);
             });
 
-            var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partyWrapperLogger.Object, _memoryCache);
+            var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partiesClientLogger.Object, _memoryCache);
 
             // Act
             var actual = await target.GetPartiesById(partyUuids).ToListAsync();
@@ -361,7 +360,7 @@ namespace Altinn.Register.Tests.UnitTests
                 return await CreateHttpResponseMessage(partyList);
             });
 
-            var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partyWrapperLogger.Object, _memoryCache);
+            var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partiesClientLogger.Object, _memoryCache);
 
             // Act
             var actual = await target.GetPartiesById(partyIds).ToListAsync();
@@ -391,7 +390,7 @@ namespace Altinn.Register.Tests.UnitTests
                 return await CreateHttpErrorResponse(HttpStatusCode.NotFound);
             });
 
-            var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partyWrapperLogger.Object, _memoryCache);
+            var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partiesClientLogger.Object, _memoryCache);
 
             // Act
             var actual = await target.GetPartiesById(partyUuids).ToListAsync();
@@ -418,7 +417,7 @@ namespace Altinn.Register.Tests.UnitTests
                 return await CreateHttpErrorResponse(HttpStatusCode.NotFound);
             });
 
-            var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partyWrapperLogger.Object, _memoryCache);
+            var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partiesClientLogger.Object, _memoryCache);
 
             // Act
             var actual = await target.GetPartiesById(partyIds).ToListAsync();
@@ -514,7 +513,7 @@ namespace Altinn.Register.Tests.UnitTests
                 }
             });
 
-            var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partyWrapperLogger.Object, _memoryCache);
+            var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partiesClientLogger.Object, _memoryCache);
 
             // Act
             var actual = await target.LookupPartiesBySSNOrOrgNos(ssnOrOrgNos).ToListAsync();
