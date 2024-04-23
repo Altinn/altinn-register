@@ -21,7 +21,7 @@ namespace Altinn.Register.Services.Implementation
     /// <summary>
     /// App implementation of the authorization service where the app uses the Altinn platform api.
     /// </summary>
-    public class AuthorizationWrapper : IAuthorization
+    public class AuthorizationClient : IAuthorizationClient
     {
         private readonly GeneralSettings _generalSettings;
         private readonly IHttpContextAccessor _httpContextAccessor;
@@ -29,19 +29,19 @@ namespace Altinn.Register.Services.Implementation
         private readonly ILogger _logger;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="AuthorizationWrapper"/> class
+        /// Initializes a new instance of the <see cref="AuthorizationClient"/> class
         /// </summary>
         /// <param name="generalSettings">the general settings</param>
         /// <param name="platformSettings">The platform settings from configuration.</param>
         /// <param name="httpContextAccessor">the http context accessor.</param>
         /// <param name="httpClient">A Http client from the HttpClientFactory.</param>
         /// <param name="logger">the handler for logger service</param>
-        public AuthorizationWrapper(
+        public AuthorizationClient(
             IOptions<GeneralSettings> generalSettings,
             IOptions<PlatformSettings> platformSettings,
             IHttpContextAccessor httpContextAccessor,
             HttpClient httpClient,
-            ILogger<AuthorizationWrapper> logger)
+            ILogger<AuthorizationClient> logger)
         {
             _generalSettings = generalSettings.Value;
             _httpContextAccessor = httpContextAccessor;

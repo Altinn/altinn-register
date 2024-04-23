@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 
 using Altinn.Common.AccessToken.Services;
 using Altinn.Platform.Register.Models;
+using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Controllers;
-using Altinn.Register.Services.Interfaces;
 using Altinn.Register.Tests.Mocks;
 using Altinn.Register.Tests.Mocks.Authentication;
 using Altinn.Register.Tests.Utils;
@@ -47,7 +47,7 @@ namespace Altinn.Register.Tests.TestingControllers
             string orgNo = "836281763";
 
             // Arrange
-            Mock<IOrganizations> organizationsService = new Mock<IOrganizations>();
+            Mock<IOrganizationClient> organizationsService = new Mock<IOrganizationClient>();
             organizationsService.Setup(s => s.GetOrganization(It.Is<string>(o => o == orgNo))).ReturnsAsync(new Organization());
 
             HttpClient client = GetTestClient(organizationsService.Object);
@@ -76,7 +76,7 @@ namespace Altinn.Register.Tests.TestingControllers
             string orgNo = "836281763";
 
             // Arrange
-            Mock<IOrganizations> organizationsService = new Mock<IOrganizations>();
+            Mock<IOrganizationClient> organizationsService = new Mock<IOrganizationClient>();
             organizationsService.Setup(s => s.GetOrganization(It.Is<string>(o => o == orgNo))).ReturnsAsync((Organization)null);
 
             HttpClient client = GetTestClient(organizationsService.Object);
@@ -101,7 +101,7 @@ namespace Altinn.Register.Tests.TestingControllers
             string orgNo = "836281763";
 
             // Arrange
-            Mock<IOrganizations> organizationsService = new Mock<IOrganizations>();
+            Mock<IOrganizationClient> organizationsService = new Mock<IOrganizationClient>();
 
             HttpClient client = GetTestClient(organizationsService.Object);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -123,7 +123,7 @@ namespace Altinn.Register.Tests.TestingControllers
             string orgNo = "836281763";
 
             // Arrange
-            Mock<IOrganizations> organizationsService = new Mock<IOrganizations>();
+            Mock<IOrganizationClient> organizationsService = new Mock<IOrganizationClient>();
             organizationsService.Setup(s => s.GetOrganization(It.Is<string>(o => o == orgNo))).ReturnsAsync(new Organization());
 
             HttpClient client = GetTestClient(organizationsService.Object);
@@ -138,7 +138,7 @@ namespace Altinn.Register.Tests.TestingControllers
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
 
-        private HttpClient GetTestClient(IOrganizations organizationsService)
+        private HttpClient GetTestClient(IOrganizationClient organizationsService)
         {
             string projectDir = Directory.GetCurrentDirectory();
             string configPath = Path.Combine(projectDir, "appsettings.json");

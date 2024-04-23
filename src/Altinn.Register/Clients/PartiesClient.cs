@@ -10,7 +10,6 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Configuration;
 using Altinn.Register.Core.Parties;
@@ -19,12 +18,12 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Altinn.Register.Services.Implementation;
+namespace Altinn.Register.Clients;
 
 /// <summary>
-/// The parties wrapper
+/// Implementation of <see cref="IPartyClient"/> using SBL Bridge Register API as data source
 /// </summary>
-public class PartiesWrapper : IPartyService
+public class PartiesClient : IPartyClient
 {
     // TODO: This should be moved into the http client, so that it works for all calls
     private static readonly SemaphoreSlim _concurrentNameLookupsLimiter = new(20);
@@ -42,13 +41,13 @@ public class PartiesWrapper : IPartyService
     private const int _cacheTimeoutForPartyNames = 360;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PartiesWrapper"/> class
+    /// Initializes a new instance of the <see cref="PartiesClient"/> class
     /// </summary>
     /// <param name="httpClient">HttpClient from default httpclientfactory</param>
     /// <param name="generalSettings">the general settings</param>
     /// <param name="logger">the logger</param>
     /// <param name="memoryCache">the memory cache</param>
-    public PartiesWrapper(HttpClient httpClient, IOptions<GeneralSettings> generalSettings, ILogger<PartiesWrapper> logger, IMemoryCache memoryCache)
+    public PartiesClient(HttpClient httpClient, IOptions<GeneralSettings> generalSettings, ILogger<PartiesClient> logger, IMemoryCache memoryCache)
     {
         _generalSettings = generalSettings.Value;
         _logger = logger;
@@ -76,7 +75,7 @@ public class PartiesWrapper : IPartyService
             {
                 return null;
             }
-            
+
             _memoryCache.Set(cacheKey, party, new TimeSpan(0, _cacheTimeout, 0));
             return party;
         }
@@ -133,7 +132,7 @@ public class PartiesWrapper : IPartyService
             {
                 return null;
             }
-            
+
             _memoryCache.Set($"PartyId:{party.PartyId}", party, new TimeSpan(0, _cacheTimeout, 0));
             return party;
         }
@@ -245,15 +244,15 @@ public class PartiesWrapper : IPartyService
 
     private async Task<string?> GetOrAddPartyNameToCacheAsync(string lookupValue, string cacheKey, CancellationToken cancellationToken)
     {
-        if (_memoryCache.TryGetValue(cacheKey, out string? partyName) 
+        if (_memoryCache.TryGetValue(cacheKey, out string? partyName)
             && partyName is not null)
         {
             return partyName;
         }
 
         // limit the concurrent calls to SBL Bridge
-        await _concurrentNameLookupsLimiter.WaitAsync(cancellationToken); 
-        
+        await _concurrentNameLookupsLimiter.WaitAsync(cancellationToken);
+
         Party? party;
         try
         {

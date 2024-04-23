@@ -5,32 +5,30 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-
 using Altinn.Platform.Register.Models;
+using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Configuration;
-using Altinn.Register.Services.Interfaces;
-
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Altinn.Register.Services.Implementation;
+namespace Altinn.Register.Clients;
 
 /// <summary>
-/// The persons wrapper
+/// Implementation of <see cref="IPersonClient"/> using SBL Bridge Register API as data source
 /// </summary>
-public class PersonsWrapper : IPersons
+public class PersonClient : IPersonClient
 {
     private readonly GeneralSettings _generalSettings;
     private readonly ILogger _logger;
     private readonly HttpClient _client;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PersonsWrapper"/> class
+    /// Initializes a new instance of the <see cref="PersonClient"/> class
     /// </summary>
     /// <param name="httpClient">HttpClient from default httpclientfactory</param>
     /// <param name="generalSettings">The general settings</param>
     /// <param name="logger">The logger</param>
-    public PersonsWrapper(HttpClient httpClient, IOptions<GeneralSettings> generalSettings, ILogger<PersonsWrapper> logger)
+    public PersonClient(HttpClient httpClient, IOptions<GeneralSettings> generalSettings, ILogger<PersonClient> logger)
     {
         _generalSettings = generalSettings.Value;
         _logger = logger;
