@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Configuration;
@@ -56,11 +57,16 @@ namespace Altinn.Register.Clients
         }
 
         /// <inheritdoc/>
-        public async Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup organizationNumbers)
+        public async Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup lookup)
         {
             Uri endpointUrl = new($"{_generalSettings.BridgeApiEndpoint}organizations/contactpoints");
 
-            StringContent requestBody = new(JsonSerializer.Serialize(organizationNumbers), Encoding.UTF8, "application/json");
+            BridgeOrgContactPointLookup bridgeLookup = new()
+            {
+                OrganisationNumbers = lookup.OrganizationNumbers
+            };
+
+            StringContent requestBody = new(JsonSerializer.Serialize(bridgeLookup), Encoding.UTF8, "application/json");
 
             HttpResponseMessage response = await _client.PostAsync(endpointUrl, requestBody);
 
