@@ -44,7 +44,7 @@ public class OrgContactPointControllerTests : IClassFixture<WebApplicationFactor
 
         OrgContactPointLookup orgContactPointLookup = new()
         {
-            OrganisationNumbers = ["980123456"]
+            OrganizationNumbers = ["980123456"]
         };
 
         HttpRequestMessage testRequest = 
@@ -81,7 +81,7 @@ public class OrgContactPointControllerTests : IClassFixture<WebApplicationFactor
 
         OrgContactPointLookup orgContactPointLookup = new()
         {
-            OrganisationNumbers = ["980123456"]
+            OrganizationNumbers = ["980123456"]
         };
 
         HttpRequestMessage testRequest =
@@ -116,7 +116,7 @@ public class OrgContactPointControllerTests : IClassFixture<WebApplicationFactor
         OrgContactPointsList orgContactsPointList = new();
         OrgContactPoints orgContactPoints = new()
         {
-            OrganisationNumber = "980123456",
+            OrganizationNumber = "980123456",
             EmailList = ["test@hattfjelldal.no"],
             MobileNumberList = ["666666666"]
         };

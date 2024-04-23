@@ -33,7 +33,7 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
 
         public Mock<ILogger<PartiesClient>> PartiesWrapperLogger { get; set; } = new();
 
-        public Mock<ILogger<PersonsClient>> PersonsWrapperLogger { get; set; } = new();
+        public Mock<ILogger<PersonClient>> PersonsWrapperLogger { get; set; } = new();
 
         public Mock<ILogger<OrganizationClient>> OrganizationsWrapperLogger { get; set; } = new();
 
@@ -62,7 +62,7 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
                             PartiesWrapperLogger.Object,
                             MemoryCache));
                     services.AddSingleton<IPersonClient>(
-                        new PersonsClient(
+                        new PersonClient(
                             new HttpClient(SblBridgeHttpMessageHandler),
                             GeneralSettingsOptions.Object,
                             PersonsWrapperLogger.Object));

@@ -30,7 +30,6 @@ using Microsoft.ApplicationInsights.Channel;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ApplicationInsights.WindowsServer.TelemetryChannel;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -226,7 +225,7 @@ void ConfigureServices(IServiceCollection services, IConfiguration config)
     });
 
     services.AddHttpClient<IOrganizationClient, OrganizationClient>();
-    services.AddHttpClient<IPersonClient, PersonsClient>(); 
+    services.AddHttpClient<IPersonClient, PersonClient>(); 
     services.AddHttpClient<IPartyService, PartiesClient>();
     services.AddHttpClient<IAuthorizationClient, AuthorizationClient>();
 

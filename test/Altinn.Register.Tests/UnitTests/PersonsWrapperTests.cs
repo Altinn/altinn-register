@@ -23,7 +23,7 @@ namespace Altinn.Register.Tests.UnitTests;
 public class PersonsWrapperTests
 {
     private Mock<IOptions<GeneralSettings>> _generalSettingsOptions = new();
-    private Mock<ILogger<PersonsClient>> _personsWrapperLogger = new();
+    private Mock<ILogger<PersonClient>> _personsWrapperLogger = new();
 
     public PersonsWrapperTests()
     {
@@ -44,7 +44,7 @@ public class PersonsWrapperTests
             return await CreateHttpResponseMessage(person);
         });
 
-        var target = new PersonsClient(
+        var target = new PersonClient(
             new HttpClient(messageHandler), _generalSettingsOptions.Object, _personsWrapperLogger.Object);
 
         // Act
@@ -70,7 +70,7 @@ public class PersonsWrapperTests
             return await Task.FromResult(new HttpResponseMessage() { StatusCode = HttpStatusCode.NotFound });
         });
 
-        var target = new PersonsClient(
+        var target = new PersonClient(
             new HttpClient(messageHandler), _generalSettingsOptions.Object, _personsWrapperLogger.Object);
 
         // Act

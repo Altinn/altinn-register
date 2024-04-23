@@ -9,10 +9,10 @@ namespace Altinn.Register.Models;
 public class OrgContactPoints
 {
     /// <summary>
-    /// Gets or sets the organisation number of the unit
+    /// Gets or sets the organization number of the unit
     /// </summary>
-    [JsonPropertyName("organisationNumber")]
-    public string OrganisationNumber { get; set; }
+    [JsonPropertyName("organizationNumber")]
+    public string OrganizationNumber { get; set; }
 
     /// <summary>
     /// Gets or sets the list containing all the units email address contact points
