@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -72,7 +73,19 @@ namespace Altinn.Register.Clients
 
             if (response.StatusCode == System.Net.HttpStatusCode.OK)
             {
-                return await JsonSerializer.DeserializeAsync<OrgContactPointsList>(await response.Content.ReadAsStreamAsync());
+                var sblModel = await JsonSerializer.DeserializeAsync<BridgeOrgContactPointsList>(await response.Content.ReadAsStreamAsync());
+                return new OrgContactPointsList
+                {
+                    ContactPointsList = sblModel.ContactPointsList
+                        .Select(s =>
+                            new OrgContactPoints()
+                            {
+                                OrganizationNumber = s.OrganisationNumber,
+                                EmailList = s.EmailList,
+                                MobileNumberList = s.MobileNumberList
+                            })
+                        .ToList()
+                };
             }
             else
             {
