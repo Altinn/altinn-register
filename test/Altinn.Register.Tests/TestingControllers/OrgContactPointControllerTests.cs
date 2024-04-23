@@ -39,13 +39,13 @@ public class OrgContactPointControllerTests : IClassFixture<WebApplicationFactor
 
         OrgContactPointLookup orgContactPointLookup = new()
         {
-            OrganisationNumbers = [orgNo]
+            OrganizationNumbers = [orgNo]
         };
 
         OrgContactPointsList orgContactsPointList = new();
         OrgContactPoints orgContactPoints = new()
         {
-            OrganisationNumber = orgNo,
+            OrganizationNumber = orgNo,
             EmailList = [emailAddr],
             MobileNumberList = [mobileNo]
         };
@@ -54,7 +54,7 @@ public class OrgContactPointControllerTests : IClassFixture<WebApplicationFactor
 
         // Arrange
         Mock<IOrgContactPoint> orgContactPointService = new();
-        orgContactPointService.Setup(s => s.GetContactPoints(It.Is<OrgContactPointLookup>(o => o.OrganisationNumbers.Contains(orgNo)))).ReturnsAsync(orgContactsPointList);
+        orgContactPointService.Setup(s => s.GetContactPoints(It.Is<OrgContactPointLookup>(o => o.OrganizationNumbers.Contains(orgNo)))).ReturnsAsync(orgContactsPointList);
         
         HttpClient client = GetTestClient(orgContactPointService.Object);
 

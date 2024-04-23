@@ -56,11 +56,11 @@ namespace Altinn.Register.Clients
         }
 
         /// <inheritdoc/>
-        public async Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup organisationNumbers)
+        public async Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup organizationNumbers)
         {
             Uri endpointUrl = new($"{_generalSettings.BridgeApiEndpoint}organizations/contactpoints");
 
-            StringContent requestBody = new(JsonSerializer.Serialize(organisationNumbers), Encoding.UTF8, "application/json");
+            StringContent requestBody = new(JsonSerializer.Serialize(organizationNumbers), Encoding.UTF8, "application/json");
 
             HttpResponseMessage response = await _client.PostAsync(endpointUrl, requestBody);
 

@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Altinn.Register.Controllers;
 
 /// <summary>
-/// Controller for organisation contact point API endpoints for internal consumption (e.g. Notifications) requiring neither authenticated user token nor access token authorization.
+/// Controller for organization contact point API endpoints for internal consumption (e.g. Notifications) requiring neither authenticated user token nor access token authorization.
 /// </summary>
 [Route("register/api/v1/organizations/contactpoint")]
 [ApiExplorerSettings(IgnoreApi = true)]
@@ -21,14 +21,14 @@ public class OrgContactPointController : Controller
     /// <summary>
     /// Initializes a new instance of the <see cref="OrgContactPointController"/> class.
     /// </summary>
-    /// <param name="orgContactPointService">The organisation contact point service.</param>
+    /// <param name="orgContactPointService">The organization contact point service.</param>
     public OrgContactPointController(IOrgContactPoint orgContactPointService)
     {
         _orgContactPointService = orgContactPointService;
     }
 
     /// <summary>
-    /// Endpoint looking up the contact points for the orgs connected to the provideded organisation numbers in the request body
+    /// Endpoint looking up the contact points for the orgs connected to the provideded organization numbers in the request body
     /// </summary>
     /// <returns>Returns an overview of the contact points for all orgs</returns>
     [HttpPost("lookup")]

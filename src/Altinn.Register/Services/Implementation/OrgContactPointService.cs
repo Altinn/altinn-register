@@ -21,8 +21,8 @@ public class OrgContactPointService : IOrgContactPoint
     }
 
     /// <inheritdoc />
-    public async Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup organisationNumbers)
+    public async Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup organizationNumbers)
     {
-        return await _organizationClient.GetContactPoints(organisationNumbers);
+        return await _organizationClient.GetContactPoints(organizationNumbers);
     }
 }
