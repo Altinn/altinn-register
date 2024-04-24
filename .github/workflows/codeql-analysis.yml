@@ -5,11 +5,13 @@ on:
     branches: [ main ]
     paths:
     - 'src/**'
+    - 'Altinn.Platform.Models/src/**'
   pull_request:
     branches: [ main ]
     types: [opened, synchronize, reopened]
     paths:
     - 'src/**'
+    - 'Altinn.Platform.Models/src/**'
   schedule:
     - cron: '18 22 * * 3'
 
