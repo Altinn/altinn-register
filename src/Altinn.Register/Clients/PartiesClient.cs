@@ -207,7 +207,9 @@ public class PartiesClient : IPartyClient
     }
 
     /// <inheritdoc />
-    public async IAsyncEnumerable<Party> LookupPartiesBySSNOrOrgNos(IEnumerable<string> lookupValues, CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<Party> LookupPartiesBySSNOrOrgNos(
+        IEnumerable<string> lookupValues, 
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var uri = $"{_generalSettings.BridgeApiEndpoint}parties/byssnorgnumber";
 
