@@ -227,7 +227,6 @@ namespace Altinn.Register.Controllers
         /// <param name="orgNosQuery">The org.nos.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A set of <see cref="PartyIdentifiers"/> for each of the requested parties.</returns>
-        [Authorize]
         [HttpGet("identifiers")]
         [Consumes("application/json")]
         [Produces("application/json")]
