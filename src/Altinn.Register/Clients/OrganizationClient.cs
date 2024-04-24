@@ -73,10 +73,10 @@ namespace Altinn.Register.Clients
 
             if (response.StatusCode == System.Net.HttpStatusCode.OK)
             {
-                var sblModel = await JsonSerializer.DeserializeAsync<BridgeOrgContactPointsList>(await response.Content.ReadAsStreamAsync());
+                var sblContactPointList = await JsonSerializer.DeserializeAsync<BridgeOrgContactPointsList>(await response.Content.ReadAsStreamAsync());
                 return new OrgContactPointsList
                 {
-                    ContactPointsList = sblModel.ContactPointsList
+                    ContactPointsList = sblContactPointList.ContactPointsList
                         .Select(s =>
                             new OrgContactPoints()
                             {
