@@ -12,7 +12,7 @@ public interface IOrgContactPoint
     /// <summary>
     /// Method for retriveing contact points for an org 
     /// </summary>
-    /// <param name="organizationNumbers">A list of organization numbers to lookup contact points for</param>
+    /// <param name="lookup">Organization lookup object</param>
     /// <returns>The orgs contact points</returns>
-    Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup organizationNumbers);
+    Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup lookup);
 }
