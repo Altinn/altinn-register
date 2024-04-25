@@ -13,6 +13,7 @@ using Altinn.Platform.Register.Models;
 using Altinn.Register.Clients;
 using Altinn.Register.Configuration;
 using Altinn.Register.Tests.Mocks;
+using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -431,25 +432,26 @@ namespace Altinn.Register.Tests.UnitTests
         }
 
         [Fact]
-        public async Task LookupPartiesBySSNOrOrgNos_Calls_SplBridge_Multiple_Times()
+        public async Task LookupPartiesBySSNOrOrgNos_Calls_SplBridge_Once()
         {
             // Arrange
-            ConcurrentBag<HttpRequestMessage> sblRequests = new();
+            HttpRequestMessage sblRequest = null;
             List<string> ssnOrOrgNos = new() { "01025161013", "01035922055", "01035942080" };
 
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
-                sblRequests.Add(request);
+                sblRequest = request;
 
-                var body = await request.Content.ReadFromJsonAsync<string>(token);
+                var body = await request.Content.ReadFromJsonAsync<string[]>(token);
                 if (body == null)
                 {
                     throw new Exception("No body");
                 }
 
-                if (body == "01025161013")
+                Assert.Equivalent(ssnOrOrgNos, body);
+                return await CreateHttpResponseMessage(new List<Party> 
                 {
-                    return await CreateHttpResponseMessage(new Party
+                    new Party
                     {
                         PartyId = 50002114,
                         PartyUuid = new Guid("4c3b4909-eb17-45d5-bde1-256e065e196a"),
@@ -465,11 +467,8 @@ namespace Altinn.Register.Tests.UnitTests
                             FirstName = "ELENA",
                             LastName = "FJÆR",
                         }
-                    });
-                }
-                else if (body == "01035922055")
-                {
-                    return await CreateHttpResponseMessage(new Party
+                    },
+                    new Party
                     {
                         PartyId = 50002118,
                         PartyUuid = new("93630d41-ca61-4b5c-b8fb-3346b561f6ff"),
@@ -485,11 +484,8 @@ namespace Altinn.Register.Tests.UnitTests
                             FirstName = "MIE",
                             LastName = "FORSMO"
                         }
-                    });
-                }
-                else if (body == "01035942080")
-                {
-                    return await CreateHttpResponseMessage(new Party
+                    },
+                    new Party
                     {
                         PartyId = 50002119,
                         PartyUuid = new("e622554e-3de5-44cd-a822-c66024768013"),
@@ -505,12 +501,8 @@ namespace Altinn.Register.Tests.UnitTests
                             FirstName = "MARGIT",
                             LastName = "ROLAND",
                         }
-                    });
-                }
-                else
-                {
-                    throw new Exception("Unknown body");
-                }
+                    }
+                });
             });
 
             var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partiesClientLogger.Object, _memoryCache);
@@ -522,14 +514,9 @@ namespace Altinn.Register.Tests.UnitTests
             Assert.NotNull(actual);
             Assert.Equal(3, actual.Count);
 
-            var requests = sblRequests.ToList();
-            Assert.Equal(3, requests.Count);
-            Assert.Equal(HttpMethod.Post, requests[0].Method);
-            Assert.Equal(HttpMethod.Post, requests[1].Method);
-            Assert.Equal(HttpMethod.Post, requests[2].Method);
-            Assert.EndsWith($"parties/lookupobject", requests[0].RequestUri!.ToString().ToLower());
-            Assert.EndsWith($"parties/lookupobject", requests[1].RequestUri!.ToString().ToLower());
-            Assert.EndsWith($"parties/lookupobject", requests[2].RequestUri!.ToString().ToLower());
+            Assert.NotNull(sblRequest);
+            Assert.Equal(HttpMethod.Post, sblRequest.Method);
+            Assert.EndsWith($"parties/byssnorgnumber", sblRequest.RequestUri!.ToString().ToLower());
         }
 
         private static async Task<HttpResponseMessage> CreateHttpResponseMessage(object obj)

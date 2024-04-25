@@ -227,14 +227,13 @@ namespace Altinn.Register.Controllers
         /// <param name="orgNosQuery">The org.nos.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A set of <see cref="PartyIdentifiers"/> for each of the requested parties.</returns>
-        [Authorize]
         [HttpGet("identifiers")]
         [Consumes("application/json")]
         [Produces("application/json")]
         public ActionResult<IAsyncEnumerable<PartyIdentifiers>> GetPartyIdentifiers(
-            [FromQuery(Name = "ids")] List<string>? idsQuery = null,
-            [FromQuery(Name = "uuids")] List<string>? uuidsQuery = null,
-            [FromQuery(Name = "orgs")] List<string>? orgNosQuery = null,
+            [FromQuery(Name = "ids")] List<string?>? idsQuery = null,
+            [FromQuery(Name = "uuids")] List<string?>? uuidsQuery = null,
+            [FromQuery(Name = "orgs")] List<string?>? orgNosQuery = null,
             CancellationToken cancellationToken = default)
         {
             int count = 0;
@@ -245,7 +244,7 @@ namespace Altinn.Register.Controllers
             if (idsQuery is { Count: > 0 })
             {
                 ids = new List<int>();
-                foreach (var idString in idsQuery.SelectMany(idsQuery => idsQuery.Split(',')))
+                foreach (var idString in idsQuery.Where(x => x is not null).SelectMany(idsQuery => idsQuery!.Split(',')))
                 {
                     if (!int.TryParse(idString, out int id))
                     {
@@ -261,7 +260,7 @@ namespace Altinn.Register.Controllers
             if (uuidsQuery is { Count: > 0 })
             {
                 uuids = new List<Guid>();
-                foreach (var uuidString in uuidsQuery.SelectMany(uuidsQuery => uuidsQuery.Split(',')))
+                foreach (var uuidString in uuidsQuery.Where(x => x is not null).SelectMany(uuidsQuery => uuidsQuery!.Split(',')))
                 {
                     if (!Guid.TryParse(uuidString, out Guid uuid))
                     {
@@ -277,7 +276,7 @@ namespace Altinn.Register.Controllers
             if (orgNosQuery is { Count: > 0 })
             {
                 orgNos = new List<string>();
-                foreach (var orgNo in orgNosQuery.SelectMany(orgNosQuery => orgNosQuery.Split(',')))
+                foreach (var orgNo in orgNosQuery.Where(x => x is not null).SelectMany(orgNosQuery => orgNosQuery!.Split(',')))
                 {
                     // TODO: Validate orgNo
                     orgNos.Add(orgNo);

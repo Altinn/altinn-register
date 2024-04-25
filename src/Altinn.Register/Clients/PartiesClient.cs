@@ -207,25 +207,29 @@ public class PartiesClient : IPartyClient
     }
 
     /// <inheritdoc />
-    public IAsyncEnumerable<Party> LookupPartiesBySSNOrOrgNos(IEnumerable<string> lookupValues, CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<Party> LookupPartiesBySSNOrOrgNos(
+        IEnumerable<string> lookupValues, 
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        return RunInParallel(lookupValues, ProcessPartyBySSNOrOrgNoLookupAsync, cancellationToken)
-            .Where(party => party is not null)!;
-    }
+        var uri = $"{_generalSettings.BridgeApiEndpoint}parties/byssnorgnumber";
 
-    private async Task<Party?> ProcessPartyBySSNOrOrgNoLookupAsync(string lookupValue, CancellationToken cancellationToken)
-    {
-        // limit the concurrent calls to spl bridge
-        await _concurrentNameLookupsLimiter.WaitAsync(cancellationToken);
+        JsonContent requestBody = JsonContent.Create(lookupValues, options: JsonOptions);
+        HttpResponseMessage response = await _client.PostAsync(uri, requestBody, cancellationToken);
 
-        try
+        if (response.StatusCode == System.Net.HttpStatusCode.OK)
         {
-            return await LookupPartyBySSNOrOrgNo(lookupValue, cancellationToken);
+            await foreach (var party in response.Content.ReadFromJsonAsAsyncEnumerable<Party>(JsonOptions, cancellationToken))
+            {
+                if (party is not null)
+                {
+                    yield return party;
+                }
+            }
+
+            yield break;
         }
-        finally
-        {
-            _concurrentNameLookupsLimiter.Release();
-        }
+
+        _logger.LogError("Getting parties information from bridge failed with {StatusCode}", response.StatusCode);
     }
 
     private async Task<PartyName> ProcessPartyLookupAsync(PartyLookup partyLookup, CancellationToken cancellationToken)
