@@ -12,8 +12,8 @@ These instructions will get you a copy of the register component up and running 
 
 1. [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 2. Newest [Git](https://git-scm.com/downloads)
-3. A code editor - we like [Visual Studio Code][5]
-   - Also install [recommended extensions][6] (f.ex. [C#][7])
+3. A code editor - we like [Visual Studio Code](https://code.visualstudio.com/download)
+   - Also install [recommended extensions](https://code.visualstudio.com/docs/editor/extension-marketplace#_workspace-recommended-extensions) (e.g. [C#](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp))
 4. [Podman](https://podman.io/) or another container tool such as Docker Desktop
 
 
