@@ -53,4 +53,4 @@ dotnet run
 ```
 
 The register solution is now available locally at http://localhost:5020/.
-to access the Swagger use http://localhost:5020/register/api/v1/swagger
+To access swagger use http://localhost:5020/register/api/v1/swagger.
