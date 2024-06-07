@@ -19,7 +19,7 @@ These instructions will get you a copy of the register component up and running 
 
 ## Running the solution locally
 
-Clone [Altinn Platform Register repo](https://github.com/Altinn/altinn-register) and navigate to the folder.
+Clone [Altinn Register repo](https://github.com/Altinn/altinn-register) and navigate to the folder.
 
 ```bash
 git clone https://github.com/Altinn/altinn-register
@@ -53,4 +53,4 @@ dotnet run
 ```
 
 The register solution is now available locally at http://localhost:5020/.
-To access swagger use http://localhost:5020/register/api/v1/swagger.
+To access swagger use http://localhost:5020/swagger.
