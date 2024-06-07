@@ -36,11 +36,14 @@ podman compose up -d --build
 ```
 
 
-TO stop the container running Register
+To stop the container running Register
 
 ```cmd
 podman stop altinn-register
 ```
+
+The register solution is now available locally at http://localhost:5020/.
+To access swagger use http://localhost:5020/swagger.
 
 ### With .NET
 
