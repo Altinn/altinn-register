@@ -29,17 +29,17 @@ namespace Altinn.Register.Controllers
     [Route("register/api/v1/parties")]
     public class PartiesController : Controller
     {
-        private readonly IPartyClient _partyService;
+        private readonly IPartyClient _partyClient;
         private readonly IAuthorizationClient _authorization;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PartiesController"/> class.
         /// </summary>
-        /// <param name="partyService">The parties service used as a client when calling SBL Bridge.</param>
+        /// <param name="partyClient">The parties service used as a client when calling SBL Bridge.</param>
         /// <param name="authorizationClient">The authorization client</param>
-        public PartiesController(IPartyClient partyService, IAuthorizationClient authorizationClient)
+        public PartiesController(IPartyClient partyClient, IAuthorizationClient authorizationClient)
         {
-            _partyService = partyService;
+            _partyClient = partyClient;
             _authorization = authorizationClient;
         }
 
@@ -76,7 +76,7 @@ namespace Altinn.Register.Controllers
                 }
             }
 
-            Party? result = await _partyService.GetPartyById(partyId, cancellationToken);
+            Party? result = await _partyClient.GetPartyById(partyId, cancellationToken);
             if (result == null)
             {
                 return NotFound();
@@ -99,7 +99,7 @@ namespace Altinn.Register.Controllers
         [Authorize]
         public async Task<ActionResult<Party>> GetByUuid([FromRoute] Guid partyUuid, CancellationToken cancellationToken = default)
         {
-            Party? party = await _partyService.GetPartyById(partyUuid, cancellationToken);
+            Party? party = await _partyClient.GetPartyById(partyUuid, cancellationToken);
 
             if (!IsOrg(HttpContext))
             {
@@ -147,7 +147,7 @@ namespace Altinn.Register.Controllers
         {
             string lookupValue = partyLookup.OrgNo ?? partyLookup.Ssn;
 
-            Party? party = await _partyService.LookupPartyBySSNOrOrgNo(lookupValue, cancellationToken);
+            Party? party = await _partyClient.LookupPartyBySSNOrOrgNo(lookupValue, cancellationToken);
 
             if (party == null)
             {
@@ -172,7 +172,7 @@ namespace Altinn.Register.Controllers
         [Produces("application/json")]
         public async Task<ActionResult<PartyNamesLookupResult>> PostPartyNamesLookup([FromBody] PartyNamesLookup partyNamesLookup, CancellationToken cancellationToken = default)
         {
-            List<PartyName> items = await _partyService.LookupPartyNames(partyNamesLookup.Parties, cancellationToken).ToListAsync(cancellationToken);
+            List<PartyName> items = await _partyClient.LookupPartyNames(partyNamesLookup.Parties, cancellationToken).ToListAsync(cancellationToken);
             var partyNamesLookupResult = new PartyNamesLookupResult
             {
                 PartyNames = items
@@ -193,7 +193,7 @@ namespace Altinn.Register.Controllers
         [Produces("application/json")]
         public async Task<ActionResult<List<Party>>> GetPartyListForPartyIds([FromBody] List<int> partyIds, [FromQuery] bool fetchSubUnits = false, CancellationToken cancellationToken = default)
         {
-            List<Party> parties = await _partyService.GetPartiesById(partyIds, fetchSubUnits, cancellationToken).ToListAsync(cancellationToken);
+            List<Party> parties = await _partyClient.GetPartiesById(partyIds, fetchSubUnits, cancellationToken).ToListAsync(cancellationToken);
 
             if (parties == null || parties.Count < 1)
             {
@@ -215,7 +215,7 @@ namespace Altinn.Register.Controllers
         [Produces("application/json")]
         public async Task<ActionResult<List<Party>>> GetPartyListForPartyUuids([FromBody] List<Guid> partyUuids, [FromQuery] bool fetchSubUnits = false, CancellationToken cancellationToken = default)
         {
-            List<Party> parties = await _partyService.GetPartiesById(partyUuids, fetchSubUnits, cancellationToken).ToListAsync(cancellationToken);
+            List<Party> parties = await _partyClient.GetPartiesById(partyUuids, fetchSubUnits, cancellationToken).ToListAsync(cancellationToken);
             return Ok(parties);
         }
 
@@ -304,17 +304,17 @@ namespace Altinn.Register.Controllers
 
             if (ids is { Count: > 0 })
             {
-                parties = parties.Merge(_partyService.GetPartiesById(ids, cancellationToken));
+                parties = parties.Merge(_partyClient.GetPartiesById(ids, cancellationToken));
             }
 
             if (uuids is { Count: > 0 })
             {
-                parties = parties.Merge(_partyService.GetPartiesById(uuids, cancellationToken));
+                parties = parties.Merge(_partyClient.GetPartiesById(uuids, cancellationToken));
             }
 
             if (orgNos is { Count: > 0 })
             {
-                parties = parties.Merge(_partyService.LookupPartiesBySSNOrOrgNos(orgNos, cancellationToken));
+                parties = parties.Merge(_partyClient.LookupPartiesBySSNOrOrgNos(orgNos, cancellationToken));
             }
 
             var all = parties

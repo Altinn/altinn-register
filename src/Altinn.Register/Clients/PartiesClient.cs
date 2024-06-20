@@ -119,6 +119,12 @@ public class PartiesClient : IPartyClient
     /// <inheritdoc />
     public async Task<Party?> LookupPartyBySSNOrOrgNo(string lookupValue, CancellationToken cancellationToken = default)
     {
+        string cacheKey = $"LookupValue:{lookupValue}";
+        if (_memoryCache.TryGetValue(cacheKey, out Party? party))
+        {
+            return party;
+        }
+
         Uri endpointUrl = new($"{_generalSettings.BridgeApiEndpoint}parties/lookupObject");
 
         StringContent requestBody = new(JsonSerializer.Serialize(lookupValue), Encoding.UTF8, "application/json");
@@ -127,13 +133,14 @@ public class PartiesClient : IPartyClient
 
         if (response.StatusCode == System.Net.HttpStatusCode.OK)
         {
-            Party? party = await response.Content.ReadFromJsonAsync<Party>(JsonOptions, cancellationToken);
+            party = await response.Content.ReadFromJsonAsync<Party>(JsonOptions, cancellationToken);
+
             if (party is null)
             {
                 return null;
             }
 
-            _memoryCache.Set($"PartyId:{party.PartyId}", party, new TimeSpan(0, _cacheTimeout, 0));
+            _memoryCache.Set(cacheKey, party, new TimeSpan(0, _cacheTimeout, 0));
             return party;
         }
         else
