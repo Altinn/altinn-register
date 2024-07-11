@@ -193,7 +193,7 @@ void ConfigureServices(IServiceCollection services, IConfiguration config)
     services.Decorate<IPersonLookup, PersonLookupCacheDecorator>();
 
     services.AddSingleton<IOrgContactPoint, OrgContactPointService>();
-    
+
     services.AddAuthentication(JwtCookieDefaults.AuthenticationScheme)
           .AddJwtCookie(JwtCookieDefaults.AuthenticationScheme, options =>
           {
@@ -225,7 +225,7 @@ void ConfigureServices(IServiceCollection services, IConfiguration config)
     });
 
     services.AddHttpClient<IOrganizationClient, OrganizationClient>();
-    services.AddHttpClient<IPersonClient, PersonClient>(); 
+    services.AddHttpClient<IPersonClient, PersonClient>();
     services.AddHttpClient<IPartyClient, PartiesClient>();
     services.AddHttpClient<IAuthorizationClient, AuthorizationClient>();
 
@@ -279,13 +279,11 @@ void Configure()
         app.UseExceptionHandler("/register/api/v1/error");
     }
 
-    app.UseSwagger(o => o.RouteTemplate = "register/swagger/{documentName}/swagger.json");
-
-    app.UseSwaggerUI(c =>
+    if (app.Environment.IsDevelopment())
     {
-        c.SwaggerEndpoint("/register/swagger/v1/swagger.json", "Altinn Platform Register API");
-        c.RoutePrefix = "register/swagger";
-    });
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
 
     app.UseAuthentication();
     app.UseAuthorization();
