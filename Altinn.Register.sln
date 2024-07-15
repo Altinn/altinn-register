@@ -1,53 +1,73 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.0.32014.148
+VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Altinn.Register", "src\Altinn.Register\Altinn.Register.csproj", "{245B9C40-E4F7-47CB-96C8-E027078FE1B5}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{E4D6D10C-EA28-40D3-A656-178D550EAC3D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Altinn.Register.Tests", "test\Altinn.Register.Tests\Altinn.Register.Tests.csproj", "{47B54B20-2C71-42DA-AEC1-E68758F1456B}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Altinn.Platform.Models", "Altinn.Platform.Models", "{E3282239-FE59-44BB-BAF8-2E10A19B626C}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{2AB9F389-4BD5-4375-8DD6-35EB7CE6BF5A}"
-	ProjectSection(SolutionItems) = preProject
-		.editorconfig = .editorconfig
-		Dockerfile = Dockerfile
-		stylecop.json = stylecop.json
-	EndProjectSection
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{219A78F8-CA97-4128-84EA-F6DDBA83413F}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{8AE3EFDA-11D9-4E44-B118-33BD2F2764B5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Platform.Models", "src\Altinn.Platform.Models\src\Altinn.Platform.Models\Altinn.Platform.Models.csproj", "{B72A146D-719D-4E2A-B931-C2ACBA72EF4F}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{CB6F46C6-BADF-41A2-999E-C9DB52B14A92}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{1DECF782-F94B-4CC6-AFCF-40F7F5724A65}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.Core", "src\Altinn.Register.Core\Altinn.Register.Core.csproj", "{8424D97D-8BDD-483C-B1D6-DBE47F79001B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Platform.Models.Tests", "src\Altinn.Platform.Models\test\Altinn.Platform.Models.Tests\Altinn.Platform.Models.Tests.csproj", "{43EF5F33-AF51-4EA4-B03E-192F5E633666}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Altinn.Register", "Altinn.Register", "{4F1D1E17-3395-4CAC-833C-7FF12E3C0732}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{B06311B4-417D-4697-833E-E680C5BB4670}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register", "src\Altinn.Register\src\Altinn.Register\Altinn.Register.csproj", "{245B9C40-E4F7-47CB-96C8-E027078FE1B5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.Core", "src\Altinn.Register\src\Altinn.Register.Core\Altinn.Register.Core.csproj", "{5865D9B3-3712-40CA-8A7A-8ABD3E85E982}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{8A4833A1-23E8-455C-A2C3-6BA97B02343E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.Tests", "src\Altinn.Register\test\Altinn.Register.Tests\Altinn.Register.Tests.csproj", "{69754E3F-218C-47F1-B369-65782E4089DE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B72A146D-719D-4E2A-B931-C2ACBA72EF4F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B72A146D-719D-4E2A-B931-C2ACBA72EF4F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B72A146D-719D-4E2A-B931-C2ACBA72EF4F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B72A146D-719D-4E2A-B931-C2ACBA72EF4F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{43EF5F33-AF51-4EA4-B03E-192F5E633666}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{43EF5F33-AF51-4EA4-B03E-192F5E633666}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{43EF5F33-AF51-4EA4-B03E-192F5E633666}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{43EF5F33-AF51-4EA4-B03E-192F5E633666}.Release|Any CPU.Build.0 = Release|Any CPU
 		{245B9C40-E4F7-47CB-96C8-E027078FE1B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{245B9C40-E4F7-47CB-96C8-E027078FE1B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{245B9C40-E4F7-47CB-96C8-E027078FE1B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{245B9C40-E4F7-47CB-96C8-E027078FE1B5}.Release|Any CPU.Build.0 = Release|Any CPU
-		{47B54B20-2C71-42DA-AEC1-E68758F1456B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{47B54B20-2C71-42DA-AEC1-E68758F1456B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{47B54B20-2C71-42DA-AEC1-E68758F1456B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{47B54B20-2C71-42DA-AEC1-E68758F1456B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8424D97D-8BDD-483C-B1D6-DBE47F79001B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8424D97D-8BDD-483C-B1D6-DBE47F79001B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8424D97D-8BDD-483C-B1D6-DBE47F79001B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8424D97D-8BDD-483C-B1D6-DBE47F79001B}.Release|Any CPU.Build.0 = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
+		{5865D9B3-3712-40CA-8A7A-8ABD3E85E982}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5865D9B3-3712-40CA-8A7A-8ABD3E85E982}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5865D9B3-3712-40CA-8A7A-8ABD3E85E982}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5865D9B3-3712-40CA-8A7A-8ABD3E85E982}.Release|Any CPU.Build.0 = Release|Any CPU
+		{69754E3F-218C-47F1-B369-65782E4089DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{69754E3F-218C-47F1-B369-65782E4089DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{69754E3F-218C-47F1-B369-65782E4089DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{69754E3F-218C-47F1-B369-65782E4089DE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{245B9C40-E4F7-47CB-96C8-E027078FE1B5} = {8AE3EFDA-11D9-4E44-B118-33BD2F2764B5}
-		{47B54B20-2C71-42DA-AEC1-E68758F1456B} = {CB6F46C6-BADF-41A2-999E-C9DB52B14A92}
-		{8424D97D-8BDD-483C-B1D6-DBE47F79001B} = {8AE3EFDA-11D9-4E44-B118-33BD2F2764B5}
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {F90FFA15-3A79-4299-81E7-CFE0D0179B35}
+		{E3282239-FE59-44BB-BAF8-2E10A19B626C} = {E4D6D10C-EA28-40D3-A656-178D550EAC3D}
+		{219A78F8-CA97-4128-84EA-F6DDBA83413F} = {E3282239-FE59-44BB-BAF8-2E10A19B626C}
+		{B72A146D-719D-4E2A-B931-C2ACBA72EF4F} = {219A78F8-CA97-4128-84EA-F6DDBA83413F}
+		{1DECF782-F94B-4CC6-AFCF-40F7F5724A65} = {E3282239-FE59-44BB-BAF8-2E10A19B626C}
+		{43EF5F33-AF51-4EA4-B03E-192F5E633666} = {1DECF782-F94B-4CC6-AFCF-40F7F5724A65}
+		{4F1D1E17-3395-4CAC-833C-7FF12E3C0732} = {E4D6D10C-EA28-40D3-A656-178D550EAC3D}
+		{B06311B4-417D-4697-833E-E680C5BB4670} = {4F1D1E17-3395-4CAC-833C-7FF12E3C0732}
+		{245B9C40-E4F7-47CB-96C8-E027078FE1B5} = {B06311B4-417D-4697-833E-E680C5BB4670}
+		{5865D9B3-3712-40CA-8A7A-8ABD3E85E982} = {B06311B4-417D-4697-833E-E680C5BB4670}
+		{8A4833A1-23E8-455C-A2C3-6BA97B02343E} = {4F1D1E17-3395-4CAC-833C-7FF12E3C0732}
+		{69754E3F-218C-47F1-B369-65782E4089DE} = {8A4833A1-23E8-455C-A2C3-6BA97B02343E}
 	EndGlobalSection
 EndGlobal
