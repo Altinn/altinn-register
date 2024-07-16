@@ -13,5 +13,5 @@ public interface IOrgContactPoint
     /// <param name="lookup">Organization lookup object</param>
     /// <param name="cancellationToken">The cancellation token</param>
     /// <returns>The orgs contact points</returns>
-    Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup lookup, CancellationToken cancellationToken);
+    Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup lookup, CancellationToken cancellationToken = default);
 }

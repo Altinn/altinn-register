@@ -12,7 +12,7 @@ namespace Altinn.Register.Controllers;
 [ApiExplorerSettings(IgnoreApi = true)]
 [Consumes("application/json")]
 [Produces("application/json")]
-public class OrgContactPointController : Controller
+public class OrgContactPointController : ControllerBase
 {
     private readonly IOrgContactPoint _orgContactPointService;
 

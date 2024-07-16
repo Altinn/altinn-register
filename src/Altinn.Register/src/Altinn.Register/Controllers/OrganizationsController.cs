@@ -12,7 +12,7 @@ namespace Altinn.Register.Controllers
     [Authorize]
     [Authorize(Policy = "PlatformAccess")]
     [Route("register/api/v1/organizations")]
-    public class OrganizationsController : Controller
+    public class OrganizationsController : ControllerBase
     {
         private readonly IOrganizationClient _organizationsClient;
 

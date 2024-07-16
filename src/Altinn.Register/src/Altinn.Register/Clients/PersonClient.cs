@@ -35,7 +35,7 @@ public class PersonClient : IPersonClient
 
         StringContent requestBody = new(JsonSerializer.Serialize(nationalIdentityNumber), Encoding.UTF8, "application/json");
 
-        HttpResponseMessage response = await _client.PostAsync(endpointUrl, requestBody);
+        HttpResponseMessage response = await _client.PostAsync(endpointUrl, requestBody, cancellationToken);
 
         if (response.StatusCode == System.Net.HttpStatusCode.OK)
         {
