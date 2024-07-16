@@ -1,11 +1,6 @@
 #nullable enable
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading;
-using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Core.Parties;
@@ -17,7 +12,6 @@ using Altinn.Register.Services.Interfaces;
 using AltinnCore.Authentication.Constants;
 
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Altinn.Register.Controllers
@@ -25,6 +19,7 @@ namespace Altinn.Register.Controllers
     /// <summary>
     /// The parties controller provides access to party information in the SBL Register component.
     /// </summary>
+    [ApiController]
     [Authorize(Policy = "InternalOrPlatformAccess")]
     [Route("register/api/v1/parties")]
     public class PartiesController : Controller

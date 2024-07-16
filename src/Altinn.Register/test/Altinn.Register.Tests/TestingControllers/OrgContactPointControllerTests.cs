@@ -54,7 +54,7 @@ public class OrgContactPointControllerTests : IClassFixture<WebApplicationFactor
 
         // Arrange
         Mock<IOrgContactPoint> orgContactPointService = new();
-        orgContactPointService.Setup(s => s.GetContactPoints(It.Is<OrgContactPointLookup>(o => o.OrganizationNumbers.Contains(orgNo)))).ReturnsAsync(orgContactsPointList);
+        orgContactPointService.Setup(s => s.GetContactPoints(It.Is<OrgContactPointLookup>(o => o.OrganizationNumbers.Contains(orgNo)), It.IsAny<CancellationToken>())).ReturnsAsync(orgContactsPointList);
         
         HttpClient client = GetTestClient(orgContactPointService.Object);
 

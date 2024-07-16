@@ -1,5 +1,3 @@
-using System.Threading.Tasks;
-
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Clients.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -10,6 +8,7 @@ namespace Altinn.Register.Controllers
     /// <summary>
     /// The organizations controller provides access to organization information in the SBL Register component.
     /// </summary>
+    [ApiController]
     [Authorize]
     [Authorize(Policy = "PlatformAccess")]
     [Route("register/api/v1/organizations")]
@@ -30,14 +29,15 @@ namespace Altinn.Register.Controllers
         /// Gets the organization information for a given organization number.
         /// </summary>
         /// <param name="orgNr">The organization number to retrieve information about.</param>
+        /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>The information about a given organization.</returns>
         [HttpGet("{orgNr}")]
         [ProducesResponseType(404)]
         [ProducesResponseType(200)]
         [Produces("application/json")]
-        public async Task<ActionResult<Organization>> Get(string orgNr)
+        public async Task<ActionResult<Organization>> Get(string orgNr, CancellationToken cancellationToken = default)
         {
-            Organization result = await _organizationsClient.GetOrganization(orgNr);
+            Organization result = await _organizationsClient.GetOrganization(orgNr, cancellationToken);
             if (result == null)
             {
                 return NotFound();

@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using Altinn.Register.Clients.Interfaces;
+﻿using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Models;
 using Altinn.Register.Services.Interfaces;
 
@@ -21,8 +20,8 @@ public class OrgContactPointService : IOrgContactPoint
     }
 
     /// <inheritdoc />
-    public async Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup lookup)
+    public async Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup lookup, CancellationToken cancellationToken = default)
     {
-        return await _organizationClient.GetContactPoints(lookup);
+        return await _organizationClient.GetContactPoints(lookup, cancellationToken);
     }
 }
