@@ -1,0 +1,18 @@
+{
+  "bootstrap-sha": "733e1608b17fe9eb9abd0d936ed8dcb0e1073590",
+  "separate-pull-requests": true,
+  "pull-request-title-pattern": "release${scope}:${component} ${version}",
+  "release-type": "simple",
+  "packages": {
+    "src/Altinn.Platform.Models": {
+      "component": "Altinn.Platform.Models",
+      "extra-files": [
+        {
+          "type": "xml",
+          "path": "Version.props",
+          "xpath": "//Project/PropertyGroup/Version"
+        }
+      ]
+    }
+  }
+}

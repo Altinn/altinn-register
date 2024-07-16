@@ -1,0 +1,110 @@
+on:
+  push:
+    branches:
+      - main
+
+name: release-please
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          # this assumes that you have created a personal access token
+          # (PAT) and configured it as a GitHub action secret named
+          # `MY_RELEASE_PLEASE_TOKEN` (this secret name is not important).
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - name: Log release output
+        env:
+          RELEASE_OUTPUT: ${{ toJSON(steps.release.outputs) }}
+        run: 'echo "Release output: $RELEASE_OUTPUT"'
+
+    outputs:
+      release_created: ${{ steps.release.outputs.releases_created }}
+      paths_released: ${{ steps.release.outputs.paths_released }}
+      full: ${{ toJSON(steps.release.outputs) }}
+
+  publish:
+    runs-on: ubuntu-latest
+    if: needs.release-please.outputs.release_created == 'true'
+    needs:
+      - release-please
+
+    permissions:
+      contents: write
+      packages: write
+
+    strategy:
+      matrix:
+        path: ${{fromJson(needs.release-please.outputs.paths_released)}}
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+          run_install: |
+            - cwd: .github/scripts
+              args: [--frozen-lockfile]
+            - args: [--global, tsx]
+
+      - name: Build
+        working-directory: ${{ matrix.path }}
+        run: dotnet build -c Release
+
+      - name: Test
+        working-directory: ${{ matrix.path }}
+        run: dotnet test -c Release --no-build
+
+      - name: Pack
+        working-directory: ${{ matrix.path }}
+        run: dotnet pack -c Release --no-build
+
+      - name: Create artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ fromJSON(needs.release-please.outputs.full)[format('{0}--tag_name', matrix.path)] }}
+          path: artifacts/**/*.nupkg
+          if-no-files-found: error
+
+      - name: Upload packages to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FILES_GLOB: artifacts/**/*.nupkg
+          RELEASE_ID: ${{ fromJSON(needs.release-please.outputs.full)[format('{0}--id', matrix.path)] }}
+        run: tsx ./.github/scripts/upload-packages-to-release.mts
+
+      - name: Publish to GitHub Packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FILES_GLOB: artifacts/**/*.nupkg
+        run: |
+          dotnet nuget add source --username Altinn --password $GITHUB_TOKEN --store-password-in-clear-text --name github "https://nuget.pkg.github.com/Altinn/index.json"
+          tsx ./.github/scripts/publish-to-github-packages.mts
+
+      - name: Publish to NuGet
+        env:
+          NUGET_APIKEY: ${{ secrets.NUGET_API_KEY }}
+          FILES_GLOB: artifacts/**/*.nupkg
+        run: |
+          tsx ./.github/scripts/publish-to-nuget.mts

@@ -12,6 +12,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <WarnOnPackingNonPackableProject>false</WarnOnPackingNonPackableProject>
+    <Authors>Altinn Platform Contributors</Authors>
   </PropertyGroup>
 
 </Project>
