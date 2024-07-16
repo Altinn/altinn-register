@@ -22,7 +22,7 @@ namespace Altinn.Register.Clients
         /// <summary>
         /// Initializes a new instance of the <see cref="OrganizationClient"/> class
         /// </summary>
-        /// <param name="httpClient">HttpClient from default httpclientfactory</param>
+        /// <param name="httpClient">HttpClient from default <see cref="IHttpClientFactory"/></param>
         /// <param name="generalSettings">the general settings</param>
         /// <param name="logger">the logger</param>
         public OrganizationClient(HttpClient httpClient, IOptions<GeneralSettings> generalSettings, ILogger<OrganizationClient> logger)
