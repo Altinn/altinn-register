@@ -10,6 +10,7 @@
     "pre",
     "xd:pre",
     "BaseArtifactsPath",
-    "ArtifactsPath"
+    "ArtifactsPath",
+    "VersionFilePath"
   ]
 }
