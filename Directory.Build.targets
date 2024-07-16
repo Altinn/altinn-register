@@ -1,0 +1,103 @@
+<Project>
+
+  <Choose>
+    <When Condition=" '$(IsTestProject)' == 'true' ">
+
+      <PropertyGroup>
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);SA0001</NoWarn>
+      </PropertyGroup>
+
+      <ItemGroup>
+        <DocFileItem Remove="@(DocFileItem)" />
+      </ItemGroup>
+
+    </When>
+  </Choose>
+
+  <ItemGroup Condition=" '$(IsTestProject)' == 'true' ">
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="FluentAssertions.Analyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+
+    <Using Include="FluentAssertions" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(EnableStyleCop)' == 'true' ">
+    <PackageReference Include="StyleCop.Analyzers" PrivateAssets="all"
+      IncludeAssets="runtime; build; native; contentfiles; analyzers" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)stylecop.json">
+      <Link>stylecop.json</Link>
+    </AdditionalFiles>
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(IsTestProject)' != 'true' ">
+    <InternalsVisibleTo Include="$(AssemblyName).Tests" />
+  </ItemGroup>
+
+  <Choose>
+    <When Condition=" '$(IsPackable)' == 'true' ">
+
+      <PropertyGroup>
+        <ArtifactsPath Condition=" '$(ArtifactsPath)' == '' ">$(BaseArtifactsPath)$(MSBuildProjectName)\</ArtifactsPath>
+        <CoreBuildDependsOn>$(CoreBuildDependsOn);_CheckVersion</CoreBuildDependsOn>
+      </PropertyGroup>
+
+      <ItemGroup>
+        <PackageReference Include="Microsoft.Build.Artifacts" PrivateAssets="all"
+          IncludeAssets="build; buildtransitive; buildMultiTargeting" />
+      </ItemGroup>
+
+    </When>
+  </Choose>
+
+  <PropertyGroup Condition=" '$(ReadmePath)' == '' ">
+    <ReadmePath>$([MSBuild]::GetPathOfFileAbove('README.md', '$(MSBuildProjectDirectory)'))</ReadmePath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(ChangelogPath)' == '' ">
+    <ChangelogPath>$([MSBuild]::GetPathOfFileAbove('CHANGELOG.md', '$(MSBuildProjectDirectory)'))</ChangelogPath>
+  </PropertyGroup>
+
+  <ItemGroup Condition=" '$(IsPackable)' == 'true' And Exists('$(ReadmePath)') ">
+    <None Include="$(ReadmePath)" Pack="true" PackagePath="readme.md" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(IsPackable)' == 'true' And Exists('$(ChangelogPath)') ">
+    <None Include="$(ChangelogPath)" Pack="true" PackagePath="changelog.md" />
+  </ItemGroup>
+
+  <PropertyGroup Condition=" Exists('$(ReadmePath)') ">
+    <PackageReadmeFile>readme.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" Exists('$(ChangelogPath)') ">
+    <PackageReleaseNotes>$(IsPackable) $([System.IO.File]::ReadAllText("$(ChangelogPath)"))</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(VersionFilePath)' == '' ">
+    <VersionFilePath>$([MSBuild]::GetPathOfFileAbove('Version.props', '$(MSBuildProjectDirectory)'))</VersionFilePath>
+  </PropertyGroup>
+
+  <Import Project="$(VersionFilePath)" Condition="Exists('$(VersionFilePath)')" />
+
+  <Target Name="_CheckVersion">
+    <Error Condition="!Exists('$(VersionFilePath)')"
+      Text="Version file not found at '$(VersionFilePath)'" />
+    <Error Condition="'$(Version)' == ''" Text="Version not defined in '$(VersionFilePath)'" />
+  </Target>
+
+</Project>

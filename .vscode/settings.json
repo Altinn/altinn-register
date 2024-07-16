@@ -1,0 +1,15 @@
+{
+  "xml.format.preserveSpace": [
+    "xsl:text",
+    "xsl:comment",
+    "xsl:processing-instruction",
+    "literallayout",
+    "programlisting",
+    "screen",
+    "synopsis",
+    "pre",
+    "xd:pre",
+    "BaseArtifactsPath",
+    "ArtifactsPath"
+  ]
+}
