@@ -45,7 +45,13 @@ namespace Altinn.Register.Clients
             }
             else
             {
-                _logger.LogError("Getting org with org nr {OrgNr} failed with statuscode {StatusCode}", orgNr, response.StatusCode);
+                // safety check for orgNr length - as it's user input and can be manipulated
+                if (orgNr.Length > 50)
+                {
+                    return null;
+                }
+
+                _logger.LogError("Getting org with org nr '{OrgNr}' failed with statuscode {StatusCode}", orgNr, response.StatusCode);
             }
 
             return null;
