@@ -17,10 +17,12 @@ namespace Altinn.Platform.Models.Tests.Register
             PartyLookup target = new PartyLookup();
 
             // Act
-            IList<ValidationResult> issues = ModelValidator.ValidateModel(target);
+            IReadOnlyList<ValidationResult> issues = ModelValidator.ValidateModel(target);
 
             // Assert
-            Assert.True(issues.All(i => i.MemberNames.Contains("OrgNo") && i.ErrorMessage.Contains("At least one")));
+            var item = issues.Should().ContainSingle().Which;
+            item.MemberNames.Should().Contain([nameof(PartyLookup.OrgNo), nameof(PartyLookup.Ssn)]);
+            item.ErrorMessage.Should().Be(PartyLookup.SsnOrOrgNoRequiredMessage);
         }
 
         [Fact]
@@ -30,10 +32,12 @@ namespace Altinn.Platform.Models.Tests.Register
             PartyLookup target = new PartyLookup { Ssn = "09054300139", OrgNo = "910072218" };
 
             // Act
-            IList<ValidationResult> issues = ModelValidator.ValidateModel(target);
+            IReadOnlyList<ValidationResult> issues = ModelValidator.ValidateModel(target);
 
             // Assert
-            Assert.True(issues.All(i => i.MemberNames.Contains("OrgNo") && i.ErrorMessage.Contains("With Ssn already")));
+            var item = issues.Should().ContainSingle().Which;
+            item.MemberNames.Should().Contain(nameof(PartyLookup.OrgNo));
+            item.ErrorMessage.Should().Be(PartyLookup.SsnAndOrgNoExclusiveMessage);
         }
 
         [Theory]
@@ -46,10 +50,12 @@ namespace Altinn.Platform.Models.Tests.Register
             PartyLookup target = new PartyLookup { Ssn = ssn };
 
             // Act
-            IList<ValidationResult> issues = ModelValidator.ValidateModel(target);
+            IReadOnlyList<ValidationResult> issues = ModelValidator.ValidateModel(target);
 
             // Assert
-            Assert.True(issues.All(i => i.MemberNames.Contains("Ssn") && i.ErrorMessage.Contains("exactly 11 digits")));
+            var item = issues.Should().ContainSingle().Which;
+            item.MemberNames.Should().Contain(nameof(PartyLookup.Ssn));
+            item.ErrorMessage.Should().Contain("exactly 11 digits");
         }
 
         [Theory]
@@ -62,10 +68,12 @@ namespace Altinn.Platform.Models.Tests.Register
             PartyLookup target = new PartyLookup { OrgNo = orgNo };
 
             // Act
-            IList<ValidationResult> issues = ModelValidator.ValidateModel(target);
+            IReadOnlyList<ValidationResult> issues = ModelValidator.ValidateModel(target);
 
             // Assert
-            Assert.True(issues.All(i => i.MemberNames.Contains("OrgNo") && i.ErrorMessage.Contains("exactly 9 digits")));
+            var item = issues.Should().ContainSingle().Which;
+            item.MemberNames.Should().Contain(nameof(PartyLookup.OrgNo));
+            item.ErrorMessage.Should().Contain("exactly 9 digits");
         }
 
         [Theory]
@@ -77,10 +85,10 @@ namespace Altinn.Platform.Models.Tests.Register
             PartyLookup target = new PartyLookup { Ssn = ssn };
 
             // Act
-            IList<ValidationResult> issues = ModelValidator.ValidateModel(target);
+            IReadOnlyList<ValidationResult> issues = ModelValidator.ValidateModel(target);
 
             // Assert
-            Assert.Empty(issues);
+            issues.Should().BeEmpty();
         }
 
         [Theory]
@@ -92,10 +100,10 @@ namespace Altinn.Platform.Models.Tests.Register
             PartyLookup target = new PartyLookup { OrgNo = orgNo };
 
             // Act
-            IList<ValidationResult> issues = ModelValidator.ValidateModel(target);
+            IReadOnlyList<ValidationResult> issues = ModelValidator.ValidateModel(target);
 
             // Assert
-            Assert.Empty(issues);
+            issues.Should().BeEmpty();
         }
     }
 }

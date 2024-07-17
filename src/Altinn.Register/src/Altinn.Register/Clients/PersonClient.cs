@@ -1,14 +1,10 @@
 #nullable enable
 
-using System;
-using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Configuration;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Altinn.Register.Clients;
@@ -25,9 +21,6 @@ public class PersonClient : IPersonClient
     /// <summary>
     /// Initializes a new instance of the <see cref="PersonClient"/> class
     /// </summary>
-    /// <param name="httpClient">HttpClient from default httpclientfactory</param>
-    /// <param name="generalSettings">The general settings</param>
-    /// <param name="logger">The logger</param>
     public PersonClient(HttpClient httpClient, IOptions<GeneralSettings> generalSettings, ILogger<PersonClient> logger)
     {
         _generalSettings = generalSettings.Value;
@@ -36,17 +29,17 @@ public class PersonClient : IPersonClient
     }
 
     /// <inheritdoc />
-    public async Task<Person?> GetPerson(string nationalIdentityNumber)
+    public async Task<Person?> GetPerson(string nationalIdentityNumber, CancellationToken cancellationToken = default)
     {
         Uri endpointUrl = new($"{_generalSettings.BridgeApiEndpoint}persons");
 
         StringContent requestBody = new(JsonSerializer.Serialize(nationalIdentityNumber), Encoding.UTF8, "application/json");
 
-        HttpResponseMessage response = await _client.PostAsync(endpointUrl, requestBody);
+        HttpResponseMessage response = await _client.PostAsync(endpointUrl, requestBody, cancellationToken);
 
         if (response.StatusCode == System.Net.HttpStatusCode.OK)
         {
-            return await JsonSerializer.DeserializeAsync<Person>(await response.Content.ReadAsStreamAsync());
+            return await response.Content.ReadFromJsonAsync<Person>(cancellationToken: cancellationToken);
         }
         else
         {

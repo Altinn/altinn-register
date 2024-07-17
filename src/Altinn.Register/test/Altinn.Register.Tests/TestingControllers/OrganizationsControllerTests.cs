@@ -48,7 +48,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             // Arrange
             Mock<IOrganizationClient> organizationsService = new Mock<IOrganizationClient>();
-            organizationsService.Setup(s => s.GetOrganization(It.Is<string>(o => o == orgNo))).ReturnsAsync(new Organization());
+            organizationsService.Setup(s => s.GetOrganization(It.Is<string>(o => o == orgNo), It.IsAny<CancellationToken>())).ReturnsAsync(new Organization());
 
             HttpClient client = GetTestClient(organizationsService.Object);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -77,7 +77,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             // Arrange
             Mock<IOrganizationClient> organizationsService = new Mock<IOrganizationClient>();
-            organizationsService.Setup(s => s.GetOrganization(It.Is<string>(o => o == orgNo))).ReturnsAsync((Organization)null);
+            organizationsService.Setup(s => s.GetOrganization(It.Is<string>(o => o == orgNo), It.IsAny<CancellationToken>())).ReturnsAsync((Organization)null);
 
             HttpClient client = GetTestClient(organizationsService.Object);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -124,7 +124,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             // Arrange
             Mock<IOrganizationClient> organizationsService = new Mock<IOrganizationClient>();
-            organizationsService.Setup(s => s.GetOrganization(It.Is<string>(o => o == orgNo))).ReturnsAsync(new Organization());
+            organizationsService.Setup(s => s.GetOrganization(It.Is<string>(o => o == orgNo), It.IsAny<CancellationToken>())).ReturnsAsync(new Organization());
 
             HttpClient client = GetTestClient(organizationsService.Object);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);

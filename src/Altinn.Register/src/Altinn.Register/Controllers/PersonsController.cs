@@ -1,8 +1,5 @@
 #nullable enable
-using System;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading.Tasks;
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Core;
 using Altinn.Register.Models;
@@ -10,7 +7,6 @@ using Altinn.Register.Models;
 using AltinnCore.Authentication.Constants;
 
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Altinn.Register.Controllers
@@ -18,6 +14,7 @@ namespace Altinn.Register.Controllers
     /// <summary>
     /// The <see cref="PersonsController"/> provides the API endpoints related to persons.
     /// </summary>
+    [ApiController]
     [Authorize(Policy = "PlatformAccess")]
     [Authorize(Policy = "AuthorizationLevel2")]
     [Route("register/api/v1/persons")]
@@ -50,7 +47,9 @@ namespace Altinn.Register.Controllers
         [ProducesResponseType(404)]
         [ProducesResponseType(200)]
         [Produces("application/json")]
-        public async Task<ActionResult<Person>> GetPerson(PersonLookupIdentifiers personLookup)
+        public async Task<ActionResult<Person>> GetPerson(
+            PersonLookupIdentifiers personLookup,
+            CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
@@ -68,7 +67,10 @@ namespace Altinn.Register.Controllers
             try
             {
                 person = await _personLookup.GetPerson(
-                    personLookup.NationalIdentityNumber, personLookup.LastName, userId.Value);
+                    personLookup.NationalIdentityNumber,
+                    personLookup.LastName, 
+                    userId.Value,
+                    cancellationToken);
             }
             catch (TooManyFailedLookupsException)
             {

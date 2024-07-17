@@ -47,7 +47,7 @@ public class PersonLookupServiceTests
         {
             LastName = "lastname"
         };
-        _persons.Setup(s => s.GetPerson(It.IsAny<string>())).ReturnsAsync(person);
+        _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(person);
 
         var target = new PersonLookupService(_persons.Object, _settingsMock.Object, _memoryCache, _logger.Object);
 
@@ -66,7 +66,7 @@ public class PersonLookupServiceTests
         {
             LastName = "lastname"
         };
-        _persons.Setup(s => s.GetPerson(It.IsAny<string>())).ReturnsAsync(person);
+        _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(person);
         _lookupSettings.MaximumFailedAttempts = 2;
 
         var target = new PersonLookupService(_persons.Object, _settingsMock.Object, _memoryCache, _logger.Object);
@@ -83,7 +83,7 @@ public class PersonLookupServiceTests
     public async Task GetPerson_OneFailedAttempt_MoreToGo_WrongInput_ReturnsNull()
     {
         // Arrange
-        _persons.Setup(s => s.GetPerson(It.IsAny<string>())).ReturnsAsync((Person?)null);
+        _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync((Person?)null);
         _lookupSettings.MaximumFailedAttempts = 2;
 
         var target = new PersonLookupService(_persons.Object, _settingsMock.Object, _memoryCache, _logger.Object);
@@ -104,7 +104,7 @@ public class PersonLookupServiceTests
         {
             LastName = "lastname"
         };
-        _persons.Setup(s => s.GetPerson(It.IsAny<string>())).ReturnsAsync(person);
+        _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(person);
         _lookupSettings.MaximumFailedAttempts = 1;
 
         var target = new PersonLookupService(_persons.Object, _settingsMock.Object, _memoryCache, _logger.Object);
@@ -112,7 +112,7 @@ public class PersonLookupServiceTests
         // Act
         await target.Awaiting(t => t.GetPerson("personnumber", "wrongname", 777)).Should().NotThrowAsync();
         await target.Awaiting(t => t.GetPerson("personnumber", "lastname", 777)).Should().ThrowAsync<TooManyFailedLookupsException>();
-        
+
         // Assert
     }
 
@@ -124,7 +124,7 @@ public class PersonLookupServiceTests
         {
             LastName = "lastname"
         };
-        _persons.Setup(s => s.GetPerson(It.IsAny<string>())).ReturnsAsync(person);
+        _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(person);
         _lookupSettings.MaximumFailedAttempts = 2;
         _lookupSettings.FailedAttemptsCacheLifetimeSeconds = 100;
 

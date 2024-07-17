@@ -1,7 +1,4 @@
 ﻿#nullable enable
-using System;
-using System.Threading.Tasks;
-
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Core;
 
@@ -37,14 +34,12 @@ namespace Altinn.Register.Services
             };
         }
 
-        /// <summary>
-        /// Operation for checking if a given national identity number is connected to a person.
-        /// </summary>
-        /// <param name="nationalIdentityNumber">The national identity number to check.</param>
-        /// <param name="lastName">The last name of the person. Must match the last name of the person.</param>
-        /// <param name="activeUser">The unique id of the user performing the check.</param>
-        /// <returns>The identified <see cref="Task{Party}"/> if last name was correct.</returns>
-        public async Task<Person?> GetPerson(string nationalIdentityNumber, string lastName, int activeUser)
+        /// <inheritdoc/>
+        public async Task<Person?> GetPerson(
+            string nationalIdentityNumber,
+            string lastName,
+            int activeUser,
+            CancellationToken cancellationToken = default)
         {
             string uniqueCacheKey = $"GetPerson_{nationalIdentityNumber}_{lastName}";
 
@@ -53,7 +48,7 @@ namespace Altinn.Register.Services
                 return person;
             }
 
-            person = await _decoratedService.GetPerson(nationalIdentityNumber, lastName, activeUser);
+            person = await _decoratedService.GetPerson(nationalIdentityNumber, lastName, activeUser, cancellationToken);
 
             if (person is not null)
             {

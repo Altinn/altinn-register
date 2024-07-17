@@ -1,6 +1,5 @@
 #nullable enable
 
-using System.Threading.Tasks;
 using Altinn.Platform.Register.Models;
 
 namespace Altinn.Register.Clients.Interfaces;
@@ -14,6 +13,7 @@ public interface IPersonClient
     /// Method that fetches a person based on a national identity number of the person.
     /// </summary>
     /// <param name="nationalIdentityNumber">The national identity number of the person to retrieve.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The identified person.</returns>
-    Task<Person?> GetPerson(string nationalIdentityNumber);
+    Task<Person?> GetPerson(string nationalIdentityNumber, CancellationToken cancellationToken = default);
 }
