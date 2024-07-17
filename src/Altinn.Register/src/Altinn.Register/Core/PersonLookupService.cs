@@ -9,7 +9,7 @@ namespace Altinn.Register.Core
     /// <summary>
     /// Represents the business logic related to checking if a national identity number is in use.
     /// </summary>
-    public class PersonLookupService : IPersonLookup
+    public partial class PersonLookupService : IPersonLookup
     {
         private const string PersonLookupFailedAttempts = "Person-Lookup-Failed-Attempts";
 
@@ -64,8 +64,7 @@ namespace Altinn.Register.Core
             if (_memoryCache.TryGetValue(uniqueCacheKey, out int failedAttempts) 
                 && failedAttempts >= _personLookupSettings.MaximumFailedAttempts)
             {
-                _logger.LogInformation(
-                    "User {userId} has performed too many failed person lookup attempts.", activeUser);
+                Log.UserHasPerformedTooManyFailedPersonLookupAttempts(_logger, activeUser);
 
                 throw new TooManyFailedLookupsException();
             }
@@ -81,6 +80,12 @@ namespace Altinn.Register.Core
             }
 
             _memoryCache.Set(uniqueCacheKey, failedAttempts + 1, _failedAttemptsCacheOptions);
+        }
+
+        private static partial class Log
+        {
+            [LoggerMessage(0, LogLevel.Information, "User {UserId} has performed too many failed person lookup attempts.")]
+            public static partial void UserHasPerformedTooManyFailedPersonLookupAttempts(ILogger logger, int userId);
         }
     }
 }

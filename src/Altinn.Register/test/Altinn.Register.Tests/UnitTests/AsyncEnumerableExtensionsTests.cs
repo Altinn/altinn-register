@@ -91,12 +91,19 @@ public class AsyncEnumerableExtensionsTests
         Assert.True(await enumerator.MoveNextAsync());
         Assert.Equal(1, enumerator.Current);
 
+        using var resetEvent = new ManualResetEvent(false);
+        cts.Token.Register(() => resetEvent.Set());
+
         cts.Cancel();
         var ex = await Assert.ThrowsAsync<TaskCanceledException>(async () =>
         {
+            resetEvent.WaitOne();
+
             var remaining = 10;
             while (await enumerator.MoveNextAsync())
             {
+                await Task.Yield();
+
                 if (remaining-- == 0)
                 {
                     throw new InvalidOperationException("Should have cancelled");
