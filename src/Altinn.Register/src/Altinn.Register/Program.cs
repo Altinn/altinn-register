@@ -21,11 +21,11 @@ app.UseAuthorization();
 app.MapDefaultAltinnEndpoints();
 app.MapControllers();
 
-app.Run();
+await app.RunAsync();
 
 /// <summary>
 /// Startup class.
 /// </summary>
-public partial class Program
+public static partial class Program
 {
 }
