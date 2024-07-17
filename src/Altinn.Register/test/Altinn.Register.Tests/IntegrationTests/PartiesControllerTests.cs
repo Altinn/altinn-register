@@ -280,23 +280,26 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Partie
         Dictionary<string, int> partyIdsByOrgNo = new();
 
         // Arrange
-        PartyNamesLookup input = new PartyNamesLookup
-        {
-            Parties = new List<PartyLookup>()
-        };
-
-        PartyNamesLookupResult expectedResult = new PartyNamesLookupResult
-        {
-            PartyNames = new List<PartyName>()
-        };
+        List<PartyLookup> inputParties = [];
+        List<PartyName> expectedResultPartyNames = [];
 
         foreach (int partyId in partyIds)
         {
             Party party = await TestDataLoader.Load<Party>(partyId.ToString());
-            input.Parties.Add(new PartyLookup { OrgNo = party.OrgNumber });
-            expectedResult.PartyNames.Add(new PartyName { OrgNo = party.OrgNumber, Name = party.Name });
+            inputParties.Add(new PartyLookup { OrgNo = party.OrgNumber });
+            expectedResultPartyNames.Add(new PartyName { OrgNo = party.OrgNumber, Name = party.Name });
             partyIdsByOrgNo.Add(party.OrgNumber, partyId);
         }
+
+        PartyNamesLookup input = new PartyNamesLookup
+        {
+            Parties = inputParties,
+        };
+
+        PartyNamesLookupResult expectedResult = new PartyNamesLookupResult
+        {
+            PartyNames = expectedResultPartyNames,
+        };
 
         HttpRequestMessage sblRequest = null;
         int sblEndpointInvoked = 0;

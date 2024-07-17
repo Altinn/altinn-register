@@ -1,25 +1,20 @@
-using System;
+using System.Diagnostics;
 
-using Newtonsoft.Json;
+namespace Authorization.Platform.Authorization.Models;
 
-namespace Authorization.Platform.Authorization.Models
+/// <summary>
+/// Entity representing a Role
+/// </summary>
+[DebuggerDisplay("{Value}", Name = "[{Type}]")]
+public record Role
 {
     /// <summary>
-    /// Entity representing a Role
+    /// Gets or sets the role type
     /// </summary>
-    [Serializable]
-    public class Role
-    {
-        /// <summary>
-        /// Gets or sets the role type
-        /// </summary>
-        [JsonProperty]
-        public string Type { get; set; }
+    public string? Type { get; set; }
 
-        /// <summary>
-        /// Gets or sets the role
-        /// </summary>
-        [JsonProperty]
-        public string Value { get; set; }
-    }
+    /// <summary>
+    /// Gets or sets the role
+    /// </summary>
+    public string? Value { get; set; }
 }
