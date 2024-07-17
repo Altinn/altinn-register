@@ -13,9 +13,9 @@ namespace Altinn.Platform.Models.Tests
         /// </summary>
         /// <param name="model">The model to validate.</param>
         /// <returns>A list of identified issues.</returns>
-        public static IList<ValidationResult> ValidateModel(object model)
+        public static IReadOnlyList<ValidationResult> ValidateModel(object model)
         {
-            List<ValidationResult> validationResults = new List<ValidationResult>();
+            List<ValidationResult> validationResults = [];
             ValidationContext ctx = new ValidationContext(model, null, null);
             Validator.TryValidateObject(model, ctx, validationResults, true);
             return validationResults;
