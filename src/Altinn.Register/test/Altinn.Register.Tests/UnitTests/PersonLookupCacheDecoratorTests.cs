@@ -41,7 +41,7 @@ namespace Altinn.Register.Tests.UnitTests
             {
                 LastName = "lastname"
             };
-            _personLookup.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()))
+            _personLookup.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(person);
 
             var target = new PersonLookupCacheDecorator(
@@ -52,7 +52,7 @@ namespace Altinn.Register.Tests.UnitTests
 
             // Assert
             _personLookup.Verify(
-                s => s.GetPerson(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Once);
+                s => s.GetPerson(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
 
             Assert.NotNull(actual);
             Assert.NotNull(_memoryCache.Get<Person?>("GetPerson_personnumber_lastname"));
@@ -66,7 +66,7 @@ namespace Altinn.Register.Tests.UnitTests
             {
                 LastName = "lastname"
             };
-            _personLookup.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()))
+            _personLookup.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(person);
 
             _memoryCache.Set("GetPerson_personnumber_lastname", person);
@@ -79,7 +79,7 @@ namespace Altinn.Register.Tests.UnitTests
 
             // Assert
             _personLookup.Verify(
-                s => s.GetPerson(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+                s => s.GetPerson(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
 
             Assert.NotNull(actual);
             Assert.NotNull(_memoryCache.Get<Person?>("GetPerson_personnumber_lastname"));
@@ -89,7 +89,7 @@ namespace Altinn.Register.Tests.UnitTests
         public async Task GetPerson_NoCache_DecoratedServiceReturnsNull_ReturnsNull()
         {
             // Arrange
-            _personLookup.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()))
+            _personLookup.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync((Person?)null);
 
             var target = new PersonLookupCacheDecorator(
@@ -100,7 +100,7 @@ namespace Altinn.Register.Tests.UnitTests
 
             // Assert
             _personLookup.Verify(
-                s => s.GetPerson(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Once);
+                s => s.GetPerson(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
 
             Assert.Null(actual);
             Assert.Null(_memoryCache.Get<Person?>("GetPerson_personnumber_lastname"));

@@ -1,17 +1,11 @@
-using System;
-using System.Linq;
-using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Configuration;
 using Altinn.Register.Exceptions;
 using Altinn.Register.Models;
-
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Altinn.Register.Clients
@@ -28,7 +22,7 @@ namespace Altinn.Register.Clients
         /// <summary>
         /// Initializes a new instance of the <see cref="OrganizationClient"/> class
         /// </summary>
-        /// <param name="httpClient">HttpClient from default httpclientfactory</param>
+        /// <param name="httpClient">HttpClient from default <see cref="IHttpClientFactory"/></param>
         /// <param name="generalSettings">the general settings</param>
         /// <param name="logger">the logger</param>
         public OrganizationClient(HttpClient httpClient, IOptions<GeneralSettings> generalSettings, ILogger<OrganizationClient> logger)
@@ -39,26 +33,32 @@ namespace Altinn.Register.Clients
         }
 
         /// <inheritdoc />
-        public async Task<Organization> GetOrganization(string orgNr)
+        public async Task<Organization> GetOrganization(string orgNr, CancellationToken cancellationToken = default)
         {
             Uri endpointUrl = new($"{_generalSettings.BridgeApiEndpoint}organizations/{orgNr}");
 
-            HttpResponseMessage response = await _client.GetAsync(endpointUrl);
+            HttpResponseMessage response = await _client.GetAsync(endpointUrl, cancellationToken);
 
             if (response.StatusCode == System.Net.HttpStatusCode.OK)
             {
-                return await JsonSerializer.DeserializeAsync<Organization>(await response.Content.ReadAsStreamAsync());
+                return await response.Content.ReadFromJsonAsync<Organization>(cancellationToken: cancellationToken);
             }
             else
             {
-                _logger.LogError("Getting org with org nr {OrgNr} failed with statuscode {StatusCode}", orgNr, response.StatusCode);
+                // safety check for orgNr length - as it's user input and can be manipulated
+                if (orgNr.Length > 50)
+                {
+                    return null;
+                }
+
+                _logger.LogError("Getting org with org nr '{OrgNr}' failed with statuscode {StatusCode}", orgNr, response.StatusCode);
             }
 
             return null;
         }
 
         /// <inheritdoc/>
-        public async Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup lookup)
+        public async Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup lookup, CancellationToken cancellationToken = default)
         {
             Uri endpointUrl = new($"{_generalSettings.BridgeApiEndpoint}organizations/contactpoints");
 
@@ -69,11 +69,11 @@ namespace Altinn.Register.Clients
 
             StringContent requestBody = new(JsonSerializer.Serialize(bridgeLookup), Encoding.UTF8, "application/json");
 
-            HttpResponseMessage response = await _client.PostAsync(endpointUrl, requestBody);
+            HttpResponseMessage response = await _client.PostAsync(endpointUrl, requestBody, cancellationToken);
 
             if (response.StatusCode == System.Net.HttpStatusCode.OK)
             {
-                var sblContactPointList = await JsonSerializer.DeserializeAsync<BridgeOrgContactPointsList>(await response.Content.ReadAsStreamAsync());
+                var sblContactPointList = await response.Content.ReadFromJsonAsync<BridgeOrgContactPointsList>(cancellationToken: cancellationToken);
                 return new OrgContactPointsList
                 {
                     ContactPointsList = sblContactPointList.ContactPointsList

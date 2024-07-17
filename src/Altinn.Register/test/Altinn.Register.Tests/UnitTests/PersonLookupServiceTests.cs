@@ -46,7 +46,7 @@ public class PersonLookupServiceTests
         {
             LastName = "lastname"
         };
-        _persons.Setup(s => s.GetPerson(It.IsAny<string>())).ReturnsAsync(person);
+        _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(person);
 
         var target = new PersonLookupService(_persons.Object, _settingsMock.Object, memoryCache, _logger.Object);
 
@@ -66,7 +66,7 @@ public class PersonLookupServiceTests
         {
             LastName = "lastname"
         };
-        _persons.Setup(s => s.GetPerson(It.IsAny<string>())).ReturnsAsync(person);
+        _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(person);
         memoryCache.Set("Person-Lookup-Failed-Attempts777", 1);
         lookupSettings.MaximumFailedAttempts = 2;
 
@@ -84,7 +84,7 @@ public class PersonLookupServiceTests
     public async Task GetPerson_OneFailedAttempt_MoreToGo_WrongInput_ReturnsNull()
     {
         // Arrange
-        _persons.Setup(s => s.GetPerson(It.IsAny<string>())).ReturnsAsync((Person?)null);
+        _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync((Person?)null);
         memoryCache.Set("Person-Lookup-Failed-Attempts777", 1);
         lookupSettings.MaximumFailedAttempts = 2;
 
@@ -106,7 +106,7 @@ public class PersonLookupServiceTests
         {
             LastName = "lastname"
         };
-        _persons.Setup(s => s.GetPerson(It.IsAny<string>())).ReturnsAsync(person);
+        _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(person);
         memoryCache.Set("Person-Lookup-Failed-Attempts777", 1);
         lookupSettings.MaximumFailedAttempts = 1;
 
@@ -137,7 +137,7 @@ public class PersonLookupServiceTests
         {
             LastName = "lastname"
         };
-        _persons.Setup(s => s.GetPerson(It.IsAny<string>())).ReturnsAsync(person);
+        _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(person);
         memoryCache.Set("Person-Lookup-Failed-Attempts777", 1);
         lookupSettings.MaximumFailedAttempts = 2;
         lookupSettings.FailedAttemptsCacheLifetimeSeconds = 1;

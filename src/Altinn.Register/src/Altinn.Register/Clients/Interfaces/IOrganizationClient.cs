@@ -1,5 +1,3 @@
-using System.Threading.Tasks;
-
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Models;
 
@@ -14,14 +12,16 @@ namespace Altinn.Register.Clients.Interfaces
         /// Method that fetches a organization based on a organization number
         /// </summary>
         /// <param name="orgNr">The organization number</param>
+        /// <param name="cancellationToken">The cancellation token</param>
         /// <returns></returns>
-        Task<Organization> GetOrganization(string orgNr);
+        Task<Organization> GetOrganization(string orgNr, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Method for retriveing contact points for an org 
+        /// Method for retrieving contact points for an org 
         /// </summary>
         /// <param name="lookup">Organization lookup object</param>
+        /// <param name="cancellationToken">The cancellation token</param>
         /// <returns>The orgs contact points</returns>
-        Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup lookup);
+        Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup lookup, CancellationToken cancellationToken = default);
     }
 }

@@ -1,8 +1,5 @@
-using System;
-using System.IO;
 using System.Reflection;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 using Altinn.Common.AccessToken;
 using Altinn.Common.AccessToken.Configuration;
@@ -30,13 +27,6 @@ using Microsoft.ApplicationInsights.Channel;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ApplicationInsights.WindowsServer.TelemetryChannel;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -63,7 +53,7 @@ var app = builder.Build();
 
 Configure();
 
-app.Run();
+await app.RunAsync();
 
 async Task SetConfigurationProviders(ConfigurationManager config)
 {
