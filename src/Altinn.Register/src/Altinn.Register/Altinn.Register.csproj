@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Altinn.Authorization.ServiceDefaults" />
     <PackageReference Include="Altinn.Common.AccessToken" />
     <PackageReference Include="Altinn.Common.PEP" />
     <PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" />
