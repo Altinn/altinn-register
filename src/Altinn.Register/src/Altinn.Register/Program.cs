@@ -53,7 +53,7 @@ var app = builder.Build();
 
 Configure();
 
-app.Run();
+await app.RunAsync();
 
 async Task SetConfigurationProviders(ConfigurationManager config)
 {
