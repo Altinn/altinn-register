@@ -18,7 +18,6 @@ public class PersonLookupServiceTests
     private readonly Mock<IPersonClient> _persons;
     private readonly Mock<ILogger<PersonLookupService>> _logger;
 
-    private readonly IOptions<PersonLookupSettings> _lookupOptions;
     private readonly TestClock _clock;
     private readonly MemoryCache _memoryCache;
     private readonly PersonLookupSettings _lookupSettings;
@@ -28,7 +27,6 @@ public class PersonLookupServiceTests
         _persons = new Mock<IPersonClient>();
         _lookupSettings = new PersonLookupSettings();
 
-        _lookupOptions = Options.Create(_lookupSettings);
         _clock = new TestClock();
         _memoryCache = new MemoryCache(new MemoryCacheOptions
         {
@@ -47,7 +45,7 @@ public class PersonLookupServiceTests
         };
         _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(person);
 
-        var target = new PersonLookupService(_persons.Object, _lookupOptions, _memoryCache, _logger.Object);
+        var target = new PersonLookupService(_persons.Object, Options.Create(_lookupSettings), _memoryCache, _logger.Object);
 
         // Act
         var actual = await target.GetPerson("personnumber", "lastname", 777);
@@ -67,7 +65,7 @@ public class PersonLookupServiceTests
         _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(person);
         _lookupSettings.MaximumFailedAttempts = 2;
 
-        var target = new PersonLookupService(_persons.Object, _lookupOptions, _memoryCache, _logger.Object);
+        var target = new PersonLookupService(_persons.Object, Options.Create(_lookupSettings), _memoryCache, _logger.Object);
 
         // Act
         await target.Awaiting(t => t.GetPerson("personnumber", "wrongname", 777)).Should().NotThrowAsync();
@@ -84,7 +82,7 @@ public class PersonLookupServiceTests
         _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync((Person?)null);
         _lookupSettings.MaximumFailedAttempts = 2;
 
-        var target = new PersonLookupService(_persons.Object, _lookupOptions, _memoryCache, _logger.Object);
+        var target = new PersonLookupService(_persons.Object, Options.Create(_lookupSettings), _memoryCache, _logger.Object);
 
         // Act
         await target.Awaiting(t => t.GetPerson("personnumber", "wrongname", 777)).Should().NotThrowAsync();
@@ -105,7 +103,7 @@ public class PersonLookupServiceTests
         _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(person);
         _lookupSettings.MaximumFailedAttempts = 1;
 
-        var target = new PersonLookupService(_persons.Object, _lookupOptions, _memoryCache, _logger.Object);
+        var target = new PersonLookupService(_persons.Object, Options.Create(_lookupSettings), _memoryCache, _logger.Object);
 
         // Act
         await target.Awaiting(t => t.GetPerson("personnumber", "wrongname", 777)).Should().NotThrowAsync();
@@ -126,7 +124,7 @@ public class PersonLookupServiceTests
         _lookupSettings.MaximumFailedAttempts = 2;
         _lookupSettings.FailedAttemptsCacheLifetimeSeconds = 100;
 
-        var target = new PersonLookupService(_persons.Object, _lookupOptions, _memoryCache, _logger.Object);
+        var target = new PersonLookupService(_persons.Object, Options.Create(_lookupSettings), _memoryCache, _logger.Object);
 
         // Act
         await target.Awaiting(t => t.GetPerson("personnumber", "wrongname", 777)).Should().NotThrowAsync();
