@@ -1,5 +1,3 @@
-using System.Net.Http;
-
 using Altinn.Common.AccessToken.Services;
 using Altinn.Register.Clients;
 using Altinn.Register.Clients.Interfaces;
@@ -21,12 +19,11 @@ using Moq;
 
 namespace Altinn.Register.Tests.IntegrationTests.Utils
 {
-    public class WebApplicationFactorySetup<T>
-        where T : class
+    public class WebApplicationFactorySetup
     {
-        private readonly WebApplicationFactory<T> _webApplicationFactory;
+        private readonly WebApplicationFactory<Program> _webApplicationFactory;
 
-        public WebApplicationFactorySetup(WebApplicationFactory<T> webApplicationFactory)
+        public WebApplicationFactorySetup(WebApplicationFactory<Program> webApplicationFactory)
         {
             _webApplicationFactory = webApplicationFactory;
         }

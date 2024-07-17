@@ -26,6 +26,6 @@ await app.RunAsync();
 /// <summary>
 /// Startup class.
 /// </summary>
-public static partial class Program
+public partial class Program
 {
 }
