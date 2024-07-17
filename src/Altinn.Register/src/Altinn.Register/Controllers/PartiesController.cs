@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Diagnostics;
 using System.Security.Claims;
 
 using Altinn.Platform.Register.Models;
@@ -140,7 +141,9 @@ namespace Altinn.Register.Controllers
         [Produces("application/json")]
         public async Task<ActionResult<Party>> PostPartyLookup([FromBody] PartyLookup partyLookup, CancellationToken cancellationToken = default)
         {
-            string lookupValue = partyLookup.OrgNo ?? partyLookup.Ssn;
+            Debug.Assert(!string.IsNullOrEmpty(partyLookup.Ssn) || !string.IsNullOrEmpty(partyLookup.OrgNo));
+
+            string lookupValue = partyLookup.OrgNo ?? partyLookup.Ssn!;
 
             Party? party = await _partyClient.LookupPartyBySSNOrOrgNo(lookupValue, cancellationToken);
 
@@ -167,6 +170,14 @@ namespace Altinn.Register.Controllers
         [Produces("application/json")]
         public async Task<ActionResult<PartyNamesLookupResult>> PostPartyNamesLookup([FromBody] PartyNamesLookup partyNamesLookup, CancellationToken cancellationToken = default)
         {
+            if (partyNamesLookup.Parties is null or { Count: 0 })
+            {
+                return Ok(new PartyNamesLookupResult
+                {
+                    PartyNames = [],
+                });
+            }
+
             List<PartyName> items = await _partyClient.LookupPartyNames(partyNamesLookup.Parties, cancellationToken).ToListAsync(cancellationToken);
             var partyNamesLookupResult = new PartyNamesLookupResult
             {

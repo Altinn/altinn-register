@@ -1,21 +1,14 @@
 #nullable enable
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Json;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Configuration;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Extensions;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Altinn.Register.Clients;
@@ -43,10 +36,6 @@ public class PartiesClient : IPartyClient
     /// <summary>
     /// Initializes a new instance of the <see cref="PartiesClient"/> class
     /// </summary>
-    /// <param name="httpClient">HttpClient from default httpclientfactory</param>
-    /// <param name="generalSettings">the general settings</param>
-    /// <param name="logger">the logger</param>
-    /// <param name="memoryCache">the memory cache</param>
     public PartiesClient(HttpClient httpClient, IOptions<GeneralSettings> generalSettings, ILogger<PartiesClient> logger, IMemoryCache memoryCache)
     {
         _generalSettings = generalSettings.Value;
@@ -241,7 +230,8 @@ public class PartiesClient : IPartyClient
 
     private async Task<PartyName> ProcessPartyLookupAsync(PartyLookup partyLookup, CancellationToken cancellationToken)
     {
-        string lookupValue = !string.IsNullOrEmpty(partyLookup.Ssn) ? partyLookup.Ssn : partyLookup.OrgNo;
+        Debug.Assert(!string.IsNullOrEmpty(partyLookup.Ssn) || !string.IsNullOrEmpty(partyLookup.OrgNo));
+        string lookupValue = !string.IsNullOrEmpty(partyLookup.Ssn) ? partyLookup.Ssn : partyLookup.OrgNo!;
         string cacheKey = $"n:{lookupValue}";
         string? partyName = await GetOrAddPartyNameToCacheAsync(lookupValue, cacheKey, cancellationToken);
 

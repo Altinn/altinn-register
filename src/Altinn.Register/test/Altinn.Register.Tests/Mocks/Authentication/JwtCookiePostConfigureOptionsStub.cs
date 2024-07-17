@@ -27,7 +27,7 @@ namespace Altinn.Register.Tests.Mocks.Authentication
 
             if (!string.IsNullOrEmpty(options.MetadataAddress))
             {
-                if (!options.MetadataAddress.EndsWith("/", StringComparison.Ordinal))
+                if (!options.MetadataAddress.EndsWith('/'))
                 {
                     options.MetadataAddress += "/";
                 }
