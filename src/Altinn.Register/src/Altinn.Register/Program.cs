@@ -26,6 +26,9 @@ await app.RunAsync();
 /// <summary>
 /// Startup class.
 /// </summary>
-public partial class Program
+public sealed partial class Program
 {
+    private Program() 
+    { 
+    }
 }
