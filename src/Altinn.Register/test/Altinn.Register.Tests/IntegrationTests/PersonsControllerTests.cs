@@ -1,14 +1,10 @@
-using System;
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Configuration;
-using Altinn.Register.Controllers;
 using Altinn.Register.Tests.IntegrationTests.Utils;
 using Altinn.Register.Tests.Mocks;
 using Altinn.Register.Tests.Utils;
@@ -16,17 +12,15 @@ using Altinn.Register.Tests.Utils;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Caching.Memory;
 
-using Xunit;
-
 namespace Altinn.Register.Tests.IntegrationTests
 {
-    public class PersonsControllerTests : IClassFixture<WebApplicationFactory<PersonsController>>
+    public class PersonsControllerTests : IClassFixture<WebApplicationFactory<Program>>
     {
-        private readonly WebApplicationFactorySetup<PersonsController> _webApplicationFactorySetup;
+        private readonly WebApplicationFactorySetup _webApplicationFactorySetup;
 
-        public PersonsControllerTests(WebApplicationFactory<PersonsController> factory)
+        public PersonsControllerTests(WebApplicationFactory<Program> factory)
         {
-            _webApplicationFactorySetup = new WebApplicationFactorySetup<PersonsController>(factory);
+            _webApplicationFactorySetup = new WebApplicationFactorySetup(factory);
 
             GeneralSettings generalSettings = new() { BridgeApiEndpoint = "http://localhost/" };
             _webApplicationFactorySetup.GeneralSettingsOptions.Setup(s => s.Value).Returns(generalSettings);

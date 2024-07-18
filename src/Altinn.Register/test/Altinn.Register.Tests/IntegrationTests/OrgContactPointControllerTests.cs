@@ -1,27 +1,22 @@
 ﻿using System.Net;
-using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 using Altinn.Register.Configuration;
-using Altinn.Register.Controllers;
 using Altinn.Register.Models;
 using Altinn.Register.Tests.IntegrationTests.Utils;
 using Altinn.Register.Tests.Mocks;
 using Microsoft.AspNetCore.Mvc.Testing;
 
-using Xunit;
-
 namespace Altinn.Register.Tests.IntegrationTests;
 
-public class OrgContactPointControllerTests : IClassFixture<WebApplicationFactory<OrgContactPointController>>
+public class OrgContactPointControllerTests : IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly WebApplicationFactorySetup<OrgContactPointController> _webApplicationFactorySetup;
+    private readonly WebApplicationFactorySetup _webApplicationFactorySetup;
 
-    public OrgContactPointControllerTests(WebApplicationFactory<OrgContactPointController> factory)
+    public OrgContactPointControllerTests(WebApplicationFactory<Program> factory)
     {
-        _webApplicationFactorySetup = new WebApplicationFactorySetup<OrgContactPointController>(factory);
+        _webApplicationFactorySetup = new WebApplicationFactorySetup(factory);
 
         GeneralSettings generalSettings = new() { BridgeApiEndpoint = "http://localhost/sblbridge/register/api/" };
         _webApplicationFactorySetup.GeneralSettingsOptions.Setup(s => s.Value).Returns(generalSettings);

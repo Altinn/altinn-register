@@ -1,39 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
+﻿using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Configuration;
-using Altinn.Register.Controllers;
 using Altinn.Register.Tests.IntegrationTests.Utils;
 using Altinn.Register.Tests.Mocks;
 using Altinn.Register.Tests.Utils;
-using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
-
-using Xunit;
 
 namespace Altinn.Register.Tests.IntegrationTests;
 
-public class PartiesControllerTests : IClassFixture<WebApplicationFactory<PartiesController>>
+public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly WebApplicationFactorySetup<PartiesController> _webApplicationFactorySetup;
+    private readonly WebApplicationFactorySetup _webApplicationFactorySetup;
     private readonly JsonSerializerOptions options = new()
     {
         PropertyNameCaseInsensitive = true,
     };
 
-    public PartiesControllerTests(WebApplicationFactory<PartiesController> factory)
+    public PartiesControllerTests(WebApplicationFactory<Program> factory)
     {
-        _webApplicationFactorySetup = new WebApplicationFactorySetup<PartiesController>(factory);
+        _webApplicationFactorySetup = new WebApplicationFactorySetup(factory);
 
         GeneralSettings generalSettings = new() { BridgeApiEndpoint = "http://localhost/" };
         _webApplicationFactorySetup.GeneralSettingsOptions.Setup(s => s.Value).Returns(generalSettings);

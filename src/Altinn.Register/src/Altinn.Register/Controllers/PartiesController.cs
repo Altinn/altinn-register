@@ -6,7 +6,6 @@ using System.Security.Claims;
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Extensions;
-using Altinn.Register.Filters;
 using Altinn.Register.Models;
 using Altinn.Register.Services.Interfaces;
 
@@ -132,7 +131,6 @@ namespace Altinn.Register.Controllers
         /// <param name="partyLookup">The lookup criteria. One and only one of the properties must be a valid value.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The identified party.</returns>
-        [ValidateModelState]
         [HttpPost("lookup")]
         [Consumes("application/json")]
         [ProducesResponseType(400)]
@@ -161,7 +159,6 @@ namespace Altinn.Register.Controllers
         /// <param name="partyNamesLookup">A list of lookup criteria. For each criteria, one and only one of the properties must be a valid value.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The identified party names for the corresponding identifiers.</returns>
-        [ValidateModelState]
         [HttpPost("nameslookup")]
         [Consumes("application/json")]
         [ProducesResponseType(400)]

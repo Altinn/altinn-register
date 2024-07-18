@@ -1,36 +1,19 @@
 using System.Net;
-using System.Net.Http;
-using System.Threading.Tasks;
-
-using Altinn.Register.Health;
 
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 
-using Xunit;
-
 namespace Altinn.Register.Tests.IntegrationTests
 {
-    /// <summary>
-    /// Health check
-    /// </summary>
-    public class HealthCheckTests : IClassFixture<WebApplicationFactory<HealthCheck>>
+    public class HealthCheckTests : IClassFixture<WebApplicationFactory<Program>>
     {
-        private readonly WebApplicationFactory<HealthCheck> _factory;
+        private readonly WebApplicationFactory<Program> _factory;
 
-        /// <summary>
-        /// Default constructor
-        /// </summary>
-        /// <param name="factory">The web applicaiton factory</param>
-        public HealthCheckTests(WebApplicationFactory<HealthCheck> factory)
+        public HealthCheckTests(WebApplicationFactory<Program> factory)
         {
             _factory = factory;
         }
 
-        /// <summary>
-        /// Verify that component responds on health check
-        /// </summary>
-        /// <returns></returns>
         [Fact]
         public async Task VerifyHealthCheck_OK()
         {
@@ -42,16 +25,18 @@ namespace Altinn.Register.Tests.IntegrationTests
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
-        private HttpClient GetTestClient()
+        [Fact]
+        public async Task VerifyAliveCheck_OK()
         {
-            HttpClient client = _factory.WithWebHostBuilder(builder =>
-            {
-                builder.ConfigureTestServices(services =>
-                {
-                });
-            }).CreateClient();
+            HttpClient client = GetTestClient();
 
-            return client;
+            HttpRequestMessage httpRequestMessage = new(HttpMethod.Get, "/alive");
+
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
+
+        private HttpClient GetTestClient()
+            => _factory.CreateClient();
     }
 }
