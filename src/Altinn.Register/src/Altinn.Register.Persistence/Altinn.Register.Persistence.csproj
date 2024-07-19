@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Altinn.Register.Core\Altinn.Register.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Altinn.Authorization.ServiceDefaults.Npgsql" />
+    <PackageReference Include="Altinn.Authorization.ServiceDefaults.Npgsql.TestSeed" />
+    <PackageReference Include="Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Migration/**/*.sql" />
+    <EmbeddedResource Include="TestData/**/*.sql" />
+  </ItemGroup>
+
+</Project>
