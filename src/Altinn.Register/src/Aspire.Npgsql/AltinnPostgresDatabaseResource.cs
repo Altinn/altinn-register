@@ -1,4 +1,5 @@
-﻿using Aspire.Hosting.ApplicationModel;
+﻿using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting.ApplicationModel;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Authorization.Aspire.Npgsql;
@@ -7,6 +8,7 @@ namespace Altinn.Authorization.Aspire.Npgsql;
 /// A resource that represents a PostgreSQL database. This is a child resource of
 /// <see cref="PostgresServerResource"/>.
 /// </summary>
+[ExcludeFromCodeCoverage]
 public class AltinnPostgresDatabaseResource
     : Resource
     , IResourceWithParent<PostgresServerResource>

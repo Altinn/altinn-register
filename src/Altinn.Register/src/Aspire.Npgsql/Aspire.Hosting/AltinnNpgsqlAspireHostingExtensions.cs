@@ -1,4 +1,5 @@
-﻿using Altinn.Authorization.Aspire.Npgsql;
+﻿using System.Diagnostics.CodeAnalysis;
+using Altinn.Authorization.Aspire.Npgsql;
 using Aspire.Hosting.ApplicationModel;
 using static Altinn.Authorization.Aspire.Npgsql.AltinnPostgresDatabaseResource;
 
@@ -7,6 +8,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Extension methods for defining postgresql databases in an Aspire application preconfigured for Altinn.Authorization.ServiceDefaults.Npgsql.
 /// </summary>
+[ExcludeFromCodeCoverage]
 public static class AltinnNpgsqlAspireHostingExtensions
 {
     /// <summary>
