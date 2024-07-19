@@ -1,10 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Configuration;
 
 var builder = DistributedApplication.CreateBuilder(args);
-
-builder.Services.TryAddLifecycleHook<DebugTrap>();
 
 // TODO: Remove once https://github.com/dotnet/aspire/pull/4507 has been released (probably in Aspire 8.1)
 var postgresPassword = builder.AddParameter("postgres-password", secret: true);
