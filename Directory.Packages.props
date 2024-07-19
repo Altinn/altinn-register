@@ -10,7 +10,6 @@
     <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql" Version="2.1.1" />
     <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql" Version="2.1.1" />
     <PackageVersion Include="Altinn.Authorization.ServiceDefaults" Version="2.1.1" />
-    <PackageVersion Include="Altinn.Common.AccessToken" Version="4.4.3" />
     <PackageVersion Include="Altinn.Common.AccessToken" Version="4.4.4" />
     <PackageVersion Include="Altinn.Common.PEP" Version="4.0.0" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="8.0.2" />
