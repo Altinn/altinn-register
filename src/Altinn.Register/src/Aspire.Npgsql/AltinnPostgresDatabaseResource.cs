@@ -207,7 +207,7 @@ public class AltinnPostgresDatabaseResource
         Creator,
     }
 
-    private class ConnectionStringResource(AltinnPostgresDatabaseResource resource, ConnectionStrings connectionString)
+    private sealed class ConnectionStringResource(AltinnPostgresDatabaseResource resource, ConnectionStrings connectionString)
         : IResourceWithConnectionString
     {
         ReferenceExpression IResourceWithConnectionString.ConnectionStringExpression 

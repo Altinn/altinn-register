@@ -60,5 +60,5 @@ public static class RegisterPersistenceExtensions
             });
     }
 
-    private record Marker;
+    private sealed record Marker;
 }
