@@ -48,10 +48,15 @@ jobs:
         with:
           dotnet-version: |
             8.0.x
+
+      - name: Restore dotnet workloads
+        run: dotnet workload restore
+
       - name: Build & Test
         run: |
-          dotnet build Altinn.Register.sln -v m
-          dotnet test Altinn.Register.sln -v m
+          dotnet build -v m
+          dotnet test --no-build -v m
+
   analyze:
     if: ((github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false) || github.event_name == 'push') && github.repository_owner == 'Altinn' && github.actor != 'dependabot[bot]'
     name: Analyze
@@ -72,6 +77,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Restore dotnet workloads
+        run: dotnet workload restore
 
       - name: Cache SonarCloud packages
         uses: actions/cache@v4

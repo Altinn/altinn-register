@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -12,6 +12,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{6E19EDF2-3B9B-4BF0-9BB5-B68F577939F1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.Tests", "test\Altinn.Register.Tests\Altinn.Register.Tests.csproj", "{89FD92B9-BBC3-4560-B8F0-FEC7286C8D1E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.AppHost", "src\Altinn.Register.AppHost\Altinn.Register.AppHost.csproj", "{E811134E-9602-4E72-A47B-24110ED0B98B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -34,10 +36,15 @@ Global
 		{89FD92B9-BBC3-4560-B8F0-FEC7286C8D1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{89FD92B9-BBC3-4560-B8F0-FEC7286C8D1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{89FD92B9-BBC3-4560-B8F0-FEC7286C8D1E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E811134E-9602-4E72-A47B-24110ED0B98B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E811134E-9602-4E72-A47B-24110ED0B98B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E811134E-9602-4E72-A47B-24110ED0B98B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E811134E-9602-4E72-A47B-24110ED0B98B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{245B9C40-E4F7-47CB-96C8-E027078FE1B5} = {7E22A164-F523-4404-B969-409A129B5B52}
 		{F941CFDC-E825-4380-A845-6F449B9BAC5C} = {7E22A164-F523-4404-B969-409A129B5B52}
 		{89FD92B9-BBC3-4560-B8F0-FEC7286C8D1E} = {6E19EDF2-3B9B-4BF0-9BB5-B68F577939F1}
+		{E811134E-9602-4E72-A47B-24110ED0B98B} = {7E22A164-F523-4404-B969-409A129B5B52}
 	EndGlobalSection
 EndGlobal

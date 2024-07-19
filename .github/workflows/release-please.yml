@@ -68,6 +68,9 @@ jobs:
               args: [--frozen-lockfile]
             - args: [--global, tsx]
 
+      - name: Restore dotnet workloads
+        run: dotnet workload restore
+
       - name: Build
         working-directory: ${{ matrix.path }}
         run: dotnet build -c Release

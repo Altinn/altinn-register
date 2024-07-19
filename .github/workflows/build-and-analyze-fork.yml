@@ -48,6 +48,9 @@ jobs:
         with:
           fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
 
+      - name: Restore dotnet workloads
+        run: dotnet workload restore
+
       - name: dotnet build
         run: dotnet build Altinn.Register.sln -v m
 
