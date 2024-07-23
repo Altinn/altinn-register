@@ -91,8 +91,13 @@ internal static class RegisterHost
 
         services.AddHttpClient<IOrganizationClient, OrganizationClient>();
         services.AddHttpClient<IPersonClient, PersonClient>();
-        services.AddHttpClient<IPartyClient, PartiesClient>();
+        services.AddHttpClient<IPartyPersistence, PartiesClient>();
         services.AddHttpClient<IAuthorizationClient, AuthorizationClient>();
+
+        if (config.GetValue<bool>("Altinn:Npgsql:register:Enable"))
+        {
+            builder.AddRegisterPersistence();
+        }
 
         services.AddSwaggerGen(c =>
         {

@@ -52,7 +52,7 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
 
                     // Using the real/actual implementation of IParties and IPersons, but with a mocked message handler.
                     // Haven't found any other ways of injecting a mocked message handler to simulate SBL Bridge.
-                    services.AddSingleton<IPartyClient>(
+                    services.AddSingleton<IPartyPersistence>(
                         new PartiesClient(
                             new HttpClient(SblBridgeHttpMessageHandler),
                             GeneralSettingsOptions.Object,
