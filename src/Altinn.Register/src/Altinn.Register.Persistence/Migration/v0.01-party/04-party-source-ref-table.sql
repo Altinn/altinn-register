@@ -1,5 +1,5 @@
 -- Table: register.party_source_ref
-CREATE TABLE IF NOT EXISTS register.party_source_ref(
+CREATE TABLE register.party_source_ref(
   party_uuid uuid NOT NULL REFERENCES register.party(uuid) ON DELETE CASCADE ON UPDATE CASCADE,
   source register.party_source NOT NULL,
   source_identifier text NOT NULL,

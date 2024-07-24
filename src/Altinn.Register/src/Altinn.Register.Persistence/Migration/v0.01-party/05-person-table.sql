@@ -1,5 +1,5 @@
 -- Table: register.person
-CREATE TABLE IF NOT EXISTS register.person(
+CREATE TABLE register.person(
   uuid uuid PRIMARY KEY NOT NULL REFERENCES register.party(uuid) ON DELETE CASCADE ON UPDATE CASCADE,
   first_name text NOT NULL,
   middle_name text,

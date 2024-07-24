@@ -1,5 +1,5 @@
 -- Table: register.organization
-CREATE TABLE IF NOT EXISTS register.organization(
+CREATE TABLE register.organization(
   uuid uuid PRIMARY KEY NOT NULL REFERENCES register.party(uuid) ON DELETE CASCADE ON UPDATE CASCADE,
   unit_status text,
   unit_type text,
