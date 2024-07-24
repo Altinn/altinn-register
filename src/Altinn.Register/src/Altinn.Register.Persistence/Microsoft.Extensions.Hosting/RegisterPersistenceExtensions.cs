@@ -50,9 +50,9 @@ public static class RegisterPersistenceExtensions
         var descriptor = builder.GetAltinnServiceDescriptor();
         var yuniqlSchema = builder.Configuration.GetValue<string>($"Altinn:Npgsql:{descriptor.Name}:Yuniql:MigrationsTable:Schema");
         var migrationsFs = new ManifestEmbeddedFileProvider(typeof(RegisterPersistenceExtensions).Assembly, "Migration");
-        ////var seedDataFs = new ManifestEmbeddedFileProvider(typeof(RegisterPersistenceExtensions).Assembly, "TestData");
+        var seedDataFs = new ManifestEmbeddedFileProvider(typeof(RegisterPersistenceExtensions).Assembly, "TestData");
         builder.AddAltinnPostgresDataSource()
-            ////.SeedFromFileProvider(seedDataFs)
+            .SeedFromFileProvider(seedDataFs)
             .AddYuniqlMigrations(y =>
             {
                 y.WorkspaceFileProvider = migrationsFs;
