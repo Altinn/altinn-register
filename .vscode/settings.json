@@ -12,9 +12,5 @@
     "BaseArtifactsPath",
     "ArtifactsPath",
     "VersionFilePath"
-  ],
-  "sqltools.format": {
-    "language": "sql",
-    "linesBetweenQueries": 2
-  }
+  ]
 }
