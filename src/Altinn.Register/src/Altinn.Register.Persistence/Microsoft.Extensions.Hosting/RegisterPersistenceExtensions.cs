@@ -39,16 +39,16 @@ public static class RegisterPersistenceExtensions
 
     private static void AddDatabase(IHostApplicationBuilder builder)
     {
-        if (builder.Services.Any(s => s.ServiceType == typeof(Marker)))
+        if (builder.Services.Contains(Marker.ServiceDescriptor))
         {
             // already added
             return;
         }
 
-        builder.Services.AddSingleton<Marker>();
+        builder.Services.Add(Marker.ServiceDescriptor);
 
         var descriptor = builder.GetAltinnServiceDescriptor();
-        var yuniqlSchema = builder.Configuration.GetValue<string>($"Altinn:Npgsql:{descriptor.Name}:Yuniql:MigrationsTable:Schema");
+        var yuniqlSchema = builder.Configuration.GetValue($"Altinn:Npgsql:{descriptor.Name}:Yuniql:MigrationsTable:Schema", defaultValue: "yuniql");
         var migrationsFs = new ManifestEmbeddedFileProvider(typeof(RegisterPersistenceExtensions).Assembly, "Migration");
         var seedDataFs = new ManifestEmbeddedFileProvider(typeof(RegisterPersistenceExtensions).Assembly, "TestData");
         builder.AddAltinnPostgresDataSource()
@@ -60,5 +60,8 @@ public static class RegisterPersistenceExtensions
             });
     }
 
-    private sealed record Marker;
+    private sealed class Marker
+    {
+        public static readonly ServiceDescriptor ServiceDescriptor = ServiceDescriptor.Singleton<Marker, Marker>();
+    }
 }
