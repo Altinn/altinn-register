@@ -13,7 +13,7 @@ namespace Altinn.Register.Core.Parties;
 /// </summary>
 [SwaggerString(Format = "org-no", Pattern = "^[0-9]{9}$")]
 [JsonConverter(typeof(OrganizationIdentifier.JsonConverter))]
-public class OrganizationIdentifier
+public sealed class OrganizationIdentifier
     : IParsable<OrganizationIdentifier>
     , ISpanParsable<OrganizationIdentifier>
     , IFormattable

@@ -13,7 +13,7 @@ namespace Altinn.Register.Core.Parties;
 /// </summary>
 [SwaggerString(Format = "ssn", Pattern = "^[0-9]{11}$")]
 [JsonConverter(typeof(PersonIdentifier.JsonConverter))]
-public class PersonIdentifier
+public sealed class PersonIdentifier
     : IParsable<PersonIdentifier>
     , ISpanParsable<PersonIdentifier>
     , IFormattable
