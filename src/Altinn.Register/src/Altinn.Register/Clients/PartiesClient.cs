@@ -10,6 +10,7 @@ using Altinn.Register.Core.Parties;
 using Altinn.Register.Extensions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
+using V1Models = Altinn.Platform.Register.Models;
 
 namespace Altinn.Register.Clients;
 
@@ -45,10 +46,10 @@ public class PartiesClient : IPartyPersistence
     }
 
     /// <inheritdoc />
-    public async Task<Party?> GetPartyById(int partyId, CancellationToken cancellationToken = default)
+    public async Task<V1Models.Party?> GetPartyById(int partyId, CancellationToken cancellationToken = default)
     {
         string cacheKey = $"PartyId:{partyId}";
-        if (_memoryCache.TryGetValue(cacheKey, out Party? party))
+        if (_memoryCache.TryGetValue(cacheKey, out V1Models.Party? party))
         {
             return party;
         }
@@ -59,7 +60,7 @@ public class PartiesClient : IPartyPersistence
 
         if (response.StatusCode == System.Net.HttpStatusCode.OK)
         {
-            party = await response.Content.ReadFromJsonAsync<Party>(JsonOptions, cancellationToken);
+            party = await response.Content.ReadFromJsonAsync<V1Models.Party>(JsonOptions, cancellationToken);
             if (party is null)
             {
                 return null;
@@ -77,10 +78,10 @@ public class PartiesClient : IPartyPersistence
     }
 
     /// <inheritdoc />
-    public async Task<Party?> GetPartyById(Guid partyUuid, CancellationToken cancellationToken = default)
+    public async Task<V1Models.Party?> GetPartyById(Guid partyUuid, CancellationToken cancellationToken = default)
     {
         string cacheKey = $"PartyUUID:{partyUuid}";
-        if (_memoryCache.TryGetValue(cacheKey, out Party? party))
+        if (_memoryCache.TryGetValue(cacheKey, out V1Models.Party? party))
         {
             return party;
         }
@@ -91,7 +92,7 @@ public class PartiesClient : IPartyPersistence
 
         if (response.StatusCode == System.Net.HttpStatusCode.OK)
         {
-            party = await response.Content.ReadFromJsonAsync<Party>(JsonOptions, cancellationToken);
+            party = await response.Content.ReadFromJsonAsync<V1Models.Party>(JsonOptions, cancellationToken);
             if (party is null)
             {
                 return null;
@@ -106,10 +107,10 @@ public class PartiesClient : IPartyPersistence
     }
 
     /// <inheritdoc />
-    public async Task<Party?> LookupPartyBySSNOrOrgNo(string lookupValue, CancellationToken cancellationToken = default)
+    public async Task<V1Models.Party?> LookupPartyBySSNOrOrgNo(string lookupValue, CancellationToken cancellationToken = default)
     {
         string cacheKey = $"LookupValue:{lookupValue}";
-        if (_memoryCache.TryGetValue(cacheKey, out Party? party))
+        if (_memoryCache.TryGetValue(cacheKey, out V1Models.Party? party))
         {
             return party;
         }
@@ -122,7 +123,7 @@ public class PartiesClient : IPartyPersistence
 
         if (response.StatusCode == System.Net.HttpStatusCode.OK)
         {
-            party = await response.Content.ReadFromJsonAsync<Party>(JsonOptions, cancellationToken);
+            party = await response.Content.ReadFromJsonAsync<V1Models.Party>(JsonOptions, cancellationToken);
 
             if (party is null)
             {
@@ -141,7 +142,7 @@ public class PartiesClient : IPartyPersistence
     }
 
     /// <inheritdoc />
-    public async IAsyncEnumerable<Party> GetPartiesById(IEnumerable<int> partyIds, bool fetchSubUnits, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<V1Models.Party> GetPartiesById(IEnumerable<int> partyIds, bool fetchSubUnits, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         UriBuilder uriBuilder = new UriBuilder($"{_generalSettings.BridgeApiEndpoint}parties?fetchSubUnits={fetchSubUnits}");
 
@@ -150,7 +151,7 @@ public class PartiesClient : IPartyPersistence
 
         if (response.StatusCode == System.Net.HttpStatusCode.OK)
         {
-            await foreach (var party in response.Content.ReadFromJsonAsAsyncEnumerable<Party>(JsonOptions, cancellationToken))
+            await foreach (var party in response.Content.ReadFromJsonAsAsyncEnumerable<V1Models.Party>(JsonOptions, cancellationToken))
             {
                 if (party is not null)
                 {
@@ -165,11 +166,11 @@ public class PartiesClient : IPartyPersistence
     }
 
     /// <inheritdoc />
-    public IAsyncEnumerable<Party> GetPartiesById(IEnumerable<int> partyIds, CancellationToken cancellationToken = default)
+    public IAsyncEnumerable<V1Models.Party> GetPartiesById(IEnumerable<int> partyIds, CancellationToken cancellationToken = default)
         => GetPartiesById(partyIds, fetchSubUnits: false, cancellationToken);
 
     /// <inheritdoc />
-    public async IAsyncEnumerable<Party> GetPartiesById(IEnumerable<Guid> partyIds, bool fetchSubUnits, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<V1Models.Party> GetPartiesById(IEnumerable<Guid> partyIds, bool fetchSubUnits, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         UriBuilder uriBuilder = new UriBuilder($"{_generalSettings.BridgeApiEndpoint}parties/byuuid?fetchSubUnits={fetchSubUnits}");
 
@@ -178,7 +179,7 @@ public class PartiesClient : IPartyPersistence
 
         if (response.StatusCode == System.Net.HttpStatusCode.OK)
         {
-            await foreach (var party in response.Content.ReadFromJsonAsAsyncEnumerable<Party>(JsonOptions, cancellationToken))
+            await foreach (var party in response.Content.ReadFromJsonAsAsyncEnumerable<V1Models.Party>(JsonOptions, cancellationToken))
             {
                 if (party is not null)
                 {
@@ -193,7 +194,7 @@ public class PartiesClient : IPartyPersistence
     }
 
     /// <inheritdoc />
-    public IAsyncEnumerable<Party> GetPartiesById(IEnumerable<Guid> partyIds, CancellationToken cancellationToken = default)
+    public IAsyncEnumerable<V1Models.Party> GetPartiesById(IEnumerable<Guid> partyIds, CancellationToken cancellationToken = default)
         => GetPartiesById(partyIds, fetchSubUnits: false, cancellationToken);
 
     /// <inheritdoc />
@@ -203,8 +204,8 @@ public class PartiesClient : IPartyPersistence
     }
 
     /// <inheritdoc />
-    public async IAsyncEnumerable<Party> LookupPartiesBySSNOrOrgNos(
-        IEnumerable<string> lookupValues, 
+    public async IAsyncEnumerable<V1Models.Party> LookupPartiesBySSNOrOrgNos(
+        IEnumerable<string> lookupValues,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var uri = $"{_generalSettings.BridgeApiEndpoint}parties/byssnorgnumber";
@@ -214,7 +215,7 @@ public class PartiesClient : IPartyPersistence
 
         if (response.StatusCode == System.Net.HttpStatusCode.OK)
         {
-            await foreach (var party in response.Content.ReadFromJsonAsAsyncEnumerable<Party>(JsonOptions, cancellationToken))
+            await foreach (var party in response.Content.ReadFromJsonAsAsyncEnumerable<V1Models.Party>(JsonOptions, cancellationToken))
             {
                 if (party is not null)
                 {
@@ -254,7 +255,7 @@ public class PartiesClient : IPartyPersistence
         // limit the concurrent calls to SBL Bridge
         await _concurrentNameLookupsLimiter.WaitAsync(cancellationToken);
 
-        Party? party;
+        V1Models.Party? party;
         try
         {
             party = await LookupPartyBySSNOrOrgNo(lookupValue, cancellationToken);

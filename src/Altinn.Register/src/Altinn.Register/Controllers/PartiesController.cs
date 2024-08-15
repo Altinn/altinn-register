@@ -2,17 +2,15 @@
 
 using System.Diagnostics;
 using System.Security.Claims;
-
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Extensions;
 using Altinn.Register.Models;
 using Altinn.Register.Services.Interfaces;
-
 using AltinnCore.Authentication.Constants;
-
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using V1Models = Altinn.Platform.Register.Models;
 
 namespace Altinn.Register.Controllers
 {
@@ -50,7 +48,7 @@ namespace Altinn.Register.Controllers
         [ProducesResponseType(200)]
         [Produces("application/json")]
         [Authorize]
-        public async Task<ActionResult<Party>> Get(int partyId, CancellationToken cancellationToken = default)
+        public async Task<ActionResult<V1Models.Party>> Get(int partyId, CancellationToken cancellationToken = default)
         {
             if (!IsOrg(HttpContext))
             {
@@ -71,7 +69,7 @@ namespace Altinn.Register.Controllers
                 }
             }
 
-            Party? result = await _partyClient.GetPartyById(partyId, cancellationToken);
+            V1Models.Party? result = await _partyClient.GetPartyById(partyId, cancellationToken);
             if (result == null)
             {
                 return NotFound();
@@ -92,25 +90,25 @@ namespace Altinn.Register.Controllers
         [ProducesResponseType(200)]
         [Produces("application/json")]
         [Authorize]
-        public async Task<ActionResult<Party>> GetByUuid([FromRoute] Guid partyUuid, CancellationToken cancellationToken = default)
+        public async Task<ActionResult<V1Models.Party>> GetByUuid([FromRoute] Guid partyUuid, CancellationToken cancellationToken = default)
         {
-            Party? party = await _partyClient.GetPartyById(partyUuid, cancellationToken);
+            V1Models.Party? party = await _partyClient.GetPartyById(partyUuid, cancellationToken);
 
             if (!IsOrg(HttpContext))
             {
                 int? userId = GetUserId(HttpContext);
                 bool? isValid = false;
-                
+
                 if (party != null && userId.HasValue)
                 {
                     isValid = PartyIsCallingUser(party.PartyId);
-                    
+
                     if ((bool)!isValid)
                     {
                         isValid = await _authorization.ValidateSelectedParty(userId.Value, party.PartyId, cancellationToken);
                     }
                 }
-                
+
                 if (!isValid.HasValue || !isValid.Value)
                 {
                     return Unauthorized();
@@ -137,13 +135,13 @@ namespace Altinn.Register.Controllers
         [ProducesResponseType(404)]
         [ProducesResponseType(200)]
         [Produces("application/json")]
-        public async Task<ActionResult<Party>> PostPartyLookup([FromBody] PartyLookup partyLookup, CancellationToken cancellationToken = default)
+        public async Task<ActionResult<V1Models.Party>> PostPartyLookup([FromBody] PartyLookup partyLookup, CancellationToken cancellationToken = default)
         {
             Debug.Assert(!string.IsNullOrEmpty(partyLookup.Ssn) || !string.IsNullOrEmpty(partyLookup.OrgNo));
 
             string lookupValue = partyLookup.OrgNo ?? partyLookup.Ssn!;
 
-            Party? party = await _partyClient.LookupPartyBySSNOrOrgNo(lookupValue, cancellationToken);
+            V1Models.Party? party = await _partyClient.LookupPartyBySSNOrOrgNo(lookupValue, cancellationToken);
 
             if (party == null)
             {
@@ -194,9 +192,9 @@ namespace Altinn.Register.Controllers
         [HttpPost("partylist")]
         [Consumes("application/json")]
         [Produces("application/json")]
-        public async Task<ActionResult<List<Party>>> GetPartyListForPartyIds([FromBody] List<int> partyIds, [FromQuery] bool fetchSubUnits = false, CancellationToken cancellationToken = default)
+        public async Task<ActionResult<List<V1Models.Party>>> GetPartyListForPartyIds([FromBody] List<int> partyIds, [FromQuery] bool fetchSubUnits = false, CancellationToken cancellationToken = default)
         {
-            List<Party> parties = await _partyClient.GetPartiesById(partyIds, fetchSubUnits, cancellationToken).ToListAsync(cancellationToken);
+            List<V1Models.Party> parties = await _partyClient.GetPartiesById(partyIds, fetchSubUnits, cancellationToken).ToListAsync(cancellationToken);
 
             if (parties == null || parties.Count < 1)
             {
@@ -216,9 +214,9 @@ namespace Altinn.Register.Controllers
         [HttpPost("partylistbyuuid")]
         [Consumes("application/json")]
         [Produces("application/json")]
-        public async Task<ActionResult<List<Party>>> GetPartyListForPartyUuids([FromBody] List<Guid> partyUuids, [FromQuery] bool fetchSubUnits = false, CancellationToken cancellationToken = default)
+        public async Task<ActionResult<List<V1Models.Party>>> GetPartyListForPartyUuids([FromBody] List<Guid> partyUuids, [FromQuery] bool fetchSubUnits = false, CancellationToken cancellationToken = default)
         {
-            List<Party> parties = await _partyClient.GetPartiesById(partyUuids, fetchSubUnits, cancellationToken).ToListAsync(cancellationToken);
+            List<V1Models.Party> parties = await _partyClient.GetPartiesById(partyUuids, fetchSubUnits, cancellationToken).ToListAsync(cancellationToken);
             return Ok(parties);
         }
 
@@ -303,7 +301,7 @@ namespace Altinn.Register.Controllers
                 return BadRequest(ModelState);
             }
 
-            var parties = AsyncEnumerable.Empty<Party>();
+            var parties = AsyncEnumerable.Empty<V1Models.Party>();
 
             if (ids is { Count: > 0 })
             {
