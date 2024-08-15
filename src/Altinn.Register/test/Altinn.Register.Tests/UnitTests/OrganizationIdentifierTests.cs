@@ -33,8 +33,8 @@ public class OrganizationIdentifierTests
     [Theory]
     [InlineData("1234")]
     [InlineData("123456789101234")]
-    [InlineData("1234ab78910")]
-    [InlineData("123456-78910")]
+    [InlineData("1234ab789")]
+    [InlineData("123456-789")]
     public void DoesNotParseInvalidPersonIdentifier(string identifier)
     {
         Assert.False(OrganizationIdentifier.TryParse(identifier, provider: null, out _));
@@ -55,6 +55,9 @@ public class OrganizationIdentifierTests
         (str1 == id1).Should().BeTrue();
         (id1 == str1).Should().BeTrue();
         (id1 == id1).Should().BeTrue();
+        (str1 != id1).Should().BeFalse();
+        (id1 != str1).Should().BeFalse();
+        (id1 != id1).Should().BeFalse();
         id1.Equals(id1).Should().BeTrue();
         id1.Equals(str1).Should().BeTrue();
         id1.Equals((object)id1).Should().BeTrue();
@@ -63,6 +66,9 @@ public class OrganizationIdentifierTests
         (str2 == id1).Should().BeFalse();
         (id1 == str2).Should().BeFalse();
         (id1 == id2).Should().BeFalse();
+        (str2 != id1).Should().BeTrue();
+        (id1 != str2).Should().BeTrue();
+        (id1 != id2).Should().BeTrue();
         id1.Equals(id2).Should().BeFalse();
         id1.Equals(str2).Should().BeFalse();
         id1.Equals((object)id2).Should().BeFalse();

@@ -51,10 +51,13 @@ public class PersonIdentifierTests
         var id1 = PersonIdentifier.Parse(str1);
         var id2 = PersonIdentifier.Parse(str2);
 
-        #pragma warning disable CS1718 // Comparison made to same variable
+#pragma warning disable CS1718 // Comparison made to same variable
         (str1 == id1).Should().BeTrue();
         (id1 == str1).Should().BeTrue();
         (id1 == id1).Should().BeTrue();
+        (str1 != id1).Should().BeFalse();
+        (id1 != str1).Should().BeFalse();
+        (id1 != id1).Should().BeFalse();
         id1.Equals(id1).Should().BeTrue();
         id1.Equals(str1).Should().BeTrue();
         id1.Equals((object)id1).Should().BeTrue();
@@ -63,6 +66,9 @@ public class PersonIdentifierTests
         (str2 == id1).Should().BeFalse();
         (id1 == str2).Should().BeFalse();
         (id1 == id2).Should().BeFalse();
+        (str2 != id1).Should().BeTrue();
+        (id1 != str2).Should().BeTrue();
+        (id1 != id2).Should().BeTrue();
         id1.Equals(id2).Should().BeFalse();
         id1.Equals(str2).Should().BeFalse();
         id1.Equals((object)id2).Should().BeFalse();
