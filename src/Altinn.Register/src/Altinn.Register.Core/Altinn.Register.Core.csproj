@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Altinn.Swashbuckle.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\..\Altinn.Platform.Models\src\Altinn.Platform.Models\Altinn.Platform.Models.csproj" />
   </ItemGroup>
 

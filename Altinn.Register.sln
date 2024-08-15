@@ -33,6 +33,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Altinn.Register.Persistence
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Altinn.Authorization.Aspire.Npgsql", "src\Altinn.Register\src\Aspire.Npgsql\Altinn.Authorization.Aspire.Npgsql.csproj", "{3916F8A5-544B-419E-A0B9-646107CDC7B7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.TestUtils", "src\Altinn.Register\test\Altinn.Register.TestUtils\Altinn.Register.TestUtils.csproj", "{1A75A27A-AE73-4134-89DA-982FE8A0C079}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.Persistence.Tests", "src\Altinn.Register\test\Altinn.Register.Persistence.Tests\Altinn.Register.Persistence.Tests.csproj", "{B4810ED4-6604-4E7E-817D-D91098A78E15}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,6 +75,14 @@ Global
 		{3916F8A5-544B-419E-A0B9-646107CDC7B7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3916F8A5-544B-419E-A0B9-646107CDC7B7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3916F8A5-544B-419E-A0B9-646107CDC7B7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A75A27A-AE73-4134-89DA-982FE8A0C079}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A75A27A-AE73-4134-89DA-982FE8A0C079}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A75A27A-AE73-4134-89DA-982FE8A0C079}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A75A27A-AE73-4134-89DA-982FE8A0C079}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B4810ED4-6604-4E7E-817D-D91098A78E15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B4810ED4-6604-4E7E-817D-D91098A78E15}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B4810ED4-6604-4E7E-817D-D91098A78E15}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B4810ED4-6604-4E7E-817D-D91098A78E15}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -90,6 +102,8 @@ Global
 		{126521B9-DA46-4628-ADDC-6C842ED20E07} = {B06311B4-417D-4697-833E-E680C5BB4670}
 		{389F27C0-51B9-4EE6-91D3-F563E79DE846} = {B06311B4-417D-4697-833E-E680C5BB4670}
 		{3916F8A5-544B-419E-A0B9-646107CDC7B7} = {B06311B4-417D-4697-833E-E680C5BB4670}
+		{1A75A27A-AE73-4134-89DA-982FE8A0C079} = {8A4833A1-23E8-455C-A2C3-6BA97B02343E}
+		{B4810ED4-6604-4E7E-817D-D91098A78E15} = {8A4833A1-23E8-455C-A2C3-6BA97B02343E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3A0857CE-E27F-4FA4-A9F1-099D2F8A578D}
