@@ -69,7 +69,7 @@ public record Party
             || PartyUuid != other.PartyUuid
             || PartyId != other.PartyId
             || PartyType != other.PartyType
-            || Name != other.Name
+            || !string.Equals(Name, other.Name, StringComparison.Ordinal)
             || PersonIdentifier != other.PersonIdentifier
             || OrganizationIdentifier != other.OrganizationIdentifier
             || CreatedAt != other.CreatedAt
@@ -87,17 +87,15 @@ public record Party
         return SourceRefs.AsSpan().SequenceEqual(other.SourceRefs.AsSpan());
     }
 
-    /// <summary>
-    /// Computes the hash code for the current instance.
-    /// </summary>
-    /// <param name="hash">The <see cref="HashCode"/> to add self to.</param>
-    protected virtual void GetHashCode(ref HashCode hash)
+    /// <inheritdoc/>
+    public override int GetHashCode()
     {
+        var hash = default(HashCode);
         hash.Add(EqualityContract);
         hash.Add(PartyUuid);
         hash.Add(PartyId);
         hash.Add(PartyType);
-        hash.Add(Name);
+        hash.Add(Name, StringComparer.Ordinal);
         hash.Add(PersonIdentifier);
         hash.Add(OrganizationIdentifier);
         hash.Add(CreatedAt);
@@ -111,13 +109,6 @@ public record Party
                 hash.Add(item);
             }
         }
-    }
-
-    /// <inheritdoc/>
-    public override int GetHashCode()
-    {
-        var hash = default(HashCode);
-        GetHashCode(ref hash);
 
         return hash.ToHashCode();
     }
