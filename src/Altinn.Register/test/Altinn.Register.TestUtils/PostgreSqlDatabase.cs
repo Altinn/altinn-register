@@ -5,7 +5,7 @@ namespace Altinn.Register.TestUtils;
 /// <summary>
 /// A handle to a PostgreSql database.
 /// </summary>
-public class PostgreSqlDatabase
+public sealed class PostgreSqlDatabase
     : IAsyncDisposable
 {
     private readonly IAsyncRef _containerRef;

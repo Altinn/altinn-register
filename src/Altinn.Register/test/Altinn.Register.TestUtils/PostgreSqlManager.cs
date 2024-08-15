@@ -123,7 +123,7 @@ public static class PostgreSqlManager
         }
     }
 
-    internal class Database
+    internal sealed class Database
         : IAsyncRef
     {
         private readonly IAsyncRef<Container> _container;
@@ -161,7 +161,7 @@ public static class PostgreSqlManager
         }
     }
 
-    internal class Container
+    internal sealed class Container
         : IAsyncResource<Container>
     {
         private const int MAX_CONCURRENCY = 20;
