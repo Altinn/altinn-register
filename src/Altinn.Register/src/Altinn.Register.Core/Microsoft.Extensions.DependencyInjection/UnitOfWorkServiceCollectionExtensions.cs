@@ -71,7 +71,7 @@ public static class UnitOfWorkServiceCollectionExtensions
         return services;
     }
 
-    private class UnitOfWorkServiceFactory<TService>
+    private sealed class UnitOfWorkServiceFactory<TService>
         : IUnitOfWorkServiceFactory<TService>
         where TService : class
     {
@@ -82,7 +82,7 @@ public static class UnitOfWorkServiceCollectionExtensions
             => _factory(unitOfWork, []);
     }
 
-    private class UnitOfWorkServiceFactory<TService, TImplementation>
+    private sealed class UnitOfWorkServiceFactory<TService, TImplementation>
         : IUnitOfWorkServiceFactory<TService>
         where TService : class
         where TImplementation : class, TService

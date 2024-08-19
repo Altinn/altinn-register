@@ -32,8 +32,8 @@ internal class UnitOfWorkManager
 
     /// <inheritdoc/>
     public ValueTask<IUnitOfWork> CreateAsync(
-        [CallerMemberName] string activityName = "",
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        [CallerMemberName] string activityName = "")
         => _impl.CreateAsync(RegisterActivitySource.StartActivity(ActivityKind.Internal, activityName), _services, cancellationToken);
 
     /// <summary>
