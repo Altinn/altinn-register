@@ -4,6 +4,8 @@ using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Authorization.ServiceDefaults.Npgsql.TestSeed;
 using Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql;
 using Altinn.Register.Core.Parties;
+using Altinn.Register.Persistence;
+using Altinn.Register.Persistence.UnitOfWork;
 using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,8 +39,9 @@ public static class RegisterPersistenceExtensions
     public static IHostApplicationBuilder AddPartyPersistence(this IHostApplicationBuilder builder)
     {
         AddDatabase(builder);
-
-        ////builder.Services.AddTransient<IPartyPersistence, PostgreSqlPartyPersistence>();
+        
+        builder.Services.AddUnitOfWorkParticipant<NpgsqlUnitOfWorkParticipant.Factory>();
+        builder.Services.AddUnitOfWorkService<IPartyPersistence, PostgreSqlPartyPersistence>();
 
         return builder;
     }

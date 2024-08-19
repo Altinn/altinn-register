@@ -15,9 +15,9 @@ using V1Models = Altinn.Platform.Register.Models;
 namespace Altinn.Register.Clients;
 
 /// <summary>
-/// Implementation of <see cref="IPartyPersistence"/> using SBL Bridge Register API as data source
+/// Implementation of <see cref="IV1PartyService"/> using SBL Bridge Register API as data source
 /// </summary>
-public class PartiesClient : IPartyPersistence
+public class PartiesClient : IV1PartyService
 {
     // TODO: This should be moved into the http client, so that it works for all calls
     private static readonly SemaphoreSlim _concurrentNameLookupsLimiter = new(20);

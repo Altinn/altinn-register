@@ -22,7 +22,7 @@ namespace Altinn.Register.Controllers
     [Route("register/api/v1/parties")]
     public class PartiesController : ControllerBase
     {
-        private readonly IPartyPersistence _partyClient;
+        private readonly IV1PartyService _partyClient;
         private readonly IAuthorizationClient _authorization;
 
         /// <summary>
@@ -30,7 +30,7 @@ namespace Altinn.Register.Controllers
         /// </summary>
         /// <param name="partyClient">The parties service used as a client when calling SBL Bridge.</param>
         /// <param name="authorizationClient">The authorization client</param>
-        public PartiesController(IPartyPersistence partyClient, IAuthorizationClient authorizationClient)
+        public PartiesController(IV1PartyService partyClient, IAuthorizationClient authorizationClient)
         {
             _partyClient = partyClient;
             _authorization = authorizationClient;
