@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Altinn.Authorization.ServiceDefaults.Telemetry;
 
 namespace Altinn.Register.Core;
 
@@ -18,7 +19,8 @@ public static class RegisterActivitySource
     /// </summary>
     /// <param name="kind">The activity kind.</param>
     /// <param name="name">The activity name.</param>
+    /// <param name="tags">The tags to add to the activity.</param>
     /// <returns>A <see cref="Activity"/>, or <see langword="null"/> if the activity is not traced.</returns>
-    public static Activity? StartActivity(ActivityKind kind, string name)
-        => _activitySource.StartActivity(name, kind);
+    public static Activity? StartActivity(ActivityKind kind, string name, ReadOnlySpan<KeyValuePair<string, object?>> tags = default)
+        => _activitySource.StartActivity(kind, name, tags);
 }

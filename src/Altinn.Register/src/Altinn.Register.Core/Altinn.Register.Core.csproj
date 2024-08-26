@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Altinn.Authorization.ServiceDefaults" />
     <PackageReference Include="Altinn.Swashbuckle.Abstractions" />
   </ItemGroup>
 

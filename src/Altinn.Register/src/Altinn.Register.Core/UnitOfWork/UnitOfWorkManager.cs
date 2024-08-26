@@ -32,9 +32,10 @@ internal class UnitOfWorkManager
 
     /// <inheritdoc/>
     public ValueTask<IUnitOfWork> CreateAsync(
+        ReadOnlySpan<KeyValuePair<string, object?>> tags = default,
         CancellationToken cancellationToken = default,
         [CallerMemberName] string activityName = "")
-        => _impl.CreateAsync(RegisterActivitySource.StartActivity(ActivityKind.Internal, activityName), _services, cancellationToken);
+        => _impl.CreateAsync(RegisterActivitySource.StartActivity(ActivityKind.Internal, activityName, tags), _services, cancellationToken);
 
     /// <summary>
     /// The actual unit-of-work implementation.
