@@ -13,7 +13,7 @@ ALTER TABLE register.external_role_definition
 UPDATE
   register.external_role_definition
 SET
-  code = "BEDR"
+  code = 'BEDR'
 WHERE
   source = 'ccr'
   AND identifier = 'bedr';
