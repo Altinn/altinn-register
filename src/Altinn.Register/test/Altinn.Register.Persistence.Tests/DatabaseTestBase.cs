@@ -14,6 +14,8 @@ public abstract class DatabaseTestBase
     /// </summary>
     protected virtual bool SeedData => true;
 
+    protected PostgreSqlDatabase Database => _db!;
+
     protected override async ValueTask ConfigureHost(IHostApplicationBuilder builder)
     {
         await base.ConfigureHost(builder);

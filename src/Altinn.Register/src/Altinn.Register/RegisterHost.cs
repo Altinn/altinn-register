@@ -17,6 +17,7 @@ using AltinnCore.Authentication.JwtCookie;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry.Trace;
 
 namespace Altinn.Register;
 
@@ -59,6 +60,8 @@ internal static class RegisterHost
 
         services.AddSingleton<IOrgContactPoint, OrgContactPointService>();
 
+        services.ConfigureOpenTelemetryTracerProvider((builder) => builder.AddSource(RegisterActivitySource.Name));
+
         services.AddAuthentication(JwtCookieDefaults.AuthenticationScheme)
           .AddJwtCookie(JwtCookieDefaults.AuthenticationScheme, options =>
           {
@@ -91,7 +94,7 @@ internal static class RegisterHost
 
         services.AddHttpClient<IOrganizationClient, OrganizationClient>();
         services.AddHttpClient<IPersonClient, PersonClient>();
-        services.AddHttpClient<IPartyPersistence, PartiesClient>();
+        services.AddHttpClient<IV1PartyService, PartiesClient>();
         services.AddHttpClient<IAuthorizationClient, AuthorizationClient>();
 
         if (config.GetValue<bool>("Altinn:Npgsql:register:Enable"))

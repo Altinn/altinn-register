@@ -61,6 +61,12 @@ public sealed class PostgreSqlDatabase
         => _connectionString;
 
     /// <summary>
+    /// Gets the user name for the application.
+    /// </summary>
+    public string UserName
+        => new NpgsqlConnectionStringBuilder(_connectionString).Username!;
+
+    /// <summary>
     /// Gets the data source for the owner of the database.
     /// </summary>
     public NpgsqlDataSource OwnerDataSource 
