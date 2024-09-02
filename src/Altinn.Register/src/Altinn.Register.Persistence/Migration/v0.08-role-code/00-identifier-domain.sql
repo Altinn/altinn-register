@@ -6,3 +6,5 @@ ALTER DOMAIN register.identifier
 ALTER DOMAIN register.identifier
   ADD CONSTRAINT identifier_valid CHECK (value ~ '^[a-z]([a-z0-9_]{0,28}[a-z0-9])?$');
 
+-- Domain: register.identifier
+-- CREATE DOMAIN register.identifier AS text CONSTRAINT identifier_valid CHECK (value ~ '^[a-z]([a-z0-9_]{0,28}[a-z0-9])?$');
