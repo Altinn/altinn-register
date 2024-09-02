@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Authorization.ServiceDefaults.Npgsql.TestSeed;
@@ -76,14 +77,34 @@ public static class RegisterPersistenceExtensions
         {
             PartyType.Organization => "organization",
             PartyType.Person => "person",
-            _ => ThrowHelper.ThrowArgumentOutOfRangeException<string>(),
+            _ => null,
         }));
 
         builder.MapEnum<PartySource>("register.party_source", new EnumNameTranslator<PartySource>(static value => value switch
         {
             PartySource.CentralCoordinatingRegister => "ccr",
             PartySource.NationalPopulationRegister => "npr",
-            _ => ThrowHelper.ThrowArgumentOutOfRangeException<string>(),
+            _ => null,
+        }));
+
+        builder.MapComposite<MailingAddress>("register.co_mailing_address", new CompositeNameTranslator<MailingAddress>(static member => member.Name switch
+        {
+            nameof(MailingAddress.Address) => "address",
+            nameof(MailingAddress.PostalCode) => "postal_code",
+            nameof(MailingAddress.City) => "city",
+            _ => null,
+        }));
+
+        builder.MapComposite<StreetAddress>("register.co_street_address", new CompositeNameTranslator<StreetAddress>(static member => member.Name switch
+        {
+            nameof(StreetAddress.MunicipalNumber) => "municipal_number",
+            nameof(StreetAddress.MunicipalName) => "municipal_name",
+            nameof(StreetAddress.StreetName) => "street_name",
+            nameof(StreetAddress.HouseNumber) => "house_number",
+            nameof(StreetAddress.HouseLetter) => "house_letter",
+            nameof(StreetAddress.PostalCode) => "postal_code",
+            nameof(StreetAddress.City) => "city",
+            _ => null,
         }));
 
         return builder;
@@ -100,7 +121,7 @@ public static class RegisterPersistenceExtensions
     {
         private readonly ImmutableArray<(string MemberName, string PgName)> _values;
 
-        public EnumNameTranslator(Func<TEnum, string> factory)
+        public EnumNameTranslator(Func<TEnum, string?> resolver)
         {
             var enumValues = Enum.GetValues<TEnum>();
             var builder = ImmutableArray.CreateBuilder<(string MemberName, string PgName)>(enumValues.Length);
@@ -108,7 +129,54 @@ public static class RegisterPersistenceExtensions
             foreach (var enumValue in enumValues)
             {
                 var memberName = enumValue.ToString();
-                var pgName = factory(enumValue);
+                var pgName = resolver(enumValue);
+                if (pgName is null)
+                {
+                    ThrowHelper.ThrowInvalidOperationException($"Missing mapping for enum member '{memberName}' in type '{typeof(TEnum).FullName}'");
+                }
+
+                builder.Add((memberName, pgName));
+            }
+
+            builder.Sort(static (l, r) => string.CompareOrdinal(l.MemberName, r.MemberName));
+            _values = builder.ToImmutable();
+        }
+
+        public string TranslateMemberName(string clrName)
+        {
+            var index = _values.AsSpan().BinarySearch(new MemberNameMatcher(clrName));
+
+            if (index < 0)
+            {
+                ThrowHelper.ThrowArgumentOutOfRangeException(nameof(clrName));
+            }
+
+            return _values[index].PgName;
+        }
+
+        public string TranslateTypeName(string clrName)
+            => ThrowHelper.ThrowNotSupportedException<string>();
+    }
+
+    private sealed class CompositeNameTranslator<T>
+        : INpgsqlNameTranslator
+    {
+        private readonly ImmutableArray<(string MemberName, string PgName)> _values;
+
+        public CompositeNameTranslator(Func<PropertyInfo, string?> resolver)
+        {
+            var members = typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public);
+            var builder = ImmutableArray.CreateBuilder<(string MemberName, string PgName)>(members.Length);
+
+            foreach (var member in members)
+            {
+                var memberName = member.Name;
+                var pgName = resolver(member);
+                if (pgName is null)
+                {
+                    ThrowHelper.ThrowInvalidOperationException($"Missing mapping for composite member '{memberName}' in type '{typeof(T).FullName}'");
+                }
+
                 builder.Add((memberName, pgName));
             }
 
