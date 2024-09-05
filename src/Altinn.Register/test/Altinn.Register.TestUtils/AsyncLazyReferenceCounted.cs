@@ -74,23 +74,25 @@ internal sealed class AsyncLazyReferenceCounted<T>
 
     private void ScheduleCleanup(CancellationToken cancellationToken)
     {
-        Task.Run(async () => 
-        {
-            await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
-            if (cancellationToken.IsCancellationRequested)
+        Task.Run(
+            async () => 
             {
-                return;
-            }
+                await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
 
-            using var guard = await _lock.Acquire();
-            if (_referenceCount == 0)
-            {
-                _referenceCount = -2;
-                var value = _value!;
-                _value = default;
-                await _destructor(value);
-            }
-        });
+                using var guard = await _lock.Acquire();
+                if (_referenceCount == 0)
+                {
+                    _referenceCount = -2;
+                    var value = _value!;
+                    _value = default;
+                    await _destructor(value);
+                }
+            },
+            cancellationToken);
     }
 
     private class Reference
