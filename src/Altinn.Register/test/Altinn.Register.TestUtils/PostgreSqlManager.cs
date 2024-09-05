@@ -193,16 +193,23 @@ public static class PostgreSqlManager
 
         public static async ValueTask<Container> New()
         {
+            Console.WriteLine("Creating new PostgreSql container...");
+
             var username = Debugger.IsAttached ? "username" : Guid.NewGuid().ToString("N");
             var password = Debugger.IsAttached ? "password" : Guid.NewGuid().ToString("N");
 
-            var container = new PostgreSqlBuilder()
+            var builder = new PostgreSqlBuilder()
                 .WithImage("docker.io/postgres:16.1-alpine")
                 .WithUsername(username)
                 .WithPassword(password)
-                .WithPortBinding(44181, PostgreSqlBuilder.PostgreSqlPort)
-                .WithCleanUp(true)
-                .Build();
+                .WithCleanUp(true);
+
+            if (Debugger.IsAttached)
+            {
+                builder = builder.WithPortBinding(44181, PostgreSqlBuilder.PostgreSqlPort);
+            }
+
+            var container = builder.Build();
 
             try
             {

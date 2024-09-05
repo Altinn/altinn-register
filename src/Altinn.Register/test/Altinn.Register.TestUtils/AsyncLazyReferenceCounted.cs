@@ -17,8 +17,9 @@ internal sealed class AsyncLazyReferenceCounted<T>
     private readonly Func<T, ValueTask> _destructor;
     private readonly bool _allowReuse;
 
-    private int _referenceCount;
+    private int _referenceCount = -1;
     private T? _value;
+    private CancellationTokenSource? _pendingCleanup;
 
     public AsyncLazyReferenceCounted(
         Func<ValueTask<T>> factory,
@@ -39,12 +40,19 @@ internal sealed class AsyncLazyReferenceCounted<T>
     private async Task<Reference> Acquire()
     {
         using var guard = await _lock.Acquire();
-        if (_referenceCount < 0 && !_allowReuse)
+        if (_referenceCount < -1 && !_allowReuse)
         {
             ThrowHelper.ThrowInvalidOperationException($"AsyncLazyReferenceCounted<{typeof(T).Name}> attempted reuse");
         }
 
-        if (_referenceCount <= 0)
+        if (_pendingCleanup is not null)
+        {
+            _pendingCleanup.Cancel();
+            _pendingCleanup.Dispose();
+            _pendingCleanup = null;
+        }
+
+        if (_referenceCount < 0)
         {
             _value = await _factory();
             _referenceCount = 0;
@@ -59,11 +67,30 @@ internal sealed class AsyncLazyReferenceCounted<T>
         using var guard = await _lock.Acquire();
         if (--_referenceCount == 0)
         {
-            _referenceCount = -1;
-            var value = _value!;
-            _value = default;
-            await _destructor(value);
+            _pendingCleanup = new();
+            ScheduleCleanup(_pendingCleanup.Token);
         }
+    }
+
+    private void ScheduleCleanup(CancellationToken cancellationToken)
+    {
+        Task.Run(async () => 
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            using var guard = await _lock.Acquire();
+            if (_referenceCount == 0)
+            {
+                _referenceCount = -2;
+                var value = _value!;
+                _value = default;
+                await _destructor(value);
+            }
+        });
     }
 
     private class Reference
