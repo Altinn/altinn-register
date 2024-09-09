@@ -7,7 +7,7 @@ namespace Altinn.Register.Persistence.AsyncEnumerables;
 /// A <see cref="IAsyncEnumerable{T}"/> that throws when enumerated.
 /// </summary>
 /// <typeparam name="T">The item type - unused.</typeparam>
-internal class FailedEnumerable<T>
+internal class ThrowingAsyncEnumerable<T>
     : IAsyncEnumerable<T>
     , IAsyncResourceOwner
 {
@@ -15,10 +15,10 @@ internal class FailedEnumerable<T>
     private readonly ExceptionDispatchInfo _exception;
 
     /// <summary>
-    /// Initializes a new <see cref="FailedEnumerable{T}"/>.
+    /// Initializes a new <see cref="ThrowingAsyncEnumerable{T}"/>.
     /// </summary>
     /// <param name="exception">The exception to throw.</param>
-    public FailedEnumerable(Exception exception)
+    public ThrowingAsyncEnumerable(Exception exception)
     {
         Guard.IsNotNull(exception);
 

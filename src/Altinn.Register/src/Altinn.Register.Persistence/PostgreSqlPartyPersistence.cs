@@ -43,7 +43,7 @@ internal partial class PostgreSqlPartyPersistence
         }
         catch (Exception e)
         {
-            return new FailedEnumerable<PartyRecord>(e).Using(cmd);
+            return new ThrowingAsyncEnumerable<PartyRecord>(e).Using(cmd);
         }
     }
 
@@ -67,7 +67,7 @@ internal partial class PostgreSqlPartyPersistence
         }
         catch (Exception e)
         {
-            return new FailedEnumerable<PartyRecord>(e).Using(cmd);
+            return new ThrowingAsyncEnumerable<PartyRecord>(e).Using(cmd);
         }
     }
 
