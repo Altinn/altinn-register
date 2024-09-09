@@ -1,6 +1,7 @@
 ﻿using Altinn.Register.Core.Utils;
 using CommunityToolkit.Diagnostics;
 using Npgsql;
+using NpgsqlTypes;
 
 namespace Altinn.Register.Persistence;
 
@@ -22,6 +23,22 @@ internal static class NpgsqlExtensions
         {
             ParameterName = parameterName,
         };
+
+        collection.Add(parameter);
+        return parameter;
+    }
+
+    /// <summary>
+    /// Adds a typed parameter to the collection.
+    /// </summary>
+    /// <typeparam name="T">The parameter type.</typeparam>
+    /// <param name="collection">The parameter collection.</param>
+    /// <param name="parameterName">The parameter name.</param>
+    /// <param name="dbType">The parameter <see cref="NpgsqlDbType"/>.</param>
+    /// <returns>The newly created parameter.</returns>
+    public static NpgsqlParameter<T> Add<T>(this NpgsqlParameterCollection collection, string parameterName, NpgsqlDbType dbType)
+    {
+        var parameter = new NpgsqlParameter<T>(parameterName, dbType);
 
         collection.Add(parameter);
         return parameter;
