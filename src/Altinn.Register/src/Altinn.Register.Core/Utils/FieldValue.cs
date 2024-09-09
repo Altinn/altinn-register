@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 
@@ -46,6 +47,7 @@ public static class FieldValue
 /// <typeparam name="T">The value type.</typeparam>
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
 public readonly struct FieldValue<T>
+    : IEqualityOperators<FieldValue<T>, FieldValue<T>, bool>
     where T : notnull
 {
     /// <summary>
@@ -170,6 +172,14 @@ public readonly struct FieldValue<T>
 
         return value.Value;
     }
+
+    /// <inheritdoc/>
+    public static bool operator ==(FieldValue<T> left, FieldValue<T> right)
+        => left.Equals(right);
+
+    /// <inheritdoc/>
+    public static bool operator !=(FieldValue<T> left, FieldValue<T> right)
+        => !left.Equals(right);
 
     private enum FieldState : byte
     {

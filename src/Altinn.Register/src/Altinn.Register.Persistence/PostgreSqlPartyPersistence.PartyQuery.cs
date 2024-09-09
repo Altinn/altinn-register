@@ -138,7 +138,7 @@ internal partial class PostgreSqlPartyPersistence
                 => throw new UnreachableException();
         }
 
-        private class Builder
+        private sealed class Builder
         {
             public static PartyQuery Create(PartyFieldIncludes includes, PartyFilter filterBy)
             {

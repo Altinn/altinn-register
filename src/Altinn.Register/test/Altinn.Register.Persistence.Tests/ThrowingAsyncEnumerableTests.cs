@@ -37,7 +37,7 @@ public class ThrowingAsyncEnumerableTests
             var list = await throwing.ToListAsync();
             Assert.Fail("Expected exception was not thrown");
         }
-        catch (ExpectedException e)
+        catch (ExpectedException)
         {
         }
 
@@ -45,7 +45,7 @@ public class ThrowingAsyncEnumerableTests
         resource2.IsDisposed.Should().BeTrue();
     }
 
-    private ExpectedException CreateException()
+    private static ExpectedException CreateException()
     {
         try
         {
@@ -58,12 +58,12 @@ public class ThrowingAsyncEnumerableTests
         }
     }
 
-    private class ExpectedException(string message)
+    private sealed class ExpectedException(string message)
         : Exception(message)
     {
     }
 
-    private class TestDisposable
+    private sealed class TestDisposable
         : IAsyncDisposable
     {
         private readonly object _lock = new();
@@ -73,7 +73,7 @@ public class ThrowingAsyncEnumerableTests
         {
             get
             {
-                lock(_lock)
+                lock (_lock)
                 {
                     return _disposed;
                 }

@@ -58,9 +58,19 @@ internal static class NpgsqlExtensions
     /// <returns>A <see cref="FieldValue{T}"/>.</returns>
     public static FieldValue<T> GetConditionalFieldValue<T>(this NpgsqlDataReader reader, int ordinal)
         where T : notnull
-        => ordinal == -1 ? FieldValue<T>.Unset
-        : reader.IsDBNull(ordinal) ? FieldValue<T>.Null
-        : reader.GetFieldValue<T>(ordinal);
+    {
+        if (ordinal == -1)
+        {
+            return FieldValue<T>.Unset;
+        }
+
+        if (reader.IsDBNull(ordinal))
+        {
+            return FieldValue<T>.Null;
+        }
+
+        return (FieldValue<T>)reader.GetFieldValue<T>(ordinal);
+    }
 
     /// <summary>
     /// Gets a conditional field value as a <see cref="FieldValue{T}"/>.
