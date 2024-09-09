@@ -10,6 +10,9 @@ using Npgsql;
 
 namespace Altinn.Register.Persistence;
 
+/// <content>
+/// Contains the party query builder.
+/// </content>
 internal partial class PostgreSqlPartyPersistence
 {
     [SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1516:Elements should be separated by blank line", Justification = "This class is long enough already")]
