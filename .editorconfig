@@ -280,3 +280,6 @@ dotnet_diagnostic.SA1643.severity = none
 dotnet_diagnostic.SA1648.severity = error
 dotnet_diagnostic.SA1649.severity = error
 dotnet_diagnostic.SA1651.severity = error
+
+# SA1509: Opening braces should not be preceded by blank line
+dotnet_diagnostic.SA1509.severity = none
