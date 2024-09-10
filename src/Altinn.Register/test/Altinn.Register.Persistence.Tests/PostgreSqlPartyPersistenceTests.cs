@@ -1,10 +1,12 @@
-﻿using Altinn.Register.Core.Parties;
+﻿using System.Diagnostics;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
+using Altinn.Register.Core.Utils;
 using FluentAssertions.Execution;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using NpgsqlTypes;
 
 namespace Altinn.Register.Persistence.Tests;
 
@@ -339,5 +341,220 @@ public class PostgreSqlPartyPersistenceTests
 
         result[5].PartyUuid.Should().HaveValue().Which.Should().Be("ec09feda-5dba-4b84-ad0b-f7886e6082cd");
         result[5].ParentOrganizationUuid.Should().HaveValue().Which.Should().Be("e2081abd-a16f-4302-93b0-05aaa42023e8");
+    }
+
+    [Fact]
+    public async Task LookupParties_Shared_SubUnit()
+    {
+        var child = await CreateOrg(unitType: "BEDR");
+        var parent1 = await CreateOrg(unitType: "AS");
+        var parent2 = await CreateOrg(unitType: "AS");
+
+        await AddRole(PartySource.CentralCoordinatingRegister, "bedr", from: child.PartyUuid.Value, to: parent1.PartyUuid.Value);
+        await AddRole(PartySource.CentralCoordinatingRegister, "bedr", from: child.PartyUuid.Value, to: parent2.PartyUuid.Value);
+
+        var result = await Persistence.LookupParties(
+            partyUuids: [parent1.PartyUuid.Value, parent2.PartyUuid.Value],
+            include: PartyFieldIncludes.Party | PartyFieldIncludes.Organization | PartyFieldIncludes.SubUnits)
+            .Cast<OrganizationRecord>()
+            .ToListAsync();
+
+        result.Should().HaveCount(4);
+
+        List<Guid> parentIds = [result[0].PartyUuid.Value, result[2].PartyUuid.Value];
+        parentIds.Sort();
+
+        result[0].PartyUuid.Should().Be(parentIds[0]);
+        result[0].ParentOrganizationUuid.Should().BeUnset();
+
+        result[1].PartyUuid.Should().Be(child.PartyUuid);
+        result[1].ParentOrganizationUuid.Should().Be(parentIds[0]);
+
+        result[2].PartyUuid.Should().Be(parentIds[1]);
+        result[2].ParentOrganizationUuid.Should().BeUnset();
+
+        result[3].PartyUuid.Should().Be(child.PartyUuid);
+        result[3].ParentOrganizationUuid.Should().Be(parentIds[1]);
+    }
+
+    private async Task<OrganizationIdentifier> GetNewOrgNumber()
+    {
+        await using var cmd = Connection.CreateCommand();
+        cmd.CommandText =
+            /*strpsql*/"""
+            SELECT organization_identifier 
+            FROM register.party 
+            WHERE organization_identifier = @id
+            """;
+
+        var param = cmd.Parameters.Add<string>("id", NpgsqlDbType.Text);
+        await cmd.PrepareAsync();
+
+        OrganizationIdentifier id;
+        do
+        {
+            id = GenerateOrganizationIdentifier();
+        }
+        while (await InUse(id));
+
+        return id;
+
+        async Task<bool> InUse(OrganizationIdentifier id)
+        {
+            param.TypedValue = id.ToString();
+            
+            await using var reader = await cmd.ExecuteReaderAsync();
+            var exists = await reader.ReadAsync();
+            return exists;
+        }
+
+        static OrganizationIdentifier GenerateOrganizationIdentifier()
+        {
+            ReadOnlySpan<int> weights = [3, 2, 7, 6, 5, 4, 3, 2];
+
+            while (true)
+            {
+                // 8 digit random number
+                var random = Random.Shared.Next(10_000_000, 99_999_999);
+                Span<char> span = stackalloc char[9];
+                Debug.Assert(random.TryFormat(span, out var written));
+                Debug.Assert(written == 8);
+
+                int sum = 0;
+
+                for (var i = 0; i < 8; i++)
+                {
+                    var currentDigit = span[i] - '0';
+                    sum += currentDigit * weights[i];
+                }
+
+                var ctrlDigit = 11 - (sum % 11);
+                if (ctrlDigit == 11)
+                {
+                    ctrlDigit = 0;
+                }
+
+                if (ctrlDigit == 10)
+                {
+                    continue;
+                }
+
+                Debug.Assert(ctrlDigit is >= 0 and <= 9, $"ctrlDigit was {ctrlDigit}");
+                span[8] = (char)('0' + ctrlDigit);
+
+                return OrganizationIdentifier.Parse(new string(span));
+            }
+        }
+    }
+
+    private async Task<int> GetNextPartyId()
+    {
+        await using var cmd = Connection.CreateCommand();
+        cmd.CommandText =
+            /*strpsql*/"""
+            SELECT MAX(id) FROM register.party
+            """;
+
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync()) + 1;
+    }
+
+    private async Task<OrganizationRecord> CreateOrg(
+        FieldValue<Guid> uuid = default,
+        FieldValue<int> id = default,
+        FieldValue<string> name = default,
+        FieldValue<OrganizationIdentifier> identifier = default,
+        FieldValue<DateTimeOffset> createdAt = default,
+        FieldValue<DateTimeOffset> modifiedAt = default,
+        FieldValue<string> unitStatus = default,
+        FieldValue<string> unitType = default,
+        FieldValue<string> telephoneNumber = default,
+        FieldValue<string> mobileNumber = default,
+        FieldValue<string> faxNumber = default,
+        FieldValue<string> emailAddress = default,
+        FieldValue<string> internetAddress = default,
+        FieldValue<MailingAddress> mailingAddress = default,
+        FieldValue<MailingAddress> businessAddress = default)
+    {
+        if (!id.HasValue)
+        {
+            id = await GetNextPartyId();
+        }
+
+        if (!identifier.HasValue)
+        {
+            identifier = await GetNewOrgNumber();
+        }
+
+        Guid resultUuid;
+        {
+            await using var cmd = Connection.CreateCommand();
+            cmd.CommandText =
+                /*strpsql*/"""
+            INSERT INTO register.party (uuid, id, party_type, name, person_identifier, organization_identifier, created, updated)
+            VALUES (@uuid, @id, 'organization'::register.party_type, @name, NULL, @identifier, @createdAt, @modifiedAt)
+            RETURNING uuid
+            """;
+
+            cmd.Parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = uuid.HasValue ? uuid.Value : Guid.NewGuid();
+            cmd.Parameters.Add<int>("id", NpgsqlDbType.Integer).TypedValue = id.Value;
+            cmd.Parameters.Add<string>("name", NpgsqlDbType.Text).TypedValue = name.HasValue ? name.Value : "Test";
+            cmd.Parameters.Add<string>("identifier", NpgsqlDbType.Text).TypedValue = identifier.Value!.ToString();
+            cmd.Parameters.Add<DateTimeOffset>("createdAt", NpgsqlDbType.TimestampTz).TypedValue = createdAt.HasValue ? createdAt.Value : TimeProvider.GetUtcNow();
+            cmd.Parameters.Add<DateTimeOffset>("modifiedAt", NpgsqlDbType.TimestampTz).TypedValue = modifiedAt.HasValue ? modifiedAt.Value : TimeProvider.GetUtcNow();
+
+            await cmd.PrepareAsync();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            await reader.ReadAsync();
+            resultUuid = reader.GetFieldValue<Guid>(0);
+        }
+
+        {
+            await using var cmd = Connection.CreateCommand();
+            cmd.CommandText =
+                /*strpsql*/"""
+                INSERT INTO register.organization (uuid, unit_status, unit_type, telephone_number, mobile_number, fax_number, email_address, internet_address, mailing_address, business_address)
+                VALUES (@uuid, @unitStatus, @unitType, @telephoneNumber, @mobileNumber, @faxNumber, @emailAddress, @internetAddress, @mailingAddress, @businessAddress)
+                """;
+
+            cmd.Parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = resultUuid;
+            cmd.Parameters.Add<string>("unitStatus", NpgsqlDbType.Text).TypedValue = unitStatus.HasValue ? unitStatus.Value : "N";
+            cmd.Parameters.Add<string>("unitType", NpgsqlDbType.Text).TypedValue = unitType.HasValue ? unitType.Value : "AS";
+            cmd.Parameters.Add<string>("telephoneNumber", NpgsqlDbType.Text).TypedValue = telephoneNumber.HasValue ? telephoneNumber.Value : null;
+            cmd.Parameters.Add<string>("mobileNumber", NpgsqlDbType.Text).TypedValue = mobileNumber.HasValue ? mobileNumber.Value : null;
+            cmd.Parameters.Add<string>("faxNumber", NpgsqlDbType.Text).TypedValue = faxNumber.HasValue ? faxNumber.Value : null;
+            cmd.Parameters.Add<string>("emailAddress", NpgsqlDbType.Text).TypedValue = emailAddress.HasValue ? emailAddress.Value : null;
+            cmd.Parameters.Add<string>("internetAddress", NpgsqlDbType.Text).TypedValue = internetAddress.HasValue ? internetAddress.Value : null;
+            cmd.Parameters.Add<MailingAddress>("mailingAddress").TypedValue = mailingAddress.HasValue ? mailingAddress.Value : null;
+            cmd.Parameters.Add<MailingAddress>("businessAddress").TypedValue = businessAddress.HasValue ? businessAddress.Value : null;
+
+            await cmd.PrepareAsync();
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        return await Persistence.GetPartyById(resultUuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization)
+            .Cast<OrganizationRecord>()
+            .SingleAsync();
+    }
+
+    private async Task AddRole(
+        PartySource roleSource,
+        string roleIdentifier,
+        Guid from,
+        Guid to)
+    {
+        await using var cmd = Connection.CreateCommand();
+        cmd.CommandText =
+            /*strpsql*/"""
+            INSERT INTO register.external_role (source, identifier, from_party, to_party)
+            VALUES (@source, @identifier, @from, @to)
+            """;
+
+        cmd.Parameters.Add<PartySource>("source").TypedValue = roleSource;
+        cmd.Parameters.Add<string>("identifier", NpgsqlDbType.Text).TypedValue = roleIdentifier;
+        cmd.Parameters.Add<Guid>("from", NpgsqlDbType.Uuid).TypedValue = from;
+        cmd.Parameters.Add<Guid>("to", NpgsqlDbType.Uuid).TypedValue = to;
+
+        await cmd.PrepareAsync();
+        await cmd.ExecuteNonQueryAsync();
     }
 }

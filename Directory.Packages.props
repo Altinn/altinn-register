@@ -27,6 +27,7 @@
     <PackageVersion Include="Microsoft.Build.Artifacts" Version="6.1.30" />
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.8" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="8.9.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.11.0" />
     <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" />
     <PackageVersion Include="MinVer" Version="5.0.0" />
