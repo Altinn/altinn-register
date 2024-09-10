@@ -8,6 +8,15 @@ namespace Altinn.Register.Core.Parties;
 public record Party
 {
     /// <summary>
+    /// Initialize a <see cref="Party"/>
+    /// </summary>
+    /// <param name="partyType">The party type.</param>
+    public Party(PartyType partyType)
+    {
+        PartyType = partyType;
+    }
+
+    /// <summary>
     /// Gets the UUID of the party.
     /// </summary>
     public required Guid PartyUuid { get; init; }
@@ -20,7 +29,7 @@ public record Party
     /// <summary>
     /// Gets the type of the party.
     /// </summary>
-    public required PartyType PartyType { get; init; }
+    public PartyType PartyType { get; private set; }
 
     /// <summary>
     /// Gets the (display) name of the party.
