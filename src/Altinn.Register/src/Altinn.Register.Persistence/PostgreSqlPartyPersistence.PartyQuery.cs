@@ -7,6 +7,7 @@ using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.Utils;
 using CommunityToolkit.Diagnostics;
 using Npgsql;
+using NpgsqlTypes;
 
 namespace Altinn.Register.Persistence;
 
@@ -18,10 +19,10 @@ internal partial class PostgreSqlPartyPersistence
     [SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1516:Elements should be separated by blank line", Justification = "This class is long enough already")]
     private sealed class PartyQuery
     {
-        private static ImmutableDictionary<(PartyFieldIncludes Includes, PartyFilter FilterBy), PartyQuery> _queries
-            = ImmutableDictionary<(PartyFieldIncludes Includes, PartyFilter FilterBy), PartyQuery>.Empty;
+        private static ImmutableDictionary<(PartyFieldIncludes Includes, PartyFilters FilterBy), PartyQuery> _queries
+            = ImmutableDictionary<(PartyFieldIncludes Includes, PartyFilters FilterBy), PartyQuery>.Empty;
 
-        public static PartyQuery Get(PartyFieldIncludes includes, PartyFilter filterBy)
+        public static PartyQuery Get(PartyFieldIncludes includes, PartyFilters filterBy)
         {
             includes |= PartyFieldIncludes.PartyUuid | PartyFieldIncludes.PartyType; // always include the UUID and type
 
@@ -30,24 +31,81 @@ internal partial class PostgreSqlPartyPersistence
 
         private PartyQuery(
             string commandText,
-            string parameterName,
             PartyFields parentFields,
-            PartyFields? childField)
+            PartyFields? childField,
+            FilterParameter paramPartyUuid,
+            FilterParameter paramPartyId,
+            FilterParameter paramPersonIdentifier,
+            FilterParameter paramOrganizationIdentifier,
+            FilterParameter paramPartyUuidList,
+            FilterParameter paramPartyIdList,
+            FilterParameter paramPersonIdentifierList,
+            FilterParameter paramOrganizationIdentifierList)
         {
             CommandText = commandText;
-            ParameterName = parameterName;
             _parentFields = parentFields;
             _childFields = childField ?? default;
+            _paramPartyUuid = paramPartyUuid;
+            _paramPartyId = paramPartyId;
+            _paramPersonIdentifier = paramPersonIdentifier;
+            _paramOrganizationIdentifier = paramOrganizationIdentifier;
+            _paramPartyUuidList = paramPartyUuidList;
+            _paramPartyIdList = paramPartyIdList;
+            _paramPersonIdentifierList = paramPersonIdentifierList;
+            _paramOrganizationIdentifierList = paramOrganizationIdentifierList;
+
             HasSubUnits = childField.HasValue;
         }
 
         private readonly PartyFields _parentFields;
         private readonly PartyFields _childFields;
+        private readonly FilterParameter _paramPartyUuid;
+        private readonly FilterParameter _paramPartyId;
+        private readonly FilterParameter _paramPersonIdentifier;
+        private readonly FilterParameter _paramOrganizationIdentifier;
+        private readonly FilterParameter _paramPartyUuidList;
+        private readonly FilterParameter _paramPartyIdList;
+        private readonly FilterParameter _paramPersonIdentifierList;
+        private readonly FilterParameter _paramOrganizationIdentifierList;
 
         public string CommandText { get; }
-        public string ParameterName { get; }
 
         public bool HasSubUnits { get; }
+
+        public NpgsqlParameter<Guid> AddPartyUuidParameter(NpgsqlCommand cmd, Guid value)
+            => AddParameter(cmd, in _paramPartyUuid, value);
+
+        public NpgsqlParameter<int> AddPartyIdParameter(NpgsqlCommand cmd, int value)
+            => AddParameter(cmd, in _paramPartyId, value);
+
+        public NpgsqlParameter<string> AddPersonIdentifierParameter(NpgsqlCommand cmd, string value)
+            => AddParameter(cmd, in _paramPersonIdentifier, value);
+
+        public NpgsqlParameter<string> AddOrganizationIdentifierParameter(NpgsqlCommand cmd, string value)
+            => AddParameter(cmd, in _paramOrganizationIdentifier, value);
+
+        public NpgsqlParameter<IList<Guid>> AddPartyUuidListParameter(NpgsqlCommand cmd, IList<Guid> value)
+            => AddParameter(cmd, in _paramPartyUuidList, value);
+
+        public NpgsqlParameter<IList<int>> AddPartyIdListParameter(NpgsqlCommand cmd, IList<int> value)
+            => AddParameter(cmd, in _paramPartyIdList, value);
+
+        public NpgsqlParameter<IList<string>> AddPersonIdentifierListParameter(NpgsqlCommand cmd, IList<string> value)
+            => AddParameter(cmd, in _paramPersonIdentifierList, value);
+
+        public NpgsqlParameter<IList<string>> AddOrganizationIdentifierListParameter(NpgsqlCommand cmd, IList<string> value)
+            => AddParameter(cmd, in _paramOrganizationIdentifierList, value);
+
+        private NpgsqlParameter<T> AddParameter<T>(NpgsqlCommand cmd, in FilterParameter config, T value)
+        {
+            Debug.Assert(config.HasValue, "Parameter must be configured");
+            Debug.Assert(config.Type == typeof(T), "Parameter type mismatch");
+
+            var param = cmd.Parameters.Add<T>(config.Name, config.DbType);
+            param.TypedValue = value;
+
+            return param;
+        }
 
         public Guid ReadParentUuid(NpgsqlDataReader reader)
             => reader.GetFieldValue<Guid>(_parentFields.PartyUuid);
@@ -140,7 +198,7 @@ internal partial class PostgreSqlPartyPersistence
 
         private sealed class Builder
         {
-            public static PartyQuery Create(PartyFieldIncludes includes, PartyFilter filterBy)
+            public static PartyQuery Create(PartyFieldIncludes includes, PartyFilters filterBy)
             {
                 Builder builder = new();
                 builder.Populate(includes, filterBy);
@@ -199,11 +257,33 @@ internal partial class PostgreSqlPartyPersistence
                         organizationBusinessAddress: builder._childOrganizationBusinessAddress);
 
                 var commandText = builder._builder.ToString();
-                return new(commandText, builder._parameterName!, parentFields, childFields);
+                return new(
+                    commandText,
+                    parentFields,
+                    childFields,
+                    paramPartyUuid: builder._paramPartyUuid,
+                    paramPartyId: builder._paramPartyId,
+                    paramPersonIdentifier: builder._paramPersonIdentifier,
+                    paramOrganizationIdentifier: builder._paramOrganizationIdentifier,
+                    paramPartyUuidList: builder._paramPartyUuidList,
+                    paramPartyIdList: builder._paramPartyIdList,
+                    paramPersonIdentifierList: builder._paramPersonIdentifierList,
+                    paramOrganizationIdentifierList: builder._paramOrganizationIdentifierList);
             }
 
             private readonly StringBuilder _builder = new();
-            private string? _parameterName;
+
+            // parameters
+            private FilterParameter _paramPartyUuid;
+            private FilterParameter _paramPartyId;
+            private FilterParameter _paramPersonIdentifier;
+            private FilterParameter _paramOrganizationIdentifier;
+            private FilterParameter _paramPartyUuidList;
+            private FilterParameter _paramPartyIdList;
+            private FilterParameter _paramPersonIdentifierList;
+            private FilterParameter _paramOrganizationIdentifierList;
+
+            // fields
             private sbyte _fieldIndex = 0;
             private bool _hasSubUnits = false;
 
@@ -258,7 +338,7 @@ internal partial class PostgreSqlPartyPersistence
             private sbyte _childOrganizationMailingAddress = -1;
             private sbyte _childOrganizationBusinessAddress = -1;
 
-            public void Populate(PartyFieldIncludes includes, PartyFilter filterBy)
+            public void Populate(PartyFieldIncludes includes, PartyFilters filterBy)
             {
                 _builder.Append(/*strpsql*/"SELECT");
 
@@ -325,7 +405,7 @@ internal partial class PostgreSqlPartyPersistence
                     _builder.AppendLine().Append(/*strpsql*/"FULL JOIN register.organization o USING (uuid)");
                 }
 
-                if (includes.HasFlag(PartyFieldIncludes.SubUnits))
+                if (_hasSubUnits)
                 {
                     _builder.AppendLine().Append(/*strpsql*/"LEFT JOIN (");
                     _builder.AppendLine().Append(/*strpsql*/"    SELECT");
@@ -363,34 +443,69 @@ internal partial class PostgreSqlPartyPersistence
                     _builder.AppendLine().Append(/*strpsql*/") cp ON cp.parent_uuid = p.uuid");
                 }
 
-                switch (filterBy)
+                if (!filterBy.HasFlag(PartyFilters.Multiple))
                 {
-                    case PartyFilter.PartyUuid:
-                        _parameterName = "partyUuid";
-                        _builder.AppendLine().Append(/*strpsql*/"WHERE p.uuid = @partyUuid");
-                        break;
+                    // if we are not filtering on multiple values, we only allow a single filter type
+                    var first = true;
+                    switch (filterBy)
+                    {
+                        case PartyFilters.PartyUuid:
+                            _paramPartyUuid = AddFilter(typeof(Guid), "partyUuid", /*strpsql*/"p.uuid =", NpgsqlDbType.Uuid, ref first);
+                            break;
 
-                    case PartyFilter.PartyId:
-                        _parameterName = "partyId";
-                        _builder.AppendLine().Append(/*strpsql*/"WHERE p.id = @partyId");
-                        break;
+                        case PartyFilters.PartyId:
+                            _paramPartyId = AddFilter(typeof(int), "partyId", /*strpsql*/"p.id =", NpgsqlDbType.Integer, ref first);
+                            break;
 
-                    case PartyFilter.PartyUuid | PartyFilter.Multiple:
-                        _parameterName = "partyUuids";
-                        _builder.AppendLine().Append(/*strpsql*/"WHERE p.uuid IN @partyUuids");
-                        break;
+                        case PartyFilters.PersonIdentifier:
+                            _paramPersonIdentifier = AddFilter(typeof(string), "personIdentifier", /*strpsql*/"p.person_identifier =", NpgsqlDbType.Text, ref first);
+                            break;
 
-                    case PartyFilter.PartyId | PartyFilter.Multiple:
-                        _parameterName = "partyIds";
-                        _builder.AppendLine().Append(/*strpsql*/"WHERE p.id IN @partyIds");
-                        break;
+                        case PartyFilters.OrganizationIdentifier:
+                            _paramOrganizationIdentifier = AddFilter(typeof(string), "organizationIdentifier", /*strpsql*/"p.organization_identifier =", NpgsqlDbType.Text, ref first);
+                            break;
 
-                    default:
-                        ThrowHelper.ThrowArgumentOutOfRangeException(nameof(filterBy), $"Unhandled {nameof(PartyFilter)} value: {filterBy}");
-                        break;
+                        default:
+                            ThrowHelper.ThrowArgumentOutOfRangeException(nameof(filterBy), $"Unhandled {nameof(PartyFilters)} value: {filterBy}");
+                            break;
+                    }
+                }
+                else
+                {
+                    var first = true;
+                    if (filterBy.HasFlag(PartyFilters.PartyUuid))
+                    {
+                        // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
+                        _paramPartyUuidList = AddFilter(typeof(IList<Guid>), "partyUuids", /*strpsql*/"p.uuid = ANY", NpgsqlDbType.Array | NpgsqlDbType.Uuid, ref first);
+                    }
+
+                    if (filterBy.HasFlag(PartyFilters.PartyId))
+                    {
+                        // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
+                        _paramPartyIdList = AddFilter(typeof(IList<int>), "partyIds", /*strpsql*/"p.id = ANY", NpgsqlDbType.Array | NpgsqlDbType.Integer, ref first);
+                    }
+
+                    if (filterBy.HasFlag(PartyFilters.PersonIdentifier))
+                    {
+                        // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
+                        _paramPersonIdentifierList = AddFilter(typeof(IList<string>), "personIdentifiers", /*strpsql*/"p.person_identifier = ANY", NpgsqlDbType.Array | NpgsqlDbType.Text, ref first);
+                    }
+
+                    if (filterBy.HasFlag(PartyFilters.OrganizationIdentifier))
+                    {
+                        // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
+                        _paramOrganizationIdentifierList = AddFilter(typeof(IList<string>), "organizationIdentifiers", /*strpsql*/"p.organization_identifier = ANY", NpgsqlDbType.Array | NpgsqlDbType.Text, ref first);
+                    }
+
+                    Debug.Assert(!first, "No filters were added, but multiple filters were requested");
                 }
 
                 _builder.AppendLine().Append(/*strpsql*/"ORDER BY p.uuid");
+
+                if (_hasSubUnits)
+                {
+                    _builder.AppendLine(",").Append(/*strpsql*/"    cp.uuid");
+                }
             }
 
             private sbyte AddField(string sourceSql, string fieldAlias, bool include)
@@ -430,6 +545,55 @@ internal partial class PostgreSqlPartyPersistence
                 _builder.AppendLine();
                 _builder.Append("            ").Append(sourceSql);
             }
+
+            private FilterParameter AddFilter(Type type, string name, string sourceSql, NpgsqlDbType dbType, ref bool first)
+            {
+                if (first)
+                {
+                    _builder.AppendLine().Append(/*strpsql*/"WHERE ");
+                    first = false;
+                }
+                else
+                {
+                    _builder.AppendLine().Append(/*strpsql*/"    OR ");
+                }
+
+                _builder.Append(sourceSql);
+                
+                if (dbType.HasFlag(NpgsqlDbType.Array))
+                {
+                    _builder.Append('(');
+                }
+                else
+                {
+                    _builder.Append(' ');
+                }
+
+                _builder.Append('@').Append(name);
+
+                if (dbType.HasFlag(NpgsqlDbType.Array))
+                {
+                    _builder.Append(')');
+                }
+
+                return new(type, name, dbType);
+            }
+        }
+
+        private readonly struct FilterParameter(
+            Type type,
+            string name,
+            NpgsqlDbType dbType)
+        {
+            [MemberNotNullWhen(true, nameof(Type))]
+            [MemberNotNullWhen(true, nameof(Name))]
+            public bool HasValue => Type is not null;
+
+            public Type? Type => type;
+
+            public string? Name => name;
+
+            public NpgsqlDbType DbType => dbType;
         }
 
         [SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1515:Single-line comment should be preceded by blank line", Justification = "This rule makes no sense here")]

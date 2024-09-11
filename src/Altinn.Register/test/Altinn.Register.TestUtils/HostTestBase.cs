@@ -1,5 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Altinn.Register.TestUtils;
 
@@ -10,6 +13,13 @@ public abstract class HostTestBase
     : ServicesTestBase
 {
     private IHost? _host;
+    private FakeTimeProvider? _timeProvider;
+
+    /// <summary>
+    /// Gets a time provider.
+    /// </summary>
+    protected FakeTimeProvider TimeProvider 
+        => _timeProvider!;
 
     /// <summary>
     /// Initialize the host.
@@ -45,6 +55,8 @@ public abstract class HostTestBase
 
         await _host.StartAsync();
 
+        _timeProvider = host.Services.GetRequiredService<FakeTimeProvider>();
+
         return _host.Services;
     }
 
@@ -54,6 +66,8 @@ public abstract class HostTestBase
     /// <param name="builder">Host builder.</param>
     protected virtual async ValueTask ConfigureHost(IHostApplicationBuilder builder)
     {
+        builder.Services.TryAddSingleton(new FakeTimeProvider());
+        builder.Services.TryAddSingleton<TimeProvider>(s => s.GetRequiredService<FakeTimeProvider>());
         await ConfigureServices(builder.Services);
     }
 
