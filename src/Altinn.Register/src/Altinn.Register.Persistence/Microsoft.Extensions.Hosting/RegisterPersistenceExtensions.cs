@@ -42,7 +42,9 @@ public static class RegisterPersistenceExtensions
         AddDatabase(builder);
         
         builder.Services.AddUnitOfWorkParticipant<NpgsqlUnitOfWorkParticipant.Factory>();
-        builder.Services.AddUnitOfWorkService<IPartyPersistence, PostgreSqlPartyPersistence>();
+        builder.Services.AddUnitOfWorkService<PostgreSqlPartyPersistence>();
+        builder.Services.AddUnitOfWorkService<IPartyPersistence>(static s => s.GetRequiredService<PostgreSqlPartyPersistence>());
+        builder.Services.AddUnitOfWorkService<IPartyRolePersistence>(static s => s.GetRequiredService<PostgreSqlPartyPersistence>());
 
         return builder;
     }

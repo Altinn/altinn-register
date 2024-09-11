@@ -1,8 +1,4 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Altinn.Register.Tests.Utils;
 

@@ -1,9 +1,6 @@
 ﻿#nullable enable
 
-using System;
-using System.Collections.Generic;
-using Altinn.Register.Extensions;
-using Xunit;
+using Altinn.Register.Core.Utils;
 
 namespace Altinn.Register.Tests.UnitTests;
 

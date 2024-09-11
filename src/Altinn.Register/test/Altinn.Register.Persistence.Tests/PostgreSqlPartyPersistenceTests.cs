@@ -31,7 +31,7 @@ public class PostgreSqlPartyPersistenceTests
         var uowManager = GetRequiredService<IUnitOfWorkManager>();
         _unitOfWork = await uowManager.CreateAsync(activityName: "test");
         _connection = _unitOfWork.GetRequiredService<NpgsqlConnection>();
-        _persistence = (PostgreSqlPartyPersistence)_unitOfWork.GetRequiredService<IPartyPersistence>();
+        _persistence = _unitOfWork.GetRequiredService<PostgreSqlPartyPersistence>();
     }
 
     protected override async ValueTask DisposeAsync()
@@ -52,6 +52,20 @@ public class PostgreSqlPartyPersistenceTests
 
     private PostgreSqlPartyPersistence Persistence
         => _persistence!;
+
+    [Fact]
+    public void CanGet_IPartyPersistence()
+    {
+        var persistence = _unitOfWork!.GetPartyPersistence();
+        persistence.Should().BeSameAs(Persistence);
+    }
+
+    [Fact]
+    public void CanGet_IPartyRolePersistence()
+    {
+        var persistence = _unitOfWork!.GetRolePersistence();
+        persistence.Should().BeSameAs(Persistence);
+    }
 
     [Fact]
     public async Task GetPartyById_NoneExistingUuid_ReturnsEmpty()
@@ -375,6 +389,89 @@ public class PostgreSqlPartyPersistenceTests
 
         result[3].PartyUuid.Should().Be(child.PartyUuid);
         result[3].ParentOrganizationUuid.Should().Be(parentIds[1]);
+    }
+
+    [Fact]
+    public async Task GetRolesFromNonExistingParty_ReturnsEmpty()
+    {
+        var partyUuid = Guid.Empty;
+
+        var roles = await Persistence.GetRolesFromParty(partyUuid).ToListAsync();
+
+        roles.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetRolesToNonExistingParty_ReturnsEmpty()
+    {
+        var partyUuid = Guid.Empty;
+
+        var roles = await Persistence.GetRolesToParty(partyUuid).ToListAsync();
+
+        roles.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetRolesFromParty_ReturnsRoles()
+    {
+        var roles = await Persistence.GetRolesFromParty(ChildOrganizationUuid).ToListAsync();
+
+        var role = roles.Should().ContainSingle().Which;
+
+        using var scope = new AssertionScope();
+        role.Source.Should().Be(PartySource.CentralCoordinatingRegister);
+        role.Identifier.Should().Be("bedr");
+        role.FromParty.Should().Be(ChildOrganizationUuid);
+        role.ToParty.Should().Be(OrganizationWithChildrenUuid);
+
+        role.Name.Should().BeUnset();
+        role.Description.Should().BeUnset();
+    }
+
+    [Fact]
+    public async Task GetRoles_CanInclude_RoleDefinitions()
+    {
+        var roles = await Persistence.GetRolesFromParty(ChildOrganizationUuid, PartyRoleFieldIncludes.Role | PartyRoleFieldIncludes.RoleDefinition).ToListAsync();
+
+        var role = roles.Should().ContainSingle().Which;
+
+        using var scope = new AssertionScope();
+        role.Source.Should().Be(PartySource.CentralCoordinatingRegister);
+        role.Identifier.Should().Be("bedr");
+        role.FromParty.Should().Be(ChildOrganizationUuid);
+        role.ToParty.Should().Be(OrganizationWithChildrenUuid);
+
+        IReadOnlyDictionary<LangCode, string> name = role.Name.Should().HaveValue().Which;
+        IReadOnlyDictionary<LangCode, string> description = role.Description.Should().HaveValue().Which;
+
+        name.Should().ContainKey(LangCode.En).WhoseValue.Should().Be("Has as the registration entity");
+        name.Should().ContainKey(LangCode.Nb).WhoseValue.Should().Be("Har som registreringsenhet");
+        name.Should().ContainKey(LangCode.Nn).WhoseValue.Should().Be("Har som registreringseininga");
+
+        description.Should().ContainKey(LangCode.En).WhoseValue.Should().Be("Has as the registration entity");
+        description.Should().ContainKey(LangCode.Nb).WhoseValue.Should().Be("Har som registreringsenhet");
+        description.Should().ContainKey(LangCode.Nn).WhoseValue.Should().Be("Har som registreringseininga");
+    }
+
+    [Fact]
+    public async Task GetRolesToParty_ReturnsRoles()
+    {
+        var party = Guid.Parse("e2081abd-a16f-4302-93b0-05aaa42023e8");
+        var roles = await Persistence.GetRolesToParty(party).ToListAsync();
+
+        roles.Should().HaveCount(3);
+
+        roles.Should().AllSatisfy(role =>
+        {
+            using var scope = new AssertionScope();
+            role.Source.Should().Be(PartySource.CentralCoordinatingRegister);
+            role.Identifier.Should().Be("bedr");
+            role.FromParty.Should().HaveValue();
+            role.ToParty.Should().Be(party);
+
+            role.Name.Should().BeUnset();
+            role.Description.Should().BeUnset();
+        });
     }
 
     private async Task<OrganizationIdentifier> GetNewOrgNumber()
