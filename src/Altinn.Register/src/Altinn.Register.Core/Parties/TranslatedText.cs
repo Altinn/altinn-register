@@ -17,7 +17,7 @@ namespace Altinn.Register.Core.Parties;
 [DebuggerDisplay("Count = {Count}")]
 [DebuggerTypeProxy(typeof(TranslatedText.DebuggerProxy))]
 [JsonConverter(typeof(TranslatedText.JsonConverter))]
-public partial class TranslatedText
+public sealed partial class TranslatedText
     : IReadOnlyDictionary<LangCode, string>
     , IDictionary<string, string> // for writing to db
     , IConvertibleFrom<TranslatedText, Dictionary<string, string>>
