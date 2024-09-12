@@ -9,7 +9,7 @@ namespace Altinn.Register.Core.Utils;
 /// </summary>
 /// <typeparam name="TSelf">The type that implements this interface.</typeparam>
 /// <typeparam name="TSource">The source type to convert from.</typeparam>
-public interface IConvertibleFrom<TSelf, TSource>
+public interface IConvertibleFrom<TSelf, in TSource>
     where TSelf : IConvertibleFrom<TSelf, TSource>?
 {
     /// <summary>
