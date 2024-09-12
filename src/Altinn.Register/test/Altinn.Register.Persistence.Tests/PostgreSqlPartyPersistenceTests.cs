@@ -221,7 +221,7 @@ public class PostgreSqlPartyPersistenceTests
     public async Task GetPartyById_CanGet_SubUnits()
     {
         var result = await Persistence.GetPartyById(
-            OrganizationWithChildrenUuid, 
+            OrganizationWithChildrenUuid,
             include: PartyFieldIncludes.Party | PartyFieldIncludes.Organization | PartyFieldIncludes.SubUnits)
             .ToListAsync();
 
@@ -499,7 +499,7 @@ public class PostgreSqlPartyPersistenceTests
         async Task<bool> InUse(OrganizationIdentifier id)
         {
             param.TypedValue = id.ToString();
-            
+
             await using var reader = await cmd.ExecuteReaderAsync();
             var exists = await reader.ReadAsync();
             return exists;

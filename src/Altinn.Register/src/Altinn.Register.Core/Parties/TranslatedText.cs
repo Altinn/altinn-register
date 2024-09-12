@@ -331,28 +331,17 @@ public partial class TranslatedText
                     break;
                 }
 
-                if (reader.TokenType != JsonTokenType.PropertyName)
-                {
-                    throw new JsonException($"Expected property name.");
-                }
-
-                var langCodeS = reader.GetString();
-                if (langCodeS is null)
-                {
-                    throw new JsonException($"Expected property name to be a string, but got null.");
-                }
-
-                var langCode = LangCode.FromCode(langCodeS);
+                var langCode = LangCode.JsonConverter.ReadAsPropertyName(ref reader);
 
                 if (!reader.Read())
                 {
-                    throw new JsonException($"Expected value for property '{langCodeS}'.");
+                    throw new JsonException($"Expected value for property '{langCode}'.");
                 }
 
                 var value = reader.GetString();
                 if (value is null)
                 {
-                    throw new JsonException($"Expected value for property '{langCodeS}' to be a string, but got null.");
+                    throw new JsonException($"Expected value for property '{langCode}' to be a string, but got null.");
                 }
 
                 // overwrite as per normal json rules, latest key wins
@@ -370,13 +359,20 @@ public partial class TranslatedText
         public override void Write(Utf8JsonWriter writer, TranslatedText value, JsonSerializerOptions options)
         {
             writer.WriteStartObject();
-            writer.WriteString("en"u8, value.En);
-            writer.WriteString("nb"u8, value.Nb);
-            writer.WriteString("nn"u8, value.Nn);
+            
+            LangCode.JsonConverter.WriteAsPropertyName(writer, LangCode.En);
+            writer.WriteStringValue(value.En);
+
+            LangCode.JsonConverter.WriteAsPropertyName(writer, LangCode.Nb);
+            writer.WriteStringValue(value.Nb);
+
+            LangCode.JsonConverter.WriteAsPropertyName(writer, LangCode.Nn);
+            writer.WriteStringValue(value.Nn);
 
             foreach (var kvp in value._additional)
             {
-                writer.WriteString(kvp.Key.Code, kvp.Value);
+                LangCode.JsonConverter.WriteAsPropertyName(writer, kvp.Key);
+                writer.WriteStringValue(kvp.Value);
             }
 
             writer.WriteEndObject();
