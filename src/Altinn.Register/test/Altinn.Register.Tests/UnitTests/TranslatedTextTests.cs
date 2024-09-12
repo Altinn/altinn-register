@@ -1,7 +1,7 @@
 ﻿#nullable enable
 
-using Altinn.Register.Core.Parties;
 using System.Text.Json;
+using Altinn.Register.Core.Parties;
 
 namespace Altinn.Register.Tests.UnitTests;
 
