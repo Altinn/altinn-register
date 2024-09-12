@@ -179,5 +179,7 @@ public class TranslatedTextTests
         var deserialized = JsonSerializer.Deserialize<TranslatedText>(json);
 
         deserialized.Should().BeEquivalentTo(text);
+        (deserialized == text).Should().BeTrue();
+        (deserialized != text).Should().BeFalse();
     }
 }

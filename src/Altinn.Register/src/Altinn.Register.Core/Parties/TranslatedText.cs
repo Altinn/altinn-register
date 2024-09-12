@@ -2,6 +2,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -20,6 +21,8 @@ public partial class TranslatedText
     : IReadOnlyDictionary<LangCode, string>
     , IDictionary<string, string> // for writing to db
     , IConvertibleFrom<TranslatedText, Dictionary<string, string>>
+    , IEquatable<TranslatedText>
+    , IEqualityOperators<TranslatedText, TranslatedText, bool>
 {
     /// <summary>
     /// Creates a new <see cref="Builder"/> instance.
@@ -58,6 +61,7 @@ public partial class TranslatedText
     // any additional languages
     private readonly ImmutableArray<KeyValuePair<LangCode, string>> _additional;
 
+    // Note: additional must be sorted
     private TranslatedText(string en, string nb, string nn, ImmutableArray<KeyValuePair<LangCode, string>> additional)
     {
         Guard.IsNotDefault(additional);
@@ -266,6 +270,84 @@ public partial class TranslatedText
     }
 
     #endregion
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+    {
+        HashCode hash = default;
+
+        hash.Add(_en, StringComparer.Ordinal);
+        hash.Add(_nb, StringComparer.Ordinal);
+        hash.Add(_nn, StringComparer.Ordinal);
+
+        if (!_additional.IsDefault)
+        {
+            hash.Add(_additional.Length);
+            foreach (var item in _additional)
+            {
+                hash.Add(item.Key);
+                hash.Add(item.Value, StringComparer.Ordinal);
+            }
+        }
+
+        return hash.ToHashCode();
+    }
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj)
+    {
+        if (ReferenceEquals(this, obj))
+        {
+            return true;
+        }
+
+        return obj is TranslatedText other && Equals(other);
+    }
+
+    /// <inheritdoc/>
+    public bool Equals([NotNullWhen(true)] TranslatedText? other)
+    {
+        if (ReferenceEquals(this, other))
+        {
+            return true;
+        }
+
+        if (other is null)
+        {
+            return false;
+        }
+
+        if (!string.Equals(_en, other._en, StringComparison.Ordinal)
+            || !string.Equals(_nb, other._nb, StringComparison.Ordinal)
+            || !string.Equals(_nn, other._nn, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (_additional.Length != other._additional.Length)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < _additional.Length; i++)
+        {
+            if (_additional[i].Key != other._additional[i].Key
+                || !string.Equals(_additional[i].Value, other._additional[i].Value, StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <inheritdoc/>
+    public static bool operator ==(TranslatedText? left, TranslatedText? right)
+        => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+
+    /// <inheritdoc/>
+    public static bool operator !=(TranslatedText? left, TranslatedText? right)
+        => !(left == right);
 
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
