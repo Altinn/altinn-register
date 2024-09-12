@@ -334,9 +334,20 @@ public partial class TranslatedText
         /// <returns>The newly created and immutable <see cref="TranslatedText"/>.</returns>
         public TranslatedText ToImmutable()
         {
-            Guard.IsNotNull(_en);
-            Guard.IsNotNull(_nb);
-            Guard.IsNotNull(_nn);
+            if (_en is null)
+            {
+                ThrowHelper.ThrowInvalidOperationException($"Missing required language: {LangCode.En}");
+            }
+
+            if (_nb is null)
+            {
+                ThrowHelper.ThrowInvalidOperationException($"Missing required language: {LangCode.Nb}");
+            }
+
+            if (_nn is null)
+            {
+                ThrowHelper.ThrowInvalidOperationException($"Missing required language: {LangCode.Nn}");
+            }
 
             ImmutableArray<KeyValuePair<LangCode, string>> additional;
             if (_additional is not null)
