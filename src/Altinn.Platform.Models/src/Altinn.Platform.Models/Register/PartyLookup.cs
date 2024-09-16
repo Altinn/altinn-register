@@ -7,7 +7,7 @@ namespace Altinn.Platform.Register.Models;
 /// Represents a lookup criteria when looking for a Party. Only one of the properties can be used at a time.
 /// If none or more than one property have a value the lookup operation will respond with bad request.
 /// </summary>
-public record PartyLookup 
+public record PartyLookup
     : IValidatableObject
 {
     /// <summary>
@@ -23,6 +23,15 @@ public record PartyLookup
     [JsonPropertyName("orgNo")]
     [RegularExpression("^[0-9]{9}$", ErrorMessage = "Value needs to be exactly 9 digits.")]
     public string? OrgNo { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the person's name should be split into first, middle, and last name components.
+    /// </summary>
+    /// <value>
+    ///   <c>true</c> if person's name should be split into first, middle, and last name components; otherwise, <c>false</c>.
+    /// </value>
+    [JsonPropertyName("splitPersonName")]
+    public bool SplitPersonName { get; set; } = false;
 
     /// <summary>
     /// Error message for when both <see cref="Ssn"/> and <see cref="OrgNo"/> are null.

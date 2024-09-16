@@ -234,20 +234,23 @@ public class PartiesClient : IV1PartyService
         Debug.Assert(!string.IsNullOrEmpty(partyLookup.Ssn) || !string.IsNullOrEmpty(partyLookup.OrgNo));
         string lookupValue = !string.IsNullOrEmpty(partyLookup.Ssn) ? partyLookup.Ssn : partyLookup.OrgNo!;
         string cacheKey = $"n:{lookupValue}";
-        string? partyName = await GetOrAddPartyNameToCacheAsync(lookupValue, cacheKey, cancellationToken);
+        bool shouldSplitPersonName = string.IsNullOrEmpty(partyLookup.OrgNo) && partyLookup.SplitPersonName;
+        PartyName? partyName = await GetOrAddPartyNameToCacheAsync(lookupValue, shouldSplitPersonName, cacheKey, cancellationToken);
 
         return new PartyName
         {
             Ssn = partyLookup.Ssn,
             OrgNo = partyLookup.OrgNo,
-            Name = partyName,
+            Name = partyName?.Name,
+            LastName = partyName?.LastName,
+            FirstName = partyName?.FirstName,
+            MiddleName = partyName?.MiddleName,
         };
     }
 
-    private async Task<string?> GetOrAddPartyNameToCacheAsync(string lookupValue, string cacheKey, CancellationToken cancellationToken)
+    private async Task<PartyName?> GetOrAddPartyNameToCacheAsync(string lookupValue, bool shouldSplitPersonName, string cacheKey, CancellationToken cancellationToken)
     {
-        if (_memoryCache.TryGetValue(cacheKey, out string? partyName)
-            && partyName is not null)
+        if (_memoryCache.TryGetValue(cacheKey, out PartyName? partyName) && partyName is not null)
         {
             return partyName;
         }
@@ -267,8 +270,19 @@ public class PartiesClient : IV1PartyService
 
         if (party != null)
         {
-            partyName = party.Name;
-            _memoryCache.Set(cacheKey, party.Name, new TimeSpan(0, _cacheTimeoutForPartyNames, 0));
+            partyName = new PartyName()
+            {
+                Name = party.Name
+            };
+
+            if (shouldSplitPersonName && party.Person != null)
+            {
+                partyName.LastName = party.Person.LastName;
+                partyName.FirstName = party.Person.FirstName;
+                partyName.MiddleName = party.Person.MiddleName;
+            }
+
+            _memoryCache.Set(cacheKey, partyName, new TimeSpan(0, _cacheTimeoutForPartyNames, 0));
         }
 
         return partyName;
