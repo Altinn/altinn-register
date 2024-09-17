@@ -242,9 +242,7 @@ public class PartiesClient : IV1PartyService
             Ssn = partyLookup.Ssn,
             OrgNo = partyLookup.OrgNo,
             Name = partyName?.Name,
-            LastName = partyName?.LastName,
-            FirstName = partyName?.FirstName,
-            MiddleName = partyName?.MiddleName,
+            PersonNameComponents = partyName?.PersonNameComponents
         };
     }
 
@@ -277,9 +275,10 @@ public class PartiesClient : IV1PartyService
 
             if (shouldSplitPersonName && party.Person != null)
             {
-                partyName.LastName = party.Person.LastName;
-                partyName.FirstName = party.Person.FirstName;
-                partyName.MiddleName = party.Person.MiddleName;
+                partyName.PersonNameComponents ??= new();
+                partyName.PersonNameComponents.LastName = party.Person.LastName;
+                partyName.PersonNameComponents.FirstName = party.Person.FirstName;
+                partyName.PersonNameComponents.MiddleName = party.Person.MiddleName;
             }
 
             _memoryCache.Set(cacheKey, partyName, new TimeSpan(0, _cacheTimeoutForPartyNames, 0));

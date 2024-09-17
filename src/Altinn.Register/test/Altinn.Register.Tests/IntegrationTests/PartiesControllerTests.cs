@@ -418,7 +418,17 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
 
             testPartyIdsBySsn[party.SSN] = testPartyId;
 
-            testPartyNames.Add(new() { Ssn = party.SSN, Name = party.Name, FirstName = party.Person?.FirstName, MiddleName = party.Person?.MiddleName, LastName = party.Person?.LastName });
+            testPartyNames.Add(new()
+            {
+                Ssn = party.SSN,
+                Name = party.Name,
+                PersonNameComponents = new PersonNameComponents
+                {
+                    FirstName = party.Person?.FirstName,
+                    MiddleName = party.Person?.MiddleName,
+                    LastName = party.Person?.LastName
+                }
+            });
         }
 
         List<PartyName> expectedPartyNames = [];

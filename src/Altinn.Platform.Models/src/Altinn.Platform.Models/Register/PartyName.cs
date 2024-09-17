@@ -26,23 +26,12 @@ public record PartyName
     public string? Name { get; set; }
 
     /// <summary>
-    /// Gets or sets the first name for this result.
+    /// Gets or sets the components of a person's name.
     /// </summary>
-    [JsonPropertyName("firstName")]
+    /// <value>
+    /// The components of a person's name.
+    /// </value>
+    [JsonPropertyName("personNameComponents")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? FirstName { get; set; }
-
-    /// <summary>
-    /// Gets or sets the middle name for this result.
-    /// </summary>
-    [JsonPropertyName("middleName")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? MiddleName { get; set; }
-
-    /// <summary>
-    /// Gets or sets the sure name for this result.
-    /// </summary>
-    [JsonPropertyName("lastName")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? LastName { get; set; }
+    public PersonNameComponents? PersonNameComponents { get; set; }
 }
