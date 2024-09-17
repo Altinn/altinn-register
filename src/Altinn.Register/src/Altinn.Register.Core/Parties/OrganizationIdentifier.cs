@@ -1,7 +1,8 @@
 ﻿using System.Buffers;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Altinn.Swashbuckle.Examples;
@@ -95,15 +96,14 @@ public sealed class OrganizationIdentifier
 
         static bool IsValidOrganizationIdentifier(ReadOnlySpan<char> s)
         {
-            ReadOnlySpan<int> weights = [3, 2, 7, 6, 5, 4, 3, 2];
+            ReadOnlySpan<ushort> chars = MemoryMarshal.Cast<char, ushort>(s);
+            ReadOnlySpan<ushort> weights = [3, 2, 7, 6, 5, 4, 3, 2];
 
-            int currentDigit, sum = 0;
+            Vector128<ushort> zeroDigit = new Vector<ushort>('0').AsVector128();
+            ref readonly Vector128<ushort> charsVec = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<ushort, Vector128<ushort>>(chars));
+            ref readonly Vector128<ushort> weightsVec = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<ushort, Vector128<ushort>>(weights));
 
-            for (var i = 0; i < 8; i++)
-            {
-                currentDigit = s[i] - '0';
-                sum += currentDigit * weights[i];
-            }
+            var sum = Vector128.Sum((charsVec - zeroDigit) * weightsVec);
 
             var ctrlDigit = 11 - (sum % 11);
             if (ctrlDigit == 11)
@@ -116,7 +116,7 @@ public sealed class OrganizationIdentifier
                 return false;
             }
 
-            currentDigit = s[8] - '0';
+            var currentDigit = chars[8] - '0';
             return currentDigit == ctrlDigit;
         }
     }
