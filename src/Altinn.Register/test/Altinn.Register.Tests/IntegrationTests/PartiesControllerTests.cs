@@ -503,9 +503,12 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
     /// <summary>
     /// Provides test data for parameterized tests.
     /// </summary>
-    public static IEnumerable<object[]> GetPartyLookupTestData()
+    public static TheoryData<PartyLookup> GetPartyLookupTestData()
     {
-        yield return new object[] { new PartyLookup { IncludeComponents = PartyComponentOptions.None, Ssn = "01039012345" } };
-        yield return new object[] { new PartyLookup { IncludeComponents = PartyComponentOptions.NameComponents, Ssn = "01017512345" } };
+        return
+        [
+            new() { IncludeComponents = PartyComponentOptions.None, Ssn = "01039012345" },
+            new() { IncludeComponents = PartyComponentOptions.NameComponents, Ssn = "01017512345" }
+        ];
     }
 }
