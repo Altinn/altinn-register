@@ -4,11 +4,13 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 
+using Altinn.Platform.Register.Enums;
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Configuration;
 using Altinn.Register.Tests.IntegrationTests.Utils;
 using Altinn.Register.Tests.Mocks;
 using Altinn.Register.Tests.Utils;
+
 using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Altinn.Register.Tests.IntegrationTests;
@@ -434,13 +436,15 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         List<PartyName> expectedPartyNames = [];
         foreach (PartyName matchPartyName in testPartyNames.Where(e => e.Ssn == queryParameter.Ssn))
         {
-            if (queryParameter.SplitPersonName)
+            switch (queryParameter.IncludeComponents)
             {
-                expectedPartyNames.Add(matchPartyName);
-            }
-            else
-            {
-                expectedPartyNames.Add(new() { Ssn = matchPartyName.Ssn, Name = matchPartyName.Name });
+                case PartyComponentOptions.None:
+                    expectedPartyNames.Add(new() { Ssn = matchPartyName.Ssn, Name = matchPartyName.Name });
+                    break;
+
+                case PartyComponentOptions.NameComponents:
+                    expectedPartyNames.Add(matchPartyName);
+                    break;
             }
         }
 
@@ -501,7 +505,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
     /// </summary>
     public static IEnumerable<object[]> GetPartyLookupTestData()
     {
-        yield return new object[] { new PartyLookup { SplitPersonName = true, Ssn = "01017512345" } };
-        yield return new object[] { new PartyLookup { SplitPersonName = false, Ssn = "01039012345" } };
+        yield return new object[] { new PartyLookup { IncludeComponents = PartyComponentOptions.None, Ssn = "01039012345" } };
+        yield return new object[] { new PartyLookup { IncludeComponents = PartyComponentOptions.NameComponents, Ssn = "01017512345" } };
     }
 }

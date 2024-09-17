@@ -4,10 +4,13 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+
+using Altinn.Platform.Register.Enums;
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Configuration;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Extensions;
+
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using V1Models = Altinn.Platform.Register.Models;
@@ -232,10 +235,14 @@ public class PartiesClient : IV1PartyService
     private async Task<PartyName> ProcessPartyLookupAsync(PartyLookup partyLookup, CancellationToken cancellationToken)
     {
         Debug.Assert(!string.IsNullOrEmpty(partyLookup.Ssn) || !string.IsNullOrEmpty(partyLookup.OrgNo));
+
         string lookupValue = !string.IsNullOrEmpty(partyLookup.Ssn) ? partyLookup.Ssn : partyLookup.OrgNo!;
-        string cacheKey = $"n:{lookupValue}";
-        bool shouldSplitPersonName = string.IsNullOrEmpty(partyLookup.OrgNo) && partyLookup.SplitPersonName;
-        PartyName? partyName = await GetOrAddPartyNameToCacheAsync(lookupValue, shouldSplitPersonName, cacheKey, cancellationToken);
+
+        bool includePersonNameComponents = !string.IsNullOrEmpty(partyLookup.Ssn) && partyLookup.IncludeComponents == PartyComponentOptions.NameComponents;
+
+        string cacheKey = string.IsNullOrEmpty(partyLookup.Ssn) ? $"n:{lookupValue}" : $"n:{lookupValue}-c:{includePersonNameComponents}";
+
+        PartyName? partyName = await GetOrAddPartyNameToCacheAsync(lookupValue, includePersonNameComponents, cacheKey, cancellationToken);
 
         return new PartyName
         {
@@ -246,7 +253,7 @@ public class PartiesClient : IV1PartyService
         };
     }
 
-    private async Task<PartyName?> GetOrAddPartyNameToCacheAsync(string lookupValue, bool shouldSplitPersonName, string cacheKey, CancellationToken cancellationToken)
+    private async Task<PartyName?> GetOrAddPartyNameToCacheAsync(string lookupValue, bool includePersonNameComponents, string cacheKey, CancellationToken cancellationToken)
     {
         if (_memoryCache.TryGetValue(cacheKey, out PartyName? partyName) && partyName is not null)
         {
@@ -273,7 +280,7 @@ public class PartiesClient : IV1PartyService
                 Name = party.Name
             };
 
-            if (shouldSplitPersonName && party.Person != null)
+            if (includePersonNameComponents && party.Person != null)
             {
                 partyName.PersonNameComponents ??= new();
                 partyName.PersonNameComponents.LastName = party.Person.LastName;

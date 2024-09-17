@@ -26,11 +26,8 @@ public record PartyName
     public string? Name { get; set; }
 
     /// <summary>
-    /// Gets or sets the components of a person's name.
+    /// Gets or sets the components of a person's name for this result.
     /// </summary>
-    /// <value>
-    /// The components of a person's name.
-    /// </value>
     [JsonPropertyName("personNameComponents")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public PersonNameComponents? PersonNameComponents { get; set; }

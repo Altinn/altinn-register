@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
+using Altinn.Platform.Register.Enums;
+
 namespace Altinn.Platform.Register.Models;
 
 /// <summary>
@@ -25,13 +27,10 @@ public record PartyLookup
     public string? OrgNo { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the person's name should be split into first, middle, and last name components.
+    /// Gets or sets an option that specify which components of a party should be included in the result.
     /// </summary>
-    /// <value>
-    ///   <c>true</c> if person's name should be split into first, middle, and last name components; otherwise, <c>false</c>.
-    /// </value>
-    [JsonPropertyName("splitPersonName")]
-    public bool SplitPersonName { get; set; } = false;
+    [JsonPropertyName("includeComponents")]
+    public PartyComponentOptions IncludeComponents { get; set; } = PartyComponentOptions.None;
 
     /// <summary>
     /// Error message for when both <see cref="Ssn"/> and <see cref="OrgNo"/> are null.
