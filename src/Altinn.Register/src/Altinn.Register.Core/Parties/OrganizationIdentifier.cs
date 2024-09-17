@@ -1,4 +1,4 @@
-﻿using System.Buffers;
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -99,7 +99,7 @@ public sealed class OrganizationIdentifier
             ReadOnlySpan<ushort> chars = MemoryMarshal.Cast<char, ushort>(s);
             ReadOnlySpan<ushort> weights = [3, 2, 7, 6, 5, 4, 3, 2];
 
-            Vector128<ushort> zeroDigit = new Vector<ushort>('0').AsVector128();
+            Vector128<ushort> zeroDigit = Vector128.Create('0', '0', '0', '0', '0', '0', '0', '0');
             ref readonly Vector128<ushort> charsVec = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<ushort, Vector128<ushort>>(chars));
             ref readonly Vector128<ushort> weightsVec = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<ushort, Vector128<ushort>>(weights));
 
