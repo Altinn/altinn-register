@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Text.Json;
@@ -37,8 +38,8 @@ public sealed class OrganizationIdentifier
     /// <inheritdoc/>
     public static IEnumerable<OrganizationIdentifier>? GetExamples(ExampleDataOptions options)
     {
-        yield return new OrganizationIdentifier("123456789");
-        yield return new OrganizationIdentifier("987654321");
+        yield return Parse("123456785");
+        yield return Parse("987654325");
     }
 
     /// <inheritdoc cref="IParsable{TSelf}.Parse(string, IFormatProvider?)"/>
@@ -83,8 +84,41 @@ public sealed class OrganizationIdentifier
             return false;
         }
 
+        if (!IsValidOrganizationIdentifier(s))
+        {
+            result = null;
+            return false;
+        }
+
         result = new OrganizationIdentifier(original ?? new string(s));
         return true;
+
+        static bool IsValidOrganizationIdentifier(ReadOnlySpan<char> s)
+        {
+            ReadOnlySpan<int> weights = [3, 2, 7, 6, 5, 4, 3, 2];
+
+            int currentDigit, sum = 0;
+
+            for (var i = 0; i < 8; i++)
+            {
+                currentDigit = s[i] - '0';
+                sum += currentDigit * weights[i];
+            }
+
+            var ctrlDigit = 11 - (sum % 11);
+            if (ctrlDigit == 11)
+            {
+                ctrlDigit = 0;
+            }
+
+            if (ctrlDigit == 10)
+            {
+                return false;
+            }
+
+            currentDigit = s[8] - '0';
+            return currentDigit == ctrlDigit;
+        }
     }
 
     /// <inheritdoc/>

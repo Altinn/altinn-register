@@ -2,15 +2,16 @@
 
 using System.Text.Json;
 using Altinn.Register.Core.Parties;
+using Altinn.Swashbuckle.Examples;
 
 namespace Altinn.Register.Tests.UnitTests;
 
 public class OrganizationIdentifierTests
 {
     [Theory]
-    [InlineData("010101000")]
+    [InlineData("010101018")]
     [InlineData("000000000")]
-    [InlineData("123456789")]
+    [InlineData("123456785")]
     public void ParsesValidOrganizationIdentifier(string identifier)
     {
         Assert.True(OrganizationIdentifier.TryParse(identifier, provider: null, out var result));
@@ -35,6 +36,8 @@ public class OrganizationIdentifierTests
     [InlineData("123456789101234")]
     [InlineData("1234ab789")]
     [InlineData("123456-789")]
+    [InlineData("010101010")] // invalid checksum
+    [InlineData("123456789")] // invalid checksum
     public void DoesNotParseInvalidPersonIdentifier(string identifier)
     {
         Assert.False(OrganizationIdentifier.TryParse(identifier, provider: null, out _));
@@ -46,8 +49,8 @@ public class OrganizationIdentifierTests
     [Fact]
     public void Equality()
     {
-        var str1 = "123456789";
-        var str2 = "109876543";
+        var str1 = "123456785";
+        var str2 = "109876542";
         var id1 = OrganizationIdentifier.Parse(str1);
         var id2 = OrganizationIdentifier.Parse(str2);
 
@@ -79,7 +82,7 @@ public class OrganizationIdentifierTests
     [Fact]
     public void TryFormat()
     {
-        var id = OrganizationIdentifier.Parse("123456789");
+        var id = OrganizationIdentifier.Parse("123456785");
 
         Span<char> span = stackalloc char[20];
         int written;
@@ -104,7 +107,7 @@ public class OrganizationIdentifierTests
     [Fact]
     public void JsonRoundTrip()
     {
-        var id = OrganizationIdentifier.Parse("123456789");
+        var id = OrganizationIdentifier.Parse("123456785");
 
         var json = JsonSerializer.SerializeToDocument(id);
         json.RootElement.ValueKind.Should().Be(JsonValueKind.String);
@@ -121,5 +124,13 @@ public class OrganizationIdentifierTests
     {
         var json = "\"1234\"";
         Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<OrganizationIdentifier>(json));
+    }
+
+    [Fact]
+    public void CanGet_ExampleData()
+    {
+        var examples = ExampleData.GetExamples<OrganizationIdentifier>()?.ToList();
+        examples.Should().NotBeNull();
+        examples.Should().NotBeEmpty();
     }
 }
