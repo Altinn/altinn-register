@@ -12,6 +12,7 @@ namespace Altinn.Register.Persistence;
 /// </summary>
 internal partial class PostgreSqlPartyPersistence
     : IPartyPersistence
+    , IPartyRolePersistence
 {
     private readonly NpgsqlConnection _connection;
 
@@ -22,6 +23,8 @@ internal partial class PostgreSqlPartyPersistence
     {
         _connection = connection;
     }
+
+    #region Party
 
     /// <inheritdoc/>
     public IAsyncEnumerable<PartyRecord> GetPartyById(
@@ -260,4 +263,83 @@ internal partial class PostgreSqlPartyPersistence
 
         Multiple = 1 << 7,
     }
+
+    #endregion
+
+    #region Roles
+
+    /// <inheritdoc/>
+    public IAsyncEnumerable<PartyRoleRecord> GetRolesFromParty(
+        Guid partyUuid,
+        PartyRoleFieldIncludes include = PartyRoleFieldIncludes.Role,
+        CancellationToken cancellationToken = default)
+    {
+        var query = PartyRoleQuery.Get(include, PartyRoleFilter.FromParty);
+        NpgsqlCommand? cmd = null;
+        try
+        {
+            cmd = _connection.CreateCommand();
+            cmd.CommandText = query.CommandText;
+
+            query.AddFromPartyParameter(cmd, partyUuid);
+
+            return PrepareAndReadPartyRolesAsync(cmd, query, cancellationToken);
+        }
+        catch (Exception e)
+        {
+            return new ThrowingAsyncEnumerable<PartyRoleRecord>(e).Using(cmd);
+        }
+    }
+
+    /// <inheritdoc/>
+    public IAsyncEnumerable<PartyRoleRecord> GetRolesToParty(
+        Guid partyUuid,
+        PartyRoleFieldIncludes include = PartyRoleFieldIncludes.Role,
+        CancellationToken cancellationToken = default)
+    {
+        var query = PartyRoleQuery.Get(include, PartyRoleFilter.ToParty);
+        NpgsqlCommand? cmd = null;
+        try
+        {
+            cmd = _connection.CreateCommand();
+            cmd.CommandText = query.CommandText;
+
+            query.AddToPartyParameter(cmd, partyUuid);
+
+            return PrepareAndReadPartyRolesAsync(cmd, query, cancellationToken);
+        }
+        catch (Exception e)
+        {
+            return new ThrowingAsyncEnumerable<PartyRoleRecord>(e).Using(cmd);
+        }
+    }
+
+    private async IAsyncEnumerable<PartyRoleRecord> PrepareAndReadPartyRolesAsync(
+        NpgsqlCommand inCmd,
+        PartyRoleQuery query,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        Guard.IsNotNull(inCmd);
+        Guard.IsNotNull(query);
+
+        await using var cmd = inCmd;
+
+        await cmd.PrepareAsync(cancellationToken);
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var role = query.ReadRole(reader);
+            yield return role;
+        }
+    }
+
+    private enum PartyRoleFilter
+        : byte
+    {
+        FromParty,
+        ToParty,
+    }
+
+    #endregion
 }

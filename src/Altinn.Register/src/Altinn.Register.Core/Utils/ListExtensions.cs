@@ -1,12 +1,9 @@
 ﻿#nullable enable
 
-using System;
-using System.Collections.Generic;
-
-namespace Altinn.Register.Extensions;
+namespace Altinn.Register.Core.Utils;
 
 /// <summary>
-/// Extension methods for <see cref="List{T}"/>
+/// Extension methods for <see cref="IList{T}"/>
 /// </summary>
 public static class ListExtensions
 {
@@ -21,7 +18,7 @@ public static class ListExtensions
     /// <param name="list">The list to remove an item from.</param>
     /// <param name="item">The item to remove.</param>
     /// <returns><see langword="true"/> if <paramref name="item"/> was found in the list and removed, otherwise <see langword="false"/>.</returns>
-    public static bool SwapRemove<T>(this List<T> list, T item)
+    public static bool SwapRemove<T>(this IList<T> list, T item)
     {
         ArgumentNullException.ThrowIfNull(list);
 
@@ -44,7 +41,7 @@ public static class ListExtensions
     /// <typeparam name="T">The type of the items in the list.</typeparam>
     /// <param name="list">The list to remove an item from.</param>
     /// <param name="index">The index of the item to remove.</param>
-    public static void SwapRemoveAt<T>(this List<T> list, int index)
+    public static void SwapRemoveAt<T>(this IList<T> list, int index)
     {
         ArgumentNullException.ThrowIfNull(list);
         ArgumentOutOfRangeException.ThrowIfNegative(index);

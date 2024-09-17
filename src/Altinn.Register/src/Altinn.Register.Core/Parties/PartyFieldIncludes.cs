@@ -1,7 +1,9 @@
-﻿namespace Altinn.Register.Core.Parties;
+﻿using Altinn.Register.Core.Parties.Records;
+
+namespace Altinn.Register.Core.Parties;
 
 /// <summary>
-/// Fields to include when fetching a <see cref="Party"/>.
+/// Fields to include when fetching a <see cref="PartyRecord"/>.
 /// </summary>
 [Flags]
 public enum PartyFieldIncludes
