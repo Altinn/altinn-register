@@ -1,6 +1,8 @@
-﻿using System.Buffers;
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Altinn.Swashbuckle.Examples;
@@ -37,8 +39,8 @@ public sealed class OrganizationIdentifier
     /// <inheritdoc/>
     public static IEnumerable<OrganizationIdentifier>? GetExamples(ExampleDataOptions options)
     {
-        yield return new OrganizationIdentifier("123456789");
-        yield return new OrganizationIdentifier("987654321");
+        yield return Parse("123456785");
+        yield return Parse("987654325");
     }
 
     /// <inheritdoc cref="IParsable{TSelf}.Parse(string, IFormatProvider?)"/>
@@ -83,8 +85,40 @@ public sealed class OrganizationIdentifier
             return false;
         }
 
+        if (!IsValidOrganizationIdentifier(s))
+        {
+            result = null;
+            return false;
+        }
+
         result = new OrganizationIdentifier(original ?? new string(s));
         return true;
+
+        static bool IsValidOrganizationIdentifier(ReadOnlySpan<char> s)
+        {
+            ReadOnlySpan<ushort> chars = MemoryMarshal.Cast<char, ushort>(s);
+            ReadOnlySpan<ushort> weights = [3, 2, 7, 6, 5, 4, 3, 2];
+
+            Vector128<ushort> zeroDigit = Vector128.Create('0', '0', '0', '0', '0', '0', '0', '0');
+            ref readonly Vector128<ushort> charsVec = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<ushort, Vector128<ushort>>(chars));
+            ref readonly Vector128<ushort> weightsVec = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<ushort, Vector128<ushort>>(weights));
+
+            var sum = Vector128.Sum((charsVec - zeroDigit) * weightsVec);
+
+            var ctrlDigit = 11 - (sum % 11);
+            if (ctrlDigit == 11)
+            {
+                ctrlDigit = 0;
+            }
+
+            if (ctrlDigit == 10)
+            {
+                return false;
+            }
+
+            var currentDigit = chars[8] - '0';
+            return currentDigit == ctrlDigit;
+        }
     }
 
     /// <inheritdoc/>
