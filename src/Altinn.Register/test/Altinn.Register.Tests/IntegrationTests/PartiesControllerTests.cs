@@ -50,7 +50,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
             {
                 partyList.Add(await TestDataLoader.Load<Party>(id.ToString()));
             }
-            
+
             return new HttpResponseMessage() { Content = JsonContent.Create(partyList) };
         });
         _webApplicationFactorySetup.SblBridgeHttpMessageHandler = messageHandler;
@@ -397,5 +397,101 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         Assert.EndsWith($"/lookupObject", sblRequest.RequestUri.ToString());
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         actualResult.Should().BeEquivalentTo(expectedResult);
+    }
+
+    /// <summary>
+    /// Tests the PostPartyNamesLookup with valid input and verifies that the name components are correctly processed.
+    /// </summary>
+    /// <param name="queryParameter">The query parameter containing the lookup criteria for the party.</param>
+    [Theory]
+    [MemberData(nameof(GetPartyLookupTestData))]
+    public async Task PostPartyNamesLookup_ValidInput_NameComponents_OK(PartyLookup queryParameter)
+    {
+        // Arrange
+        List<PartyName> testPartyNames = [];
+        List<int> testPartyIds = [50012345, 50012347];
+        Dictionary<string, int> testPartyIdsBySsn = [];
+
+        foreach (int testPartyId in testPartyIds)
+        {
+            Party party = await TestDataLoader.Load<Party>(Convert.ToString(testPartyId));
+
+            testPartyIdsBySsn[party.SSN] = testPartyId;
+
+            testPartyNames.Add(new() { Ssn = party.SSN, Name = party.Name, FirstName = party.Person?.FirstName, MiddleName = party.Person?.MiddleName, LastName = party.Person?.LastName });
+        }
+
+        List<PartyName> expectedPartyNames = [];
+        foreach (PartyName matchPartyName in testPartyNames.Where(e => e.Ssn == queryParameter.Ssn))
+        {
+            if (queryParameter.SplitPersonName)
+            {
+                expectedPartyNames.Add(matchPartyName);
+            }
+            else
+            {
+                expectedPartyNames.Add(new() { Ssn = matchPartyName.Ssn, Name = matchPartyName.Name });
+            }
+        }
+
+        PartyNamesLookup queryParameters = new()
+        {
+            Parties = [queryParameter],
+        };
+
+        PartyNamesLookupResult expectedResult = new()
+        {
+            PartyNames = expectedPartyNames,
+        };
+
+        int sblEndpointInvoked = 0;
+        HttpRequestMessage sblRequest = null;
+        DelegatingHandlerStub messageHandler = new(async (request, cancellationToken) =>
+        {
+            sblRequest = request;
+            sblEndpointInvoked++;
+            string ssn = JsonSerializer.Deserialize<string>(await request.Content!.ReadAsStringAsync(cancellationToken));
+            Party party = await TestDataLoader.Load<Party>(Convert.ToString(testPartyIdsBySsn[ssn]));
+
+            return new HttpResponseMessage() { Content = JsonContent.Create(party) };
+        });
+        _webApplicationFactorySetup.SblBridgeHttpMessageHandler = messageHandler;
+
+        string token = PrincipalUtil.GetToken(1);
+
+        HttpClient client = _webApplicationFactorySetup.GetTestServerClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        StringContent requestBody = new(JsonSerializer.Serialize(queryParameters), Encoding.UTF8, "application/json");
+
+        HttpRequestMessage testRequest = new(HttpMethod.Post, "/register/api/v1/parties/nameslookup") { Content = requestBody };
+
+        testRequest.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
+
+        // Act
+        HttpResponseMessage response = await client.SendAsync(testRequest);
+        string responseContent = await response.Content.ReadAsStringAsync();
+
+        PartyNamesLookupResult actualResult = JsonSerializer.Deserialize<PartyNamesLookupResult>(responseContent, options);
+        PartyNamesLookupResult actualResultFromCache = JsonSerializer.Deserialize<PartyNamesLookupResult>(responseContent, options);
+
+        // Assert
+        Assert.NotNull(sblRequest);
+        Assert.Equal(1, sblEndpointInvoked);
+        Assert.Equal(HttpMethod.Post, sblRequest.Method);
+        Assert.EndsWith($"/lookupObject", sblRequest.RequestUri.ToString());
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        actualResult.Should().BeEquivalentTo(expectedResult);
+        actualResultFromCache.Should().BeEquivalentTo(expectedResult);
+    }
+
+    /// <summary>
+    /// Provides test data for parameterized tests.
+    /// </summary>
+    public static IEnumerable<object[]> GetPartyLookupTestData()
+    {
+        yield return new object[] { new PartyLookup { SplitPersonName = true, Ssn = "01017512345" } };
+        yield return new object[] { new PartyLookup { SplitPersonName = false, Ssn = "01039012345" } };
     }
 }
