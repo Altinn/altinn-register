@@ -1,7 +1,7 @@
 ﻿namespace Altinn.Platform.Register.Enums;
 
 /// <summary>
-/// Represents options for including different components of a party.
+/// Represents the components that will be included with each party.
 /// </summary>
 [Flags]
 public enum PartyComponentOptions

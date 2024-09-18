@@ -44,7 +44,7 @@ public interface IV1PartyService
     /// Lookup party names by social security number or organization number.
     /// </summary>
     /// <param name="lookupValues">The set of ssn/org.nr.</param>
-    /// <param name="includeComponents">An option specifies which components of a party should be included in the result.</param>
+    /// <param name="includeComponents">Specifies which party components to include in the result.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>An async enumerable of <see cref="V1Models.PartyName"/>.</returns>
     IAsyncEnumerable<V1Models.PartyName> LookupPartyNames(IEnumerable<V1Models.PartyLookup> lookupValues, PartyComponentOptions includeComponents, CancellationToken cancellationToken = default);

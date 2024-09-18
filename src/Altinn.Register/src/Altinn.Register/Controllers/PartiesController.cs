@@ -156,7 +156,7 @@ namespace Altinn.Register.Controllers
         /// Perform a name lookup for the list of parties for the provided ids.
         /// </summary>
         /// <param name="partyNamesLookup">A list of lookup criteria. For each criteria, one and only one of the properties must be a valid value.</param>
-        /// <param name="includeComponents">An option specifies which components of a party should be included in the result.</param>
+        /// <param name="includeComponents">Specifies which party components to include in the result.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The identified party names for the corresponding identifiers.</returns>
         [HttpPost("nameslookup")]

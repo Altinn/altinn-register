@@ -242,14 +242,14 @@ public class PartiesClient : IV1PartyService
 
         PartyName? partyName = await GetOrAddPartyNameToCacheAsync(lookupValue, cacheKey, cancellationToken);
 
-        bool includeNameComponents = includeComponents.HasFlag(PartyComponentOptions.NameComponents);
+        bool includePersonName = includeComponents.HasFlag(PartyComponentOptions.NameComponents);
 
         return new PartyName
         {
             Ssn = partyLookup.Ssn,
             OrgNo = partyLookup.OrgNo,
             Name = partyName?.Name,
-            PersonName = includeNameComponents ? partyName?.PersonName : null
+            PersonName = includePersonName ? partyName?.PersonName : null
         };
     }
 
