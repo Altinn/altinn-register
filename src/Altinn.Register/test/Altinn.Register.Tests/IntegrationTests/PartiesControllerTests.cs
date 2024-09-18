@@ -404,10 +404,11 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
     /// <summary>
     /// Tests the PostPartyNamesLookup with valid input and verifies that the name components are correctly processed.
     /// </summary>
-    /// <param name="queryParameter">The query parameter containing the lookup criteria for the party.</param>
+    /// <param name="socialSecurityNumber">The Social Security Number.</param>
+    /// <param name="nameComponent">The name component.</param>
     [Theory]
     [MemberData(nameof(GetPartyLookupTestData))]
-    public async Task PostPartyNamesLookup_ValidInput_NameComponents_OK(PartyLookup queryParameter)
+    public async Task PostPartyNamesLookup_ValidInput_NameComponents_OK(string socialSecurityNumber, PartyComponentOptions nameComponent)
     {
         // Arrange
         List<PartyName> testPartyNames = [];
@@ -424,19 +425,20 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
             {
                 Ssn = party.SSN,
                 Name = party.Name,
-                PersonNameComponents = new PersonNameComponents
+                PersonNameComponents = party.Person != null ? new PersonNameComponents
                 {
-                    FirstName = party.Person?.FirstName,
-                    MiddleName = party.Person?.MiddleName,
-                    LastName = party.Person?.LastName
+                    FirstName = party.Person.FirstName,
+                    MiddleName = party.Person.MiddleName,
+                    LastName = party.Person.LastName
                 }
+                : null
             });
         }
 
         List<PartyName> expectedPartyNames = [];
-        foreach (PartyName matchPartyName in testPartyNames.Where(e => e.Ssn == queryParameter.Ssn))
+        foreach (PartyName matchPartyName in testPartyNames.Where(e => e.Ssn == socialSecurityNumber))
         {
-            switch (queryParameter.IncludeComponents)
+            switch (nameComponent)
             {
                 case PartyComponentOptions.None:
                     expectedPartyNames.Add(new() { Ssn = matchPartyName.Ssn, Name = matchPartyName.Name });
@@ -450,7 +452,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
 
         PartyNamesLookup queryParameters = new()
         {
-            Parties = [queryParameter],
+            Parties = [new() { IncludeComponents = nameComponent, Ssn = socialSecurityNumber }]
         };
 
         PartyNamesLookupResult expectedResult = new()
@@ -501,14 +503,15 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
     }
 
     /// <summary>
-    /// Provides test data for parameterized tests.
+    /// Provides test data for testing party lookup functionality with different component options.
     /// </summary>
-    public static TheoryData<PartyLookup> GetPartyLookupTestData()
+    /// <returns>A collection of test data, each containing a social security number and corresponding component option.</returns>
+    public static TheoryData<string, PartyComponentOptions> GetPartyLookupTestData()
     {
-        return
-        [
-            new() { IncludeComponents = PartyComponentOptions.None, Ssn = "01039012345" },
-            new() { IncludeComponents = PartyComponentOptions.NameComponents, Ssn = "01017512345" }
-        ];
+        return new TheoryData<string, PartyComponentOptions>
+        {
+            { "01039012345", PartyComponentOptions.None },
+            { "01017512345", PartyComponentOptions.NameComponents }
+        };
     }
 }
