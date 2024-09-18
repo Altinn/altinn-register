@@ -1,4 +1,5 @@
-﻿using V1Models = Altinn.Platform.Register.Models;
+﻿using Altinn.Platform.Register.Enums;
+using V1Models = Altinn.Platform.Register.Models;
 
 namespace Altinn.Register.Core.Parties;
 
@@ -40,12 +41,13 @@ public interface IV1PartyService
     IAsyncEnumerable<V1Models.Party> LookupPartiesBySSNOrOrgNos(IEnumerable<string> lookupValues, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Lookup party names by social security number organization number.
+    /// Lookup party names by social security number or organization number.
     /// </summary>
     /// <param name="lookupValues">The set of ssn/org.nr.</param>
+    /// <param name="includeComponents">An option specifies which components of a party should be included in the result.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>An async enumerable of <see cref="V1Models.PartyName"/>.</returns>
-    IAsyncEnumerable<V1Models.PartyName> LookupPartyNames(IEnumerable<V1Models.PartyLookup> lookupValues, CancellationToken cancellationToken = default);
+    IAsyncEnumerable<V1Models.PartyName> LookupPartyNames(IEnumerable<V1Models.PartyLookup> lookupValues, PartyComponentOptions includeComponents, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get parties by party ids.

@@ -2,6 +2,7 @@
 
 using System.Diagnostics;
 using System.Security.Claims;
+using Altinn.Platform.Register.Enums;
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Extensions;
@@ -155,6 +156,7 @@ namespace Altinn.Register.Controllers
         /// Perform a name lookup for the list of parties for the provided ids.
         /// </summary>
         /// <param name="partyNamesLookup">A list of lookup criteria. For each criteria, one and only one of the properties must be a valid value.</param>
+        /// <param name="includeComponents">An option specifies which components of a party should be included in the result.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The identified party names for the corresponding identifiers.</returns>
         [HttpPost("nameslookup")]
@@ -163,7 +165,10 @@ namespace Altinn.Register.Controllers
         [ProducesResponseType(404)]
         [ProducesResponseType(200)]
         [Produces("application/json")]
-        public async Task<ActionResult<PartyNamesLookupResult>> PostPartyNamesLookup([FromBody] PartyNamesLookup partyNamesLookup, CancellationToken cancellationToken = default)
+        public async Task<ActionResult<PartyNamesLookupResult>> PostPartyNamesLookup(
+            [FromBody] PartyNamesLookup partyNamesLookup,
+            [FromQuery] PartyComponentOptions includeComponents = PartyComponentOptions.None,
+            CancellationToken cancellationToken = default)
         {
             if (partyNamesLookup.Parties is null or { Count: 0 })
             {
@@ -173,7 +178,7 @@ namespace Altinn.Register.Controllers
                 });
             }
 
-            List<PartyName> items = await _partyClient.LookupPartyNames(partyNamesLookup.Parties, cancellationToken).ToListAsync(cancellationToken);
+            List<PartyName> items = await _partyClient.LookupPartyNames(partyNamesLookup.Parties, includeComponents, cancellationToken).ToListAsync(cancellationToken);
             var partyNamesLookupResult = new PartyNamesLookupResult
             {
                 PartyNames = items

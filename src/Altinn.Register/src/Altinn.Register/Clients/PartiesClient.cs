@@ -201,9 +201,9 @@ public class PartiesClient : IV1PartyService
         => GetPartiesById(partyIds, fetchSubUnits: false, cancellationToken);
 
     /// <inheritdoc />
-    public IAsyncEnumerable<PartyName> LookupPartyNames(IEnumerable<PartyLookup> lookupValues, CancellationToken cancellationToken = default)
+    public IAsyncEnumerable<PartyName> LookupPartyNames(IEnumerable<PartyLookup> lookupValues, PartyComponentOptions includeComponents, CancellationToken cancellationToken = default)
     {
-        return RunInParallel(lookupValues, ProcessPartyLookupAsync, cancellationToken);
+        return RunInParallel(lookupValues, includeComponents, ProcessPartyLookupAsync, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -232,7 +232,7 @@ public class PartiesClient : IV1PartyService
         _logger.LogError("Getting parties information from bridge failed with {StatusCode}", response.StatusCode);
     }
 
-    private async Task<PartyName> ProcessPartyLookupAsync(PartyLookup partyLookup, CancellationToken cancellationToken)
+    private async Task<PartyName> ProcessPartyLookupAsync(PartyLookup partyLookup, PartyComponentOptions includeComponents, CancellationToken cancellationToken)
     {
         Debug.Assert(!string.IsNullOrEmpty(partyLookup.Ssn) || !string.IsNullOrEmpty(partyLookup.OrgNo));
 
@@ -242,14 +242,14 @@ public class PartiesClient : IV1PartyService
 
         PartyName? partyName = await GetOrAddPartyNameToCacheAsync(lookupValue, cacheKey, cancellationToken);
 
-        bool includeNameComponents = partyLookup.IncludeComponents.HasFlag(PartyComponentOptions.NameComponents);
+        bool includeNameComponents = includeComponents.HasFlag(PartyComponentOptions.NameComponents);
 
         return new PartyName
         {
             Ssn = partyLookup.Ssn,
             OrgNo = partyLookup.OrgNo,
             Name = partyName?.Name,
-            PersonNameComponents = includeNameComponents ? partyName?.PersonNameComponents : null
+            PersonName = includeNameComponents ? partyName?.PersonName : null
         };
     }
 
@@ -283,7 +283,7 @@ public class PartiesClient : IV1PartyService
 
             if (party.Person != null)
             {
-                partyName.PersonNameComponents = new()
+                partyName.PersonName = new()
                 {
                     LastName = party.Person.LastName,
                     FirstName = party.Person.FirstName,
@@ -299,10 +299,11 @@ public class PartiesClient : IV1PartyService
 
     private static async IAsyncEnumerable<TResult> RunInParallel<TIn, TResult>(
         IEnumerable<TIn> input,
-        Func<TIn, CancellationToken, Task<TResult>> func,
+        PartyComponentOptions includeComponents,
+        Func<TIn, PartyComponentOptions, CancellationToken, Task<TResult>> func,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var tasks = input.Select(i => func(i, cancellationToken)).ToList();
+        var tasks = input.Select(i => func(i, includeComponents, cancellationToken)).ToList();
 
         while (tasks.Count > 0)
         {

@@ -28,7 +28,7 @@ public record PartyName
     /// <summary>
     /// Gets or sets the components of a person's name for this result.
     /// </summary>
-    [JsonPropertyName("personNameComponents")]
+    [JsonPropertyName("personName")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public PersonNameComponents? PersonNameComponents { get; set; }
+    public PersonNameComponents? PersonName { get; set; }
 }

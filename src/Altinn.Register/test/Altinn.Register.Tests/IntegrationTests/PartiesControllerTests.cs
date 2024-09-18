@@ -408,7 +408,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
     /// <param name="nameComponent">The name component.</param>
     [Theory]
     [MemberData(nameof(GetPartyLookupTestData))]
-    public async Task PostPartyNamesLookup_ValidInput_NameComponents_OK(string socialSecurityNumber, PartyComponentOptions nameComponent)
+    public async Task PostPartyNamesLookup_ValidInput_NameComponents_OK(string[] socialSecurityNumber, PartyComponentOptions nameComponent)
     {
         // Arrange
         List<PartyName> testPartyNames = [];
@@ -425,7 +425,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
             {
                 Ssn = party.SSN,
                 Name = party.Name,
-                PersonNameComponents = party.Person != null ? new PersonNameComponents
+                PersonName = party.Person != null ? new PersonNameComponents
                 {
                     FirstName = party.Person.FirstName,
                     MiddleName = party.Person.MiddleName,
@@ -436,7 +436,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         }
 
         List<PartyName> expectedPartyNames = [];
-        foreach (PartyName matchPartyName in testPartyNames.Where(e => e.Ssn == socialSecurityNumber))
+        foreach (PartyName matchPartyName in testPartyNames.Where(e => socialSecurityNumber.Contains(e.Ssn)))
         {
             switch (nameComponent)
             {
@@ -452,7 +452,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
 
         PartyNamesLookup queryParameters = new()
         {
-            Parties = [new() { IncludeComponents = nameComponent, Ssn = socialSecurityNumber }]
+            Parties = socialSecurityNumber.Select(ssn => new PartyLookup { Ssn = ssn }).ToList()
         };
 
         PartyNamesLookupResult expectedResult = new()
@@ -479,7 +479,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         StringContent requestBody = new(JsonSerializer.Serialize(queryParameters), Encoding.UTF8, "application/json");
 
-        HttpRequestMessage testRequest = new(HttpMethod.Post, "/register/api/v1/parties/nameslookup") { Content = requestBody };
+        HttpRequestMessage testRequest = new(HttpMethod.Post, $"/register/api/v1/parties/nameslookup?includeComponents={nameComponent}") { Content = requestBody };
 
         testRequest.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
@@ -492,7 +492,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
 
         // Assert
         Assert.NotNull(sblRequest);
-        Assert.Equal(1, sblEndpointInvoked);
+        Assert.Equal(testPartyIds.Count, sblEndpointInvoked);
         Assert.Equal(HttpMethod.Post, sblRequest.Method);
         Assert.EndsWith($"/lookupObject", sblRequest.RequestUri.ToString());
 
@@ -506,12 +506,12 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
     /// Provides test data for testing party lookup functionality with different component options.
     /// </summary>
     /// <returns>A collection of test data, each containing a social security number and corresponding component option.</returns>
-    public static TheoryData<string, PartyComponentOptions> GetPartyLookupTestData()
+    public static TheoryData<string[], PartyComponentOptions> GetPartyLookupTestData()
     {
-        return new TheoryData<string, PartyComponentOptions>
+        return new TheoryData<string[], PartyComponentOptions>
         {
-            { "01039012345", PartyComponentOptions.None },
-            { "01017512345", PartyComponentOptions.NameComponents }
+            { ["01039012345", "01017512345"], PartyComponentOptions.None },
+            { ["01039012345", "01017512345"], PartyComponentOptions.NameComponents }
         };
     }
 }

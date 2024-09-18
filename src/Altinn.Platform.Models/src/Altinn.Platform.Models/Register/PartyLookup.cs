@@ -27,12 +27,6 @@ public record PartyLookup
     public string? OrgNo { get; set; }
 
     /// <summary>
-    /// Gets or sets an option that specify which components of a party should be included in the result.
-    /// </summary>
-    [JsonPropertyName("includeComponents")]
-    public PartyComponentOptions IncludeComponents { get; set; } = PartyComponentOptions.None;
-
-    /// <summary>
     /// Error message for when both <see cref="Ssn"/> and <see cref="OrgNo"/> are null.
     /// </summary>
     internal static readonly string SsnOrOrgNoRequiredMessage = $"Either {nameof(Ssn)} or {nameof(OrgNo)} is required.";
