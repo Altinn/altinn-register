@@ -104,11 +104,7 @@ public sealed class OrganizationIdentifier
 
             var sum = Vector128.Sum((charsVec - zeroDigit) * weights);
 
-            var ctrlDigit = 11 - (sum % 11);
-            if (ctrlDigit == 11)
-            {
-                ctrlDigit = 0;
-            }
+            var ctrlDigit = (11 - (sum % 11)) % 11;
 
             if (ctrlDigit == 10)
             {
