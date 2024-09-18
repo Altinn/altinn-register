@@ -238,24 +238,25 @@ public class PartiesClient : IV1PartyService
 
         string lookupValue = !string.IsNullOrEmpty(partyLookup.Ssn) ? partyLookup.Ssn : partyLookup.OrgNo!;
 
+        string cacheKey = $"n:{lookupValue}";
+
+        PartyName? partyName = await GetOrAddPartyNameToCacheAsync(lookupValue, cacheKey, cancellationToken);
+
         bool includeNameComponents = partyLookup.IncludeComponents.HasFlag(PartyComponentOptions.NameComponents);
-
-        string cacheKey = string.IsNullOrEmpty(partyLookup.Ssn) ? $"n:{lookupValue}" : $"n:{lookupValue}-c:{includeNameComponents}";
-
-        PartyName? partyName = await GetOrAddPartyNameToCacheAsync(lookupValue, includeNameComponents, cacheKey, cancellationToken);
 
         return new PartyName
         {
             Ssn = partyLookup.Ssn,
             OrgNo = partyLookup.OrgNo,
             Name = partyName?.Name,
-            PersonNameComponents = partyName?.PersonNameComponents
+            PersonNameComponents = includeNameComponents ? partyName?.PersonNameComponents : null
         };
     }
 
-    private async Task<PartyName?> GetOrAddPartyNameToCacheAsync(string lookupValue, bool includeNameComponents, string cacheKey, CancellationToken cancellationToken)
+    private async Task<PartyName?> GetOrAddPartyNameToCacheAsync(string lookupValue, string cacheKey, CancellationToken cancellationToken)
     {
-        if (_memoryCache.TryGetValue(cacheKey, out PartyName? partyName) && partyName is not null)
+        if (_memoryCache.TryGetValue(cacheKey, out PartyName? partyName)
+            && partyName is not null)
         {
             return partyName;
         }
@@ -280,7 +281,7 @@ public class PartiesClient : IV1PartyService
                 Name = party.Name
             };
 
-            if (includeNameComponents && party.Person != null)
+            if (party.Person != null)
             {
                 partyName.PersonNameComponents = new()
                 {
