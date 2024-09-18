@@ -238,7 +238,7 @@ public class PartiesClient : IV1PartyService
 
         string lookupValue = !string.IsNullOrEmpty(partyLookup.Ssn) ? partyLookup.Ssn : partyLookup.OrgNo!;
 
-        bool includeNameComponents = !string.IsNullOrEmpty(partyLookup.Ssn) && partyLookup.IncludeComponents == PartyComponentOptions.NameComponents;
+        bool includeNameComponents = partyLookup.IncludeComponents.HasFlag(PartyComponentOptions.NameComponents);
 
         string cacheKey = string.IsNullOrEmpty(partyLookup.Ssn) ? $"n:{lookupValue}" : $"n:{lookupValue}-c:{includeNameComponents}";
 
