@@ -2,15 +2,24 @@
 
 using System.Text.Json;
 using Altinn.Register.Core.Parties;
+using Altinn.Swashbuckle.Examples;
 
 namespace Altinn.Register.Tests.UnitTests;
 
 public class PersonIdentifierTests 
 {
     [Theory]
-    [InlineData("01010100000")]
-    [InlineData("00000000000")]
-    [InlineData("12345678910")]
+    [InlineData("02013299997")]
+    [InlineData("02013299903")]
+    [InlineData("02013299911")]
+    [InlineData("30108299920")]
+    [InlineData("30108299939")]
+    [InlineData("30108299947")]
+    [InlineData("30108299955")]
+    [InlineData("13815897247")]
+    [InlineData("42013299980")] // d-number
+    [InlineData("03882049433")] // tenor test data
+    [InlineData("66847800373")] // tenor test data and d-number
     public void ParsesValidPersonIdentifier(string identifier)
     {
         Assert.True(PersonIdentifier.TryParse(identifier, provider: null, out var result));
@@ -35,6 +44,7 @@ public class PersonIdentifierTests
     [InlineData("123456789101234")]
     [InlineData("1234ab78910")]
     [InlineData("123456-78910")]
+    [InlineData("30108299918")] // invalid checksum
     public void DoesNotParseInvalidPersonIdentifier(string identifier)
     {
         Assert.False(PersonIdentifier.TryParse(identifier, provider: null, out _));
@@ -46,8 +56,8 @@ public class PersonIdentifierTests
     [Fact]
     public void Equality()
     {
-        var str1 = "12345678910";
-        var str2 = "10987654321";
+        var str1 = "02013299997";
+        var str2 = "30108299955";
         var id1 = PersonIdentifier.Parse(str1);
         var id2 = PersonIdentifier.Parse(str2);
 
@@ -79,7 +89,7 @@ public class PersonIdentifierTests
     [Fact]
     public void TryFormat()
     {
-        var id = PersonIdentifier.Parse("12345678910");
+        var id = PersonIdentifier.Parse("02013299911");
 
         Span<char> span = stackalloc char[20];
         int written;
@@ -104,7 +114,7 @@ public class PersonIdentifierTests
     [Fact]
     public void JsonRoundTrip()
     {
-        var id = PersonIdentifier.Parse("12345678910");
+        var id = PersonIdentifier.Parse("02013299911");
 
         var json = JsonSerializer.SerializeToDocument(id);
         json.RootElement.ValueKind.Should().Be(JsonValueKind.String);
@@ -121,5 +131,13 @@ public class PersonIdentifierTests
     {
         var json = "\"1234\"";
         Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<PersonIdentifier>(json));
+    }
+
+    [Fact]
+    public void CanGet_ExampleData()
+    {
+        var examples = ExampleData.GetExamples<PersonIdentifier>()?.ToList();
+        examples.Should().NotBeNull();
+        examples.Should().NotBeEmpty();
     }
 }

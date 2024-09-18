@@ -1,6 +1,10 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Altinn.Swashbuckle.Examples;
@@ -37,8 +41,9 @@ public sealed class PersonIdentifier
     /// <inheritdoc/>
     public static IEnumerable<PersonIdentifier>? GetExamples(ExampleDataOptions options)
     {
-        yield return new PersonIdentifier("12345678910");
-        yield return new PersonIdentifier("98765432101");
+        yield return Parse("02013299997");
+        yield return Parse("30108299939");
+        yield return Parse("42013299980");
     }
 
     /// <inheritdoc cref="IParsable{TSelf}.Parse(string, IFormatProvider?)"/>
@@ -83,8 +88,51 @@ public sealed class PersonIdentifier
             return false;
         }
 
+        if (!IsValidPersonIdentifier(s))
+        {
+            result = null;
+            return false;
+        }
+
         result = new PersonIdentifier(original ?? new string(s));
         return true;
+
+        // Note: this is using the new algorithm for validating person identifiers
+        // the new will only be used to generate new person identifiers starting
+        // in 2032, but it can still validate old person identifiers.
+        static bool IsValidPersonIdentifier(ReadOnlySpan<char> s)
+        {
+            Vector256<ushort> k1weights = Vector256.Create((ushort)3, 7, 6, 1, 8, 9, 4, 5, 2, 0, 0, 0, 0, 0, 0, 0);
+            Vector256<ushort> k2weights = Vector256.Create((ushort)5, 4, 3, 2, 7, 6, 5, 4, 3, 2, 0, 0, 0, 0, 0, 0);
+            Vector256<ushort> digits = CreateVector(s);
+
+            var k1c_base = (ushort)(Vector256.Sum(digits * k1weights) % 11);
+            var k1c_1 = (ushort)((11 - k1c_base) % 11);
+            var k1c_2 = (ushort)((12 - k1c_base) % 11);
+            var k1c_3 = (ushort)((13 - k1c_base) % 11);
+            var k1c_4 = (ushort)((14 - k1c_base) % 11);
+            var k2c = (ushort)((11 - (Vector256.Sum(digits * k2weights) % 11)) % 11);
+
+            var k1 = digits[9];
+            var k2 = digits[10];
+
+            return (k1 == k1c_1 | k1 == k1c_2 | k1 == k1c_3 | k1 == k1c_4) & k2 == k2c;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static Vector256<ushort> CreateVector(ReadOnlySpan<char> s)
+        {
+            Debug.Assert(s.Length == 11);
+
+            Span<ushort> c = stackalloc ushort[16];
+            c.Clear(); // zero out the vector
+            MemoryMarshal.Cast<char, ushort>(s).CopyTo(c);
+
+            var chars = Vector256.Create<ushort>(c);
+            var zeros = Vector256.Create('0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', 0, 0, 0, 0, 0);
+
+            return chars - zeros;
+        }
     }
 
     /// <inheritdoc/>
