@@ -35,8 +35,8 @@ internal class AsyncConcurrencyLimiter
     /// <inheritdoc/>
     public void Dispose()
     {
-        GC.SuppressFinalize(this);
         Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
