@@ -5,7 +5,7 @@ namespace Altinn.Register.Core.Parties.Records;
 /// <summary>
 /// A database record for an organization.
 /// </summary>
-public sealed class OrganizationRecord
+public sealed record OrganizationRecord
     : PartyRecord
 {
     /// <summary>
@@ -64,5 +64,5 @@ public sealed class OrganizationRecord
     /// <summary>
     /// Gets the parent organization of the organization (if any).
     /// </summary>
-    public required FieldValue<Guid> ParentOrganizationUuid { get; init; }
+    public FieldValue<Guid> ParentOrganizationUuid { get; init; }
 }

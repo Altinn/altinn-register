@@ -12,9 +12,11 @@ namespace Altinn.Register.Persistence.UnitOfWork;
 /// </summary>
 internal class NpgsqlUnitOfWorkParticipant
     : IUnitOfWorkParticipant<NpgsqlConnection>
+    , IUnitOfWorkParticipant<SavePointManager>
 {
     private readonly NpgsqlConnection _connection;
     private readonly NpgsqlTransaction _transaction;
+    private readonly SavePointManager _savePointManager;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NpgsqlUnitOfWorkParticipant"/> class.
@@ -26,10 +28,14 @@ internal class NpgsqlUnitOfWorkParticipant
 
         _connection = connection;
         _transaction = transaction;
+        _savePointManager = new SavePointManager(transaction);
     }
 
     /// <inheritdoc/>
     NpgsqlConnection IUnitOfWorkParticipant<NpgsqlConnection>.Service => _connection;
+
+    /// <inheritdoc/>
+    SavePointManager IUnitOfWorkParticipant<SavePointManager>.Service => _savePointManager;
 
     /// <inheritdoc/>
     public ValueTask CommitAsync(CancellationToken cancellationToken = default)
@@ -52,7 +58,7 @@ internal class NpgsqlUnitOfWorkParticipant
     internal class Factory
         : IUnitOfWorkParticipantFactory
     {
-        private static readonly ImmutableArray<Type> _serviceTypes = [typeof(NpgsqlConnection)];
+        private static readonly ImmutableArray<Type> _serviceTypes = [typeof(NpgsqlConnection), typeof(SavePointManager)];
 
         /// <inheritdoc/>
         public ImmutableArray<Type> ServiceTypes => _serviceTypes;

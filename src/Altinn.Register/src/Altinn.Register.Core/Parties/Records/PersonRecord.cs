@@ -5,7 +5,7 @@ namespace Altinn.Register.Core.Parties.Records;
 /// <summary>
 /// A database record for a person.
 /// </summary>
-public sealed class PersonRecord
+public sealed record PersonRecord
     : PartyRecord
 {
     /// <summary>
