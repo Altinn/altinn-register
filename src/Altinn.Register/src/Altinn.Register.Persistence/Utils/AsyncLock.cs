@@ -35,7 +35,20 @@ internal class AsyncConcurrencyLimiter
     /// <inheritdoc/>
     public void Dispose()
     {
-        _semaphoreSlim.Dispose();
+        GC.SuppressFinalize(this);
+        Dispose(disposing: true);
+    }
+
+    /// <summary>
+    /// Disposes the resources used by the <see cref="AsyncConcurrencyLimiter" />.
+    /// </summary>
+    /// <param name="disposing"><see langword="true"/> if disposing, <see langword="false"/> if called from a finalizer.</param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _semaphoreSlim.Dispose();
+        }
     }
 
     /// <summary>
