@@ -12,19 +12,19 @@ public record PersonNameComponents
     /// </summary>
     [JsonPropertyName("firstName")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? FirstName { get; set; }
+    public string? FirstName { get; init; }
 
     /// <summary>
     /// Gets or sets the middle name.
     /// </summary>
     [JsonPropertyName("middleName")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? MiddleName { get; set; }
+    public string? MiddleName { get; init; }
 
     /// <summary>
     /// Gets or sets the sure name.
     /// </summary>
     [JsonPropertyName("lastName")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? LastName { get; set; }
+    public string? LastName { get; init; }
 }

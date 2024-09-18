@@ -282,10 +282,12 @@ public class PartiesClient : IV1PartyService
 
             if (includeNameComponents && party.Person != null)
             {
-                partyName.PersonNameComponents ??= new();
-                partyName.PersonNameComponents.LastName = party.Person.LastName;
-                partyName.PersonNameComponents.FirstName = party.Person.FirstName;
-                partyName.PersonNameComponents.MiddleName = party.Person.MiddleName;
+                partyName.PersonNameComponents = new()
+                {
+                    LastName = party.Person.LastName,
+                    FirstName = party.Person.FirstName,
+                    MiddleName = party.Person.MiddleName
+                };
             }
 
             _memoryCache.Set(cacheKey, partyName, new TimeSpan(0, _cacheTimeoutForPartyNames, 0));
