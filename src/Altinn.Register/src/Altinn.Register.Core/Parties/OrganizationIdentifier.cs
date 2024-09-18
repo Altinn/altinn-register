@@ -1,4 +1,4 @@
-using System.Buffers;
+﻿using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -97,13 +97,12 @@ public sealed class OrganizationIdentifier
         static bool IsValidOrganizationIdentifier(ReadOnlySpan<char> s)
         {
             ReadOnlySpan<ushort> chars = MemoryMarshal.Cast<char, ushort>(s);
-            ReadOnlySpan<ushort> weights = [3, 2, 7, 6, 5, 4, 3, 2];
+            Vector128<ushort> weights = Vector128.Create((ushort)3, 2, 7, 6, 5, 4, 3, 2);
 
             Vector128<ushort> zeroDigit = Vector128.Create('0', '0', '0', '0', '0', '0', '0', '0');
-            ref readonly Vector128<ushort> charsVec = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<ushort, Vector128<ushort>>(chars));
-            ref readonly Vector128<ushort> weightsVec = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<ushort, Vector128<ushort>>(weights));
+            Vector128<ushort> charsVec = Vector128.Create(chars);
 
-            var sum = Vector128.Sum((charsVec - zeroDigit) * weightsVec);
+            var sum = Vector128.Sum((charsVec - zeroDigit) * weights);
 
             var ctrlDigit = 11 - (sum % 11);
             if (ctrlDigit == 11)
