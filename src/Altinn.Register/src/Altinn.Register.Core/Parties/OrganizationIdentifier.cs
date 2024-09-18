@@ -106,11 +106,6 @@ public sealed class OrganizationIdentifier
 
             var ctrlDigit = (11 - (sum % 11)) % 11;
 
-            if (ctrlDigit == 10)
-            {
-                return false;
-            }
-
             var currentDigit = chars[8] - '0';
             return currentDigit == ctrlDigit;
         }
