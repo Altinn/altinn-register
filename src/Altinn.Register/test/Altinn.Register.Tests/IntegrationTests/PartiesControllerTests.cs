@@ -435,20 +435,18 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
 
         await Task.WhenAll(loadTasks);
 
-        PartyNamesLookupResult expectedResult = new();
-        if (string.IsNullOrEmpty(nameComponentOption) || nameComponentOption == "?includeComponents=0")
+        PartyNamesLookupResult expectedResult = new()
         {
-            expectedResult.PartyNames = testPartyNames
-                .Where(e => socialSecurityNumbers.Contains(e.Ssn))
-                .Select(matchPartyName => new PartyName { Ssn = matchPartyName.Ssn, Name = matchPartyName.Name })
-                .ToList();
-        }
-        else if (nameComponentOption == "?includeComponents=1")
-        {
-            expectedResult.PartyNames = testPartyNames
-                .Where(e => socialSecurityNumbers.Contains(e.Ssn))
-                .ToList();
-        }
+            PartyNames = nameComponentOption switch
+            {
+                "?includeComponents=nameComponents" => testPartyNames.Where(e => socialSecurityNumbers.Contains(e.Ssn))
+                                                                     .ToList(),
+
+                _ => testPartyNames.Where(e => socialSecurityNumbers.Contains(e.Ssn))
+                                   .Select(matchPartyName => new PartyName { Ssn = matchPartyName.Ssn, Name = matchPartyName.Name })
+                                   .ToList(),
+            }
+        };
 
         PartyNamesLookup queryBody = new()
         {
@@ -507,8 +505,8 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         {
             { ["01039012345","01017512345"], null },
             { ["01039012345","01017512345"] , string.Empty },
-            { ["01039012345","01017512345"], "?includeComponents=0" },
-            { ["01039012345","01017512345"] , "?includeComponents=1" }
+            { ["01039012345","01017512345"], "?includeComponents=none" },
+            { ["01039012345","01017512345"] , "?includeComponents=nameComponents" }
         };
     }
 }
