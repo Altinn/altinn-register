@@ -436,7 +436,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         await Task.WhenAll(loadTasks);
 
         PartyNamesLookupResult expectedResult = new();
-        if (string.IsNullOrWhiteSpace(nameComponentOption) || nameComponentOption == "?includeComponents=0")
+        if (string.IsNullOrEmpty(nameComponentOption) || nameComponentOption == "?includeComponents=0")
         {
             expectedResult.PartyNames = testPartyNames
                 .Where(e => socialSecurityNumbers.Contains(e.Ssn))
