@@ -4,7 +4,6 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 
-using Altinn.Platform.Register.Enums;
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Configuration;
 using Altinn.Register.Tests.IntegrationTests.Utils;
@@ -404,24 +403,23 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
     /// <summary>
     /// Tests the PostPartyNamesLookup with valid input and verifies that the name components are correctly processed.
     /// </summary>
-    /// <param name="socialSecurityNumber">The Social Security Number.</param>
-    /// <param name="nameComponent">The name component.</param>
+    /// <param name="socialSecurityNumbers">The Social Security Numbers.</param>
+    /// <param name="nameComponentOption">Specifies whether to include or exclude name components</param>
     [Theory]
-    [MemberData(nameof(GetPartyLookupTestData))]
-    public async Task PostPartyNamesLookup_ValidInput_NameComponents_OK(string[] socialSecurityNumber, PartyComponentOptions nameComponent)
+    [MemberData(nameof(GetPartyLookupValidTestData))]
+    public async Task PostPartyNamesLookup_ValidInput_NameComponents_OK(string[] socialSecurityNumbers, string nameComponentOption)
     {
         // Arrange
         List<PartyName> testPartyNames = [];
         List<int> testPartyIds = [50012345, 50012347];
         Dictionary<string, int> testPartyIdsBySsn = [];
 
-        foreach (int testPartyId in testPartyIds)
+        var loadTasks = testPartyIds.Select(async testPartyId =>
         {
-            Party party = await TestDataLoader.Load<Party>(Convert.ToString(testPartyId));
-
+            Party party = await TestDataLoader.Load<Party>(testPartyId.ToString());
             testPartyIdsBySsn[party.SSN] = testPartyId;
 
-            testPartyNames.Add(new()
+            testPartyNames.Add(new PartyName
             {
                 Ssn = party.SSN,
                 Name = party.Name,
@@ -433,31 +431,28 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
                 }
                 : null
             });
+        });
+
+        await Task.WhenAll(loadTasks);
+
+        PartyNamesLookupResult expectedResult = new();
+        if (string.IsNullOrWhiteSpace(nameComponentOption) || nameComponentOption == "?includeComponents=0")
+        {
+            expectedResult.PartyNames = testPartyNames
+                .Where(e => socialSecurityNumbers.Contains(e.Ssn))
+                .Select(matchPartyName => new PartyName { Ssn = matchPartyName.Ssn, Name = matchPartyName.Name })
+                .ToList();
+        }
+        else if (nameComponentOption == "?includeComponents=1")
+        {
+            expectedResult.PartyNames = testPartyNames
+                .Where(e => socialSecurityNumbers.Contains(e.Ssn))
+                .ToList();
         }
 
-        List<PartyName> expectedPartyNames = [];
-        foreach (PartyName matchPartyName in testPartyNames.Where(e => socialSecurityNumber.Contains(e.Ssn)))
+        PartyNamesLookup queryBody = new()
         {
-            switch (nameComponent)
-            {
-                case PartyComponentOptions.None:
-                    expectedPartyNames.Add(new() { Ssn = matchPartyName.Ssn, Name = matchPartyName.Name });
-                    break;
-
-                case PartyComponentOptions.NameComponents:
-                    expectedPartyNames.Add(matchPartyName);
-                    break;
-            }
-        }
-
-        PartyNamesLookup queryParameters = new()
-        {
-            Parties = socialSecurityNumber.Select(ssn => new PartyLookup { Ssn = ssn }).ToList()
-        };
-
-        PartyNamesLookupResult expectedResult = new()
-        {
-            PartyNames = expectedPartyNames,
+            Parties = socialSecurityNumbers.Select(ssn => new PartyLookup { Ssn = ssn }).ToList()
         };
 
         int sblEndpointInvoked = 0;
@@ -466,52 +461,54 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         {
             sblRequest = request;
             sblEndpointInvoked++;
-            string ssn = JsonSerializer.Deserialize<string>(await request.Content!.ReadAsStringAsync(cancellationToken));
-            Party party = await TestDataLoader.Load<Party>(Convert.ToString(testPartyIdsBySsn[ssn]));
 
-            return new HttpResponseMessage() { Content = JsonContent.Create(party) };
+            string ssn = JsonSerializer.Deserialize<string>(await request.Content!.ReadAsStringAsync(cancellationToken));
+            Party matchParty = await TestDataLoader.Load<Party>(testPartyIdsBySsn[ssn].ToString());
+
+            return new HttpResponseMessage() { Content = JsonContent.Create(matchParty) };
         });
         _webApplicationFactorySetup.SblBridgeHttpMessageHandler = messageHandler;
 
         string token = PrincipalUtil.GetToken(1);
-
         HttpClient client = _webApplicationFactorySetup.GetTestServerClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        StringContent requestBody = new(JsonSerializer.Serialize(queryParameters), Encoding.UTF8, "application/json");
 
-        HttpRequestMessage testRequest = new(HttpMethod.Post, $"/register/api/v1/parties/nameslookup?includeComponents={nameComponent}") { Content = requestBody };
+        StringContent requestBody = new(JsonSerializer.Serialize(queryBody), Encoding.UTF8, "application/json");
 
-        testRequest.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
+        HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, $"/register/api/v1/parties/nameslookup{nameComponentOption}")
+        {
+            Content = requestBody
+        };
+        httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
         // Act
-        HttpResponseMessage response = await client.SendAsync(testRequest);
+        HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
         string responseContent = await response.Content.ReadAsStringAsync();
-
         PartyNamesLookupResult actualResult = JsonSerializer.Deserialize<PartyNamesLookupResult>(responseContent, options);
-        PartyNamesLookupResult actualResultFromCache = JsonSerializer.Deserialize<PartyNamesLookupResult>(responseContent, options);
 
         // Assert
         Assert.NotNull(sblRequest);
-        Assert.Equal(testPartyIds.Count, sblEndpointInvoked);
         Assert.Equal(HttpMethod.Post, sblRequest.Method);
-        Assert.EndsWith($"/lookupObject", sblRequest.RequestUri.ToString());
+        Assert.Equal(testPartyIds.Count, sblEndpointInvoked);
+        Assert.EndsWith("/lookupObject", sblRequest.RequestUri.ToString());
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         actualResult.Should().BeEquivalentTo(expectedResult);
-        actualResultFromCache.Should().BeEquivalentTo(expectedResult);
     }
 
     /// <summary>
-    /// Provides test data for testing party lookup functionality with different component options.
+    /// Provides valid test data for testing party lookup functionality using different component options.
     /// </summary>
-    /// <returns>A collection of test data, each containing a social security number and corresponding component option.</returns>
-    public static TheoryData<string[], PartyComponentOptions> GetPartyLookupTestData()
+    /// <returns>A collection of test data, each containing two social security numbers and corresponding component option.</returns>
+    public static TheoryData<string[], string> GetPartyLookupValidTestData()
     {
-        return new TheoryData<string[], PartyComponentOptions>
+        return new TheoryData<string[], string>
         {
-            { ["01039012345", "01017512345"], PartyComponentOptions.None },
-            { ["01039012345", "01017512345"], PartyComponentOptions.NameComponents }
+            { new[] { "01039012345", "01017512345" }, null },
+            { new[] { "01039012345", "01017512345" }, string.Empty },
+            { new[] { "01039012345", "01017512345" }, "?includeComponents=0" },
+            { new[] { "01039012345", "01017512345" }, "?includeComponents=1" }
         };
     }
 }
