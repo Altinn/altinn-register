@@ -505,10 +505,10 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
     {
         return new TheoryData<string[], string>
         {
-            { new[] { "01039012345", "01017512345" }, null },
-            { new[] { "01039012345", "01017512345" }, string.Empty },
-            { new[] { "01039012345", "01017512345" }, "?includeComponents=0" },
-            { new[] { "01039012345", "01017512345" }, "?includeComponents=1" }
+            { ["01039012345","01017512345"], null },
+            { ["01039012345","01017512345" ] , string.Empty },
+            { ["01039012345","01017512345" ], "?includeComponents=0" },
+            { ["01039012345","01017512345"] , "?includeComponents=1" }
         };
     }
 }
