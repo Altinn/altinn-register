@@ -401,6 +401,55 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
     }
 
     /// <summary>
+    /// Tests the PostPartyNamesLookup with invalid input and verifies that the appropriate error response is returned.
+    /// </summary>
+    /// <param name="socialSecurityNumbers">The Social Security Numbers.</param>
+    /// <param name="nameComponentOption">Specifies whether to include or exclude name components</param>
+    [Theory]
+    [MemberData(nameof(GetPartyLookupInvalidTestData))]
+    public async Task PostPartyNamesLookup_InvalidInput_BadRequest(string[] socialSecurityNumbers, string nameComponentOption)
+    {
+        // Arrange
+        PartyNamesLookup queryBody = new()
+        {
+            Parties = socialSecurityNumbers.Select(ssn => new PartyLookup { Ssn = ssn }).ToList()
+        };
+
+        int sblEndpointInvoked = 0;
+        HttpRequestMessage sblRequest = null;
+        DelegatingHandlerStub messageHandler = new((request, cancellationToken) =>
+        {
+            sblRequest = request;
+            sblEndpointInvoked++;
+
+            // Simulate an error response for invalid input
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest));
+        });
+        _webApplicationFactorySetup.SblBridgeHttpMessageHandler = messageHandler;
+
+        string token = PrincipalUtil.GetToken(1);
+        HttpClient client = _webApplicationFactorySetup.GetTestServerClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        StringContent requestBody = new(JsonSerializer.Serialize(queryBody), Encoding.UTF8, "application/json");
+
+        HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, $"/register/api/v1/parties/nameslookup{nameComponentOption}")
+        {
+            Content = requestBody
+        };
+        httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
+
+        // Act
+        HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+        string responseContent = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        Assert.Null(sblRequest);
+        Assert.Equal(0, sblEndpointInvoked);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    /// <summary>
     /// Tests the PostPartyNamesLookup with valid input and verifies that the name components are correctly processed.
     /// </summary>
     /// <param name="socialSecurityNumbers">The Social Security Numbers.</param>
@@ -504,9 +553,22 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         return new TheoryData<string[], string>
         {
             { ["01039012345","01017512345"], null },
-            { ["01039012345","01017512345"] , string.Empty },
+            { ["01039012345","01017512345"], string.Empty },
             { ["01039012345","01017512345"], "?includeComponents=none" },
-            { ["01039012345","01017512345"] , "?includeComponents=nameComponents" }
+            { ["01039012345","01017512345"], "?includeComponents=nameComponents" }
+        };
+    }
+
+    /// <summary>
+    /// Provides invalid test data for testing party lookup functionality.
+    /// </summary>
+    /// <returns>A collection of test data, each containing two social security numbers and invalid component option.</returns>
+    public static TheoryData<string[], string> GetPartyLookupInvalidTestData()
+    {
+        return new TheoryData<string[], string>
+        {
+            { ["01039012345","01017512345"], "?includeComponents=" },
+            { ["01039012345","01017512345"], "?includeComponents=non-existent" },
         };
     }
 }
