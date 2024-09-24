@@ -6,17 +6,16 @@
 public static class SpanExtensions
 {
     /// <summary>
-    /// Splits a span of characters by a separator.
+    /// Splits a read-only span of characters into substrings based on a specified separator character.
     /// </summary>
-    /// <param name="span">The span.</param>
-    /// <param name="separator">The separator character.</param>
-    /// <param name="options">Optional string split options.</param>
-    /// <returns>An enumerable over the subslices of the string span.</returns>
-    public static StringSplitEnumerable Split(this ReadOnlySpan<char> span, char separator, StringSplitOptions options = StringSplitOptions.None)
-        => new(span, separator, options);
+    /// <param name="span">The read-only span of characters to split.</param>
+    /// <param name="separator">The character used to separate the span into substrings.</param>
+    /// <param name="options">Optional string split options that determine whether to trim entries and/or remove empty entries.</param>
+    /// <returns>An enumerable that iterates over the substrings of the span.</returns>
+    public static StringSplitEnumerable Split(this ReadOnlySpan<char> span, char separator, StringSplitOptions options = StringSplitOptions.None) => new(span, separator, options);
 
     /// <summary>
-    /// An enumerable of subspans of a string, split by a separator.
+    /// Provides an enumerable that iterates over segments of a read-only span of characters, split by a specified separator.
     /// </summary>
     public readonly ref struct StringSplitEnumerable
     {
@@ -41,7 +40,7 @@ public static class SpanExtensions
         public Enumerator GetEnumerator() => new(_span, _separator, _options);
 
         /// <summary>
-        /// An enumerator of subspans of a string, split by a separator.
+        /// Provides an enumerator that iterates over segments of a read-only span of characters, split by a specified separator.
         /// </summary>
         public ref struct Enumerator
         {
@@ -110,7 +109,7 @@ public static class SpanExtensions
             }
 
             /// <inheritdoc cref="IEnumerator{T}.Current"/>
-            public ReadOnlySpan<char> Current => _current;
+            public readonly ReadOnlySpan<char> Current => _current;
         }
     }
 }
