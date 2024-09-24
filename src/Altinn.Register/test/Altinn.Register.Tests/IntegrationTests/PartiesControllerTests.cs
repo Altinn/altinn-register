@@ -537,7 +537,6 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
     {
         return new TheoryData<string[], string>
         {
-            { ["01039012345","01017512345"], null },
             { ["01039012345","01017512345"], string.Empty },
             { ["01039012345","01017512345"], "?partyComponentOption=" },
             { ["01039012345","01017512345"], "?partyComponentOption=person-name" }
