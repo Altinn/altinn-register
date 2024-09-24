@@ -68,7 +68,13 @@ public static class SpanExtensions
                 _current = default;
             }
 
-            /// <inheritdoc cref="IEnumerator.MoveNext"/>
+            /// <summary>
+            /// Advances the enumerator to the next element of the span split by the separator.
+            /// </summary>
+            /// <returns>
+            /// <c>true</c> if the enumerator was successfully advanced to the next element; 
+            /// <c>false</c> if the enumerator has passed the end of the span.
+            /// </returns>
             public bool MoveNext()
             {
                 while (_notEnded)
