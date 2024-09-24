@@ -48,7 +48,7 @@ public interface IV1PartyService
     /// <param name="partyComponentOption">Specifies the components that should be included when retrieving party's information.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>An async enumerable of <see cref="V1Models.PartyName"/>.</returns>
-    IAsyncEnumerable<PartyName> LookupPartyNames(IEnumerable<PartyLookup> lookupValues, PartyComponentOptions partyComponentOption, CancellationToken cancellationToken = default);
+    IAsyncEnumerable<V1Models.PartyName> LookupPartyNames(IEnumerable<PartyLookup> lookupValues, PartyComponentOptions partyComponentOption, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get parties by party ids.
