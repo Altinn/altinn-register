@@ -16,10 +16,12 @@ public abstract class SchemaFilter<T> : ISchemaFilter
         ArgumentNullException.ThrowIfNull(schema);
         ArgumentNullException.ThrowIfNull(context);
 
-        if (context.Type is T)
+        if (context.Type != typeof(T))
         {
-            Apply(schema, context);
+            return;
         }
+
+        Apply(schema, context);
     }
 
     /// <summary>

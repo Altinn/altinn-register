@@ -124,7 +124,7 @@ internal static class RegisterHost
             }
 
             c.SupportNonNullableReferenceTypes();
-            c.SchemaFilter<AccessListIncludesSchemaFilter>();
+            c.SchemaFilter<PartyComponentOptionSchemaFilter>();
 
             var originalIdSelector = c.SchemaGeneratorOptions.SchemaIdSelector;
             c.SchemaGeneratorOptions.SchemaIdSelector = (Type t) =>

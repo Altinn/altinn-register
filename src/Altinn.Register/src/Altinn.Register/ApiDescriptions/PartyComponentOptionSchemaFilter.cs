@@ -11,7 +11,7 @@ namespace Altinn.Register.ApiDescriptions;
 /// <summary>
 /// Schema filter for <see cref="PartyComponentOption"/>.
 /// </summary>
-public sealed class AccessListIncludesSchemaFilter
+public sealed class PartyComponentOptionSchemaFilter
     : SchemaFilter<PartyComponentOption>
 {
     /// <inheritdoc/>
