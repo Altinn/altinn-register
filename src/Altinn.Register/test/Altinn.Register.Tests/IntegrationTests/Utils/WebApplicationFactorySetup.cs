@@ -34,6 +34,7 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
 
         public WebApplicationFactorySetup()
         {
+            _webApplicationFactory = new WebApplicationFactory<Program>();
         }
 
         public WebApplicationFactorySetup(WebApplicationFactory<Program> webApplicationFactory)
