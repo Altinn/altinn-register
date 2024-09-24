@@ -2,15 +2,18 @@
 
 using System.Diagnostics;
 using System.Security.Claims;
-using Altinn.Platform.Register.Enums;
+
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Extensions;
 using Altinn.Register.Models;
 using Altinn.Register.Services.Interfaces;
+
 using AltinnCore.Authentication.Constants;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+
 using V1Models = Altinn.Platform.Register.Models;
 
 namespace Altinn.Register.Controllers
@@ -156,7 +159,7 @@ namespace Altinn.Register.Controllers
         /// Perform a name lookup for the list of parties for the provided ids.
         /// </summary>
         /// <param name="partyNamesLookup">A list of lookup criteria. For each criteria, one and only one of the properties must be a valid value.</param>
-        /// <param name="includeComponents">Specifies which party components to include in the result.</param>
+        /// <param name="partyComponentOption">Specifies the components that should be included when retrieving party's information.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The identified party names for the corresponding identifiers.</returns>
         [HttpPost("nameslookup")]
@@ -167,7 +170,7 @@ namespace Altinn.Register.Controllers
         [Produces("application/json")]
         public async Task<ActionResult<PartyNamesLookupResult>> PostPartyNamesLookup(
             [FromBody] PartyNamesLookup partyNamesLookup,
-            [FromQuery] PartyComponentOptions includeComponents = PartyComponentOptions.None,
+            [FromQuery] PartyComponentOption partyComponentOption = PartyComponentOption.None,
             CancellationToken cancellationToken = default)
         {
             if (partyNamesLookup.Parties is null or { Count: 0 })
@@ -178,7 +181,7 @@ namespace Altinn.Register.Controllers
                 });
             }
 
-            List<PartyName> items = await _partyClient.LookupPartyNames(partyNamesLookup.Parties, includeComponents, cancellationToken).ToListAsync(cancellationToken);
+            List<PartyName> items = await _partyClient.LookupPartyNames(partyNamesLookup.Parties, partyComponentOption, cancellationToken).ToListAsync(cancellationToken);
             var partyNamesLookupResult = new PartyNamesLookupResult
             {
                 PartyNames = items

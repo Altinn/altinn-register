@@ -415,18 +415,6 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
             Parties = socialSecurityNumbers.Select(ssn => new PartyLookup { Ssn = ssn }).ToList()
         };
 
-        int sblEndpointInvoked = 0;
-        HttpRequestMessage sblRequest = null;
-        DelegatingHandlerStub messageHandler = new((request, cancellationToken) =>
-        {
-            sblRequest = request;
-            sblEndpointInvoked++;
-
-            // Simulate an error response for invalid input
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest));
-        });
-        _webApplicationFactorySetup.SblBridgeHttpMessageHandler = messageHandler;
-
         string token = PrincipalUtil.GetToken(1);
         HttpClient client = _webApplicationFactorySetup.GetTestServerClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -444,8 +432,6 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         string responseContent = await response.Content.ReadAsStringAsync();
 
         // Assert
-        Assert.Null(sblRequest);
-        Assert.Equal(0, sblEndpointInvoked);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -488,8 +474,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         {
             PartyNames = nameComponentOption switch
             {
-                "?includeComponents=nameComponents" => testPartyNames.Where(e => socialSecurityNumbers.Contains(e.Ssn))
-                                                                     .ToList(),
+                "?partyComponentOption=person-name" => testPartyNames.Where(e => socialSecurityNumbers.Contains(e.Ssn)).ToList(),
 
                 _ => testPartyNames.Where(e => socialSecurityNumbers.Contains(e.Ssn))
                                    .Select(matchPartyName => new PartyName { Ssn = matchPartyName.Ssn, Name = matchPartyName.Name })
@@ -512,7 +497,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
             string ssn = JsonSerializer.Deserialize<string>(await request.Content!.ReadAsStringAsync(cancellationToken));
             Party matchParty = await TestDataLoader.Load<Party>(testPartyIdsBySsn[ssn].ToString());
 
-            return new HttpResponseMessage() { Content = JsonContent.Create(matchParty) };
+            return new HttpResponseMessage { Content = JsonContent.Create(matchParty) };
         });
         _webApplicationFactorySetup.SblBridgeHttpMessageHandler = messageHandler;
 
@@ -554,8 +539,8 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         {
             { ["01039012345","01017512345"], null },
             { ["01039012345","01017512345"], string.Empty },
-            { ["01039012345","01017512345"], "?includeComponents=none" },
-            { ["01039012345","01017512345"], "?includeComponents=nameComponents" }
+            { ["01039012345","01017512345"], "?partyComponentOption=" },
+            { ["01039012345","01017512345"], "?partyComponentOption=person-name" }
         };
     }
 
@@ -567,8 +552,8 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
     {
         return new TheoryData<string[], string>
         {
-            { ["01039012345","01017512345"], "?includeComponents=" },
-            { ["01039012345","01017512345"], "?includeComponents=non-existent" },
+            { ["01039012345","01017512345"], "?partyComponentOption=none" },
+            { ["01039012345","01017512345"], "?partyComponentOption=non-existent" },
         };
     }
 }

@@ -1,8 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
-using Altinn.Platform.Register.Enums;
-
 namespace Altinn.Platform.Register.Models;
 
 /// <summary>

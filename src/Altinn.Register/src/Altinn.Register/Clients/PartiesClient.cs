@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 
-using Altinn.Platform.Register.Enums;
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Configuration;
 using Altinn.Register.Core.Parties;
@@ -13,6 +12,7 @@ using Altinn.Register.Extensions;
 
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
+
 using V1Models = Altinn.Platform.Register.Models;
 
 namespace Altinn.Register.Clients;
@@ -201,9 +201,9 @@ public class PartiesClient : IV1PartyService
         => GetPartiesById(partyIds, fetchSubUnits: false, cancellationToken);
 
     /// <inheritdoc />
-    public IAsyncEnumerable<PartyName> LookupPartyNames(IEnumerable<PartyLookup> lookupValues, PartyComponentOptions includeComponents, CancellationToken cancellationToken = default)
+    public IAsyncEnumerable<PartyName> LookupPartyNames(IEnumerable<PartyLookup> lookupValues, PartyComponentOption partyComponentOption, CancellationToken cancellationToken = default)
     {
-        return RunInParallel(lookupValues, includeComponents, ProcessPartyLookupAsync, cancellationToken);
+        return RunInParallel(lookupValues, partyComponentOption, ProcessPartyLookupAsync, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -232,7 +232,7 @@ public class PartiesClient : IV1PartyService
         _logger.LogError("Getting parties information from bridge failed with {StatusCode}", response.StatusCode);
     }
 
-    private async Task<PartyName> ProcessPartyLookupAsync(PartyLookup partyLookup, PartyComponentOptions includeComponents, CancellationToken cancellationToken)
+    private async Task<PartyName> ProcessPartyLookupAsync(PartyLookup partyLookup, PartyComponentOption partyComponentOption, CancellationToken cancellationToken)
     {
         Debug.Assert(!string.IsNullOrEmpty(partyLookup.Ssn) || !string.IsNullOrEmpty(partyLookup.OrgNo));
 
@@ -242,7 +242,7 @@ public class PartiesClient : IV1PartyService
 
         PartyName? partyName = await GetOrAddPartyNameToCacheAsync(lookupValue, cacheKey, cancellationToken);
 
-        bool includePersonName = includeComponents.HasFlag(PartyComponentOptions.NameComponents);
+        bool includePersonName = partyComponentOption.HasFlag(PartyComponentOption.NameComponents);
 
         return new PartyName
         {
@@ -299,11 +299,11 @@ public class PartiesClient : IV1PartyService
 
     private static async IAsyncEnumerable<TResult> RunInParallel<TIn, TResult>(
         IEnumerable<TIn> input,
-        PartyComponentOptions includeComponents,
-        Func<TIn, PartyComponentOptions, CancellationToken, Task<TResult>> func,
+        PartyComponentOption partyComponentOption,
+        Func<TIn, PartyComponentOption, CancellationToken, Task<TResult>> func,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var tasks = input.Select(i => func(i, includeComponents, cancellationToken)).ToList();
+        var tasks = input.Select(i => func(i, partyComponentOption, cancellationToken)).ToList();
 
         while (tasks.Count > 0)
         {

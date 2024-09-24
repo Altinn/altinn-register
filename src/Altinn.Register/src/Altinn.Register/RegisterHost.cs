@@ -1,22 +1,29 @@
 ﻿using System.Text.Json.Serialization;
+
 using Altinn.Authorization.ServiceDefaults;
 using Altinn.Common.AccessToken;
 using Altinn.Common.AccessToken.Configuration;
 using Altinn.Common.AccessToken.Services;
 using Altinn.Common.PEP.Authorization;
+using Altinn.Register.ApiDescriptions;
 using Altinn.Register.Authorization;
 using Altinn.Register.Clients;
 using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Configuration;
 using Altinn.Register.Core;
 using Altinn.Register.Core.Parties;
+using Altinn.Register.Extensions;
+using Altinn.Register.ModelBinding;
 using Altinn.Register.Services;
 using Altinn.Register.Services.Implementation;
 using Altinn.Register.Services.Interfaces;
+
 using AltinnCore.Authentication.JwtCookie;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+
 using OpenTelemetry.Trace;
 
 namespace Altinn.Register;
@@ -38,7 +45,10 @@ internal static class RegisterHost
 
         services.AddMemoryCache();
 
-        services.AddControllers().AddJsonOptions(options =>
+        services.AddControllers().AddMvcOptions(opt =>
+        {
+            opt.ModelBinderProviders.InsertSingleton<PartyComponentOptionModelBinder>(0);
+        }).AddJsonOptions(options =>
         {
             options.JsonSerializerOptions.WriteIndented = true;
             options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
@@ -85,11 +95,11 @@ internal static class RegisterHost
           });
 
         services.AddAuthorizationBuilder()
-            .AddPolicy("PlatformAccess", policy => 
+            .AddPolicy("PlatformAccess", policy =>
                 policy.Requirements.Add(new AccessTokenRequirement()))
             .AddPolicy("AuthorizationLevel2", policy =>
                 policy.RequireClaim(AltinnCore.Authentication.Constants.AltinnCoreClaimTypes.AuthenticationLevel, "2", "3", "4"))
-            .AddPolicy("InternalOrPlatformAccess", policy => 
+            .AddPolicy("InternalOrPlatformAccess", policy =>
                 policy.Requirements.Add(new InternalScopeOrAccessTokenRequirement("altinn:register/partylookup.admin")));
 
         services.AddHttpClient<IOrganizationClient, OrganizationClient>();
@@ -114,6 +124,7 @@ internal static class RegisterHost
             }
 
             c.SupportNonNullableReferenceTypes();
+            c.SchemaFilter<AccessListIncludesSchemaFilter>();
 
             var originalIdSelector = c.SchemaGeneratorOptions.SchemaIdSelector;
             c.SchemaGeneratorOptions.SchemaIdSelector = (Type t) =>
