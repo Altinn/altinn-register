@@ -170,7 +170,7 @@ namespace Altinn.Register.Controllers
         [Produces("application/json")]
         public async Task<ActionResult<PartyNamesLookupResult>> PostPartyNamesLookup(
             [FromBody] PartyNamesLookup partyNamesLookup,
-            [FromQuery] PartyComponentOption partyComponentOption = PartyComponentOption.None,
+            [FromQuery] PartyComponentOptions partyComponentOption = PartyComponentOptions.None,
             CancellationToken cancellationToken = default)
         {
             if (partyNamesLookup.Parties is null or { Count: 0 })

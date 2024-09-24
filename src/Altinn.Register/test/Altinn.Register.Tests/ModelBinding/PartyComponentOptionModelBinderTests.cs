@@ -20,8 +20,8 @@ public class PartyComponentOptionModelBinderTests
     }
 
     [Theory]
-    [InlineData("includeComponents=person-name", PartyComponentOption.NameComponents)]
-    public async Task BindModelAsync_ValidQueries(string query, PartyComponentOption expected)
+    [InlineData("includeComponents=person-name", PartyComponentOptions.NameComponents)]
+    public async Task BindModelAsync_ValidQueries(string query, PartyComponentOptions expected)
     {
         var client = _factory.CreateClient();
 
@@ -35,7 +35,7 @@ public class PartyComponentOptionModelBinderTests
     public class TestController : ControllerBase
     {
         [HttpGet("/query")]
-        public IActionResult Query([FromQuery(Name = "includeComponents")] PartyComponentOption accessListIncludes)
+        public IActionResult Query([FromQuery(Name = "includeComponents")] PartyComponentOptions accessListIncludes)
         {
             return Ok((uint)accessListIncludes);
         }

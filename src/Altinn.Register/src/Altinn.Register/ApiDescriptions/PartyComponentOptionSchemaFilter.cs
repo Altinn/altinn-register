@@ -9,10 +9,10 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 namespace Altinn.Register.ApiDescriptions;
 
 /// <summary>
-/// Schema filter for <see cref="PartyComponentOption"/>.
+/// Schema filter for <see cref="PartyComponentOptions"/>.
 /// </summary>
 public sealed class PartyComponentOptionSchemaFilter
-    : SchemaFilter<PartyComponentOption>
+    : SchemaFilter<PartyComponentOptions>
 {
     /// <inheritdoc/>
     protected override void Apply(OpenApiSchema schema, SchemaFilterContext context)

@@ -4,7 +4,7 @@
 /// Specifies the components that should be included when retrieving party's information.
 /// </summary>
 [Flags]
-public enum PartyComponentOption : uint
+public enum PartyComponentOptions : uint
 {
     /// <summary>
     /// No additional components are included.

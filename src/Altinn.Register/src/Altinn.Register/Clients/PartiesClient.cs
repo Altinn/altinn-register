@@ -201,7 +201,7 @@ public class PartiesClient : IV1PartyService
         => GetPartiesById(partyIds, fetchSubUnits: false, cancellationToken);
 
     /// <inheritdoc />
-    public IAsyncEnumerable<PartyName> LookupPartyNames(IEnumerable<PartyLookup> lookupValues, PartyComponentOption partyComponentOption, CancellationToken cancellationToken = default)
+    public IAsyncEnumerable<PartyName> LookupPartyNames(IEnumerable<PartyLookup> lookupValues, PartyComponentOptions partyComponentOption, CancellationToken cancellationToken = default)
     {
         return RunInParallel(lookupValues, partyComponentOption, ProcessPartyLookupAsync, cancellationToken);
     }
@@ -232,7 +232,7 @@ public class PartiesClient : IV1PartyService
         _logger.LogError("Getting parties information from bridge failed with {StatusCode}", response.StatusCode);
     }
 
-    private async Task<PartyName> ProcessPartyLookupAsync(PartyLookup partyLookup, PartyComponentOption partyComponentOption, CancellationToken cancellationToken)
+    private async Task<PartyName> ProcessPartyLookupAsync(PartyLookup partyLookup, PartyComponentOptions partyComponentOption, CancellationToken cancellationToken)
     {
         Debug.Assert(!string.IsNullOrEmpty(partyLookup.Ssn) || !string.IsNullOrEmpty(partyLookup.OrgNo));
 
@@ -242,7 +242,7 @@ public class PartiesClient : IV1PartyService
 
         PartyName? partyName = await GetOrAddPartyNameToCacheAsync(lookupValue, cacheKey, cancellationToken);
 
-        bool includePersonName = partyComponentOption.HasFlag(PartyComponentOption.NameComponents);
+        bool includePersonName = partyComponentOption.HasFlag(PartyComponentOptions.NameComponents);
 
         return new PartyName
         {
@@ -299,8 +299,8 @@ public class PartiesClient : IV1PartyService
 
     private static async IAsyncEnumerable<TResult> RunInParallel<TIn, TResult>(
         IEnumerable<TIn> input,
-        PartyComponentOption partyComponentOption,
-        Func<TIn, PartyComponentOption, CancellationToken, Task<TResult>> func,
+        PartyComponentOptions partyComponentOption,
+        Func<TIn, PartyComponentOptions, CancellationToken, Task<TResult>> func,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var tasks = input.Select(i => func(i, partyComponentOption, cancellationToken)).ToList();
