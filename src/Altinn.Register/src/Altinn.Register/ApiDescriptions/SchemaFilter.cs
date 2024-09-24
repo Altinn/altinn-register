@@ -1,4 +1,6 @@
-﻿using Microsoft.OpenApi.Models;
+﻿using CommunityToolkit.Diagnostics;
+
+using Microsoft.OpenApi.Models;
 
 using Swashbuckle.AspNetCore.SwaggerGen;
 
@@ -13,8 +15,8 @@ public abstract class SchemaFilter<T> : ISchemaFilter
     /// <inheritdoc/>
     void ISchemaFilter.Apply(OpenApiSchema schema, SchemaFilterContext context)
     {
-        ArgumentNullException.ThrowIfNull(schema);
-        ArgumentNullException.ThrowIfNull(context);
+        Guard.IsNotNull(schema);
+        Guard.IsNotNull(context);
 
         if (context.Type != typeof(T))
         {
@@ -25,7 +27,7 @@ public abstract class SchemaFilter<T> : ISchemaFilter
     }
 
     /// <summary>
-    /// Applies the schema filter to the given schema.
+    /// Applies the schema filter to the given schema if the context type matches the specified type <typeparamref name="T"/>.
     /// </summary>
     /// <param name="schema">The schema to apply the filter to.</param>
     /// <param name="context">The context in which the schema is being applied.</param>
