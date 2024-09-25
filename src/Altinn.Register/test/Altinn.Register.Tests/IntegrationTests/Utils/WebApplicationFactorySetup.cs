@@ -1,3 +1,7 @@
+#nullable enable
+
+using System.Diagnostics.CodeAnalysis;
+
 using Altinn.Common.AccessToken.Services;
 using Altinn.Register.Clients;
 using Altinn.Register.Clients.Interfaces;
@@ -8,10 +12,14 @@ using Altinn.Register.Tests.Mocks.Authentication;
 
 using AltinnCore.Authentication.JwtCookie;
 
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -20,8 +28,14 @@ using Moq;
 namespace Altinn.Register.Tests.IntegrationTests.Utils
 {
     public class WebApplicationFactorySetup
+        : WebApplicationFactory<WebApplicationFactorySetup>
     {
         private readonly WebApplicationFactory<Program> _webApplicationFactory;
+
+        public WebApplicationFactorySetup()
+        {
+            _webApplicationFactory = new WebApplicationFactory<Program>();
+        }
 
         public WebApplicationFactorySetup(WebApplicationFactory<Program> webApplicationFactory)
         {
@@ -70,6 +84,101 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
                             OrganizationsClientsLogger.Object));
                 });
             }).CreateClient();
+        }
+
+        protected virtual WebApplicationBuilder CreateWebApplicationBuilder()
+        {
+            var partManager = new ApplicationPartManager();
+            ConfigureApplicationParts(partManager);
+
+            var builder = WebApplication.CreateBuilder();
+            builder.Services.AddSingleton(partManager);
+
+            return builder;
+        }
+
+        protected virtual WebApplication CreateWebApplication(WebApplicationBuilder builder)
+            => builder.Build();
+
+        protected virtual void ConfigureWebApplication(WebApplication app)
+        {
+        }
+
+        protected virtual void ConfigureApplicationParts(ApplicationPartManager partManager)
+        {
+        }
+
+        protected sealed override IHostBuilder? CreateHostBuilder()
+            => new TestHostBuilderWrapper(CreateWebApplicationBuilder());
+
+        protected sealed override IHost CreateHost(IHostBuilder builder)
+        {
+            var appBuilder = ((TestHostBuilderWrapper)builder).Builder;
+            var app = CreateWebApplication(appBuilder);
+
+            ConfigureWebApplication(app);
+            app.Start();
+
+            return app;
+        }
+
+        private class TestHostBuilderWrapper(WebApplicationBuilder builder)
+            : IHostBuilder
+        {
+            public IDictionary<object, object> Properties => builder.Host.Properties;
+
+            internal WebApplicationBuilder Builder => builder;
+
+            IHost IHostBuilder.Build()
+            {
+                throw new NotSupportedException();
+            }
+
+            [SuppressMessage("Usage", "ASP0013:Suggest switching from using Configure methods to WebApplicationBuilder.Configuration", Justification = "Forwarding interface")]
+            public IHostBuilder ConfigureAppConfiguration(Action<HostBuilderContext, IConfigurationBuilder> configureDelegate)
+            {
+                builder.Host.ConfigureAppConfiguration(configureDelegate);
+
+                return this;
+            }
+
+            public IHostBuilder ConfigureContainer<TContainerBuilder>(Action<HostBuilderContext, TContainerBuilder> configureDelegate)
+            {
+                builder.Host.ConfigureContainer(configureDelegate);
+
+                return this;
+            }
+
+            [SuppressMessage("Usage", "ASP0013:Suggest switching from using Configure methods to WebApplicationBuilder.Configuration", Justification = "Forwarding interface")]
+            public IHostBuilder ConfigureHostConfiguration(Action<IConfigurationBuilder> configureDelegate)
+            {
+                builder.Host.ConfigureHostConfiguration(configureDelegate);
+
+                return this;
+            }
+
+            public IHostBuilder ConfigureServices(Action<HostBuilderContext, IServiceCollection> configureDelegate)
+            {
+                builder.Host.ConfigureServices(configureDelegate);
+
+                return this;
+            }
+
+            public IHostBuilder UseServiceProviderFactory<TContainerBuilder>(IServiceProviderFactory<TContainerBuilder> factory)
+                where TContainerBuilder : notnull
+            {
+                builder.Host.UseServiceProviderFactory(factory);
+
+                return this;
+            }
+
+            public IHostBuilder UseServiceProviderFactory<TContainerBuilder>(Func<HostBuilderContext, IServiceProviderFactory<TContainerBuilder>> factory)
+                where TContainerBuilder : notnull
+            {
+                builder.Host.UseServiceProviderFactory(factory);
+
+                return this;
+            }
         }
     }
 }

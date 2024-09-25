@@ -9,6 +9,7 @@ using Altinn.Register.Configuration;
 using Altinn.Register.Tests.IntegrationTests.Utils;
 using Altinn.Register.Tests.Mocks;
 using Altinn.Register.Tests.Utils;
+
 using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Altinn.Register.Tests.IntegrationTests;
@@ -50,7 +51,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
             {
                 partyList.Add(await TestDataLoader.Load<Party>(id.ToString()));
             }
-            
+
             return new HttpResponseMessage() { Content = JsonContent.Create(partyList) };
         });
         _webApplicationFactorySetup.SblBridgeHttpMessageHandler = messageHandler;
@@ -397,5 +398,161 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         Assert.EndsWith($"/lookupObject", sblRequest.RequestUri.ToString());
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         actualResult.Should().BeEquivalentTo(expectedResult);
+    }
+
+    /// <summary>
+    /// Tests the PostPartyNamesLookup with invalid input and verifies that the appropriate error response is returned.
+    /// </summary>
+    /// <param name="socialSecurityNumbers">The Social Security Numbers.</param>
+    /// <param name="nameComponentOption">Specifies whether to include or exclude name components</param>
+    [Theory]
+    [MemberData(nameof(GetPartyLookupInvalidTestData))]
+    public async Task PostPartyNamesLookup_InvalidInput_BadRequest(string[] socialSecurityNumbers, string nameComponentOption)
+    {
+        // Arrange
+        PartyNamesLookup queryBody = new()
+        {
+            Parties = socialSecurityNumbers.Select(ssn => new PartyLookup { Ssn = ssn }).ToList()
+        };
+
+        string token = PrincipalUtil.GetToken(1);
+        HttpClient client = _webApplicationFactorySetup.GetTestServerClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        StringContent requestBody = new(JsonSerializer.Serialize(queryBody), Encoding.UTF8, "application/json");
+
+        HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, $"/register/api/v1/parties/nameslookup{nameComponentOption}")
+        {
+            Content = requestBody
+        };
+        httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
+
+        // Act
+        HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+        string responseContent = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    /// <summary>
+    /// Tests the PostPartyNamesLookup with valid input and verifies that the name components are correctly processed.
+    /// </summary>
+    /// <param name="socialSecurityNumbers">The Social Security Numbers.</param>
+    /// <param name="nameComponentOption">Specifies whether to include or exclude name components</param>
+    [Theory]
+    [MemberData(nameof(GetPartyLookupValidTestData))]
+    public async Task PostPartyNamesLookup_ValidInput_NameComponents_OK(string[] socialSecurityNumbers, string nameComponentOption)
+    {
+        // Arrange
+        List<PartyName> testPartyNames = [];
+        List<int> testPartyIds = [50012345, 50012347];
+        Dictionary<string, int> testPartyIdsBySsn = [];
+
+        var loadTasks = testPartyIds.Select(async testPartyId =>
+        {
+            Party party = await TestDataLoader.Load<Party>(testPartyId.ToString());
+            testPartyIdsBySsn[party.SSN] = testPartyId;
+
+            testPartyNames.Add(new PartyName
+            {
+                Ssn = party.SSN,
+                Name = party.Name,
+                PersonName = party.Person != null ? new PersonNameComponents
+                {
+                    FirstName = party.Person.FirstName,
+                    MiddleName = party.Person.MiddleName,
+                    LastName = party.Person.LastName
+                }
+                : null
+            });
+        });
+
+        await Task.WhenAll(loadTasks);
+
+        PartyNamesLookupResult expectedResult = new()
+        {
+            PartyNames = nameComponentOption switch
+            {
+                "?partyComponentOption=person-name" => testPartyNames.Where(e => socialSecurityNumbers.Contains(e.Ssn)).ToList(),
+
+                _ => testPartyNames.Where(e => socialSecurityNumbers.Contains(e.Ssn))
+                                   .Select(matchPartyName => new PartyName { Ssn = matchPartyName.Ssn, Name = matchPartyName.Name })
+                                   .ToList(),
+            }
+        };
+
+        PartyNamesLookup queryBody = new()
+        {
+            Parties = socialSecurityNumbers.Select(ssn => new PartyLookup { Ssn = ssn }).ToList()
+        };
+
+        int sblEndpointInvoked = 0;
+        HttpRequestMessage sblRequest = null;
+        DelegatingHandlerStub messageHandler = new(async (request, cancellationToken) =>
+        {
+            sblRequest = request;
+            sblEndpointInvoked++;
+
+            string ssn = JsonSerializer.Deserialize<string>(await request.Content!.ReadAsStringAsync(cancellationToken));
+            Party matchParty = await TestDataLoader.Load<Party>(testPartyIdsBySsn[ssn].ToString());
+
+            return new HttpResponseMessage { Content = JsonContent.Create(matchParty) };
+        });
+        _webApplicationFactorySetup.SblBridgeHttpMessageHandler = messageHandler;
+
+        string token = PrincipalUtil.GetToken(1);
+        HttpClient client = _webApplicationFactorySetup.GetTestServerClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        StringContent requestBody = new(JsonSerializer.Serialize(queryBody), Encoding.UTF8, "application/json");
+
+        HttpRequestMessage httpRequestMessage = new(HttpMethod.Post, $"/register/api/v1/parties/nameslookup{nameComponentOption}")
+        {
+            Content = requestBody
+        };
+        httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
+
+        // Act
+        HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+        string responseContent = await response.Content.ReadAsStringAsync();
+        PartyNamesLookupResult actualResult = JsonSerializer.Deserialize<PartyNamesLookupResult>(responseContent, options);
+
+        // Assert
+        Assert.NotNull(sblRequest);
+        Assert.Equal(HttpMethod.Post, sblRequest.Method);
+        Assert.Equal(testPartyIds.Count, sblEndpointInvoked);
+        Assert.EndsWith("/lookupObject", sblRequest.RequestUri.ToString());
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        actualResult.Should().BeEquivalentTo(expectedResult);
+    }
+
+    /// <summary>
+    /// Provides valid test data for testing party lookup functionality using different component options.
+    /// </summary>
+    /// <returns>A collection of test data, each containing two social security numbers and corresponding component option.</returns>
+    public static TheoryData<string[], string> GetPartyLookupValidTestData()
+    {
+        return new TheoryData<string[], string>
+        {
+            { ["01039012345","01017512345"], string.Empty },
+            { ["01039012345","01017512345"], "?partyComponentOption=" },
+            { ["01039012345","01017512345"], "?partyComponentOption=person-name" }
+        };
+    }
+
+    /// <summary>
+    /// Provides invalid test data for testing party lookup functionality.
+    /// </summary>
+    /// <returns>A collection of test data, each containing two social security numbers and invalid component option.</returns>
+    public static TheoryData<string[], string> GetPartyLookupInvalidTestData()
+    {
+        return new TheoryData<string[], string>
+        {
+            { ["01039012345","01017512345"], "?partyComponentOption=none" },
+            { ["01039012345","01017512345"], "?partyComponentOption=non-existent" },
+        };
     }
 }

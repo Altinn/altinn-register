@@ -7,7 +7,7 @@ namespace Altinn.Platform.Register.Models;
 /// Represents a lookup criteria when looking for a Party. Only one of the properties can be used at a time.
 /// If none or more than one property have a value the lookup operation will respond with bad request.
 /// </summary>
-public record PartyLookup 
+public record PartyLookup
     : IValidatableObject
 {
     /// <summary>

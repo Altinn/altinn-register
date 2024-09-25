@@ -20,8 +20,15 @@ public record PartyName
     public string? OrgNo { get; set; }
 
     /// <summary>
-    /// Gets or sets the party name for this result
+    /// Gets or sets the party name for this result.
     /// </summary>
     [JsonPropertyName("name")]
     public string? Name { get; set; }
+
+    /// <summary>
+    /// Gets or sets the components of a person's name for this result.
+    /// </summary>
+    [JsonPropertyName("personName")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public PersonNameComponents? PersonName { get; set; }
 }
