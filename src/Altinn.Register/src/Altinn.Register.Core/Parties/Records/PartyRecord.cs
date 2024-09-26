@@ -5,7 +5,7 @@ namespace Altinn.Register.Core.Parties.Records;
 /// <summary>
 /// A database record for a party.
 /// </summary>
-public class PartyRecord
+public record PartyRecord
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="PartyRecord"/> class.

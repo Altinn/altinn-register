@@ -1,4 +1,5 @@
-﻿using Altinn.Register.Core.Parties.Records;
+﻿using Altinn.Authorization.ProblemDetails;
+using Altinn.Register.Core.Parties.Records;
 
 namespace Altinn.Register.Core.Parties;
 
@@ -39,6 +40,16 @@ public interface IPartyPersistence
     public IAsyncEnumerable<PartyRecord> GetPartyById(
         int partyId,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Attempts to upsert a party.
+    /// </summary>
+    /// <param name="party">The party to upsert.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>The updated party.</returns>
+    public Task<Result<PartyRecord>> UpsertParty(
+        PartyRecord party,
         CancellationToken cancellationToken = default);
 
     /// <summary>

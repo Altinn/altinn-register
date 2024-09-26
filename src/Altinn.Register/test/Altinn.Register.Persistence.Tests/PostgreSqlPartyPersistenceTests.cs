@@ -1,10 +1,18 @@
 ﻿using System.Diagnostics;
+using System.Globalization;
+using System.Net.Mail;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Core.Utils;
 using FluentAssertions.Execution;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.Latency;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -474,6 +482,511 @@ public class PostgreSqlPartyPersistenceTests
         });
     }
 
+    #region Upsert Org
+
+    [Fact]
+    public async Task UpsertParty_Org_Inserts_New_Org()
+    {
+        var id = await GetNextPartyId();
+        var orgNo = await GetNewOrgNumber();
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new OrganizationRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            Name = "Test",
+            PersonIdentifier = null,
+            OrganizationIdentifier = orgNo,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            UnitStatus = "N",
+            UnitType = "AS",
+            TelephoneNumber = null,
+            MobileNumber = null,
+            FaxNumber = null,
+            EmailAddress = null,
+            InternetAddress = null,
+            MailingAddress = null,
+            BusinessAddress = null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        var inserted = result.Should().HaveValue().Which.Should().BeOfType<OrganizationRecord>().Which;
+        inserted.Should().BeEquivalentTo(toInsert);
+
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization).SingleAsync();
+        fromDb.Should().BeEquivalentTo(toInsert);
+    }
+
+    [Fact]
+    public async Task UpsertParty_Org_Updates_Name_And_Updated_And_OrgProps()
+    {
+        var id = await GetNextPartyId();
+        var orgNo = await GetNewOrgNumber();
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new OrganizationRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            Name = "Test",
+            PersonIdentifier = null,
+            OrganizationIdentifier = orgNo,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            UnitStatus = "N",
+            UnitType = "AS",
+            TelephoneNumber = null,
+            MobileNumber = null,
+            FaxNumber = null,
+            EmailAddress = null,
+            InternetAddress = null,
+            MailingAddress = null,
+            BusinessAddress = null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue();
+
+        TimeProvider.Advance(TimeSpan.FromDays(30));
+
+        var toUpdate = toInsert with
+        {
+            Name = "Test Updated",
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            UnitStatus = "U",
+            UnitType = "BEDR",
+            TelephoneNumber = "tel",
+            MobileNumber = "mob",
+            FaxNumber = "fax",
+            EmailAddress = "email",
+            InternetAddress = "internet",
+            MailingAddress = new MailingAddress { Address = "mailing", City = "mailing city", PostalCode = "0123" },
+            BusinessAddress = new MailingAddress { Address = "business", City = "business city", PostalCode = "0123" },
+        };
+
+        result = await Persistence.UpsertParty(toUpdate);
+        result.Should().HaveValue();
+
+        var expected = toUpdate with
+        {
+            CreatedAt = toInsert.CreatedAt, // created at should not change
+        };
+
+        var updated = result.Value.Should().BeOfType<OrganizationRecord>().Which;
+        updated.Should().BeEquivalentTo(expected);
+
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization).SingleAsync();
+        fromDb.Should().BeEquivalentTo(expected);
+    }
+
+    [Fact]
+    public async Task UpsertParty_Org_Cannot_Update_Id()
+    {
+        var id = await GetNextPartyId();
+        var orgNo = await GetNewOrgNumber();
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new OrganizationRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            Name = "Test",
+            PersonIdentifier = null,
+            OrganizationIdentifier = orgNo,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            UnitStatus = "N",
+            UnitType = "AS",
+            TelephoneNumber = null,
+            MobileNumber = null,
+            FaxNumber = null,
+            EmailAddress = null,
+            InternetAddress = null,
+            MailingAddress = null,
+            BusinessAddress = null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue();
+
+        TimeProvider.Advance(TimeSpan.FromDays(30));
+
+        var toUpdate = toInsert with
+        {
+            PartyId = id + 1,
+        };
+
+        result = await Persistence.UpsertParty(toUpdate);
+        result.Should().BeProblem(Problems.InvalidPartyUpdate.ErrorCode);
+        
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization).SingleAsync();
+        fromDb.Should().BeEquivalentTo(toInsert);
+    }
+
+    [Fact]
+    public async Task UpsertParty_Org_Cannot_Update_OrgNr()
+    {
+        var id = await GetNextPartyId();
+        var orgNo = await GetNewOrgNumber();
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new OrganizationRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            Name = "Test",
+            PersonIdentifier = null,
+            OrganizationIdentifier = orgNo,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            UnitStatus = "N",
+            UnitType = "AS",
+            TelephoneNumber = null,
+            MobileNumber = null,
+            FaxNumber = null,
+            EmailAddress = null,
+            InternetAddress = null,
+            MailingAddress = null,
+            BusinessAddress = null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue();
+
+        TimeProvider.Advance(TimeSpan.FromDays(30));
+
+        var toUpdate = toInsert with
+        {
+            OrganizationIdentifier = await GetNewOrgNumber(),
+        };
+
+        result = await Persistence.UpsertParty(toUpdate);
+        result.Should().BeProblem(Problems.InvalidPartyUpdate.ErrorCode);
+
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization).SingleAsync();
+        fromDb.Should().BeEquivalentTo(toInsert);
+    }
+
+    [Fact]
+    public async Task UpsertParty_Org_CannotInsert_WithSamePartyId()
+    {
+        var id = await GetNextPartyId();
+        var orgNo = await GetNewOrgNumber();
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new OrganizationRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            Name = "Test",
+            PersonIdentifier = null,
+            OrganizationIdentifier = orgNo,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            UnitStatus = "N",
+            UnitType = "AS",
+            TelephoneNumber = null,
+            MobileNumber = null,
+            FaxNumber = null,
+            EmailAddress = null,
+            InternetAddress = null,
+            MailingAddress = null,
+            BusinessAddress = null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue();
+
+        TimeProvider.Advance(TimeSpan.FromDays(30));
+
+        var uuid2 = Guid.NewGuid();
+        var toInsert2 = new OrganizationRecord
+        {
+            PartyUuid = uuid2,
+            PartyId = id,
+            Name = "Test",
+            PersonIdentifier = null,
+            OrganizationIdentifier = await GetNewOrgNumber(),
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            UnitStatus = "N",
+            UnitType = "AS",
+            TelephoneNumber = null,
+            MobileNumber = null,
+            FaxNumber = null,
+            EmailAddress = null,
+            InternetAddress = null,
+            MailingAddress = null,
+            BusinessAddress = null,
+        };
+
+        result = await Persistence.UpsertParty(toInsert2);
+        result.Should().BeProblem(Problems.PartyConflict.ErrorCode);
+
+        var fromDb = await Persistence.GetPartyById(uuid2, PartyFieldIncludes.Party | PartyFieldIncludes.Organization).ToListAsync();
+        fromDb.Should().BeEmpty();
+    }
+
+    #endregion
+
+    #region Upsert Person
+
+    [Fact]
+    public async Task UpsertParty_Org_Inserts_New_Person()
+    {
+        var id = await GetNextPartyId();
+        var birthDate = GetRandomBirthDate();
+        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var personId = await GetNewPersonIdentifier(birthDate, isDNumber);
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new PersonRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            Name = "Test Mid Testson",
+            PersonIdentifier = personId,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            FirstName = "Test",
+            MiddleName = "Mid",
+            LastName = "Testson",
+            Address = null,
+            MailingAddress = null,
+            DateOfBirth = birthDate,
+            DateOfDeath = FieldValue.Null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        var inserted = result.Should().HaveValue().Which.Should().BeOfType<PersonRecord>().Which;
+        inserted.Should().BeEquivalentTo(toInsert);
+
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person).SingleAsync();
+        fromDb.Should().BeEquivalentTo(toInsert);
+    }
+
+    [Fact]
+    public async Task UpsertParty_Person_Updates_Name_And_Updated_And_PersonProps()
+    {
+        var id = await GetNextPartyId();
+        var birthDate = GetRandomBirthDate();
+        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var personId = await GetNewPersonIdentifier(birthDate, isDNumber);
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new PersonRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            Name = "Test Mid Testson",
+            PersonIdentifier = personId,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            FirstName = "Test",
+            MiddleName = "Mid",
+            LastName = "Testson",
+            Address = null,
+            MailingAddress = null,
+            DateOfBirth = birthDate,
+            DateOfDeath = FieldValue.Null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue();
+
+        TimeProvider.Advance(TimeSpan.FromDays(30));
+
+        var toUpdate = toInsert with
+        {
+            Name = "Test Updated",
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            FirstName = "Test Updated",
+            MiddleName = "Mid Updated",
+            LastName = "Testson Updated",
+            Address = new StreetAddress
+            {
+                MunicipalName = "mn",
+                MunicipalNumber = "00",
+                HouseNumber = "50",
+                HouseLetter = "L",
+                City = "s",
+                PostalCode = "pc",
+                StreetName = "sn",
+            },
+            MailingAddress = new MailingAddress { Address = "mailing", City = "mailing city", PostalCode = "mailing postal code" },
+            DateOfBirth = birthDate.AddDays(10),
+            DateOfDeath = birthDate.AddDays(30),
+        };
+
+        result = await Persistence.UpsertParty(toUpdate);
+        result.Should().HaveValue();
+
+        var expected = toUpdate with
+        {
+            CreatedAt = toInsert.CreatedAt, // created at should not change
+        };
+
+        var updated = result.Value.Should().BeOfType<PersonRecord>().Which;
+        updated.Should().BeEquivalentTo(expected);
+
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person).SingleAsync();
+        fromDb.Should().BeEquivalentTo(expected);
+    }
+
+    [Fact]
+    public async Task UpsertParty_Person_Cannot_Update_Id()
+    {
+        var id = await GetNextPartyId();
+        var birthDate = GetRandomBirthDate();
+        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var personId = await GetNewPersonIdentifier(birthDate, isDNumber);
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new PersonRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            Name = "Test Mid Testson",
+            PersonIdentifier = personId,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            FirstName = "Test",
+            MiddleName = "Mid",
+            LastName = "Testson",
+            Address = null,
+            MailingAddress = null,
+            DateOfBirth = birthDate,
+            DateOfDeath = FieldValue.Null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue();
+
+        TimeProvider.Advance(TimeSpan.FromDays(30));
+
+        var toUpdate = toInsert with
+        {
+            PartyId = id + 1,
+        };
+
+        result = await Persistence.UpsertParty(toUpdate);
+        result.Should().BeProblem(Problems.InvalidPartyUpdate.ErrorCode);
+
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person).SingleAsync();
+        fromDb.Should().BeEquivalentTo(toInsert);
+    }
+
+    [Fact]
+    public async Task UpsertParty_Person_Cannot_Update_PersonIdentifier()
+    {
+        var id = await GetNextPartyId();
+        var birthDate = GetRandomBirthDate();
+        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var personId = await GetNewPersonIdentifier(birthDate, isDNumber);
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new PersonRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            Name = "Test Mid Testson",
+            PersonIdentifier = personId,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            FirstName = "Test",
+            MiddleName = "Mid",
+            LastName = "Testson",
+            Address = null,
+            MailingAddress = null,
+            DateOfBirth = birthDate,
+            DateOfDeath = FieldValue.Null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue();
+
+        TimeProvider.Advance(TimeSpan.FromDays(30));
+
+        var toUpdate = toInsert with
+        {
+            PersonIdentifier = await GetNewPersonIdentifier(birthDate, isDNumber),
+        };
+
+        result = await Persistence.UpsertParty(toUpdate);
+        result.Should().BeProblem(Problems.InvalidPartyUpdate.ErrorCode);
+
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person).SingleAsync();
+        fromDb.Should().BeEquivalentTo(toInsert);
+    }
+
+    [Fact]
+    public async Task UpsertParty_Person_CannotInsert_WithSamePartyId()
+    {
+        var id = await GetNextPartyId();
+        var birthDate = GetRandomBirthDate();
+        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var personId = await GetNewPersonIdentifier(birthDate, isDNumber);
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new PersonRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            Name = "Test Mid Testson",
+            PersonIdentifier = personId,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            FirstName = "Test",
+            MiddleName = "Mid",
+            LastName = "Testson",
+            Address = null,
+            MailingAddress = null,
+            DateOfBirth = birthDate,
+            DateOfDeath = FieldValue.Null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue();
+
+        TimeProvider.Advance(TimeSpan.FromDays(30));
+
+        var uuid2 = Guid.NewGuid();
+        var toInsert2 = new PersonRecord
+        {
+            PartyUuid = uuid2,
+            PartyId = id,
+            Name = "Test Mid Testson",
+            PersonIdentifier = personId,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            FirstName = "Test",
+            MiddleName = "Mid",
+            LastName = "Testson",
+            Address = null,
+            MailingAddress = null,
+            DateOfBirth = birthDate,
+            DateOfDeath = FieldValue.Null,
+        };
+
+        result = await Persistence.UpsertParty(toInsert2);
+        result.Should().BeProblem(Problems.PartyConflict.ErrorCode);
+
+        var fromDb = await Persistence.GetPartyById(uuid2, PartyFieldIncludes.Party | PartyFieldIncludes.Person).ToListAsync();
+        fromDb.Should().BeEmpty();
+    }
+
+    #endregion
+
     private async Task<OrganizationIdentifier> GetNewOrgNumber()
     {
         await using var cmd = Connection.CreateCommand();
@@ -507,23 +1020,22 @@ public class PostgreSqlPartyPersistenceTests
 
         static OrganizationIdentifier GenerateOrganizationIdentifier()
         {
-            ReadOnlySpan<int> weights = [3, 2, 7, 6, 5, 4, 3, 2];
+            Vector128<ushort> weights = Vector128.Create((ushort)3, 2, 7, 6, 5, 4, 3, 2);
 
             while (true)
             {
                 // 8 digit random number
                 var random = Random.Shared.Next(10_000_000, 99_999_999);
-                Span<char> span = stackalloc char[9];
-                Debug.Assert(random.TryFormat(span, out var written));
+                Span<char> s = stackalloc char[9];
+                Debug.Assert(random.TryFormat(s, out var written, provider: CultureInfo.InvariantCulture));
                 Debug.Assert(written == 8);
 
-                int sum = 0;
+                ReadOnlySpan<ushort> chars = MemoryMarshal.Cast<char, ushort>(s);
 
-                for (var i = 0; i < 8; i++)
-                {
-                    var currentDigit = span[i] - '0';
-                    sum += currentDigit * weights[i];
-                }
+                Vector128<ushort> zeroDigit = Vector128.Create('0', '0', '0', '0', '0', '0', '0', '0');
+                Vector128<ushort> charsVec = Vector128.Create(chars);
+
+                var sum = Vector128.Sum((charsVec - zeroDigit) * weights);
 
                 var ctrlDigit = 11 - (sum % 11);
                 if (ctrlDigit == 11)
@@ -537,11 +1049,146 @@ public class PostgreSqlPartyPersistenceTests
                 }
 
                 Debug.Assert(ctrlDigit is >= 0 and <= 9, $"ctrlDigit was {ctrlDigit}");
-                span[8] = (char)('0' + ctrlDigit);
+                s[8] = (char)('0' + ctrlDigit);
 
-                return OrganizationIdentifier.Parse(new string(span));
+                return OrganizationIdentifier.Parse(new string(s));
             }
         }
+    }
+
+    private async Task<PersonIdentifier> GetNewPersonIdentifier(DateOnly birthDate, bool isDNumber)
+    {
+        await using var cmd = Connection.CreateCommand();
+        cmd.CommandText =
+            /*strpsql*/"""
+            SELECT person_identifier 
+            FROM register.party 
+            WHERE person_identifier = @id
+            """;
+
+        var param = cmd.Parameters.Add<string>("id", NpgsqlDbType.Text);
+        await cmd.PrepareAsync();
+
+        PersonIdentifier id;
+        do
+        {
+            id = GeneratePersonIdentifier(birthDate, isDNumber);
+        }
+        while (await InUse(id));
+
+        return id;
+
+        async Task<bool> InUse(PersonIdentifier id)
+        {
+            param.TypedValue = id.ToString();
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            var exists = await reader.ReadAsync();
+            return exists;
+        }
+
+        static PersonIdentifier GeneratePersonIdentifier(DateOnly dateComp, bool isDNumber)
+        {
+            Vector256<ushort> k1weights = Vector256.Create((ushort)3, 7, 6, 1, 8, 9, 4, 5, 2, 0, 0, 0, 0, 0, 0, 0);
+            Vector256<ushort> k2weights = Vector256.Create((ushort)5, 4, 3, 2, 7, 6, 5, 4, 3, 2, 0, 0, 0, 0, 0, 0);
+            Span<ushort> k1_candidates = stackalloc ushort[4];
+
+            var random = Random.Shared;
+
+            var dayOffset = isDNumber ? 40 : 0;
+            int written;
+
+            while (true)
+            {
+                var individualNumber = random.Next(0, 1000);
+                Span<char> s = stackalloc char[11];
+                s.Fill('0');
+
+                var day = dateComp.Day + dayOffset;
+                var month = dateComp.Month;
+                var year = dateComp.Year % 100;
+
+                Debug.Assert(day.TryFormat(s, out written, "D2", provider: CultureInfo.InvariantCulture));
+                Debug.Assert(written == 2);
+
+                Debug.Assert(month.TryFormat(s.Slice(2), out written, "D2", provider: CultureInfo.InvariantCulture));
+                Debug.Assert(written == 2);
+
+                Debug.Assert(year.TryFormat(s.Slice(4), out written, "D2", provider: CultureInfo.InvariantCulture));
+                Debug.Assert(written == 2);
+
+                Debug.Assert(individualNumber.TryFormat(s.Slice(6), out written, "D3", provider: CultureInfo.InvariantCulture));
+                Debug.Assert(written == 3);
+
+                Vector256<ushort> digits = CreateVector(s);
+
+                var k1c_base = (ushort)(Vector256.Sum(digits * k1weights) % 11);
+                var k1c_1 = (ushort)((11 - k1c_base) % 11);
+                var k1c_2 = (ushort)((12 - k1c_base) % 11);
+                var k1c_3 = (ushort)((13 - k1c_base) % 11);
+                var k1c_4 = (ushort)((14 - k1c_base) % 11);
+
+                var idx = 0;
+                AddIfValid(k1_candidates, ref idx, k1c_1);
+                AddIfValid(k1_candidates, ref idx, k1c_2);
+                AddIfValid(k1_candidates, ref idx, k1c_3);
+                AddIfValid(k1_candidates, ref idx, k1c_4);
+
+                var k1 = k1_candidates[random.Next(0, idx)];
+                Debug.Assert(k1.TryFormat(s.Slice(9), out written, "D1", provider: CultureInfo.InvariantCulture));
+                Debug.Assert(written == 1);
+
+                digits = CreateVector(s);
+                var k2 = (ushort)((11 - (Vector256.Sum(digits * k2weights) % 11)) % 11);
+
+                if (k2 == 10)
+                {
+                    continue;
+                }
+
+                Debug.Assert(k2.TryFormat(s.Slice(10), out written, "D1", provider: CultureInfo.InvariantCulture));
+                Debug.Assert(written == 1);
+
+                if (!PersonIdentifier.TryParse(s, provider: null, out var result))
+                {
+                    Assert.Fail($"Generated illegal person identifier: {new string(s)}");
+                }
+
+                return result;
+            }
+        }
+
+        static void AddIfValid(Span<ushort> candidates, ref int idx, ushort value)
+        {
+            if (value != 10)
+            {
+                candidates[idx++] = value;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static Vector256<ushort> CreateVector(ReadOnlySpan<char> s)
+        {
+            Debug.Assert(s.Length == 11);
+
+            Span<ushort> c = stackalloc ushort[16];
+            c.Clear(); // zero out the vector
+            MemoryMarshal.Cast<char, ushort>(s).CopyTo(c);
+
+            var chars = Vector256.Create<ushort>(c);
+            var zeros = Vector256.Create('0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', 0, 0, 0, 0, 0);
+
+            return chars - zeros;
+        }
+    }
+
+    private static DateOnly GetRandomBirthDate()
+    {
+        var min = new DateOnly(1940, 01, 01);
+        var maxExl = new DateOnly(2024, 01, 01);
+        var value = Random.Shared.Next(min.DayNumber, maxExl.DayNumber);
+
+        return DateOnly.FromDayNumber(value);
     }
 
     private async Task<int> GetNextPartyId()
@@ -582,55 +1229,28 @@ public class PostgreSqlPartyPersistenceTests
             identifier = await GetNewOrgNumber();
         }
 
-        Guid resultUuid;
+        var result = await Persistence.UpsertParty(new OrganizationRecord
         {
-            await using var cmd = Connection.CreateCommand();
-            cmd.CommandText =
-                /*strpsql*/"""
-            INSERT INTO register.party (uuid, id, party_type, name, person_identifier, organization_identifier, created, updated)
-            VALUES (@uuid, @id, 'organization'::register.party_type, @name, NULL, @identifier, @createdAt, @modifiedAt)
-            RETURNING uuid
-            """;
+            PartyUuid = uuid.HasValue ? uuid.Value : Guid.NewGuid(),
+            PartyId = id,
+            Name = name.HasValue ? name.Value : "Test",
+            PersonIdentifier = null,
+            OrganizationIdentifier = identifier,
+            CreatedAt = createdAt.HasValue ? createdAt.Value : TimeProvider.GetUtcNow(),
+            ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : TimeProvider.GetUtcNow(),
+            UnitStatus = unitStatus.HasValue ? unitStatus.Value : "N",
+            UnitType = unitType.HasValue ? unitType.Value : "AS",
+            TelephoneNumber = telephoneNumber.HasValue ? telephoneNumber.Value : null,
+            MobileNumber = mobileNumber.HasValue ? mobileNumber.Value : null,
+            FaxNumber = faxNumber.HasValue ? faxNumber.Value : null,
+            EmailAddress = emailAddress.HasValue ? emailAddress.Value : null,
+            InternetAddress = internetAddress.HasValue ? internetAddress.Value : null,
+            MailingAddress = mailingAddress.HasValue ? mailingAddress.Value : null,
+            BusinessAddress = businessAddress.HasValue ? businessAddress.Value : null,
+        });
 
-            cmd.Parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = uuid.HasValue ? uuid.Value : Guid.NewGuid();
-            cmd.Parameters.Add<int>("id", NpgsqlDbType.Integer).TypedValue = id.Value;
-            cmd.Parameters.Add<string>("name", NpgsqlDbType.Text).TypedValue = name.HasValue ? name.Value : "Test";
-            cmd.Parameters.Add<string>("identifier", NpgsqlDbType.Text).TypedValue = identifier.Value!.ToString();
-            cmd.Parameters.Add<DateTimeOffset>("createdAt", NpgsqlDbType.TimestampTz).TypedValue = createdAt.HasValue ? createdAt.Value : TimeProvider.GetUtcNow();
-            cmd.Parameters.Add<DateTimeOffset>("modifiedAt", NpgsqlDbType.TimestampTz).TypedValue = modifiedAt.HasValue ? modifiedAt.Value : TimeProvider.GetUtcNow();
-
-            await cmd.PrepareAsync();
-            await using var reader = await cmd.ExecuteReaderAsync();
-            await reader.ReadAsync();
-            resultUuid = reader.GetFieldValue<Guid>(0);
-        }
-
-        {
-            await using var cmd = Connection.CreateCommand();
-            cmd.CommandText =
-                /*strpsql*/"""
-                INSERT INTO register.organization (uuid, unit_status, unit_type, telephone_number, mobile_number, fax_number, email_address, internet_address, mailing_address, business_address)
-                VALUES (@uuid, @unitStatus, @unitType, @telephoneNumber, @mobileNumber, @faxNumber, @emailAddress, @internetAddress, @mailingAddress, @businessAddress)
-                """;
-
-            cmd.Parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = resultUuid;
-            cmd.Parameters.Add<string>("unitStatus", NpgsqlDbType.Text).TypedValue = unitStatus.HasValue ? unitStatus.Value : "N";
-            cmd.Parameters.Add<string>("unitType", NpgsqlDbType.Text).TypedValue = unitType.HasValue ? unitType.Value : "AS";
-            cmd.Parameters.Add<string>("telephoneNumber", NpgsqlDbType.Text).TypedValue = telephoneNumber.HasValue ? telephoneNumber.Value : null;
-            cmd.Parameters.Add<string>("mobileNumber", NpgsqlDbType.Text).TypedValue = mobileNumber.HasValue ? mobileNumber.Value : null;
-            cmd.Parameters.Add<string>("faxNumber", NpgsqlDbType.Text).TypedValue = faxNumber.HasValue ? faxNumber.Value : null;
-            cmd.Parameters.Add<string>("emailAddress", NpgsqlDbType.Text).TypedValue = emailAddress.HasValue ? emailAddress.Value : null;
-            cmd.Parameters.Add<string>("internetAddress", NpgsqlDbType.Text).TypedValue = internetAddress.HasValue ? internetAddress.Value : null;
-            cmd.Parameters.Add<MailingAddress>("mailingAddress").TypedValue = mailingAddress.HasValue ? mailingAddress.Value : null;
-            cmd.Parameters.Add<MailingAddress>("businessAddress").TypedValue = businessAddress.HasValue ? businessAddress.Value : null;
-
-            await cmd.PrepareAsync();
-            await cmd.ExecuteNonQueryAsync();
-        }
-
-        return await Persistence.GetPartyById(resultUuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization)
-            .Cast<OrganizationRecord>()
-            .SingleAsync();
+        Assert.True(result.IsSuccess);
+        return (OrganizationRecord)result.Value;
     }
 
     private async Task AddRole(

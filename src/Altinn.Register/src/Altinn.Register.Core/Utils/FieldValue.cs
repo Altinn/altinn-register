@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.Core.Utils;
@@ -75,6 +74,11 @@ public readonly struct FieldValue<T>
     public bool IsUnset => _state == FieldState.Unset;
 
     /// <summary>
+    /// Gets whether the field is set.
+    /// </summary>
+    public bool IsSet => _state != FieldState.Unset;
+
+    /// <summary>
     /// Gets whether the field is null.
     /// </summary>
     public bool IsNull => _state == FieldState.Null;
@@ -83,7 +87,7 @@ public readonly struct FieldValue<T>
     /// Gets whether the field has a value.
     /// </summary>
     [MemberNotNullWhen(true, nameof(Value))]
-    public bool HasValue => _state == FieldState.Set;
+    public bool HasValue => _state == FieldState.NonNull;
 
     /// <summary>
     /// Gets the field value.
@@ -100,15 +104,27 @@ public readonly struct FieldValue<T>
     /// <inheritdoc/>
     public override bool Equals([NotNullWhen(true)] object? obj)
     {
-        if (IsNull)
+        if (IsNull && obj is null)
         {
-            return obj == null;
+            return true;
         }
 
         return obj is FieldValue<T> other && Equals(this, other);
 
         static bool Equals(FieldValue<T> left, FieldValue<T> right)
-            => left._state == right._state && EqualityComparer<T>.Default.Equals(left._value!, right._value!);
+        {
+            if (left._state != right._state)
+            {
+                return false;
+            }
+
+            if (left._state == FieldState.NonNull)
+            {
+                return EqualityComparer<T>.Default.Equals(left._value!, right._value!);
+            }
+
+            return true;
+        }
     }
 
     /// <inheritdoc/>
@@ -133,7 +149,7 @@ public readonly struct FieldValue<T>
         {
             FieldState.Unset => "<unset>",
             FieldState.Null => "<null>",
-            FieldState.Set => _value!.ToString() ?? string.Empty,
+            FieldState.NonNull => _value!.ToString() ?? string.Empty,
             _ => throw new UnreachableException(),
         };
 
@@ -142,7 +158,7 @@ public readonly struct FieldValue<T>
         {
             FieldState.Unset => "<unset>",
             FieldState.Null => "<null>",
-            FieldState.Set => _value!.ToString() ?? string.Empty,
+            FieldState.NonNull => _value!.ToString() ?? string.Empty,
             _ => throw new UnreachableException(),
         };
 
@@ -163,7 +179,7 @@ public readonly struct FieldValue<T>
     /// </summary>
     /// <param name="value">The field value.</param>
     public static implicit operator FieldValue<T>(T? value)
-        => value is null ? Null : new FieldValue<T>(FieldState.Set, value);
+        => value is null ? Null : new FieldValue<T>(FieldState.NonNull, value);
 
     /// <summary>
     /// Converts from a <see cref="FieldValue{T}"/> to a <typeparamref name="T"/>.
@@ -192,6 +208,6 @@ public readonly struct FieldValue<T>
     {
         Unset = default,
         Null,
-        Set,
+        NonNull,
     }
 }

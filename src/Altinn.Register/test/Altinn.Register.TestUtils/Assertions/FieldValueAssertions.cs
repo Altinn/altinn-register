@@ -13,24 +13,12 @@ namespace Altinn.Register.TestUtils.Assertions;
 /// <typeparam name="T"></typeparam>
 [DebuggerNonUserCode]
 [ExcludeFromCodeCoverage]
-public class FieldValueAssertions<T>
+public class FieldValueAssertions<T>(FieldValue<T> subject)
+    : CustomAssertions<FieldValue<T>>(subject)
     where T : notnull
 {
-    private static readonly string Identifier = "field value";
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="FieldValueAssertions{T}"/> class.
-    /// </summary>
-    /// <param name="subject">The subject to assert on.</param>
-    public FieldValueAssertions(FieldValue<T> subject)
-    {
-        Subject = subject;
-    }
-
-    /// <summary>
-    /// Gets the field value which is being asserted.
-    /// </summary>
-    public FieldValue<T> Subject { get; }
+    /// <inheritdoc/>
+    protected override string Identifier => "field value";
 
     /// <summary>
     /// Asserts that the current field value is in the null state.
