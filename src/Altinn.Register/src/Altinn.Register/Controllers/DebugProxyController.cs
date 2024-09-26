@@ -117,7 +117,7 @@ public class DebugProxyController
 
         public async Task ExecuteResultAsync(ActionContext context)
         {
-            using var client = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(HttpProxyResult));
+            using var client = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(DebugProxyController));
             using var request = _request;
             using var data = new Sequence<byte>(ArrayPool<byte>.Shared);
             await CopyBody(context.HttpContext.Request.BodyReader, data, context.HttpContext.RequestAborted);
@@ -136,6 +136,11 @@ public class DebugProxyController
         {
             foreach (var (name, values) in headers)
             {
+                if (IsIgnoredHeader(name))
+                {
+                    continue;
+                }
+                
                 foreach (var value in values)
                 {
                     response.Headers.Append(name, value);
@@ -172,6 +177,16 @@ public class DebugProxyController
                     reader.AdvanceTo(buffer.End);
                 }
             }
+        }
+
+        private static bool IsIgnoredHeader(string name)
+        {
+            return name switch
+            {
+                "PlatformAccessToken" => true,
+                "Authorization" => true,
+                _ => false,
+            };
         }
     }
 }
