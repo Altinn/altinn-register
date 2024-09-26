@@ -10,6 +10,7 @@ using Altinn.Register.Authorization;
 using Altinn.Register.Clients;
 using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Configuration;
+using Altinn.Register.Conventions;
 using Altinn.Register.Core;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Extensions;
@@ -21,6 +22,7 @@ using Altinn.Register.Services.Interfaces;
 using AltinnCore.Authentication.JwtCookie;
 
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
@@ -53,6 +55,13 @@ internal static class RegisterHost
             options.JsonSerializerOptions.WriteIndented = true;
             options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         });
+
+        services.AddSingleton<ConditionalControllerConvention>();
+        services.AddOptions<MvcOptions>()
+            .Configure((MvcOptions opts, IServiceProvider services) =>
+            {
+                opts.Conventions.Add(services.GetRequiredService<ConditionalControllerConvention>());
+            });
 
         services.Configure<GeneralSettings>(config.GetSection("GeneralSettings"));
         services.Configure<KeyVaultSettings>(config.GetSection("kvSetting"));
@@ -100,7 +109,12 @@ internal static class RegisterHost
             .AddPolicy("AuthorizationLevel2", policy =>
                 policy.RequireClaim(AltinnCore.Authentication.Constants.AltinnCoreClaimTypes.AuthenticationLevel, "2", "3", "4"))
             .AddPolicy("InternalOrPlatformAccess", policy =>
-                policy.Requirements.Add(new InternalScopeOrAccessTokenRequirement("altinn:register/partylookup.admin")));
+                policy.Requirements.Add(new InternalScopeOrAccessTokenRequirement("altinn:register/partylookup.admin")))
+            .AddPolicy("Debug", policy =>
+            {
+                // Note: this scope does not actually exist, and can only be generated using the test token generator.
+                policy.Requirements.Add(new ScopeAccessRequirement("altinn:register/debug.internal"));
+            });
 
         services.AddHttpClient<IOrganizationClient, OrganizationClient>();
         services.AddHttpClient<IPersonClient, PersonClient>();
