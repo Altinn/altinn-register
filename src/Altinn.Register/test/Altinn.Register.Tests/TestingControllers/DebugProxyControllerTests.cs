@@ -10,6 +10,7 @@ using Altinn.Register.Tests.Mocks;
 using Altinn.Register.Tests.Mocks.Authentication;
 using Altinn.Register.Tests.Utils;
 using AltinnCore.Authentication.JwtCookie;
+using Azure;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,7 +20,7 @@ namespace Altinn.Register.Tests.TestingControllers;
 
 public class DebugProxyControllerTests
     : IClassFixture<WebApplicationFactory<Program>>
-    , IAsyncLifetime
+    , IDisposable
 {
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
@@ -68,7 +69,7 @@ public class DebugProxyControllerTests
             return response;
         });
 
-        var response = await _client.GetAsync("register/api/v0/debug/parties/partychanges/1");
+        using var response = await _client.GetAsync("register/api/v0/debug/parties/partychanges/1");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Headers.Location.Should().Be("https://test.altinn.example.com/register");
@@ -80,15 +81,22 @@ public class DebugProxyControllerTests
         data.Bar.Should().Be("bar");
     }
 
-    public async Task DisposeAsync()
+    [Fact]
+    public async Task Proxies_Forwards_Query()
     {
-        _client.Dispose();
-        await _factory.DisposeAsync();
+        _a2Handler.MapGet("parties/partychanges/{changeId}", (HttpRequestMessage request) =>
+        {
+            request.RequestUri?.Query.Should().Be("?query=1");
+            return new HttpResponseMessage(HttpStatusCode.OK);
+        });
+
+        using var response = await _client.GetAsync("register/api/v0/debug/parties/partychanges/1?query=1");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
-    public Task InitializeAsync()
+    public void Dispose()
     {
-        return Task.CompletedTask;
+        _client.Dispose();
     }
 
     private record class TestData
