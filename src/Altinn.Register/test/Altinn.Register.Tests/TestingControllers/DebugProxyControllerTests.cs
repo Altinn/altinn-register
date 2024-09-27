@@ -73,7 +73,7 @@ public class DebugProxyControllerTests
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Headers.Location.Should().Be("https://test.altinn.example.com/register");
-        response.Content.Headers.ContentType?.MediaType.Should().Be("application/json");
+        response.Content.Headers.ContentType!.MediaType.Should().Be("application/json");
 
         var data = await response.Content.ReadFromJsonAsync<TestData>();
         Assert.NotNull(data);
@@ -86,7 +86,7 @@ public class DebugProxyControllerTests
     {
         _a2Handler.MapGet("parties/partychanges/{changeId}", (HttpRequestMessage request) =>
         {
-            request.RequestUri?.Query.Should().Be("?query=1");
+            request.RequestUri!.Query.Should().Be("?query=1");
             return new HttpResponseMessage(HttpStatusCode.OK);
         });
 
