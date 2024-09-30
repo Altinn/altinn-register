@@ -12,6 +12,14 @@ namespace Altinn.Register.Persistence;
 internal static class NpgsqlExtensions
 {
     /// <summary>
+    /// Checks if the exception is a serialization failure.
+    /// </summary>
+    /// <param name="ex">The <see cref="PostgresException"/>.</param>
+    /// <returns><see langword="true"/> if <paramref name="ex"/> is a serialization failure; otherwise <see langword="false"/>.</returns>
+    public static bool IsSerializationFailure(this PostgresException ex)
+        => string.Equals(ex.SqlState, PostgresErrorCodes.SerializationFailure, StringComparison.Ordinal);
+
+    /// <summary>
     /// Adds a typed parameter to the collection.
     /// </summary>
     /// <typeparam name="T">The parameter type.</typeparam>

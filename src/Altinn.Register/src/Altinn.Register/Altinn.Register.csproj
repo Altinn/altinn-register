@@ -14,6 +14,7 @@
     <PackageReference Include="Azure.Identity" />
     <PackageReference Include="JWTCookieAuthentication" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
+    <PackageReference Include="Nerdbank.Streams" />
     <PackageReference Include="Scrutor" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
     <PackageReference Include="System.Configuration.ConfigurationManager" />

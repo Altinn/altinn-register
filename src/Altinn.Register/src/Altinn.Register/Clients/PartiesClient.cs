@@ -4,13 +4,10 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
-
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Configuration;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Utils;
-using Altinn.Register.Extensions;
-
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 
