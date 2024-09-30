@@ -2,8 +2,6 @@
 
 using Altinn.Authorization.ServiceDefaults;
 using Altinn.Common.AccessToken;
-using Altinn.Common.AccessToken.Configuration;
-using Altinn.Common.AccessToken.Services;
 using Altinn.Common.PEP.Authorization;
 using Altinn.Register.ApiDescriptions;
 using Altinn.Register.Authorization;
@@ -64,7 +62,7 @@ internal static class RegisterHost
             });
 
         services.Configure<GeneralSettings>(config.GetSection("GeneralSettings"));
-        services.Configure<KeyVaultSettings>(config.GetSection("kvSetting"));
+        ////services.Configure<KeyVaultSettings>(config.GetSection("kvSetting"));
         services.Configure<AccessTokenSettings>(config.GetSection("AccessTokenSettings"));
         services.Configure<PlatformSettings>(config.GetSection("PlatformSettings"));
         services.Configure<PersonLookupSettings>(config.GetSection("PersonLookupSettings"));
@@ -72,7 +70,8 @@ internal static class RegisterHost
         services.AddSingleton<IAuthorizationHandler, AccessTokenHandler>();
         services.AddScoped<IAuthorizationHandler, ScopeAccessHandler>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-        services.AddSingleton<IPublicSigningKeyProvider, PublicSigningKeyProvider>();
+        ////services.AddSingleton<IPublicSigningKeyProvider, PublicSigningKeyProvider>();
+        builder.AddAltinnTokenHandler();
 
         services.AddTransient<IPersonLookup, PersonLookupService>();
         services.Decorate<IPersonLookup, PersonLookupCacheDecorator>();

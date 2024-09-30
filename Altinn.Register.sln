@@ -37,6 +37,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.TestUtils",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.Persistence.Tests", "src\Altinn.Register\test\Altinn.Register.Persistence.Tests\Altinn.Register.Persistence.Tests.csproj", "{B4810ED4-6604-4E7E-817D-D91098A78E15}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Altinn.Common.AccessToken", "Altinn.Common.AccessToken", "{4ACDC0BC-E758-4C74-9FCC-98755D380785}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Common.AccessToken", "..\altinn-accesstoken\src\Altinn.Common.AccessToken\Altinn.Common.AccessToken.csproj", "{C219A8A8-B936-453C-AC34-01454A0D1792}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +87,10 @@ Global
 		{B4810ED4-6604-4E7E-817D-D91098A78E15}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B4810ED4-6604-4E7E-817D-D91098A78E15}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B4810ED4-6604-4E7E-817D-D91098A78E15}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C219A8A8-B936-453C-AC34-01454A0D1792}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C219A8A8-B936-453C-AC34-01454A0D1792}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C219A8A8-B936-453C-AC34-01454A0D1792}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C219A8A8-B936-453C-AC34-01454A0D1792}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -104,6 +112,8 @@ Global
 		{3916F8A5-544B-419E-A0B9-646107CDC7B7} = {B06311B4-417D-4697-833E-E680C5BB4670}
 		{1A75A27A-AE73-4134-89DA-982FE8A0C079} = {8A4833A1-23E8-455C-A2C3-6BA97B02343E}
 		{B4810ED4-6604-4E7E-817D-D91098A78E15} = {8A4833A1-23E8-455C-A2C3-6BA97B02343E}
+		{4ACDC0BC-E758-4C74-9FCC-98755D380785} = {E4D6D10C-EA28-40D3-A656-178D550EAC3D}
+		{C219A8A8-B936-453C-AC34-01454A0D1792} = {4ACDC0BC-E758-4C74-9FCC-98755D380785}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3A0857CE-E27F-4FA4-A9F1-099D2F8A578D}

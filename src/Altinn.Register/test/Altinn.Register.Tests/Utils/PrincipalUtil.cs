@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.Security.Claims;
-
-using Altinn.Common.AccessToken.Constants;
+using Altinn.Common.AccessToken;
 using Altinn.Register.Tests.Mocks;
 
 using AltinnCore.Authentication.Constants;

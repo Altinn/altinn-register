@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using Altinn.Common.AccessToken.Services;
+using Altinn.Common.AccessToken.KeyProvider;
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Controllers;
 using Altinn.Register.Core.Parties;

@@ -1,8 +1,7 @@
 #nullable enable
 
 using System.Diagnostics.CodeAnalysis;
-
-using Altinn.Common.AccessToken.Services;
+using Altinn.Common.AccessToken.KeyProvider;
 using Altinn.Register.Clients;
 using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Configuration;
