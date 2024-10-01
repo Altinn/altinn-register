@@ -13,7 +13,7 @@ public sealed class DevTestConditionAttribute
     : Attribute, IControllerCondition
 {
     private static readonly ImmutableArray<string> _devTestEnvironments
-        = ImmutableArray.Create("development", "test", "at22", "at23", "at24");
+        = ["development", "test", "staging", "at22", "at23", "at24"];
 
     /// <inheritdoc />
     public bool ShouldDisable(ControllerModel controller, IServiceProvider services)
