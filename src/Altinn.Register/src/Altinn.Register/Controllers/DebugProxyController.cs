@@ -52,6 +52,14 @@ public class DebugProxyController
     public IActionResult PartyRoles(int partyId)
         => ForwardTo($"parties/partyroles/{partyId}");
 
+    /// <summary>
+    /// Gets the party.
+    /// </summary>
+    /// <param name="partyId">The party id.</param>
+    [HttpGet("parties/{partyId:int}")]
+    public IActionResult Party(int partyId)
+        => ForwardTo($"parties/{partyId}");
+
     [NonAction]
     private HttpProxyResult ForwardTo(string path)
     {
