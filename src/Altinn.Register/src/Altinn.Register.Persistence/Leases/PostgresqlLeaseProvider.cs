@@ -60,7 +60,7 @@ internal partial class PostgresqlLeaseProvider
     }
 
     /// <inheritdoc/>
-    public Task<LeaseAcquireResult> TryAcquireLease(string leaseId, TimeSpan duration, CancellationToken cancellationToken = default)
+    public async Task<LeaseAcquireResult> TryAcquireLease(string leaseId, TimeSpan duration, CancellationToken cancellationToken = default)
     {
         Guard.IsNotNullOrEmpty(leaseId);
         Guard.IsLessThan(duration, MAX_LEASE_DURATION);
@@ -69,11 +69,21 @@ internal partial class PostgresqlLeaseProvider
         var expires = now + duration;
         var token = Guid.Empty;
 
-        return UpsertLease(leaseId, token, now, expires, cancellationToken);
+        var result = await UpsertLease(leaseId, token, now, expires, cancellationToken);
+        if (result.IsLeaseAcquired)
+        {
+            Log.LeaseAcquired(_logger, result.Lease.LeaseId);
+        }
+        else
+        {
+            Log.LeaseNotAcquiredAlreadyHeld(_logger, leaseId);
+        }
+
+        return result;
     }
 
     /// <inheritdoc/>
-    public Task<LeaseAcquireResult> TryRenewLease(LeaseTicket lease, TimeSpan duration, CancellationToken cancellationToken = default)
+    public async Task<LeaseAcquireResult> TryRenewLease(LeaseTicket lease, TimeSpan duration, CancellationToken cancellationToken = default)
     {
         Guard.IsNotNull(lease);
         Guard.IsLessThan(duration, MAX_LEASE_DURATION);
@@ -83,7 +93,17 @@ internal partial class PostgresqlLeaseProvider
         var leaseId = lease.LeaseId;
         var token = lease.Token;
 
-        return UpsertLease(leaseId, token, now, expires, cancellationToken);
+        var result = await UpsertLease(leaseId, token, now, expires, cancellationToken);
+        if (result.IsLeaseAcquired) 
+        {
+            Log.LeaseRenewed(_logger, result.Lease.LeaseId);
+        }
+        else
+        {
+            Log.LeaseNotAcquiredAlreadyHeld(_logger, leaseId);
+        }
+
+        return result;
     }
 
     /// <inheritdoc/>
@@ -97,7 +117,14 @@ internal partial class PostgresqlLeaseProvider
         var token = lease.Token;
 
         var result = await UpsertLease(leaseId, token, now, expires, cancellationToken);
-        return result.IsLeaseAcquired;
+        var released = result.IsLeaseAcquired;
+
+        if (released)
+        {
+            Log.LeaseReleased(_logger, leaseId);
+        }
+
+        return released;
     }
 
     private async Task<LeaseAcquireResult> UpsertLease(
