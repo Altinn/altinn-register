@@ -234,5 +234,17 @@ internal partial class PostgresqlLeaseProvider
     {
         [LoggerMessage(0, LogLevel.Debug, "Failed to upsert lease due to serialization error, retrying...")]
         public static partial void FailedToUpsertLeaseDueToSerializationError(ILogger logger);
+
+        [LoggerMessage(1, LogLevel.Debug, "Lease {LeaseId} acquired")]
+        public static partial void LeaseAcquired(ILogger logger, string leaseId);
+
+        [LoggerMessage(2, LogLevel.Debug, "Lease {LeaseId} renewed")]
+        public static partial void LeaseRenewed(ILogger logger, string leaseId);
+
+        [LoggerMessage(3, LogLevel.Debug, "Lease {LeaseId} released")]
+        public static partial void LeaseReleased(ILogger logger, string leaseId);
+
+        [LoggerMessage(4, LogLevel.Debug, "Lease {LeaseId} was not acquired as it is already held")]
+        public static partial void LeaseNotAcquiredAlreadyHeld(ILogger logger, string leaseId);
     }
 }
