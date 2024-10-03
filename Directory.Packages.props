@@ -3,7 +3,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <GlobalPackageReference Include="DotNet.ReproducibleBuilds" Version="1.2.4" PrivateAssets="all" />
+    <GlobalPackageReference Include="DotNet.ReproducibleBuilds" Version="1.2.25" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
     <PackageVersion Include="Altinn.Authorization.ProblemDetails.Abstractions" Version="3.0.1" />
@@ -15,17 +15,17 @@
     <PackageVersion Include="Altinn.Common.AccessToken" Version="4.5.1" />
     <PackageVersion Include="Altinn.Common.PEP" Version="4.0.0" />
     <PackageVersion Include="Altinn.Swashbuckle.Abstractions" Version="2.1.0" />
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="8.2.0" />
-    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="8.2.0" />
-    <PackageVersion Include="Azure.Identity" Version="1.12.0" />
-    <PackageVersion Include="CommunityToolkit.Diagnostics" Version="8.3.0" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="8.2.1" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="8.2.1" />
+    <PackageVersion Include="Azure.Identity" Version="1.12.1" />
+    <PackageVersion Include="CommunityToolkit.Diagnostics" Version="8.3.2" />
     <PackageVersion Include="coverlet.collector" Version="6.0.2" />
     <PackageVersion Include="FluentAssertions.Analyzers" Version="0.33.0" />
-    <PackageVersion Include="FluentAssertions" Version="6.12.0" />
+    <PackageVersion Include="FluentAssertions" Version="6.12.1" />
     <PackageVersion Include="JWTCookieAuthentication" Version="4.0.1" />
     <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.8" />
-    <PackageVersion Include="Microsoft.Build.Artifacts" Version="6.1.30" />
+    <PackageVersion Include="Microsoft.Build.Artifacts" Version="6.1.43" />
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.8" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="8.9.1" />
@@ -34,11 +34,11 @@
     <PackageVersion Include="MinVer" Version="5.0.0" />
     <PackageVersion Include="Moq" Version="4.20.72" />
     <PackageVersion Include="Nerdbank.Streams" Version="2.11.79" />
-    <PackageVersion Include="Npgsql" Version="8.0.3" />
+    <PackageVersion Include="Npgsql" Version="8.0.4" />
     <PackageVersion Include="Polly" Version="8.4.2" />
     <PackageVersion Include="Scrutor" Version="4.2.2" />
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
-    <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.7.3" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.8.0" />
     <PackageVersion Include="System.ComponentModel.Annotations" Version="5.0.0" />
     <PackageVersion Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
     <PackageVersion Include="System.Linq.Async" Version="6.0.1" />
@@ -46,6 +46,6 @@
     <PackageVersion Include="System.Text.RegularExpressions" Version="4.3.1" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="3.10.0" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
-    <PackageVersion Include="xunit" Version="2.9.0" />
+    <PackageVersion Include="xunit" Version="2.9.2" />
   </ItemGroup>
 </Project>
