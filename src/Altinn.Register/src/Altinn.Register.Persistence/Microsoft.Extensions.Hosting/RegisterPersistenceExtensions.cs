@@ -4,12 +4,15 @@ using System.Runtime.CompilerServices;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Authorization.ServiceDefaults.Npgsql.TestSeed;
 using Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql;
+using Altinn.Register.Core.Leases;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Persistence;
+using Altinn.Register.Persistence.Leases;
 using Altinn.Register.Persistence.UnitOfWork;
 using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.FileProviders;
 using Npgsql;
 
@@ -28,6 +31,7 @@ public static class RegisterPersistenceExtensions
     public static IHostApplicationBuilder AddRegisterPersistence(this IHostApplicationBuilder builder)
     {
         builder.AddPartyPersistence();
+        builder.AddPostgresLeaseProvider();
 
         return builder;
     }
@@ -49,6 +53,21 @@ public static class RegisterPersistenceExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Adds a postgresql backed lease provider.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder"/>.</param>
+    /// <returns><paramref name="builder"/>.</returns>
+    public static IHostApplicationBuilder AddPostgresLeaseProvider(this IHostApplicationBuilder builder)
+    {
+        AddDatabase(builder);
+
+        builder.Services.TryAddSingleton<PostgresqlLeaseProvider>();
+        builder.Services.TryAddSingleton<ILeaseProvider>(s => s.GetRequiredService<PostgresqlLeaseProvider>());
+
+        return builder;
+    }
+
     private static void AddDatabase(IHostApplicationBuilder builder)
     {
         if (builder.Services.Contains(Marker.ServiceDescriptor))
@@ -61,6 +80,7 @@ public static class RegisterPersistenceExtensions
 
         var descriptor = builder.GetAltinnServiceDescriptor();
         var yuniqlSchema = builder.Configuration.GetValue($"Altinn:Npgsql:{descriptor.Name}:Yuniql:MigrationsTable:Schema", defaultValue: "yuniql");
+        var yuniqlTable = builder.Configuration.GetValue($"Altinn:Npgsql:{descriptor.Name}:Yuniql:MigrationsTable:Table", defaultValue: "register_migrations");
         var migrationsFs = new ManifestEmbeddedFileProvider(typeof(RegisterPersistenceExtensions).Assembly, "Migration");
         var seedDataFs = new ManifestEmbeddedFileProvider(typeof(RegisterPersistenceExtensions).Assembly, "TestData");
         builder.AddAltinnPostgresDataSource()
@@ -70,6 +90,7 @@ public static class RegisterPersistenceExtensions
             {
                 y.WorkspaceFileProvider = migrationsFs;
                 y.MigrationsTable.Schema = yuniqlSchema;
+                y.MigrationsTable.Name = yuniqlTable;
             });
     }
 
