@@ -8,6 +8,7 @@
     <PackageReference Include="Altinn.Authorization.ProblemDetails.Abstractions" />
     <PackageReference Include="Altinn.Authorization.ServiceDefaults.Telemetry" />
     <PackageReference Include="Altinn.Swashbuckle.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
 		<PackageReference Include="System.Linq.Async" />
 	</ItemGroup>
 
@@ -15,5 +16,8 @@
     <ProjectReference Include="..\..\..\Altinn.Platform.Models\src\Altinn.Platform.Models\Altinn.Platform.Models.csproj" />
   </ItemGroup>
 
-
+  <ItemGroup>
+    <InternalsVisibleTo Include="Altinn.Register.Persistence.Tests"/>
+  </ItemGroup>
+		
 </Project>

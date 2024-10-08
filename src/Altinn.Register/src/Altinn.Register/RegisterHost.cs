@@ -124,6 +124,7 @@ internal static class RegisterHost
         if (config.GetValue<bool>("Altinn:Npgsql:register:Enable"))
         {
             builder.AddRegisterPersistence();
+            builder.Services.AddLeaseManager();
         }
 
         services.AddSwaggerGen(c =>
