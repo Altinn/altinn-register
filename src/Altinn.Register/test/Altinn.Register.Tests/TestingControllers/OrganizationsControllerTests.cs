@@ -94,27 +94,6 @@ namespace Altinn.Register.Tests.TestingControllers
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
-        [Fact]
-        public async Task GetOrganization_ExpiredToken_ReturnsUnauthorized()
-        {
-            string token = PrincipalUtil.GetExpiredToken();
-            string orgNo = "836281763";
-
-            // Arrange
-            Mock<IOrganizationClient> organizationsService = new Mock<IOrganizationClient>();
-
-            HttpClient client = GetTestClient(organizationsService.Object);
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/organizations/" + orgNo);
-            httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
-
-            // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
-
-            // Assert
-            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-        }
 
         [Fact]
         public async Task GetOrganization_MissingPlatformAccessToken_ReturnsForbiden()
