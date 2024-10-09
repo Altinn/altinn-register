@@ -94,7 +94,6 @@ namespace Altinn.Register.Tests.TestingControllers
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
-
         [Fact]
         public async Task GetOrganization_MissingPlatformAccessToken_ReturnsForbiden()
         {
