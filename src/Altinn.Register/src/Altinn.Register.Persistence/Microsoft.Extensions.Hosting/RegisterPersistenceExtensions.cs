@@ -4,9 +4,11 @@ using System.Runtime.CompilerServices;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Authorization.ServiceDefaults.Npgsql.TestSeed;
 using Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql;
+using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Leases;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Persistence;
+using Altinn.Register.Persistence.ImportJobs;
 using Altinn.Register.Persistence.Leases;
 using Altinn.Register.Persistence.UnitOfWork;
 using CommunityToolkit.Diagnostics;
@@ -32,6 +34,7 @@ public static class RegisterPersistenceExtensions
     {
         builder.AddPartyPersistence();
         builder.AddPostgresLeaseProvider();
+        builder.AddPostgresImportTracker();
 
         return builder;
     }
@@ -64,6 +67,21 @@ public static class RegisterPersistenceExtensions
 
         builder.Services.TryAddSingleton<PostgresqlLeaseProvider>();
         builder.Services.TryAddSingleton<ILeaseProvider>(s => s.GetRequiredService<PostgresqlLeaseProvider>());
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a postgresql backed import tracker.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder"/>.</param>
+    /// <returns><paramref name="builder"/>.</returns>
+    public static IHostApplicationBuilder AddPostgresImportTracker(this IHostApplicationBuilder builder)
+    {
+        AddDatabase(builder);
+
+        builder.Services.TryAddSingleton<PostgresImportJobTracker>();
+        builder.Services.TryAddSingleton<IImportJobTracker>(s => s.GetRequiredService<PostgresImportJobTracker>());
 
         return builder;
     }
