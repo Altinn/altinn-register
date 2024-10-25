@@ -94,4 +94,63 @@ public abstract class HostTestBase
 
         await base.DisposeAsync();
     }
+
+    /// <summary>
+    /// Starts updating the <see cref="TimeProvider"/> every <paramref name="interval"/> by <paramref name="stepSize"/>
+    /// in a best-effort manner.
+    /// </summary>
+    /// <param name="interval">How often to update the internal clock.</param>
+    /// <param name="stepSize">By how much to update the clock.</param>
+    /// <returns>A <see cref="IDisposable"/> that stops the updating.</returns>
+    protected IDisposable UpdateTimerRealtime(
+        TimeSpan interval,
+        TimeSpan stepSize)
+    {
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(
+            GetRequiredService<IHostApplicationLifetime>().ApplicationStopping);
+        var ct = cts.Token;
+        var provider = TimeProvider;
+
+        var systemTime = System.TimeProvider.System;
+        var prev = systemTime.GetTimestamp();
+        var timer = systemTime.CreateTimer(
+            _ =>
+            {
+                var now = systemTime.GetTimestamp();
+                var elapsed = systemTime.GetElapsedTime(prev, now);
+                prev = now;
+
+                while (!ct.IsCancellationRequested && elapsed >= interval)
+                {
+                    TimeProvider.Advance(stepSize);
+                    elapsed -= interval;
+                }
+            },
+            null,
+            TimeSpan.Zero,
+            interval);
+
+        ct.Register(() => timer.Dispose());
+
+        return new Disposable(() =>
+        {
+            cts.Cancel();
+            cts.Dispose();
+        });
+    }
+
+    private class Disposable(Action dispose)
+        : IDisposable
+    {
+        private int _disposed = 0;
+
+        public void Dispose() 
+        { 
+            if (Interlocked.Exchange(ref _disposed, 1) == 0)
+            {
+                dispose();
+                dispose = null!;
+            }
+        }
+    }
 }
