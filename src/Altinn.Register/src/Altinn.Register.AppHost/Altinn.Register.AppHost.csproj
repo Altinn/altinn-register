@@ -9,12 +9,12 @@
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" />
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+    <PackageReference Include="Aspire.Hosting.RabbitMQ" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Altinn.Register\Altinn.Register.csproj" />
-    <ProjectReference Include="..\Aspire.Npgsql\Altinn.Authorization.Aspire.Npgsql.csproj"
-      IsAspireProjectResource="false" />
+    <ProjectReference Include="..\Aspire.Npgsql\Altinn.Authorization.Aspire.Npgsql.csproj" IsAspireProjectResource="false" />
   </ItemGroup>
 
 </Project>

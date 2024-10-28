@@ -5,7 +5,9 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 // random port number - don't reuse if copy-pasting this code.
 var postgresPort = builder.Configuration.GetValue("Postgres:Port", defaultValue: 28215);
+var rabbitMqPort = builder.Configuration.GetValue("RabbitMq:Port", defaultValue: 28216);
 
+// databases
 var postgresServer = builder.AddPostgres("postgres", port: postgresPort)
     .WithDataVolume()
     .WithPgAdmin();
@@ -14,8 +16,29 @@ var registerDb = postgresServer.AddAltinnDatabase(
     "register-db",
     databaseName: "register");
 
+// rabbitmq
+var rabbitMqUsername = builder.CreateResourceBuilder(new ParameterResource("rabbitmq-username", _ => "rabbit-admin"));
+var rabbitMq = builder.AddRabbitMQ("rabbitmq", userName: rabbitMqUsername, port: rabbitMqPort)
+    .WithDataVolume()
+    .WithManagementPlugin();
+
 var registerApi = builder.AddProject<Projects.Altinn_Register>("register")
     .WithReference(registerDb, "register")
+    .WithEnvironment(ctx =>
+    {
+        var env = ctx.EnvironmentVariables;
+        var prefix = "Altinn__MassTransit__register__";
+        var rabbitEndpoint = rabbitMq.GetEndpoint("tcp");
+
+        env[$"{prefix}Enable"] = "true";
+        env[$"{prefix}Transport"] = "rabbitmq";
+        
+        env[$"{prefix}RabbitMq__Host"] = rabbitEndpoint.Property(EndpointProperty.Host);
+        env[$"{prefix}RabbitMq__Port"] = rabbitEndpoint.Property(EndpointProperty.Port);
+        env[$"{prefix}RabbitMq__Username"] = ReferenceExpression.Create($"{rabbitMq.Resource.UserNameParameter!}");
+        env[$"{prefix}RabbitMq__Password"] = ReferenceExpression.Create($"{rabbitMq.Resource.PasswordParameter}");
+        env[$"{prefix}RabbitMq__VirtualHost"] = string.Empty;
+    })
     .WithEnvironment("Altinn__Npgsql__register__Enable", "true");
 
 await builder.Build().RunAsync();

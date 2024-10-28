@@ -2,6 +2,7 @@
 
 using Altinn.Authorization.ServiceDefaults;
 using Altinn.Common.AccessToken;
+using Altinn.Common.AccessToken.Authentication;
 using Altinn.Common.PEP.Authorization;
 using Altinn.Register.ApiDescriptions;
 using Altinn.Register.Authorization;
@@ -63,11 +64,11 @@ internal static class RegisterHost
 
         services.Configure<GeneralSettings>(config.GetSection("GeneralSettings"));
         ////services.Configure<KeyVaultSettings>(config.GetSection("kvSetting"));
-        services.Configure<AccessTokenSettings>(config.GetSection("AccessTokenSettings"));
+        ////services.Configure<AccessTokenSettings>(config.GetSection("AccessTokenSettings"));
         services.Configure<PlatformSettings>(config.GetSection("PlatformSettings"));
         services.Configure<PersonLookupSettings>(config.GetSection("PersonLookupSettings"));
 
-        services.AddSingleton<IAuthorizationHandler, AccessTokenHandler>();
+        ////services.AddSingleton<IAuthorizationHandler, AccessTokenHandler>();
         services.AddScoped<IAuthorizationHandler, ScopeAccessHandler>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         ////services.AddSingleton<IPublicSigningKeyProvider, PublicSigningKeyProvider>();
@@ -81,34 +82,37 @@ internal static class RegisterHost
         services.ConfigureOpenTelemetryTracerProvider((builder) => builder.AddSource(RegisterActivitySource.Name));
 
         services.AddAuthentication(JwtCookieDefaults.AuthenticationScheme)
-          .AddJwtCookie(JwtCookieDefaults.AuthenticationScheme, options =>
-          {
-              GeneralSettings generalSettings = config.GetSection("GeneralSettings").Get<GeneralSettings>();
-              options.JwtCookieName = generalSettings.JwtCookieName;
-              options.MetadataAddress = generalSettings.OpenIdWellKnownEndpoint;
-              options.TokenValidationParameters = new TokenValidationParameters
-              {
-                  ValidateIssuerSigningKey = true,
-                  ValidateIssuer = false,
-                  ValidateAudience = false,
-                  RequireExpirationTime = true,
-                  ValidateLifetime = true,
-                  ClockSkew = TimeSpan.Zero,
-              };
+            .AddAltinnAccessToken()
+            .AddJwtCookie(JwtCookieDefaults.AuthenticationScheme, options =>
+            {
+                GeneralSettings generalSettings = config.GetSection("GeneralSettings").Get<GeneralSettings>();
+                options.JwtCookieName = generalSettings.JwtCookieName;
+                options.MetadataAddress = generalSettings.OpenIdWellKnownEndpoint;
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    RequireExpirationTime = true,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero,
+                };
 
-              if (builder.Environment.IsDevelopment())
-              {
-                  options.RequireHttpsMetadata = false;
-              }
-          });
+                if (builder.Environment.IsDevelopment())
+                {
+                    options.RequireHttpsMetadata = false;
+                }
+            });
 
         services.AddAuthorizationBuilder()
+            .SetDefaultPolicy(new AuthorizationPolicyBuilder(JwtCookieDefaults.AuthenticationScheme, AccessTokenDefaults.AuthenticationScheme)
+                .RequireAuthenticatedUser().Build())
             .AddPolicy("PlatformAccess", policy =>
-                policy.Requirements.Add(new AccessTokenRequirement()))
+                policy.AddAuthenticationSchemes(AccessTokenDefaults.AuthenticationScheme).Requirements.Add(new AccessTokenRequirement()))
             .AddPolicy("AuthorizationLevel2", policy =>
                 policy.RequireClaim(AltinnCore.Authentication.Constants.AltinnCoreClaimTypes.AuthenticationLevel, "2", "3", "4"))
             .AddPolicy("InternalOrPlatformAccess", policy =>
-                policy.Requirements.Add(new InternalScopeOrAccessTokenRequirement("altinn:register/partylookup.admin")))
+                policy.AddAuthenticationSchemes(JwtCookieDefaults.AuthenticationScheme, AccessTokenDefaults.AuthenticationScheme).Requirements.Add(new InternalScopeOrAccessTokenRequirement("altinn:register/partylookup.admin")))
             .AddPolicy("Debug", policy =>
             {
                 // Note: this scope does not actually exist, and can only be generated using the test token generator.

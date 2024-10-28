@@ -2,7 +2,7 @@
 
 using System.Net;
 using System.Net.Http.Json;
-using Altinn.Common.AccessToken.Services;
+using Altinn.Common.AccessToken.KeyProvider;
 using Altinn.Register.Configuration;
 using Altinn.Register.Controllers;
 using Altinn.Register.Services.Interfaces;
