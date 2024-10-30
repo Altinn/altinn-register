@@ -1,4 +1,5 @@
-﻿using CommunityToolkit.Diagnostics;
+﻿using System.Net.Security;
+using CommunityToolkit.Diagnostics;
 using HealthChecks.RabbitMQ;
 using MassTransit;
 using MassTransit.RabbitMqTransport;
@@ -9,8 +10,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
-using RabbitMQ.Client;
-using System.Net.Security;
 
 namespace Altinn.Authorization.ServiceDefaults.MassTransit;
 
@@ -23,6 +22,7 @@ internal abstract class MassTransitTransportHelper(MassTransitSettings settings,
     /// Gets a <see cref="MassTransitTransportHelper"/> for the specified settings.
     /// </summary>
     /// <param name="settings">The settings.</param>
+    /// <param name="busName">The name of the bus.</param>
     /// <returns>A <see cref="MassTransitTransportHelper"/>.</returns>
     public static MassTransitTransportHelper For(MassTransitSettings settings, string busName)
         => settings.Transport switch
