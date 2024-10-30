@@ -15,14 +15,21 @@
     <PackageVersion Include="Altinn.Common.AccessToken" Version="4.5.2" />
     <PackageVersion Include="Altinn.Common.PEP" Version="4.0.0" />
     <PackageVersion Include="Altinn.Swashbuckle.Abstractions" Version="2.1.0" />
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="8.2.1" />
-    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="8.2.1" />
-    <PackageVersion Include="Azure.Identity" Version="1.12.1" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="8.2.2" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="8.2.2" />
+    <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="8.2.2" />
+    <PackageVersion Include="AspNetCore.HealthChecks.AzureServiceBus" Version="8.0.1" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Rabbitmq" Version="8.0.2" />
+    <PackageVersion Include="Azure.Identity" Version="1.13.1" />
     <PackageVersion Include="CommunityToolkit.Diagnostics" Version="8.3.2" />
     <PackageVersion Include="coverlet.collector" Version="6.0.2" />
     <PackageVersion Include="FluentAssertions.Analyzers" Version="0.34.1" />
     <PackageVersion Include="FluentAssertions" Version="6.12.1" />
     <PackageVersion Include="JWTCookieAuthentication" Version="4.0.1" />
+    <PackageVersion Include="MassTransit" Version="8.3.0" />
+    <PackageVersion Include="MassTransit.Analyzers" Version="8.3.0" />
+    <PackageVersion Include="MassTransit.Azure.ServiceBus.Core" Version="8.3.0" />
+    <PackageVersion Include="MassTransit.RabbitMQ" Version="8.3.0" />
     <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.10" />
     <PackageVersion Include="Microsoft.Build.Artifacts" Version="6.1.43" />

@@ -1,7 +1,11 @@
 import { Chalk } from "chalk";
 import { globby } from "globby";
-import { $, within, echo, cd } from "zx";
+import { $, within, echo, cd, usePwsh } from "zx";
 import path from "node:path";
+
+if (process.platform === "win32") {
+  usePwsh();
+}
 
 const c = new Chalk({ level: 3 });
 

@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.TestUtils",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.Persistence.Tests", "test\Altinn.Register.Persistence.Tests\Altinn.Register.Persistence.Tests.csproj", "{0CCE1D5E-AC54-4BF2-9DD9-AB20275F162B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Authorization.ServiceDefaults.MassTransit", "src\ServiceDefaults.MassTransit\Altinn.Authorization.ServiceDefaults.MassTransit.csproj", "{55FB334D-BB5F-495C-95D4-A173934E156B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -64,6 +66,10 @@ Global
 		{0CCE1D5E-AC54-4BF2-9DD9-AB20275F162B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0CCE1D5E-AC54-4BF2-9DD9-AB20275F162B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0CCE1D5E-AC54-4BF2-9DD9-AB20275F162B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55FB334D-BB5F-495C-95D4-A173934E156B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55FB334D-BB5F-495C-95D4-A173934E156B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55FB334D-BB5F-495C-95D4-A173934E156B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55FB334D-BB5F-495C-95D4-A173934E156B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{245B9C40-E4F7-47CB-96C8-E027078FE1B5} = {7E22A164-F523-4404-B969-409A129B5B52}
@@ -74,5 +80,6 @@ Global
 		{20F2B242-B95F-4995-9B52-4618D29AF501} = {7E22A164-F523-4404-B969-409A129B5B52}
 		{87214ACD-54A5-42A7-8F8D-7A98BE28DCC7} = {6E19EDF2-3B9B-4BF0-9BB5-B68F577939F1}
 		{0CCE1D5E-AC54-4BF2-9DD9-AB20275F162B} = {6E19EDF2-3B9B-4BF0-9BB5-B68F577939F1}
+		{55FB334D-BB5F-495C-95D4-A173934E156B} = {7E22A164-F523-4404-B969-409A129B5B52}
 	EndGlobalSection
 EndGlobal
