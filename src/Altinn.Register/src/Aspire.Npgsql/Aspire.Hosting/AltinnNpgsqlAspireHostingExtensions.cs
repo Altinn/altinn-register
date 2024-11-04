@@ -64,7 +64,7 @@ public static class AltinnNpgsqlAspireHostingExtensions
             seederRoleName?.Resource,
             seederPasswordParameter);
 
-        return builder.ApplicationBuilder.AddResource(altinnDatabase);
+        return builder.ApplicationBuilder.CreateResourceBuilder(altinnDatabase);
     }
 
     /// <summary>

@@ -127,6 +127,11 @@ internal static class RegisterHost
             builder.Services.AddLeaseManager();
         }
 
+        if (config.GetValue<bool>("Altinn:MassTransit:register:Enable"))
+        {
+            builder.AddAltinnMassTransit();
+        }
+
         services.AddSwaggerGen(c =>
         {
             c.SwaggerDoc("v1", new OpenApiInfo { Title = "Altinn Platform Register", Version = "v1" });
