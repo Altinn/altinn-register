@@ -7,14 +7,14 @@
   </ItemGroup>
   <ItemGroup>
     <PackageVersion Include="Altinn.Authorization.ProblemDetails.Abstractions" Version="3.0.1" />
-    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql.TestSeed" Version="2.5.0" />
-    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql" Version="2.5.0" />
-    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql" Version="2.5.0" />
-    <PackageVersion Include="Altinn.Authorization.ServiceDefaults" Version="2.5.0" />
-    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Telemetry" Version="2.5.0" />
-    <PackageVersion Include="Altinn.Common.AccessToken" Version="4.5.2" />
+    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql.TestSeed" Version="2.6.1" />
+    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql" Version="2.6.1" />
+    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql" Version="2.6.1" />
+    <PackageVersion Include="Altinn.Authorization.ServiceDefaults" Version="2.6.1" />
+    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Telemetry" Version="2.6.1" />
+    <PackageVersion Include="Altinn.Common.AccessToken" Version="4.5.3" />
     <PackageVersion Include="Altinn.Common.PEP" Version="4.0.0" />
-    <PackageVersion Include="Altinn.Swashbuckle.Abstractions" Version="2.1.0" />
+    <PackageVersion Include="Altinn.Swashbuckle.Abstractions" Version="2.1.1" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="8.2.2" />
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="8.2.2" />
     <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="8.2.2" />
@@ -32,7 +32,7 @@
     <PackageVersion Include="MassTransit.RabbitMQ" Version="8.3.0" />
     <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.10" />
-    <PackageVersion Include="Microsoft.Build.Artifacts" Version="6.1.43" />
+    <PackageVersion Include="Microsoft.Build.Artifacts" Version="6.1.47" />
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Embedded" Version="8.0.10" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
@@ -46,7 +46,7 @@
     <PackageVersion Include="Polly" Version="8.4.2" />
     <PackageVersion Include="Scrutor" Version="5.0.1" />
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
-    <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.8.1" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.9.0" />
     <PackageVersion Include="System.ComponentModel.Annotations" Version="5.0.0" />
     <PackageVersion Include="System.Configuration.ConfigurationManager" Version="8.0.1" />
     <PackageVersion Include="System.Linq.Async" Version="6.0.1" />
