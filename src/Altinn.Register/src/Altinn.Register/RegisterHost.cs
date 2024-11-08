@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-
 using Altinn.Authorization.ServiceDefaults;
 using Altinn.Common.AccessToken;
 using Altinn.Common.AccessToken.Configuration;
@@ -15,17 +14,15 @@ using Altinn.Register.Core;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Extensions;
 using Altinn.Register.ModelBinding;
+using Altinn.Register.PartyImport;
 using Altinn.Register.Services;
 using Altinn.Register.Services.Implementation;
 using Altinn.Register.Services.Interfaces;
-
 using AltinnCore.Authentication.JwtCookie;
-
-using Microsoft.AspNetCore.Authorization;
+using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-
 using OpenTelemetry.Trace;
 
 namespace Altinn.Register;
@@ -69,8 +66,8 @@ internal static class RegisterHost
         services.Configure<PlatformSettings>(config.GetSection("PlatformSettings"));
         services.Configure<PersonLookupSettings>(config.GetSection("PersonLookupSettings"));
 
-        services.AddSingleton<IAuthorizationHandler, AccessTokenHandler>();
-        services.AddScoped<IAuthorizationHandler, ScopeAccessHandler>();
+        ////services.AddSingleton<IAuthorizationHandler, AccessTokenHandler>();
+        ////services.AddScoped<IAuthorizationHandler, ScopeAccessHandler>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddSingleton<IPublicSigningKeyProvider, PublicSigningKeyProvider>();
 
@@ -129,7 +126,12 @@ internal static class RegisterHost
 
         if (config.GetValue<bool>("Altinn:MassTransit:register:Enable"))
         {
-            builder.AddAltinnMassTransit();
+            builder.AddAltinnMassTransit(
+                configureMassTransit: (cfg) =>
+                {
+                    ////cfg.AddConsumers(typeof(RegisterHost).Assembly);
+                    cfg.AddConsumer<A2PartyImportConsumer>();
+                });
         }
 
         services.AddSwaggerGen(c =>

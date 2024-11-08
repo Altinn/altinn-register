@@ -1,7 +1,7 @@
 ﻿#nullable enable
 
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using Altinn.Authorization.ServiceDefaults;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 
 namespace Altinn.Register.Conventions;
@@ -11,14 +11,11 @@ namespace Altinn.Register.Conventions;
 /// </summary>
 [ExcludeFromCodeCoverage]
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
-public sealed class DevTestConditionAttribute
+public sealed class LocalDevConditionAttribute
     : Attribute
     , IControllerModelCondition
     , IActionModelCondition
 {
-    private static readonly ImmutableArray<string> _devTestEnvironments
-        = ["development", "test", "staging", "at22", "at23", "at24"];
-
     /// <inheritdoc />
     public bool ShouldDisable(ControllerModel controller, IServiceProvider services)
         => ShouldDisable(services);
@@ -29,16 +26,8 @@ public sealed class DevTestConditionAttribute
 
     private bool ShouldDisable(IServiceProvider services)
     {
-        var env = services.GetRequiredService<IHostEnvironment>();
+        var env = services.GetRequiredService<AltinnServiceDescriptor>();
 
-        foreach (var validEnv in _devTestEnvironments)
-        {
-            if (string.Equals(env.EnvironmentName, validEnv, StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return !env.IsLocalDev;
     }
 }
