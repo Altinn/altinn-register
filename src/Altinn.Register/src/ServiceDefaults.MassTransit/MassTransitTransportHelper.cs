@@ -109,8 +109,6 @@ internal abstract class MassTransitTransportHelper(MassTransitSettings settings,
 
         public override void ConfigureHost(IHostApplicationBuilder builder)
         {
-            //var quartzSchema = "quartz";
-
             // TODO: make better
             var descriptor = builder.GetAltinnServiceDescriptor();
             var quartzSchema = builder.Configuration.GetValue($"Altinn:MassTransit:{descriptor.Name}:Quartz:Schema", defaultValue: $"{descriptor.Name}_quartz")!;

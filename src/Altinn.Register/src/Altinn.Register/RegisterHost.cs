@@ -20,6 +20,7 @@ using Altinn.Register.Services.Implementation;
 using Altinn.Register.Services.Interfaces;
 using AltinnCore.Authentication.JwtCookie;
 using MassTransit;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
