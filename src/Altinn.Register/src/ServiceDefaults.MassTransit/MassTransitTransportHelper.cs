@@ -109,13 +109,14 @@ internal abstract class MassTransitTransportHelper(MassTransitSettings settings,
 
         public override void ConfigureHost(IHostApplicationBuilder builder)
         {
-            const string QUARTZ_SCHEMA = "quartz";
+            //var quartzSchema = "quartz";
 
             // TODO: make better
             var descriptor = builder.GetAltinnServiceDescriptor();
+            var quartzSchema = builder.Configuration.GetValue($"Altinn:MassTransit:{descriptor.Name}:Quartz:Schema", defaultValue: $"{descriptor.Name}_quartz")!;
             var connectionString = builder.Configuration.GetValue<string>($"Altinn:Npgsql:{descriptor.Name}:ConnectionString");
             var yuniqlSchema = builder.Configuration.GetValue($"Altinn:Npgsql:{descriptor.Name}:Yuniql:MigrationsTable:Schema", defaultValue: "yuniql");
-            var yuniqlTable = builder.Configuration.GetValue($"Altinn:Npgsql:{descriptor.Name}:Yuniql:MigrationsTable:QuartzTable", defaultValue: "register_quartz_migrations");
+            var yuniqlTable = builder.Configuration.GetValue($"Altinn:Npgsql:{descriptor.Name}:Yuniql:MigrationsTable:QuartzTable", defaultValue: $"{descriptor.Name}_quartz_migrations");
             var migrationsFs = new ManifestEmbeddedFileProvider(typeof(MassTransitTransportHelper).Assembly, "Migration");
 
             builder.AddAltinnPostgresDataSource()
@@ -124,7 +125,7 @@ internal abstract class MassTransitTransportHelper(MassTransitSettings settings,
                     y.WorkspaceFileProvider = migrationsFs;
                     y.MigrationsTable.Schema = yuniqlSchema;
                     y.MigrationsTable.Name = yuniqlTable;
-                    y.Tokens.Add("SCHEMA", QUARTZ_SCHEMA);
+                    y.Tokens.Add("SCHEMA", quartzSchema);
                 });
 
             builder.Services.AddOptions<RabbitMqTransportOptions>()
@@ -150,7 +151,7 @@ internal abstract class MassTransitTransportHelper(MassTransitSettings settings,
                     s.UsePostgres(p =>
                     {
                         p.ConnectionString = connectionString!;
-                        p.TablePrefix = $"{QUARTZ_SCHEMA}.";
+                        p.TablePrefix = $"{quartzSchema}.";
                     });
                 });
             });

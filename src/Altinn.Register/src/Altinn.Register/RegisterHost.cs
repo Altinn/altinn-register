@@ -66,8 +66,8 @@ internal static class RegisterHost
         services.Configure<PlatformSettings>(config.GetSection("PlatformSettings"));
         services.Configure<PersonLookupSettings>(config.GetSection("PersonLookupSettings"));
 
-        ////services.AddSingleton<IAuthorizationHandler, AccessTokenHandler>();
-        ////services.AddScoped<IAuthorizationHandler, ScopeAccessHandler>();
+        services.AddSingleton<IAuthorizationHandler, AccessTokenHandler>();
+        services.AddScoped<IAuthorizationHandler, ScopeAccessHandler>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddSingleton<IPublicSigningKeyProvider, PublicSigningKeyProvider>();
 
@@ -129,8 +129,7 @@ internal static class RegisterHost
             builder.AddAltinnMassTransit(
                 configureMassTransit: (cfg) =>
                 {
-                    ////cfg.AddConsumers(typeof(RegisterHost).Assembly);
-                    cfg.AddConsumer<A2PartyImportConsumer>();
+                    cfg.AddConsumers(typeof(RegisterHost).Assembly);
                 });
         }
 

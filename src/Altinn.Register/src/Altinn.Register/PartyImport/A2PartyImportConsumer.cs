@@ -11,7 +11,6 @@ public sealed class A2PartyImportConsumer
     /// <inheritdoc />
     public Task Consume(ConsumeContext<ImportA2PartyCommand> context)
     {
-        var urn = MessageUrn.ForType<ImportA2PartyCommand>();
-        return Task.CompletedTask;
+        throw new NotImplementedException();
     }
 }
