@@ -1,21 +1,30 @@
-﻿using System.Net.Security;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Net.Security;
+using Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql;
 using CommunityToolkit.Diagnostics;
 using HealthChecks.RabbitMQ;
 using MassTransit;
 using MassTransit.RabbitMqTransport;
 using MassTransit.RabbitMqTransport.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using Quartz;
+using Quartz.AspNetCore;
 
 namespace Altinn.Authorization.ServiceDefaults.MassTransit;
 
 /// <summary>
 /// Configuration helper for MassTransit.
 /// </summary>
+[ExcludeFromCodeCoverage]
 internal abstract class MassTransitTransportHelper(MassTransitSettings settings, string busName)
 {
     /// <summary>
@@ -75,14 +84,19 @@ internal abstract class MassTransitTransportHelper(MassTransitSettings settings,
     /// Configures the bus.
     /// </summary>
     /// <param name="configurator">The bus configurator.</param>
-    public abstract void ConfigureBus(IBusRegistrationConfigurator configurator);
+    /// <param name="configureBus">The bus factory configurator.</param>
+    public abstract void ConfigureBus(IBusRegistrationConfigurator configurator, Action<IBusRegistrationContext, IBusFactoryConfigurator> configureBus);
 
     private sealed class InMemoryTransportHelper(MassTransitSettings settings, string busName)
         : MassTransitTransportHelper(settings, busName)
     {
-        public override void ConfigureBus(IBusRegistrationConfigurator configurator)
+        public override void ConfigureBus(IBusRegistrationConfigurator configurator, Action<IBusRegistrationContext, IBusFactoryConfigurator> configureBus)
         {
-            configurator.UsingInMemory();
+            configurator.UsingInMemory((ctx, cfg) =>
+            {
+                configureBus(ctx, cfg);
+                cfg.ConfigureEndpoints(ctx);
+            });
         }
     }
 
@@ -95,6 +109,23 @@ internal abstract class MassTransitTransportHelper(MassTransitSettings settings,
 
         public override void ConfigureHost(IHostApplicationBuilder builder)
         {
+            // TODO: make better
+            var descriptor = builder.GetAltinnServiceDescriptor();
+            var quartzSchema = builder.Configuration.GetValue($"Altinn:MassTransit:{descriptor.Name}:Quartz:Schema", defaultValue: $"{descriptor.Name}_quartz")!;
+            var connectionString = builder.Configuration.GetValue<string>($"Altinn:Npgsql:{descriptor.Name}:ConnectionString");
+            var yuniqlSchema = builder.Configuration.GetValue($"Altinn:Npgsql:{descriptor.Name}:Yuniql:MigrationsTable:Schema", defaultValue: "yuniql");
+            var yuniqlTable = builder.Configuration.GetValue($"Altinn:Npgsql:{descriptor.Name}:Yuniql:MigrationsTable:QuartzTable", defaultValue: $"{descriptor.Name}_quartz_migrations");
+            var migrationsFs = new ManifestEmbeddedFileProvider(typeof(MassTransitTransportHelper).Assembly, "Migration");
+
+            builder.AddAltinnPostgresDataSource()
+                .AddYuniqlMigrations(typeof(MassTransitTransportHelper), y =>
+                {
+                    y.WorkspaceFileProvider = migrationsFs;
+                    y.MigrationsTable.Schema = yuniqlSchema;
+                    y.MigrationsTable.Name = yuniqlTable;
+                    y.Tokens.Add("SCHEMA", quartzSchema);
+                });
+
             builder.Services.AddOptions<RabbitMqTransportOptions>()
                 .Configure(options =>
                 {
@@ -107,13 +138,54 @@ internal abstract class MassTransitTransportHelper(MassTransitSettings settings,
                     options.UseSsl = Settings.UseSsl;
                     options.ConnectionName = BusName;
                 });
+
+            builder.Services.AddQuartz(q => 
+            {
+                q.SchedulerId = "AUTO"; // TODO: use instance ID from pod-name or similar
+                q.UsePersistentStore(s =>
+                {
+                    s.UseSystemTextJsonSerializer();
+                    s.UseClustering();
+                    s.UsePostgres(p =>
+                    {
+                        p.ConnectionString = connectionString!;
+                        p.TablePrefix = $"{quartzSchema}.";
+                    });
+                });
+            });
+
+            builder.Services.AddQuartzServer(opt =>
+            {
+                opt.WaitForJobsToComplete = true;
+            });
         }
 
-        public override void ConfigureBus(IBusRegistrationConfigurator configurator)
+        public override void ConfigureBus(IBusRegistrationConfigurator configurator, Action<IBusRegistrationContext, IBusFactoryConfigurator> configureBus)
         {
+            var schedulerQueueName = $"{BusName}-scheduler";
+            var schedulerEndpoint = new Uri($"queue:{schedulerQueueName}");
+
+            configurator.AddMessageScheduler(schedulerEndpoint);
+            configurator.AddQuartzConsumers(
+                q => q.QueueName = schedulerQueueName);
+
             configurator.UsingRabbitMq((ctx, cfg) =>
             {
+                cfg.UseMessageScheduler(schedulerEndpoint);
+                cfg.ReceiveEndpoint(schedulerQueueName, sch =>
+                {
+                    sch.ConfigureQuartzConsumers(ctx);
+                });
+
+                configureBus(ctx, cfg);
+                cfg.ConfigureEndpoints(ctx);
             });
+        }
+
+        public override void RegisterTracing(TracerProviderBuilder builder)
+        {
+            builder.AddQuartzInstrumentation();
+            builder.AddProcessor<FilterRootQuartzQueriesProcessor>();
         }
 
         public override IEnumerable<HealthCheckRegistration> HealthCheckRegistrations
@@ -125,7 +197,7 @@ internal abstract class MassTransitTransportHelper(MassTransitSettings settings,
                         var healthCheck = Volatile.Read(ref _healthCheck);
                         if (healthCheck is null) 
                         {
-                            var newCheck = CreateHealthCheck(sp);
+                            var newCheck = CreateRabbitMqHealthCheck(sp);
 
                             healthCheck = Interlocked.CompareExchange(ref _healthCheck, newCheck, null) ?? newCheck;
                         }
@@ -137,7 +209,7 @@ internal abstract class MassTransitTransportHelper(MassTransitSettings settings,
                     timeout: default)
             ];
 
-        private static RabbitMQHealthCheck CreateHealthCheck(IServiceProvider services)
+        private static RabbitMQHealthCheck CreateRabbitMqHealthCheck(IServiceProvider services)
         {
             var busName = string.Empty;
             var options = services.GetRequiredService<IOptionsMonitor<RabbitMqTransportOptions>>().Get(busName);
@@ -182,6 +254,19 @@ internal abstract class MassTransitTransportHelper(MassTransitSettings settings,
             {
                 ConnectionFactory = factory,
             });
+        }
+
+        private sealed class FilterRootQuartzQueriesProcessor
+            : BaseProcessor<Activity>
+        {
+            public override void OnStart(Activity data)
+            {
+                if (data.Source.Name == "Npgsql" && data.Parent is null)
+                {
+                    data.ActivityTraceFlags &= ~ActivityTraceFlags.Recorded;
+                    data.IsAllDataRequested = false;
+                }
+            }
         }
     }
 }

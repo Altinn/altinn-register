@@ -7,6 +7,7 @@ using System.Net.Http.Headers;
 using Altinn.Register.Configuration;
 using Altinn.Register.Conventions;
 using CommunityToolkit.Diagnostics;
+using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -22,18 +23,42 @@ namespace Altinn.Register.Controllers;
 [Authorize(Policy = "Debug")]
 [Route("register/api/v0/debug")]
 [ApiExplorerSettings(IgnoreApi = true)]
-public class DebugProxyController
+public class DebugController
     : ControllerBase
 {
     private readonly IOptions<GeneralSettings> _generalSettings;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="DebugProxyController"/> class.
+    /// Initializes a new instance of the <see cref="DebugController"/> class.
     /// </summary>
-    public DebugProxyController(
+    public DebugController(
         IOptions<GeneralSettings> generalSettings)
     {
         _generalSettings = generalSettings;
+    }
+
+    /// <summary>
+    /// test
+    /// </summary>
+    [HttpGet("queue-import")]
+    [LocalDevCondition]
+    public async Task<IActionResult> Test(
+        [FromQuery(Name = "partyUuid")] Guid partyUuid,
+        [FromQuery(Name = "changeId")] int changeId,
+        [FromServices] IBus bus,
+        [FromServices] IMessageScheduler scheduler,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new PartyImport.ImportA2PartyCommand
+        {
+            PartyUuid = partyUuid,
+            ChangeId = changeId,
+            ChangedTime = DateTimeOffset.UtcNow,
+        };
+
+        // TODO: send, not publish
+        await bus.Publish(command, cancellationToken);
+        return Accepted($"Queued import of {partyUuid}");
     }
 
     /// <summary>
@@ -125,7 +150,7 @@ public class DebugProxyController
 
         public async Task ExecuteResultAsync(ActionContext context)
         {
-            using var client = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(DebugProxyController));
+            using var client = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(DebugController));
             using var request = _request;
             using var data = new Sequence<byte>(ArrayPool<byte>.Shared);
             await CopyBody(context.HttpContext.Request.BodyReader, data, context.HttpContext.RequestAborted);

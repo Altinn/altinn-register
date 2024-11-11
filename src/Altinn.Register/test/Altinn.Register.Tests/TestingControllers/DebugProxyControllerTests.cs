@@ -40,7 +40,7 @@ public class DebugProxyControllerTests
                 services.AddSingleton<IPostConfigureOptions<JwtCookieOptions>, JwtCookiePostConfigureOptionsStub>();
                 services.AddSingleton<IPublicSigningKeyProvider, PublicSigningKeyProviderMock>();
                 services.AddSingleton<IAuthorizationClient, AuthorizationClientMock>();
-                services.AddHttpClient(nameof(DebugProxyController))
+                services.AddHttpClient(nameof(DebugController))
                     .ConfigurePrimaryHttpMessageHandler(services => _a2Handler.Create(services));
             });
         }).CreateClient();

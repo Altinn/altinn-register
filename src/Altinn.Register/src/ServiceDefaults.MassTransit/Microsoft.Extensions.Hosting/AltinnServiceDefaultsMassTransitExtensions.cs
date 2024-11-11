@@ -23,16 +23,18 @@ public static class AltinnServiceDefaultsMassTransitExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder"/>.</param>
     /// <param name="configureSettings">Optional settings configuration delegate.</param>
-    /// <param name="configureMassTransit">Optional bus configurator delegate.</param>
+    /// <param name="configureMassTransit">Optional bus registration configurator delegate.</param>
+    /// <param name="configureBus">Optional bus factory configurator delegate.</param>
     /// <returns>A <see cref="IMassTransitBuilder"/> for further configuration.</returns>
     public static IMassTransitBuilder AddAltinnMassTransit(
         this IHostApplicationBuilder builder,
         Action<MassTransitSettings>? configureSettings = null,
-        Action<IBusRegistrationConfigurator>? configureMassTransit = null)
+        Action<IBusRegistrationConfigurator>? configureMassTransit = null,
+        Action<IBusFactoryConfigurator>? configureBus = null)
     {
         var serviceDescriptor = builder.GetAltinnServiceDescriptor();
 
-        return AddAltinnMassTransit(builder, serviceDescriptor.Name, configureSettings, configureMassTransit);
+        return AddAltinnMassTransit(builder, serviceDescriptor.Name, configureSettings, configureMassTransit, configureBus);
     }
 
     /// <summary>
@@ -41,21 +43,24 @@ public static class AltinnServiceDefaultsMassTransitExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder"/>.</param>
     /// <param name="busName">The name of the bus.</param>
     /// <param name="configureSettings">Optional settings configuration delegate.</param>
-    /// <param name="configureMassTransit">Optional bus configurator delegate.</param>
+    /// <param name="configureMassTransit">Optional bus registration configurator delegate.</param>
+    /// <param name="configureBus">Optional bus factory configurator delegate.</param>
     /// <returns>A <see cref="IMassTransitBuilder"/> for further configuration.</returns>
     public static IMassTransitBuilder AddAltinnMassTransit(
         this IHostApplicationBuilder builder,
         string busName,
         Action<MassTransitSettings>? configureSettings = null,
-        Action<IBusRegistrationConfigurator>? configureMassTransit = null)
-        => AddAltinnMassTransitCore(builder, DefaultConfigSectionName(busName), configureSettings, busName, configureMassTransit);
+        Action<IBusRegistrationConfigurator>? configureMassTransit = null,
+        Action<IBusFactoryConfigurator>? configureBus = null)
+        => AddAltinnMassTransitCore(builder, DefaultConfigSectionName(busName), configureSettings, busName, configureMassTransit, configureBus);
 
     private static IMassTransitBuilder AddAltinnMassTransitCore(
         IHostApplicationBuilder builder,
         string configurationSectionName,
         Action<MassTransitSettings>? configureSettings,
         string busName,
-        Action<IBusRegistrationConfigurator>? configureMassTransit)
+        Action<IBusRegistrationConfigurator>? configureMassTransit,
+        Action<IBusFactoryConfigurator>? configureBus = null)
     {
         Guard.IsNotNull(builder);
 
@@ -75,10 +80,33 @@ public static class AltinnServiceDefaultsMassTransitExtensions
         MassTransitTransportHelper helper = MassTransitTransportHelper.For(settings, busName);
 
         helper.ConfigureHost(builder);
+        builder.Services.AddSingleton<IEndpointNameFormatter, AltinnEndpointNameFormatter>();
         builder.Services.AddMassTransit(configurator =>
         {
-            helper.ConfigureBus(configurator);
+            configurator.AddConfigureEndpointsCallback((ctx, name, cfg) =>
+            {
+                // retry messages 3 times, in short order, before failing back to the broker
+                cfg.UseMessageRetry(r => r.Intervals(
+                    TimeSpan.Zero,
+                    TimeSpan.FromMilliseconds(10),
+                    TimeSpan.FromMilliseconds(100)));
+
+                // redeliver if all retries fail
+                cfg.UseScheduledRedelivery(r => r.Intervals(
+                    TimeSpan.FromMinutes(1),
+                    TimeSpan.FromMinutes(5),
+                    TimeSpan.FromMinutes(15)));
+            });
+
             configureMassTransit?.Invoke(configurator);
+            helper.ConfigureBus(configurator, (ctx, cfg) =>
+            {
+                configureBus?.Invoke(cfg);
+                cfg.UseInMemoryOutbox(ctx, x => x.ConcurrentMessageDelivery = true);
+            });
+
+            configurator.AddInMemoryInboxOutbox();
+
         });
 
         if (!settings.DisableHealthChecks)

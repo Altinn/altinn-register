@@ -104,7 +104,7 @@ public static class RegisterPersistenceExtensions
         builder.AddAltinnPostgresDataSource()
             .MapRegisterTypes()
             .SeedFromFileProvider(seedDataFs)
-            .AddYuniqlMigrations(y =>
+            .AddYuniqlMigrations(typeof(RegisterPersistenceExtensions), y =>
             {
                 y.WorkspaceFileProvider = migrationsFs;
                 y.MigrationsTable.Schema = yuniqlSchema;
