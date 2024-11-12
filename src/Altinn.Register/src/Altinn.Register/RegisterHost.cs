@@ -134,6 +134,11 @@ internal static class RegisterHost
                 });
         }
 
+        if (config.GetValue<bool>("Altinn:register:PartyImport:A2:Enable"))
+        {
+            services.AddHostedService<A2PartyImportHostedService>();
+        }
+
         services.AddSwaggerGen(c =>
         {
             c.SwaggerDoc("v1", new OpenApiInfo { Title = "Altinn Platform Register", Version = "v1" });
