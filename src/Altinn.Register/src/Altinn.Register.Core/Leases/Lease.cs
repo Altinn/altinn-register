@@ -13,12 +13,14 @@ namespace Altinn.Register.Core.Leases;
 public sealed class Lease
     : IAsyncDisposable
 {
-    private static readonly CancellationTokenSource _cancelledTokenSource;
+    private static readonly CancellationToken _cancelledToken = CreateCancelledToken();
 
-    static Lease()
+    private static CancellationToken CreateCancelledToken()
     {
-        _cancelledTokenSource = new CancellationTokenSource();
-        _cancelledTokenSource.Cancel();
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        return cts.Token;
     }
 
     private readonly string _leaseId;

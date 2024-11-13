@@ -176,7 +176,7 @@ internal sealed partial class OwnedLease
     {
         if (_releaseResult is { } result)
         {
-            return new(_releaseResult);
+            return new(result);
         }
 
         return ReleaseInner(this, cancellationToken);
