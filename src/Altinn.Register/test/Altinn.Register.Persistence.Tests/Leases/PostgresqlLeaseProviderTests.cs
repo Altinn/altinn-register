@@ -30,6 +30,8 @@ public class PostgresqlLeaseProviderTests
         result.Expires.Should().BeOnOrAfter(now.AddMinutes(1));
         result.Lease.Expires.Should().Be(result.Expires);
         result.Lease.Token.Should().NotBeEmpty();
+        result.LastAcquiredAt.Should().Be(now);
+        result.LastReleasedAt.Should().BeNull();
     }
 
     [Fact]
@@ -38,25 +40,36 @@ public class PostgresqlLeaseProviderTests
         var result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1));
         Assert.True(result.IsLeaseAcquired);
 
+        TimeProvider.Advance(TimeSpan.FromSeconds(10));
+        var releaseTime = TimeProvider.GetUtcNow();
+
         var released = await Provider.ReleaseLease(result.Lease);
         released.Should().BeTrue();
+
+        TimeProvider.Advance(TimeSpan.FromSeconds(10));
+        var reacquireTime = TimeProvider.GetUtcNow();
 
         var result2 = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1));
         Assert.True(result2.IsLeaseAcquired);
 
         result.Lease.Token.Should().NotBe(result2.Lease.Token);
+        result2.LastAcquiredAt.Should().Be(reacquireTime);
+        result2.LastReleasedAt.Should().Be(releaseTime);
     }
 
     [Fact]
     public async Task Cannot_Acquire_Same_Lease_Twice()
     {
+        var acquireTime = TimeProvider.GetUtcNow();
         var result1 = await Provider.TryAcquireLease("test1", TimeSpan.FromMinutes(1));
         Assert.True(result1.IsLeaseAcquired);
 
+        TimeProvider.Advance(TimeSpan.FromSeconds(10));
         var result2 = await Provider.TryAcquireLease("test1", TimeSpan.FromMinutes(1));
         Assert.False(result2.IsLeaseAcquired);
 
         result2.Expires.Should().Be(result1.Expires);
+        result2.LastAcquiredAt.Should().Be(acquireTime);
     }
 
     [Fact]
@@ -82,5 +95,6 @@ public class PostgresqlLeaseProviderTests
 
         result2.Lease.Token.Should().NotBe(result1.Lease.Token);
         result2.Lease.Expires.Should().NotBe(result1.Lease.Expires);
+        result2.LastReleasedAt.Should().BeNull();
     }
 }
