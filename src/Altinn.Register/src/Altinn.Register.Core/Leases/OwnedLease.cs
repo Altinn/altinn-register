@@ -20,8 +20,12 @@ internal sealed partial class OwnedLease
 
     private static readonly TimerCallback _timerCallback = static (object? state) =>
     {
-        Debug.Assert(state is OwnedLease, $"Expected {typeof(OwnedLease)}, got {state}");
-        ((OwnedLease)state).Tick();
+        Debug.Assert(state is WeakReference<OwnedLease>, $"Expected {typeof(WeakReference<OwnedLease>)}, got {state}");
+        var weak = (WeakReference<OwnedLease>)state;
+        if (weak.TryGetTarget(out var lease))
+        {
+            lease.Tick();
+        }
     };
 
     private readonly object _lock = new();
@@ -69,7 +73,7 @@ internal sealed partial class OwnedLease
         // creates the timer in an inert state
         _timer = timeProvider.CreateTimer(
             callback: _timerCallback,
-            state: this,
+            state: new WeakReference<OwnedLease>(this),
             dueTime: Timeout.InfiniteTimeSpan,
             period: Timeout.InfiniteTimeSpan);
 
