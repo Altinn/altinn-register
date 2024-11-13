@@ -20,12 +20,8 @@ internal sealed partial class OwnedLease
 
     private static readonly TimerCallback _timerCallback = static (object? state) =>
     {
-        Debug.Assert(state is WeakReference<OwnedLease>, $"Expected {typeof(WeakReference<OwnedLease>)}, got {state}");
-        var weak = (WeakReference<OwnedLease>)state;
-        if (weak.TryGetTarget(out var lease))
-        {
-            lease.Tick();
-        }
+        Debug.Assert(state is TimerState, $"Expected {typeof(TimerState)}, got {state}");
+        ((TimerState)state!).Tick();
     };
 
     private readonly object _lock = new();
@@ -59,9 +55,9 @@ internal sealed partial class OwnedLease
         Guard.IsNotNull(timeProvider);
         Guard.IsNotNull(ticket);
 
-        #if DEBUG
+#if DEBUG
         Guard.IsNotNull(source);
-        #endif
+#endif
 
         _leaseProvider = leaseProvider;
         _logger = logger;
@@ -226,5 +222,35 @@ internal sealed partial class OwnedLease
     {
         [LoggerMessage(0, LogLevel.Warning, "Lease '{LeaseId}' was not disposed. Created at: {Source}")]
         public static partial void LeaseNotDisposed(ILogger logger, string leaseId, StackTrace? source);
+    }
+
+    private class TimerState
+    {
+        private readonly WeakReference<OwnedLease> _lease;
+        private ITimer? _timer;
+
+        public TimerState(OwnedLease lease)
+        {
+            _lease = new(lease);
+        }
+
+        public void SetTimer(ITimer timer)
+        {
+            Guard.IsNull(_timer);
+
+            _timer = timer;
+        }
+
+        public void Tick()
+        {
+            if (_lease.TryGetTarget(out var lease))
+            {
+                lease.Tick();
+            }
+            else
+            {
+                _timer?.Dispose();
+            }
+        }
     }
 }
