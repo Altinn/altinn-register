@@ -67,11 +67,13 @@ internal sealed partial class OwnedLease
         _cts = CancellationTokenSource.CreateLinkedTokenSource(outerScopeToken);
 
         // creates the timer in an inert state
+        var state = new TimerState(this);
         _timer = timeProvider.CreateTimer(
             callback: _timerCallback,
-            state: new WeakReference<OwnedLease>(this),
+            state: state,
             dueTime: Timeout.InfiniteTimeSpan,
             period: Timeout.InfiniteTimeSpan);
+        state.SetTimer(_timer);
 
         UpdateTimer();
     }
