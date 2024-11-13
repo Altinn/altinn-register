@@ -13,7 +13,7 @@ namespace Altinn.Register.Core.Leases;
 public sealed class Lease
     : IAsyncDisposable
 {
-    private static readonly CancellationToken _cancelledToken = CreateCancelledToken();
+    private static readonly CancellationToken CancelledTokenSingleton = CreateCancelledToken();
 
     private static CancellationToken CreateCancelledToken()
     {
@@ -55,7 +55,7 @@ public sealed class Lease
         _expires = expires;
         _lastAcquiredAt = lastAcquiredAt;
         _lastReleasedAt = lastReleasedAt;
-        _cancellationToken = lease?.Token ?? _cancelledTokenSource.Token;
+        _cancellationToken = lease?.Token ?? CancelledTokenSingleton;
     }
 
     /// <summary>
