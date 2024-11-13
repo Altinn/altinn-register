@@ -98,8 +98,8 @@ public readonly struct FieldValue<T>
     /// Gets the field value or a default value if the field is null/unset.
     /// </summary>
     /// <returns>The field value, or <see langword="default"/>.</returns>
-    public T? OrDefault()
-        => HasValue ? _value : default;
+    public T? OrDefault(T? defaultValue = default)
+        => HasValue ? _value : defaultValue;
 
     /// <inheritdoc/>
     public override bool Equals([NotNullWhen(true)] object? obj)

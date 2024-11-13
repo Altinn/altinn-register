@@ -3,6 +3,7 @@
 using System.Data;
 using System.Diagnostics;
 using Altinn.Register.Core.Leases;
+using Altinn.Register.Core.Utils;
 using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -69,7 +70,18 @@ internal partial class PostgresqlLeaseProvider
         var expires = now + duration;
         var token = Guid.Empty;
 
-        var result = await UpsertLease(leaseId, token, now, expires, cancellationToken);
+        var result = await UpsertLease(
+            new LeaseUpsert
+            {
+                LeaseId = leaseId,
+                Token = token,
+                Now = now,
+                Expires = expires,
+                Acquired = now,
+                Released = FieldValue.Unset,
+            },
+            cancellationToken);
+
         if (result.IsLeaseAcquired)
         {
             Log.LeaseAcquired(_logger, result.Lease.LeaseId);
@@ -93,7 +105,18 @@ internal partial class PostgresqlLeaseProvider
         var leaseId = lease.LeaseId;
         var token = lease.Token;
 
-        var result = await UpsertLease(leaseId, token, now, expires, cancellationToken);
+        var result = await UpsertLease(
+            new LeaseUpsert
+            {
+                LeaseId = leaseId,
+                Token = token,
+                Now = now,
+                Expires = expires,
+                Acquired = FieldValue.Unset,
+                Released = FieldValue.Unset,
+            },
+            cancellationToken);
+
         if (result.IsLeaseAcquired) 
         {
             Log.LeaseRenewed(_logger, result.Lease.LeaseId);
@@ -116,7 +139,18 @@ internal partial class PostgresqlLeaseProvider
         var leaseId = lease.LeaseId;
         var token = lease.Token;
 
-        var result = await UpsertLease(leaseId, token, now, expires, cancellationToken);
+        var result = await UpsertLease(
+            new LeaseUpsert
+            {
+                LeaseId = leaseId,
+                Token = token,
+                Now = now,
+                Expires = expires,
+                Acquired = FieldValue.Unset,
+                Released = now,
+            },
+            cancellationToken);
+
         var released = result.IsLeaseAcquired;
 
         if (released)
@@ -128,79 +162,79 @@ internal partial class PostgresqlLeaseProvider
     }
 
     private async Task<LeaseAcquireResult> UpsertLease(
-        string leaseId,
-        Guid token,
-        DateTimeOffset now,
-        DateTimeOffset expires,
+        LeaseUpsert upsert,
         CancellationToken cancellationToken)
     {
         await using var conn = await _dataSource.OpenConnectionAsync(cancellationToken);
         return await _retryLeasePipeline.ExecuteAsync(
             callback: static (s, ct) => 
             {
-                var (conn, leaseId, token, now, expires) = s;
-                var task = UpsertLeaseInner(conn, leaseId, token, now, expires, ct);
+                var (conn, upsert) = s;
+                var task = UpsertLeaseInner(conn, upsert, ct);
                 return new ValueTask<LeaseAcquireResult>(task);
             },
-            state: (conn, leaseId, token, now, expires),
+            state: (conn, upsert),
             cancellationToken: cancellationToken);
 
         static async Task<LeaseAcquireResult> UpsertLeaseInner(
             NpgsqlConnection conn,
-            string leaseId,
-            Guid token,
-            DateTimeOffset now,
-            DateTimeOffset expires,
+            LeaseUpsert upsert,
             CancellationToken cancellationToken)
         {
             const string ACQUIRE_QUERY =
                 /*strpsql*/"""
-                INSERT INTO register.lease (id, token, expires)
-                VALUES (@id, gen_random_uuid(), @expires)
+                INSERT INTO register.lease (id, token, expires, acquired, released)
+                VALUES (@id, gen_random_uuid(), @expires, @acquired, @released)
                 ON CONFLICT (id) DO UPDATE SET
                     token = EXCLUDED.token,
-                    expires = EXCLUDED.expires
+                    expires = EXCLUDED.expires,
+                    acquired = CASE @has_acquired WHEN true THEN EXCLUDED.acquired ELSE lease.acquired END,
+                    released = CASE @has_released WHEN true THEN EXCLUDED.released ELSE lease.released END
                     WHERE lease.token = @token OR lease.expires <= @now
-                RETURNING id, token, expires
+                RETURNING id, token, expires, acquired, released
                 """;
 
-            Guard.IsNotNullOrEmpty(leaseId);
+            Guard.IsNotNullOrEmpty(upsert.LeaseId);
 
             await using var tx = await conn.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
             await using var cmd = conn.CreateCommand();
 
             cmd.CommandText = ACQUIRE_QUERY;
-            cmd.Parameters.Add<string>("id", NpgsqlDbType.Text).TypedValue = leaseId;
-            cmd.Parameters.Add<Guid>("token", NpgsqlDbType.Uuid).TypedValue = token;
-            cmd.Parameters.Add<DateTimeOffset>("now", NpgsqlDbType.TimestampTz).TypedValue = now;
-            cmd.Parameters.Add<DateTimeOffset>("expires", NpgsqlDbType.TimestampTz).TypedValue = expires;
+            cmd.Parameters.Add<string>("id", NpgsqlDbType.Text).TypedValue = upsert.LeaseId;
+            cmd.Parameters.Add<Guid>("token", NpgsqlDbType.Uuid).TypedValue = upsert.Token;
+            cmd.Parameters.Add<DateTimeOffset>("now", NpgsqlDbType.TimestampTz).TypedValue = upsert.Now;
+            cmd.Parameters.Add<DateTimeOffset>("expires", NpgsqlDbType.TimestampTz).TypedValue = upsert.Expires;
+            cmd.Parameters.Add<DateTimeOffset?>("acquired", NpgsqlDbType.TimestampTz).TypedValue = upsert.Acquired.HasValue ? upsert.Acquired.Value : null;
+            cmd.Parameters.Add<DateTimeOffset?>("released", NpgsqlDbType.TimestampTz).TypedValue = upsert.Released.HasValue ? upsert.Released.Value : null;
+            cmd.Parameters.Add<bool>("has_acquired", NpgsqlDbType.Boolean).TypedValue = !upsert.Acquired.IsUnset;
+            cmd.Parameters.Add<bool>("has_released", NpgsqlDbType.Boolean).TypedValue = !upsert.Released.IsUnset;
 
-            LeaseTicket? newLease = null;
+            LeaseAcquireResult? result = null;
             await cmd.PrepareAsync(cancellationToken);
             {
                 await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow, cancellationToken);
 
                 if (await reader.ReadAsync(cancellationToken))
                 {
-                    newLease = ReadLease(reader);
+                    result = ReadLease(reader);
                 }
             }
 
-            if (newLease is null)
+            if (result is null)
             {
-                return await GetLeaseExpiry(conn, leaseId, cancellationToken);
+                return await GetFailedLeaseResult(conn, upsert.LeaseId, cancellationToken);
             }
 
             await tx.CommitAsync(cancellationToken);
 
-            return newLease;
+            return result;
         }
 
-        static async Task<DateTimeOffset> GetLeaseExpiry(NpgsqlConnection conn, string id, CancellationToken cancellationToken)
+        static async Task<LeaseAcquireResult> GetFailedLeaseResult(NpgsqlConnection conn, string id, CancellationToken cancellationToken)
         {
             const string GET_QUERY =
                 /*strpsql*/"""
-                SELECT id, token, expires
+                SELECT id, token, expires, acquired, released
                 FROM register.lease
                 WHERE id = @id
                 """;
@@ -217,17 +251,39 @@ internal partial class PostgresqlLeaseProvider
                 throw new UnreachableException("Lease was not acquired, but no lease was found in the database");
             }
 
-            return reader.GetFieldValue<DateTimeOffset>("expires");
+            var expires = reader.GetFieldValue<DateTimeOffset>("expires");
+            var acquired = reader.GetFieldValue<DateTimeOffset?>("acquired");
+            var released = reader.GetFieldValue<DateTimeOffset?>("released");
+
+            return LeaseAcquireResult.Failed(expires, lastAcquiredAt: acquired, lastReleasedAt: released);
         }
 
-        static LeaseTicket ReadLease(NpgsqlDataReader reader)
+        static LeaseAcquireResult ReadLease(NpgsqlDataReader reader)
         {
             var id = reader.GetFieldValue<string>("id");
             var token = reader.GetFieldValue<Guid>("token");
             var expires = reader.GetFieldValue<DateTimeOffset>("expires");
+            var acquired = reader.GetFieldValue<DateTimeOffset?>("acquired");
+            var released = reader.GetFieldValue<DateTimeOffset?>("released");
 
-            return new LeaseTicket(id, token, expires);
+            var lease = new LeaseTicket(id, token, expires);
+            return LeaseAcquireResult.Acquired(lease, lastAcquiredAt: acquired, lastReleasedAt: released);
         }
+    }
+
+    private readonly record struct LeaseUpsert
+    {
+        public required string LeaseId { get; init; }
+
+        public required Guid Token { get; init; }
+
+        public required DateTimeOffset Now { get; init; }
+
+        public required DateTimeOffset Expires { get; init; }
+
+        public required FieldValue<DateTimeOffset> Acquired { get; init; }
+
+        public required FieldValue<DateTimeOffset> Released { get; init; }
     }
 
     private static partial class Log
