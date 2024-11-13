@@ -61,7 +61,11 @@ internal partial class PostgresqlLeaseProvider
     }
 
     /// <inheritdoc/>
-    public async Task<LeaseAcquireResult> TryAcquireLease(string leaseId, TimeSpan duration, CancellationToken cancellationToken = default)
+    public async Task<LeaseAcquireResult> TryAcquireLease(
+        string leaseId,
+        TimeSpan duration,
+        Func<LeaseInfo, bool>? filter = null,
+        CancellationToken cancellationToken = default)
     {
         Guard.IsNotNullOrEmpty(leaseId);
         Guard.IsLessThan(duration, MAX_LEASE_DURATION);
@@ -79,6 +83,7 @@ internal partial class PostgresqlLeaseProvider
                 Expires = expires,
                 Acquired = now,
                 Released = FieldValue.Unset,
+                Filter = filter,
             },
             cancellationToken);
 
@@ -183,15 +188,32 @@ internal partial class PostgresqlLeaseProvider
         {
             const string ACQUIRE_QUERY =
                 /*strpsql*/"""
-                INSERT INTO register.lease (id, token, expires, acquired, released)
-                VALUES (@id, gen_random_uuid(), @expires, @acquired, @released)
-                ON CONFLICT (id) DO UPDATE SET
-                    token = EXCLUDED.token,
-                    expires = EXCLUDED.expires,
-                    acquired = CASE @has_acquired WHEN true THEN EXCLUDED.acquired ELSE lease.acquired END,
-                    released = CASE @has_released WHEN true THEN EXCLUDED.released ELSE lease.released END
-                    WHERE lease.token = @token OR lease.expires <= @now
-                RETURNING id, token, expires, acquired, released
+                WITH original AS (
+                    SELECT id, expires, acquired, released
+                    FROM register.lease
+                    WHERE id = @id
+                ), updated AS (
+                    INSERT INTO register.lease (id, token, expires, acquired, released)
+                    VALUES (@id, gen_random_uuid(), @expires, @acquired, @released)
+                    ON CONFLICT (id) DO UPDATE SET
+                        token = EXCLUDED.token,
+                        expires = EXCLUDED.expires,
+                        acquired = CASE @has_acquired WHEN true THEN EXCLUDED.acquired ELSE lease.acquired END,
+                        released = CASE @has_released WHEN true THEN EXCLUDED.released ELSE lease.released END
+                        WHERE lease.token = @token OR lease.expires <= @now
+                    RETURNING id, token, expires, acquired, released
+                )
+                SELECT 
+                    updated.id,
+                    updated.token,
+                    updated.expires,
+                    updated.acquired,
+                    updated.released,
+                    original.expires AS prev_expires,
+                    original.acquired AS prev_acquired,
+                    original.released AS prev_released
+                FROM updated
+                LEFT JOIN original ON updated.id = original.id
                 """;
 
             Guard.IsNotNullOrEmpty(upsert.LeaseId);
@@ -216,12 +238,28 @@ internal partial class PostgresqlLeaseProvider
 
                 if (await reader.ReadAsync(cancellationToken))
                 {
-                    result = ReadLease(reader);
+                    if (upsert.Filter is null || upsert.Filter(ReadLeaseInfo(reader)))
+                    {
+                        result = ReadLease(reader);
+                    } 
+                    else
+                    {
+                        var expires = reader.GetFieldValue<DateTimeOffset?>("prev_expires");
+                        var lastAcquiredAt = reader.GetFieldValue<DateTimeOffset?>("prev_acquired");
+                        var lastReleasedAt = reader.GetFieldValue<DateTimeOffset?>("prev_released");
+
+                        // returning here rolls back the transaction
+                        return LeaseAcquireResult.Failed(
+                            expires ?? DateTimeOffset.MinValue,
+                            lastAcquiredAt: lastAcquiredAt,
+                            lastReleasedAt: lastReleasedAt);
+                    }
                 }
             }
 
             if (result is null)
             {
+                // returning here rolls back the transaction
                 return await GetFailedLeaseResult(conn, upsert.LeaseId, cancellationToken);
             }
 
@@ -234,7 +272,7 @@ internal partial class PostgresqlLeaseProvider
         {
             const string GET_QUERY =
                 /*strpsql*/"""
-                SELECT id, token, expires, acquired, released
+                SELECT id, expires, acquired, released
                 FROM register.lease
                 WHERE id = @id
                 """;
@@ -252,10 +290,24 @@ internal partial class PostgresqlLeaseProvider
             }
 
             var expires = reader.GetFieldValue<DateTimeOffset>("expires");
-            var acquired = reader.GetFieldValue<DateTimeOffset?>("acquired");
-            var released = reader.GetFieldValue<DateTimeOffset?>("released");
+            var lastAcquiredAt = reader.GetFieldValue<DateTimeOffset?>("acquired");
+            var lastReleasedAt = reader.GetFieldValue<DateTimeOffset?>("released");
 
-            return LeaseAcquireResult.Failed(expires, lastAcquiredAt: acquired, lastReleasedAt: released);
+            return LeaseAcquireResult.Failed(expires, lastAcquiredAt: lastAcquiredAt, lastReleasedAt: lastReleasedAt);
+        }
+
+        static LeaseInfo ReadLeaseInfo(NpgsqlDataReader reader)
+        {
+            var id = reader.GetFieldValue<string>("id");
+            var acquired = reader.GetFieldValue<DateTimeOffset?>("prev_acquired");
+            var released = reader.GetFieldValue<DateTimeOffset?>("prev_released");
+
+            return new LeaseInfo
+            {
+                LeaseId = id,
+                LastAcquiredAt = acquired,
+                LastReleasedAt = released
+            };
         }
 
         static LeaseAcquireResult ReadLease(NpgsqlDataReader reader)
@@ -263,11 +315,11 @@ internal partial class PostgresqlLeaseProvider
             var id = reader.GetFieldValue<string>("id");
             var token = reader.GetFieldValue<Guid>("token");
             var expires = reader.GetFieldValue<DateTimeOffset>("expires");
-            var acquired = reader.GetFieldValue<DateTimeOffset?>("acquired");
-            var released = reader.GetFieldValue<DateTimeOffset?>("released");
+            var lastAcquiredAt = reader.GetFieldValue<DateTimeOffset?>("acquired");
+            var lastReleasedAt = reader.GetFieldValue<DateTimeOffset?>("released");
 
             var lease = new LeaseTicket(id, token, expires);
-            return LeaseAcquireResult.Acquired(lease, lastAcquiredAt: acquired, lastReleasedAt: released);
+            return LeaseAcquireResult.Acquired(lease, lastAcquiredAt: lastAcquiredAt, lastReleasedAt: lastReleasedAt);
         }
     }
 
@@ -284,6 +336,8 @@ internal partial class PostgresqlLeaseProvider
         public required FieldValue<DateTimeOffset> Acquired { get; init; }
 
         public required FieldValue<DateTimeOffset> Released { get; init; }
+
+        public Func<LeaseInfo, bool>? Filter { get; init; }
     }
 
     private static partial class Log
