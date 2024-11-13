@@ -226,7 +226,7 @@ internal sealed partial class OwnedLease
         public static partial void LeaseNotDisposed(ILogger logger, string leaseId, StackTrace? source);
     }
 
-    private class TimerState
+    private sealed class TimerState
     {
         private readonly WeakReference<OwnedLease> _lease;
         private ITimer? _timer;
