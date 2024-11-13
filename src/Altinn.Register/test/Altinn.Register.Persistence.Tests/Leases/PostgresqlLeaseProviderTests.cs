@@ -35,6 +35,78 @@ public class PostgresqlLeaseProviderTests
     }
 
     [Fact]
+    public async Task Can_Conditionally_Acquire_Lease()
+    {
+        // before lease is created
+        var result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), info =>
+        {
+            info.LastAcquiredAt.Should().BeNull();
+            info.LastReleasedAt.Should().BeNull();
+
+            // reject lease
+            return false;
+        });
+
+        result.IsLeaseAcquired.Should().BeFalse();
+        result.LastAcquiredAt.Should().BeNull();
+        result.LastReleasedAt.Should().BeNull();
+        result.Expires.Should().BeBefore(TimeProvider.GetUtcNow());
+
+        var acquireTime = TimeProvider.GetUtcNow();
+
+        // create lease
+        result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), info =>
+        {
+            info.LastAcquiredAt.Should().BeNull();
+            info.LastReleasedAt.Should().BeNull();
+
+            // accept lease
+            return true;
+        });
+
+        Assert.True(result.IsLeaseAcquired);
+        result.LastAcquiredAt.Should().Be(acquireTime);
+        result.LastReleasedAt.Should().BeNull();
+        result.Expires.Should().Be(acquireTime.AddMinutes(1));
+
+        TimeProvider.Advance(TimeSpan.FromSeconds(10));
+        var releaseTime = TimeProvider.GetUtcNow();
+        var released = await Provider.ReleaseLease(result.Lease);
+        released.Should().BeTrue();
+
+        TimeProvider.Advance(TimeSpan.FromSeconds(10));
+
+        result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), info =>
+        {
+            info.LastAcquiredAt.Should().Be(acquireTime);
+            info.LastReleasedAt.Should().Be(releaseTime);
+
+            // reject lease
+            return false;
+        });
+
+        result.IsLeaseAcquired.Should().BeFalse();
+        result.LastAcquiredAt.Should().Be(acquireTime);
+        result.LastReleasedAt.Should().Be(releaseTime);
+        result.Expires.Should().BeBefore(TimeProvider.GetUtcNow());
+
+        var now = TimeProvider.GetUtcNow();
+        result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), info =>
+        {
+            info.LastAcquiredAt.Should().Be(acquireTime);
+            info.LastReleasedAt.Should().Be(releaseTime);
+
+            // accept lease
+            return true;
+        });
+
+        result.IsLeaseAcquired.Should().BeTrue();
+        result.LastAcquiredAt.Should().Be(now);
+        result.LastReleasedAt.Should().Be(releaseTime);
+        result.Expires.Should().Be(now + TimeSpan.FromMinutes(1));
+    }
+
+    [Fact]
     public async Task Can_Reacquire_Lease_After_Releasing()
     {
         var result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1));
