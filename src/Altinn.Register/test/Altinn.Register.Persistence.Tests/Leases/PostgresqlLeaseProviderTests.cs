@@ -35,6 +35,24 @@ public class PostgresqlLeaseProviderTests
     }
 
     [Fact]
+    public async Task Can_Release_Lease()
+    {
+        var acquired = TimeProvider.GetUtcNow();
+
+        var result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1));
+        Assert.True(result.IsLeaseAcquired);
+
+        TimeProvider.Advance(TimeSpan.FromSeconds(10));
+        var released = TimeProvider.GetUtcNow();
+
+        var releaseResult = await Provider.ReleaseLease(result.Lease);
+        releaseResult.IsReleased.Should().BeTrue();
+        releaseResult.Expires.Should().Be(DateTimeOffset.MinValue);
+        releaseResult.LastAcquiredAt.Should().Be(acquired);
+        releaseResult.LastReleasedAt.Should().Be(released);
+    }
+
+    [Fact]
     public async Task Can_Conditionally_Acquire_Lease()
     {
         // before lease is created
@@ -72,7 +90,7 @@ public class PostgresqlLeaseProviderTests
         TimeProvider.Advance(TimeSpan.FromSeconds(10));
         var releaseTime = TimeProvider.GetUtcNow();
         var released = await Provider.ReleaseLease(result.Lease);
-        released.Should().BeTrue();
+        released.IsReleased.Should().BeTrue();
 
         TimeProvider.Advance(TimeSpan.FromSeconds(10));
 
@@ -116,7 +134,7 @@ public class PostgresqlLeaseProviderTests
         var releaseTime = TimeProvider.GetUtcNow();
 
         var released = await Provider.ReleaseLease(result.Lease);
-        released.Should().BeTrue();
+        released.IsReleased.Should().BeTrue();
 
         TimeProvider.Advance(TimeSpan.FromSeconds(10));
         var reacquireTime = TimeProvider.GetUtcNow();

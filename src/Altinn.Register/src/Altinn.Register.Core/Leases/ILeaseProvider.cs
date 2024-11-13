@@ -59,5 +59,5 @@ public interface ILeaseProvider
     /// <param name="lease">The <see cref="LeaseTicket"/> of the lease to release.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns><see langword="true"/> if the lease was successfully released, otherwise <see langword="false"/>.</returns>
-    Task<bool> ReleaseLease(LeaseTicket lease, CancellationToken cancellationToken = default);
+    Task<LeaseReleaseResult> ReleaseLease(LeaseTicket lease, CancellationToken cancellationToken = default);
 }

@@ -135,7 +135,7 @@ internal partial class PostgresqlLeaseProvider
     }
 
     /// <inheritdoc/>
-    public async Task<bool> ReleaseLease(LeaseTicket lease, CancellationToken cancellationToken = default)
+    public async Task<LeaseReleaseResult> ReleaseLease(LeaseTicket lease, CancellationToken cancellationToken = default)
     {
         Guard.IsNotNull(lease);
 
@@ -163,7 +163,13 @@ internal partial class PostgresqlLeaseProvider
             Log.LeaseReleased(_logger, leaseId);
         }
 
-        return released;
+        return new LeaseReleaseResult
+        {
+            IsReleased = released,
+            Expires = result.Expires,
+            LastAcquiredAt = result.LastAcquiredAt,
+            LastReleasedAt = result.LastReleasedAt,
+        };
     }
 
     private async Task<LeaseAcquireResult> UpsertLease(
