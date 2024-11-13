@@ -157,7 +157,7 @@ internal sealed partial class OwnedLease
         var expiry = ticket.Expires;
         var now = _timeProvider.GetUtcNow();
         var duration = (expiry - now) - RenewalSafetyMargin;
-        
+
         if (duration <= TimeSpan.Zero)
         {
             _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
