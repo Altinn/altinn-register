@@ -1,196 +1,123 @@
 ﻿#nullable enable
 
 using System.Diagnostics;
-using CommunityToolkit.Diagnostics;
-using Microsoft.Extensions.Logging;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Altinn.Register.Core.Leases;
 
 /// <summary>
-/// An owned lease that auto-renews and releases the lease when disposed.
+/// Result from calling <see cref="LeaseManager.AcquireLease(string, CancellationToken)"/>, either a
+/// acquired lease or a failed lease-acquire result. Check <see cref="Acquired"/> to see if the lease
+/// was acquired or not.
 /// </summary>
-public sealed partial class Lease
+public sealed class Lease
     : IAsyncDisposable
 {
-    /// <summary>
-    /// How often the lease should be renewed.
-    /// </summary>
-    public static readonly TimeSpan LeaseRenewalInterval = TimeSpan.FromMinutes(2);
-    private static readonly TimeSpan RenewalSafetyMargin = TimeSpan.FromSeconds(5);
+    private static readonly CancellationTokenSource _cancelledTokenSource;
 
-    private static readonly TimerCallback _timerCallback = static (object? state) =>
+    static Lease()
     {
-        Debug.Assert(state is Lease, $"Expected {typeof(Lease)}, got {state}");
-        ((Lease)state).Tick();
-    };
+        _cancelledTokenSource = new CancellationTokenSource();
+        _cancelledTokenSource.Cancel();
+    }
 
-    private readonly ILeaseProvider _leaseProvider;
-    private readonly ILogger<Lease> _logger;
-    private readonly TimeProvider _timeProvider;
-    private readonly CancellationTokenSource _cts;
-    private readonly StackTrace? _source;
-    private readonly ITimer _timer;
-
-    private int _disposed = 0;
-    private LeaseTicket _ticket;
-
-    // For testing purposes
-    private Task _tickTask = Task.CompletedTask;
+    private readonly string _leaseId;
+    private readonly CancellationToken _cancellationToken;
+    private readonly DateTimeOffset _expires;
+    private readonly DateTimeOffset? _lastAcquiredAt;
+    private readonly DateTimeOffset? _lastReleasedAt;
+    private readonly OwnedLease? _lease;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Lease"/> class.
     /// </summary>
-    public Lease(
-        ILeaseProvider leaseProvider,
-        ILogger<Lease> logger,
-        TimeProvider timeProvider,
-        LeaseTicket ticket,
-        StackTrace? source,
-        CancellationToken outerScopeToken)
+    /// <param name="leaseId">The lease id.</param>
+    /// <param name="lease">The <see cref="OwnedLease"/> if a lease is held.</param>
+    /// <param name="expires">When the lease expires.</param>
+    /// <param name="lastAcquiredAt">When the lease was last acquired.</param>
+    /// <param name="lastReleasedAt">When the lease was last released.</param>
+    internal Lease(
+        string leaseId,
+        OwnedLease? lease,
+        DateTimeOffset expires,
+        DateTimeOffset? lastAcquiredAt,
+        DateTimeOffset? lastReleasedAt)
     {
-        Guard.IsNotNull(leaseProvider);
-        Guard.IsNotNull(logger);
-        Guard.IsNotNull(timeProvider);
-        Guard.IsNotNull(ticket);
-
-        #if DEBUG
-        Guard.IsNotNull(source);
-        #endif
-
-        _leaseProvider = leaseProvider;
-        _logger = logger;
-        _timeProvider = timeProvider;
-        _ticket = ticket;
-        _source = source;
-        _cts = CancellationTokenSource.CreateLinkedTokenSource(outerScopeToken);
-
-        // creates the timer in an inert state
-        _timer = timeProvider.CreateTimer(
-            callback: _timerCallback,
-            state: this,
-            dueTime: Timeout.InfiniteTimeSpan,
-            period: Timeout.InfiniteTimeSpan);
-
-        UpdateTimer();
-    }
-
-#if DEBUG
-    /// <summary>
-    /// Destructor.
-    /// </summary>
-    ~Lease()
-    {
-        if (Volatile.Read(ref _disposed) == 0)
+        if (lease is not null)
         {
-            Log.LeaseNotDisposed(_logger, _ticket.LeaseId, _source);
+            Debug.Assert(leaseId == lease.LeaseId, $"Expected {leaseId}, got {lease.LeaseId}");
         }
-    }
-#endif
 
-    /// <summary>
-    /// Gets a <see cref="CancellationToken"/> that is triggered when the lease is disposed or expires.
-    /// </summary>
-    public CancellationToken Token
-        => _cts.Token;
+        _leaseId = leaseId;
+        _lease = lease;
+        _expires = expires;
+        _lastAcquiredAt = lastAcquiredAt;
+        _lastReleasedAt = lastReleasedAt;
+        _cancellationToken = lease?.Token ?? _cancelledTokenSource.Token;
+    }
 
     /// <summary>
     /// Gets the lease id.
     /// </summary>
     public string LeaseId
-        => _ticket.LeaseId;
+        => _leaseId;
 
     /// <summary>
-    /// Gets the current lease token.
+    /// Gets a value indicating whether or not the lease was acquired.
     /// </summary>
-    public Guid LeaseToken
-        => Volatile.Read(ref _ticket).Token;
+    [MemberNotNullWhen(true, nameof(Inner))]
+    public bool Acquired
+        => _lease is not null;
 
     /// <summary>
-    /// Gets the task that represents the lease renewal.
-    /// Only used for testing purposes.
+    /// Gets the expiry of the current lease.
     /// </summary>
-    internal Task TickTask
-        => Volatile.Read(ref _tickTask);
+    public DateTimeOffset Expires
+        => _lease?.CurrentExpiry ?? _expires;
 
     /// <summary>
-    /// Gets the current expiry of the lease.
+    /// Gets a <see cref="CancellationToken"/> that is valid for as long as the lease is held.
     /// </summary>
-    internal DateTimeOffset CurrentExpiry
-        => Volatile.Read(ref _ticket).Expires;
+    public CancellationToken Token
+        => _cancellationToken;
 
-    private void Tick()
+    /// <summary>
+    /// Gets the owned lease.
+    /// </summary>
+    internal OwnedLease? Inner
+        => _lease;
+
+    /// <summary>
+    /// Gets when the lease was last acquired.
+    /// </summary>
+    public DateTimeOffset? LastAcquiredAt
+        => _lastAcquiredAt;
+
+    /// <summary>
+    /// Gets when the lease was last released.
+    /// </summary>
+    public DateTimeOffset? LastReleasedAt
+        => _lastReleasedAt;
+
+    /// <summary>
+    /// Releases the lease (if one is held).
+    /// </summary>
+    /// <remarks>
+    /// If the lease has already been released, this returns a cached result.
+    /// </remarks>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>A <see cref="LeaseReleaseResult"/> if a lease was held, otherwise <see langword="null"/>.</returns>
+    public ValueTask<LeaseReleaseResult?> Release(CancellationToken cancellationToken = default)
     {
-        if (Volatile.Read(ref _disposed) == 1 
-            || Token.IsCancellationRequested)
+        if (_lease is { } lease)
         {
-            return;
+            return lease.Release(cancellationToken)!;
         }
 
-        Volatile.Write(ref _tickTask, Task.Run(UpdateLease, Token));
-
-        async Task UpdateLease()
-        {
-            var result = await _leaseProvider.TryRenewLease(_ticket, LeaseRenewalInterval, Token);
-
-            if (!result.IsLeaseAcquired)
-            {
-                // failed to renew the lease - it's likely that the lease has been lost
-                // either due to time drift or network latency - signal using the cancellation token
-                await _cts.CancelAsync();
-                return;
-            }
-
-            Volatile.Write(ref _ticket, result.Lease);
-            UpdateTimer();
-        }
-    }
-
-    private void UpdateTimer()
-    {
-        var ticket = Volatile.Read(ref _ticket);
-        var expiry = ticket.Expires;
-        var now = _timeProvider.GetUtcNow();
-        var duration = (expiry - now) - RenewalSafetyMargin;
-        
-        if (duration <= TimeSpan.Zero)
-        {
-            _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-            Tick();
-            return;
-        }
-
-        _timer.Change(duration, Timeout.InfiniteTimeSpan);
+        return default;
     }
 
     /// <inheritdoc/>
     public ValueTask DisposeAsync()
-    {
-#if DEBUG
-        GC.SuppressFinalize(this);
-#endif
-
-        if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 1)
-        {
-            // already disposed
-            return ValueTask.CompletedTask;
-        }
-
-        return DisposeInner(this);
-
-        static async ValueTask DisposeInner(Lease lease)
-        {
-            await lease._timer.DisposeAsync();
-            await lease._cts.CancelAsync();
-            lease._cts.Dispose();
-
-            var ticket = Volatile.Read(ref lease._ticket);
-            await lease._leaseProvider.ReleaseLease(ticket, cancellationToken: CancellationToken.None);
-        }
-    }
-
-    private static partial class Log
-    {
-        [LoggerMessage(0, LogLevel.Warning, "Lease '{LeaseId}' was not disposed. Created at: {Source}")]
-        public static partial void LeaseNotDisposed(ILogger logger, string leaseId, StackTrace? source);
-    }
+        => _lease?.DisposeAsync() ?? ValueTask.CompletedTask;
 }
