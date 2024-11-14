@@ -82,6 +82,9 @@ internal sealed partial class RecurringJobHostedService
     {
         // First, stop the scheduler
         await StopScheduler(cancellationToken);
+
+        // Then, run lifecycle jobs
+        await RunLifecycleJobs(JobHostLifecycles.Stop, cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -266,7 +269,7 @@ internal sealed partial class RecurringJobHostedService
         }
     }
 
-    private record JobRunResult(string Name, TimeSpan Duration, ExceptionDispatchInfo? Exception);
+    private sealed record JobRunResult(string Name, TimeSpan Duration, ExceptionDispatchInfo? Exception);
 
     private static partial class Log
     {

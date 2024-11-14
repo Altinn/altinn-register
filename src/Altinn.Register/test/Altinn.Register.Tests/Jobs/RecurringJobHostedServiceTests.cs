@@ -1,4 +1,6 @@
-﻿using Altinn.Register.Jobs;
+﻿#nullable enable
+
+using Altinn.Register.Jobs;
 using Altinn.Register.Tests.Utils;
 using Altinn.Register.TestUtils;
 using Microsoft.Extensions.DependencyInjection;
@@ -29,6 +31,145 @@ public class RecurringJobHostedServiceTests
         await Stop(sut);
     }
 
+    [Fact]
+    public async Task CanRun_JobAt_Starting()
+    {
+        var counter = new AtomicCounter();
+        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Starting, counter)]);
+
+        counter.Value.Should().Be(0);
+        await sut.StartingAsync(CancellationToken.None);
+        counter.Value.Should().Be(1);
+
+        await sut.StartAsync(CancellationToken.None);
+        await sut.StartedAsync(CancellationToken.None);
+        await sut.StoppingAsync(CancellationToken.None);
+        await sut.StopAsync(CancellationToken.None);
+        await sut.StoppedAsync(CancellationToken.None);
+
+        counter.Value.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task CanRun_JobAt_Start()
+    {
+        var counter = new AtomicCounter();
+        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Start, counter)]);
+
+        await sut.StartingAsync(CancellationToken.None);
+
+        counter.Value.Should().Be(0);
+        await sut.StartAsync(CancellationToken.None);
+        counter.Value.Should().Be(1);
+
+        await sut.StartedAsync(CancellationToken.None);
+        await sut.StoppingAsync(CancellationToken.None);
+        await sut.StopAsync(CancellationToken.None);
+        await sut.StoppedAsync(CancellationToken.None);
+
+        counter.Value.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task CanRun_JobAt_Started()
+    {
+        var counter = new AtomicCounter();
+        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Started, counter)]);
+
+        await sut.StartingAsync(CancellationToken.None);
+        await sut.StartAsync(CancellationToken.None);
+
+        counter.Value.Should().Be(0);
+        await sut.StartedAsync(CancellationToken.None);
+        counter.Value.Should().Be(1);
+
+        await sut.StoppingAsync(CancellationToken.None);
+        await sut.StopAsync(CancellationToken.None);
+        await sut.StoppedAsync(CancellationToken.None);
+
+        counter.Value.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task CanRun_JobAt_Stopping()
+    {
+        var counter = new AtomicCounter();
+        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Stopping, counter)]);
+
+        await sut.StartingAsync(CancellationToken.None);
+        await sut.StartAsync(CancellationToken.None);
+        await sut.StartedAsync(CancellationToken.None);
+
+        counter.Value.Should().Be(0);
+        await sut.StoppingAsync(CancellationToken.None);
+        counter.Value.Should().Be(1);
+
+        await sut.StopAsync(CancellationToken.None);
+        await sut.StoppedAsync(CancellationToken.None);
+
+        counter.Value.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task CanRun_JobAt_Stop()
+    {
+        var counter = new AtomicCounter();
+        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Stop, counter)]);
+
+        await sut.StartingAsync(CancellationToken.None);
+        await sut.StartAsync(CancellationToken.None);
+        await sut.StartedAsync(CancellationToken.None);
+        await sut.StoppingAsync(CancellationToken.None);
+
+        counter.Value.Should().Be(0);
+        await sut.StopAsync(CancellationToken.None);
+        counter.Value.Should().Be(1);
+
+        await sut.StoppedAsync(CancellationToken.None);
+
+        counter.Value.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task CanRun_JobAt_Stopped()
+    {
+        var counter = new AtomicCounter();
+        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Stopped, counter)]);
+
+        await sut.StartingAsync(CancellationToken.None);
+        await sut.StartAsync(CancellationToken.None);
+        await sut.StartedAsync(CancellationToken.None);
+        await sut.StoppingAsync(CancellationToken.None);
+        await sut.StopAsync(CancellationToken.None);
+
+        counter.Value.Should().Be(0);
+        await sut.StoppedAsync(CancellationToken.None);
+        counter.Value.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task CanRun_JobAt_All()
+    {
+        var counter = new AtomicCounter();
+        using var sut = CreateService([CounterRegistration.RunAt(
+            JobHostLifecycles.Starting | JobHostLifecycles.Start | JobHostLifecycles.Started | JobHostLifecycles.Stopping | JobHostLifecycles.Stop | JobHostLifecycles.Stopped,
+            counter)]);
+
+        counter.Value.Should().Be(0);
+        await sut.StartingAsync(CancellationToken.None);
+        counter.Value.Should().Be(1);
+        await sut.StartAsync(CancellationToken.None);
+        counter.Value.Should().Be(2);
+        await sut.StartedAsync(CancellationToken.None);
+        counter.Value.Should().Be(3);
+        await sut.StoppingAsync(CancellationToken.None);
+        counter.Value.Should().Be(4);
+        await sut.StopAsync(CancellationToken.None);
+        counter.Value.Should().Be(5);
+        await sut.StoppedAsync(CancellationToken.None);
+        counter.Value.Should().Be(6);
+    }
+
     private RecurringJobHostedService CreateService(IEnumerable<JobRegistration> registrations)
         => _factory(Services, [registrations]);
 
@@ -55,5 +196,15 @@ public class RecurringJobHostedServiceTests
 
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class CounterRegistration(AtomicCounter counter, string? leaseName, TimeSpan interval, JobHostLifecycles runAt)
+        : JobRegistration(leaseName, interval, runAt)
+    {
+        public static new CounterRegistration RunAt(JobHostLifecycles runAt, AtomicCounter counter)
+            => new CounterRegistration(counter, null, TimeSpan.Zero, runAt);
+
+        public override IJob Create(IServiceProvider services)
+            => new CounterJob(counter);
     }
 }
