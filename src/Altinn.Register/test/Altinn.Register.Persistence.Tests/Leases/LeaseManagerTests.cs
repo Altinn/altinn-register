@@ -19,7 +19,7 @@ public class LeaseManagerTests
     {
         await base.InitializeAsync();
 
-        _provider = GetRequiredService<PostgresqlLeaseProvider>();
+        _provider = GetRequiredService<ILeaseProvider>();
         _manager = GetRequiredService<LeaseManager>();
     }
 

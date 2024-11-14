@@ -1,9 +1,11 @@
 ﻿#nullable enable
 
+using Altinn.Register.Core.Leases;
 using Altinn.Register.Jobs;
 using Altinn.Register.Tests.Utils;
 using Altinn.Register.TestUtils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Altinn.Register.Tests.Jobs;
 
@@ -15,6 +17,15 @@ public class RecurringJobHostedServiceTests
 
     protected override bool SeedData => false;
 
+    private ILeaseProvider? _provider;
+
+    protected override async ValueTask InitializeAsync()
+    {
+        await base.InitializeAsync();
+
+        _provider = GetRequiredService<ILeaseProvider>();
+    }
+
     protected override async ValueTask ConfigureServices(IServiceCollection services)
     {
         await base.ConfigureServices(services);
@@ -22,13 +33,15 @@ public class RecurringJobHostedServiceTests
         services.AddLeaseManager();
     }
 
+    private ILeaseProvider Provider
+        => _provider!;
+
     [Fact]
     public async Task CanRun_WithNo_JobRegistrations()
     {
         using var sut = CreateService([]);
 
-        await Start(sut);
-        await Stop(sut);
+        await Run(sut);
     }
 
     [Fact]
@@ -170,6 +183,105 @@ public class RecurringJobHostedServiceTests
         counter.Value.Should().Be(6);
     }
 
+    [Fact]
+    public async Task Cannot_UseLease_At_Starting()
+    {
+        var counter = new AtomicCounter();
+        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Starting, "test", counter)]);
+
+        await sut.Invoking(s => s.StartingAsync(CancellationToken.None)).Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task Can_UseLease_At_Start()
+    {
+        var counter = new AtomicCounter();
+        var start = TimeProvider.GetUtcNow();
+        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Start, "test", counter)]);
+
+        await Run(sut);
+        var end = TimeProvider.GetUtcNow();
+
+        counter.Value.Should().Be(1);
+        end.Should().Be(start + TimeSpan.FromSeconds(10));
+
+        var lease = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), _ => false);
+        lease.LastAcquiredAt.Should().Be(start);
+        lease.LastReleasedAt.Should().Be(end);
+    }
+
+    [Fact]
+    public async Task Can_UseLease_At_Started()
+    {
+        var counter = new AtomicCounter();
+        var start = TimeProvider.GetUtcNow();
+        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Started, "test", counter)]);
+
+        await Run(sut);
+        var end = TimeProvider.GetUtcNow();
+
+        counter.Value.Should().Be(1);
+        end.Should().Be(start + TimeSpan.FromSeconds(10));
+
+        var lease = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), _ => false);
+        lease.LastAcquiredAt.Should().Be(start);
+        lease.LastReleasedAt.Should().Be(end);
+    }
+
+    [Fact]
+    public async Task Can_UseLease_At_Stopping()
+    {
+        var counter = new AtomicCounter();
+        var start = TimeProvider.GetUtcNow();
+        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Stopping, "test", counter)]);
+
+        await Run(sut);
+        var end = TimeProvider.GetUtcNow();
+
+        counter.Value.Should().Be(1);
+        end.Should().Be(start + TimeSpan.FromSeconds(10));
+
+        var lease = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), _ => false);
+        lease.LastAcquiredAt.Should().Be(start);
+        lease.LastReleasedAt.Should().Be(end);
+    }
+
+    [Fact]
+    public async Task Can_UseLease_At_Stop()
+    {
+        var counter = new AtomicCounter();
+        var start = TimeProvider.GetUtcNow();
+        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Stop, "test", counter)]);
+
+        await Run(sut);
+        var end = TimeProvider.GetUtcNow();
+
+        counter.Value.Should().Be(1);
+        end.Should().Be(start + TimeSpan.FromSeconds(10));
+
+        var lease = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), _ => false);
+        lease.LastAcquiredAt.Should().Be(start);
+        lease.LastReleasedAt.Should().Be(end);
+    }
+
+    [Fact]
+    public async Task Can_UseLease_At_Stopped()
+    {
+        var counter = new AtomicCounter();
+        var start = TimeProvider.GetUtcNow();
+        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Stopped, "test", counter)]);
+
+        await Run(sut);
+        var end = TimeProvider.GetUtcNow();
+
+        counter.Value.Should().Be(1);
+        end.Should().Be(start + TimeSpan.FromSeconds(10));
+
+        var lease = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), _ => false);
+        lease.LastAcquiredAt.Should().Be(start);
+        lease.LastReleasedAt.Should().Be(end);
+    }
+
     private RecurringJobHostedService CreateService(IEnumerable<JobRegistration> registrations)
         => _factory(Services, [registrations]);
 
@@ -187,12 +299,19 @@ public class RecurringJobHostedServiceTests
         await service.StoppedAsync(cancellationToken);
     }
 
-    private sealed class CounterJob(AtomicCounter counter)
+    private static async Task Run(RecurringJobHostedService service, CancellationToken cancellationToken = default)
+    {
+        await Start(service, cancellationToken);
+        await Stop(service, cancellationToken);
+    }
+
+    private sealed class CounterJob(AtomicCounter counter, FakeTimeProvider timeProvider)
         : IJob
     {
         public Task RunAsync(CancellationToken cancellationToken)
         {
             counter.Increment();
+            timeProvider.Advance(TimeSpan.FromSeconds(10));
 
             return Task.CompletedTask;
         }
@@ -204,7 +323,10 @@ public class RecurringJobHostedServiceTests
         public static new CounterRegistration RunAt(JobHostLifecycles runAt, AtomicCounter counter)
             => new CounterRegistration(counter, null, TimeSpan.Zero, runAt);
 
+        public static new CounterRegistration RunAt(JobHostLifecycles runAt, string leaseName, AtomicCounter counter)
+            => new CounterRegistration(counter, leaseName, TimeSpan.Zero, runAt);
+
         public override IJob Create(IServiceProvider services)
-            => new CounterJob(counter);
+            => new CounterJob(counter, services.GetRequiredService<FakeTimeProvider>());
     }
 }

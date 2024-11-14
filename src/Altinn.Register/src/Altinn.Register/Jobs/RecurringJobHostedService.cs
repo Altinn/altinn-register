@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using Altinn.Register.Core;
 using Altinn.Register.Core.Leases;
+using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.Jobs;
 
@@ -123,6 +124,10 @@ internal sealed partial class RecurringJobHostedService
             if (registration.LeaseName is null)
             {
                 await RunJob(registration, throwOnException: true, cancellationToken);
+            }
+            else if (lifecycle == JobHostLifecycles.Starting)
+            {
+                ThrowHelper.ThrowInvalidOperationException("Cannot use leases at the starting lifecycle point, as database migrations might not have run yet");
             }
             else
             {
