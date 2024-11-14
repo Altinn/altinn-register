@@ -6,6 +6,7 @@ namespace Altinn.Register.Persistence.Tests;
 
 public abstract class DatabaseTestBase
     : HostTestBase
+    , IClassFixture<PostgreSqlManager>
 {
     private PostgreSqlDatabase? _db;
 

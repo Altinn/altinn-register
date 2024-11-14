@@ -3,6 +3,7 @@
 namespace Altinn.Register.TestUtils;
 
 internal class AsyncConcurrencyLimiter
+    : IDisposable
 {
     private readonly SemaphoreSlim _semaphoreSlim;
 
