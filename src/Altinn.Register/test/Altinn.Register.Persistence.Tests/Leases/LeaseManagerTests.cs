@@ -1,5 +1,6 @@
 ﻿using Altinn.Register.Core.Leases;
 using Altinn.Register.Persistence.Leases;
+using Altinn.Register.TestUtils;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using NpgsqlTypes;

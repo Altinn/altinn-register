@@ -1,4 +1,5 @@
 ﻿using Altinn.Register.Persistence.Leases;
+using Altinn.Register.TestUtils;
 
 namespace Altinn.Register.Persistence.Tests.Leases;
 

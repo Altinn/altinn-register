@@ -1,0 +1,29 @@
+﻿#nullable enable
+
+namespace Altinn.Register.Jobs;
+
+/// <summary>
+/// Settings for a (potentially recurring) job.
+/// </summary>
+public interface IJobSettings
+{
+    /// <summary>
+    /// Gets or sets the name of a lease that should be acquired before running the job.
+    /// </summary>
+    /// <remarks>
+    /// If this is set, it will prevent the job from being run concurrently on multiple instances of the host at once.
+    /// It will also modify the scheduling such that the interval is the time between the job finishes and the next job starts
+    /// on any host instead of just on a single instance.
+    /// </remarks>
+    string? LeaseName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the interval at which the job should run. Set to <see cref="TimeSpan.Zero"/> to disable running on an interval.
+    /// </summary>
+    TimeSpan Interval { get; set; }
+
+    /// <summary>
+    /// Gets or sets the <see cref="JobHostLifecycles"/> that the job should run at.
+    /// </summary>
+    JobHostLifecycles RunAt { get; set; }
+}
