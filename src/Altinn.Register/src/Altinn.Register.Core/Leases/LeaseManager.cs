@@ -9,10 +9,10 @@ namespace Altinn.Register.Core.Leases;
 /// <summary>
 /// Transient manager for leases.
 /// </summary>
-public class LeaseManager
+public sealed class LeaseManager
 {
-    private static readonly ObjectFactory<Lease> _factory
-        = ActivatorUtilities.CreateFactory<Lease>([typeof(ILeaseProvider), typeof(LeaseTicket), typeof(StackTrace), typeof(CancellationToken)]);
+    private static readonly ObjectFactory<OwnedLease> _factory
+        = ActivatorUtilities.CreateFactory<OwnedLease>([typeof(ILeaseProvider), typeof(LeaseTicket), typeof(StackTrace), typeof(CancellationToken)]);
 
     private readonly ILeaseProvider _provider;
     private readonly IServiceProvider _services;
@@ -29,6 +29,12 @@ public class LeaseManager
         _services = services;
     }
 
+    /// <inheritdoc cref="AcquireLease(string, Func{LeaseInfo, bool}?, CancellationToken)"/>
+    public Task<Lease> AcquireLease(
+        string leaseId,
+        CancellationToken cancellationToken)
+        => AcquireLease(leaseId, filter: null, cancellationToken);
+
     /// <summary>
     /// Gets a auto-renewing lease for the specified lease id.
     /// </summary>
@@ -36,9 +42,13 @@ public class LeaseManager
     /// If <paramref name="cancellationToken"/> is cancelled, the lease will be released.
     /// </remarks>
     /// <param name="leaseId">The lease id.</param>
+    /// <param name="filter">A filter that can be used to reject leases based on the state of the lease provider.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="Lease"/>, if the lease was available, otherwise <see langword="null"/>.</returns>
-    public async Task<Lease?> AcquireLease(string leaseId, CancellationToken cancellationToken = default)
+    public async Task<Lease> AcquireLease(
+        string leaseId,
+        Func<LeaseInfo, bool>? filter = null,
+        CancellationToken cancellationToken = default)
     {
         StackTrace? source = null;
 
@@ -50,18 +60,18 @@ public class LeaseManager
         
         try
         {
-            var result = await _provider.TryAcquireLease(leaseId, Lease.LeaseRenewalInterval, cancellationToken);
+            var result = await _provider.TryAcquireLease(leaseId, OwnedLease.LeaseRenewalInterval, filter, cancellationToken);
 
             if (!result.IsLeaseAcquired)
             {
-                return null;
+                return new Lease(leaseId, lease: null, expires: result.Expires, lastAcquiredAt: result.LastAcquiredAt, lastReleasedAt: result.LastReleasedAt);
             }
 
             ticket = result.Lease;
             var lease = _factory(_services, [_provider, ticket, source, cancellationToken]);
             
             ticket = null;
-            return lease;
+            return new Lease(lease.LeaseId, lease, expires: result.Expires, lastAcquiredAt: result.LastAcquiredAt, lastReleasedAt: result.LastReleasedAt);
         }
         finally
         {
