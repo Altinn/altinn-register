@@ -7,10 +7,15 @@ namespace Altinn.Register.TestUtils;
 /// <summary>
 /// Manager for PostgreSql databases used in tests.
 /// </summary>
-public static class PostgreSqlManager
+public sealed class PostgreSqlManager
+    : SharedResource
 {
     private static readonly AsyncLazyReferenceCounted<Container> _container
         = AsyncLazyReferenceCounted.Create<Container>(allowReuse: true);
+
+    /// <inheritdoc/>
+    protected override async Task<IAsyncRef> GetRef()
+        => await _container.Get();
 
     /// <summary>
     /// Creates a new database.
@@ -231,6 +236,7 @@ public static class PostgreSqlManager
         {
             await _dataSource.DisposeAsync();
             await _container.DisposeAsync();
+            _throttler.Dispose();
         }
     }
 }
