@@ -459,7 +459,7 @@ internal sealed partial class RecurringJobHostedService
             _timer.Change(duration, Timeout.InfiniteTimeSpan);
             if (cancellationToken.CanBeCanceled)
             {
-                cancellationToken.UnsafeRegister(_cancellationCallback, this);
+                _cancellationRegistration = cancellationToken.UnsafeRegister(_cancellationCallback, this);
             }
 
             return new(this, _source.Version);
@@ -479,6 +479,7 @@ internal sealed partial class RecurringJobHostedService
 
             if (transition)
             {
+                _cancellationRegistration.Unregister();
                 _tracker.TrackAwake();
                 _source.SetResult(null);
             }
@@ -498,6 +499,7 @@ internal sealed partial class RecurringJobHostedService
 
             if (transition)
             {
+                _cancellationRegistration.Unregister();
                 _tracker.TrackAwake();
                 _source.SetException(new OperationCanceledException(cancellationToken));
             }
