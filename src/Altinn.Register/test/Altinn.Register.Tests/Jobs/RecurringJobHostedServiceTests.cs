@@ -48,7 +48,7 @@ public class RecurringJobHostedServiceTests
     public async Task CanRun_JobAt_Starting()
     {
         var counter = new AtomicCounter();
-        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Starting, counter)]);
+        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Starting, counter)]);
 
         counter.Value.Should().Be(0);
         await sut.StartingAsync(CancellationToken.None);
@@ -67,7 +67,7 @@ public class RecurringJobHostedServiceTests
     public async Task CanRun_JobAt_Start()
     {
         var counter = new AtomicCounter();
-        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Start, counter)]);
+        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Start, counter)]);
 
         await sut.StartingAsync(CancellationToken.None);
 
@@ -87,7 +87,7 @@ public class RecurringJobHostedServiceTests
     public async Task CanRun_JobAt_Started()
     {
         var counter = new AtomicCounter();
-        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Started, counter)]);
+        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Started, counter)]);
 
         await sut.StartingAsync(CancellationToken.None);
         await sut.StartAsync(CancellationToken.None);
@@ -107,7 +107,7 @@ public class RecurringJobHostedServiceTests
     public async Task CanRun_JobAt_Stopping()
     {
         var counter = new AtomicCounter();
-        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Stopping, counter)]);
+        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stopping, counter)]);
 
         await sut.StartingAsync(CancellationToken.None);
         await sut.StartAsync(CancellationToken.None);
@@ -127,7 +127,7 @@ public class RecurringJobHostedServiceTests
     public async Task CanRun_JobAt_Stop()
     {
         var counter = new AtomicCounter();
-        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Stop, counter)]);
+        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stop, counter)]);
 
         await sut.StartingAsync(CancellationToken.None);
         await sut.StartAsync(CancellationToken.None);
@@ -147,7 +147,7 @@ public class RecurringJobHostedServiceTests
     public async Task CanRun_JobAt_Stopped()
     {
         var counter = new AtomicCounter();
-        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Stopped, counter)]);
+        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stopped, counter)]);
 
         await sut.StartingAsync(CancellationToken.None);
         await sut.StartAsync(CancellationToken.None);
@@ -164,7 +164,7 @@ public class RecurringJobHostedServiceTests
     public async Task CanRun_JobAt_All()
     {
         var counter = new AtomicCounter();
-        using var sut = CreateService([CounterRegistration.RunAt(
+        using var sut = CreateService([Counter.RunAt(
             JobHostLifecycles.Starting | JobHostLifecycles.Start | JobHostLifecycles.Started | JobHostLifecycles.Stopping | JobHostLifecycles.Stop | JobHostLifecycles.Stopped,
             counter)]);
 
@@ -187,7 +187,7 @@ public class RecurringJobHostedServiceTests
     public async Task Cannot_UseLease_At_Starting()
     {
         var counter = new AtomicCounter();
-        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Starting, "test", counter)]);
+        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Starting, "test", counter)]);
 
         await sut.Invoking(s => s.StartingAsync(CancellationToken.None)).Should().ThrowAsync<InvalidOperationException>();
     }
@@ -197,7 +197,7 @@ public class RecurringJobHostedServiceTests
     {
         var counter = new AtomicCounter();
         var start = TimeProvider.GetUtcNow();
-        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Start, "test", counter)]);
+        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Start, "test", counter)]);
 
         await Run(sut);
         var end = TimeProvider.GetUtcNow();
@@ -215,7 +215,7 @@ public class RecurringJobHostedServiceTests
     {
         var counter = new AtomicCounter();
         var start = TimeProvider.GetUtcNow();
-        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Started, "test", counter)]);
+        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Started, "test", counter)]);
 
         await Run(sut);
         var end = TimeProvider.GetUtcNow();
@@ -233,7 +233,7 @@ public class RecurringJobHostedServiceTests
     {
         var counter = new AtomicCounter();
         var start = TimeProvider.GetUtcNow();
-        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Stopping, "test", counter)]);
+        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stopping, "test", counter)]);
 
         await Run(sut);
         var end = TimeProvider.GetUtcNow();
@@ -251,7 +251,7 @@ public class RecurringJobHostedServiceTests
     {
         var counter = new AtomicCounter();
         var start = TimeProvider.GetUtcNow();
-        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Stop, "test", counter)]);
+        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stop, "test", counter)]);
 
         await Run(sut);
         var end = TimeProvider.GetUtcNow();
@@ -269,7 +269,7 @@ public class RecurringJobHostedServiceTests
     {
         var counter = new AtomicCounter();
         var start = TimeProvider.GetUtcNow();
-        using var sut = CreateService([CounterRegistration.RunAt(JobHostLifecycles.Stopped, "test", counter)]);
+        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stopped, "test", counter)]);
 
         await Run(sut);
         var end = TimeProvider.GetUtcNow();
@@ -280,6 +280,39 @@ public class RecurringJobHostedServiceTests
         var lease = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), _ => false);
         lease.LastAcquiredAt.Should().Be(start);
         lease.LastReleasedAt.Should().Be(end);
+    }
+
+    [Theory]
+    [InlineData(JobHostLifecycles.Starting)]
+    [InlineData(JobHostLifecycles.Start)]
+    [InlineData(JobHostLifecycles.Started)]
+    [InlineData(JobHostLifecycles.Stopping)]
+    [InlineData(JobHostLifecycles.Stop)]
+    [InlineData(JobHostLifecycles.Stopped)]
+    public async Task LifecycleJobs_Propagate_Errors(JobHostLifecycles lifecycle)
+    {
+        using var sut = CreateService([Registration.RunAt(lifecycle, _ => throw new InvalidOperationException("I died miserably"))]);
+
+        var assert = await sut.Invoking(s => Run(s)).Should().ThrowExactlyAsync<InvalidOperationException>();
+        assert.WithMessage("I died miserably");
+    }
+
+    [Theory]
+    [InlineData(JobHostLifecycles.Start)]
+    [InlineData(JobHostLifecycles.Started)]
+    [InlineData(JobHostLifecycles.Stopping)]
+    [InlineData(JobHostLifecycles.Stop)]
+    [InlineData(JobHostLifecycles.Stopped)]
+    public async Task Leased_LifecycleJobs_IsSkipped_WhenLease_IsTaken(JobHostLifecycles lifecycle)
+    {
+        var counter = new AtomicCounter();
+
+        await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1));
+        using var sut = CreateService([Counter.RunAt(lifecycle, "test", counter)]);
+
+        await Run(sut);
+
+        counter.Value.Should().Be(0);
     }
 
     private RecurringJobHostedService CreateService(IEnumerable<JobRegistration> registrations)
@@ -305,28 +338,50 @@ public class RecurringJobHostedServiceTests
         await Stop(service, cancellationToken);
     }
 
-    private sealed class CounterJob(AtomicCounter counter, FakeTimeProvider timeProvider)
+    private sealed class DelegateJob(Func<IServiceProvider, Task> run, IServiceProvider services)
         : IJob
     {
         public Task RunAsync(CancellationToken cancellationToken)
-        {
-            counter.Increment();
-            timeProvider.Advance(TimeSpan.FromSeconds(10));
-
-            return Task.CompletedTask;
-        }
+            => run(services);
     }
 
-    private sealed class CounterRegistration(AtomicCounter counter, string? leaseName, TimeSpan interval, JobHostLifecycles runAt)
+    private sealed class Registration(Func<IServiceProvider, Task> job, string? leaseName, TimeSpan interval, JobHostLifecycles runAt)
         : JobRegistration(leaseName, interval, runAt)
     {
-        public static new CounterRegistration RunAt(JobHostLifecycles runAt, AtomicCounter counter)
-            => new CounterRegistration(counter, null, TimeSpan.Zero, runAt);
+        public static JobRegistration Create(Func<IServiceProvider, Task> job, string? leaseName, TimeSpan interval, JobHostLifecycles runAt)
+            => new Registration(job, leaseName, interval, runAt);
 
-        public static new CounterRegistration RunAt(JobHostLifecycles runAt, string leaseName, AtomicCounter counter)
-            => new CounterRegistration(counter, leaseName, TimeSpan.Zero, runAt);
+        public static new JobRegistration RunAt(JobHostLifecycles runAt, Func<IServiceProvider, Task> job)
+            => new Registration(job, null, TimeSpan.Zero, runAt);
+
+        public static new JobRegistration RunAt(JobHostLifecycles runAt, string leaseName, Func<IServiceProvider, Task> job)
+            => new Registration(job, leaseName, TimeSpan.Zero, runAt);
 
         public override IJob Create(IServiceProvider services)
-            => new CounterJob(counter, services.GetRequiredService<FakeTimeProvider>());
+            => new DelegateJob(job, services);
+    }
+
+    private static class Counter
+    {
+        public static JobRegistration Create(AtomicCounter counter, string? leaseName, TimeSpan interval, JobHostLifecycles runAt)
+        {
+            var job = (IServiceProvider services) =>
+            {
+                var timeProvider = services.GetRequiredService<FakeTimeProvider>();
+
+                counter.Increment();
+                timeProvider.Advance(TimeSpan.FromSeconds(10));
+
+                return Task.CompletedTask;
+            };
+
+            return new Registration(job, leaseName, interval, runAt);
+        }
+
+        public static JobRegistration RunAt(JobHostLifecycles runAt, AtomicCounter counter)
+            => Create(counter, null, TimeSpan.Zero, runAt);
+
+        public static JobRegistration RunAt(JobHostLifecycles runAt, string leaseName, AtomicCounter counter)
+            => Create(counter, leaseName, TimeSpan.Zero, runAt);
     }
 }
