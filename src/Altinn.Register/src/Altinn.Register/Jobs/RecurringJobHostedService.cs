@@ -290,31 +290,34 @@ internal sealed partial class RecurringJobHostedService
     {
         while (!cancellationToken.IsCancellationRequested)
         {
-            // we try to grab the lease first, as it might have been longer than `interval` time since we last ran
             var now = _timeProvider.GetUtcNow();
-            await using var lease = await _leaseManager.AcquireLease(
-                leaseName,
-                (prev) => prev.LastReleasedAt is null || prev.LastReleasedAt.Value + interval <= now,
-                cancellationToken);
-
             DateTimeOffset lastCompleted;
-            if (lease.Acquired)
-            {
-                // if we acquired the lease, run the job
-                await RunJob(registration, throwOnException: false, lease.Token);
-                var releaseResult = await lease.Release(cancellationToken);
 
-                Debug.Assert(releaseResult is not null);
-                Debug.Assert(releaseResult.LastReleasedAt.HasValue);
-                lastCompleted = releaseResult.LastReleasedAt.Value;
-            }
-            else
             {
-                // else record when it was last ran
-                lastCompleted = lease.Expires;
-                if (lease.LastReleasedAt.HasValue && lease.LastReleasedAt > lastCompleted)
+                // we try to grab the lease first, as it might have been longer than `interval` time since we last ran
+                await using var lease = await _leaseManager.AcquireLease(
+                    leaseName,
+                    (prev) => prev.LastReleasedAt is null || prev.LastReleasedAt.Value + interval <= now,
+                    cancellationToken);
+
+                if (lease.Acquired)
                 {
-                    lastCompleted = lease.LastReleasedAt.Value;
+                    // if we acquired the lease, run the job
+                    await RunJob(registration, throwOnException: false, lease.Token);
+                    var releaseResult = await lease.Release(cancellationToken);
+
+                    Debug.Assert(releaseResult is not null);
+                    Debug.Assert(releaseResult.LastReleasedAt.HasValue);
+                    lastCompleted = releaseResult.LastReleasedAt.Value;
+                }
+                else
+                {
+                    // else record when it was last ran
+                    lastCompleted = lease.Expires;
+                    if (lease.LastReleasedAt.HasValue && lease.LastReleasedAt > lastCompleted)
+                    {
+                        lastCompleted = lease.LastReleasedAt.Value;
+                    }
                 }
             }
 
