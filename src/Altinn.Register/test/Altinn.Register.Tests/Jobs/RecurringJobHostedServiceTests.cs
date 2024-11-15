@@ -291,7 +291,7 @@ public class RecurringJobHostedServiceTests
     [InlineData(JobHostLifecycles.Stopped)]
     public async Task LifecycleJobs_Propagate_Errors(JobHostLifecycles lifecycle)
     {
-        using var sut = CreateService([Registration.RunAt(lifecycle, _ => throw new InvalidOperationException("I died miserably"))]);
+        using var sut = CreateService([Registration.RunAt(lifecycle, new Func<IServiceProvider, Task>(_ => throw new InvalidOperationException("I died miserably")))]);
 
         var assert = await sut.Invoking(s => Run(s)).Should().ThrowExactlyAsync<InvalidOperationException>();
         assert.WithMessage("I died miserably");
@@ -313,6 +313,30 @@ public class RecurringJobHostedServiceTests
         await Run(sut);
 
         counter.Value.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task DisposableJobs_AreDisposed()
+    {
+        var job1Dispose = new AtomicCounter();
+        var job2DisposeAsync = new AtomicCounter();
+        var job3Dispose = new AtomicCounter();
+        var job3DisposeAsync = new AtomicCounter();
+
+        using var sut = CreateService([
+            Registration.RunAt(JobHostLifecycles.Start, _ => new DisposableJob(job1Dispose)),
+            Registration.RunAt(JobHostLifecycles.Start, _ => new AsyncDisposableJob(job2DisposeAsync)),
+            Registration.RunAt(JobHostLifecycles.Start, _ => new BothDisposableJob(job3Dispose, job3DisposeAsync)),
+        ]);
+
+        await Run(sut);
+
+        job1Dispose.Value.Should().Be(1);
+        job2DisposeAsync.Value.Should().Be(1);
+
+        // async dispose is prioritized over sync dispose
+        job3Dispose.Value.Should().Be(0);
+        job3DisposeAsync.Value.Should().Be(1);
     }
 
     private RecurringJobHostedService CreateService(IEnumerable<JobRegistration> registrations)
@@ -345,20 +369,29 @@ public class RecurringJobHostedServiceTests
             => run(services);
     }
 
-    private sealed class Registration(Func<IServiceProvider, Task> job, string? leaseName, TimeSpan interval, JobHostLifecycles runAt)
+    private sealed class Registration(Func<IServiceProvider, IJob> job, string? leaseName, TimeSpan interval, JobHostLifecycles runAt)
         : JobRegistration(leaseName, interval, runAt)
     {
-        public static JobRegistration Create(Func<IServiceProvider, Task> job, string? leaseName, TimeSpan interval, JobHostLifecycles runAt)
+        public static JobRegistration Create(Func<IServiceProvider, IJob> job, string? leaseName, TimeSpan interval, JobHostLifecycles runAt)
             => new Registration(job, leaseName, interval, runAt);
 
+        public static JobRegistration Create(Func<IServiceProvider, Task> job, string? leaseName, TimeSpan interval, JobHostLifecycles runAt)
+            => new Registration(services => new DelegateJob(job, services), leaseName, interval, runAt);
+
+        public static new JobRegistration RunAt(JobHostLifecycles runAt, Func<IServiceProvider, IJob> job)
+            => Create(job, null, TimeSpan.Zero, runAt);
+
         public static new JobRegistration RunAt(JobHostLifecycles runAt, Func<IServiceProvider, Task> job)
-            => new Registration(job, null, TimeSpan.Zero, runAt);
+            => Create(job, null, TimeSpan.Zero, runAt);
+
+        public static new JobRegistration RunAt(JobHostLifecycles runAt, string leaseName, Func<IServiceProvider, IJob> job)
+            => Create(job, leaseName, TimeSpan.Zero, runAt);
 
         public static new JobRegistration RunAt(JobHostLifecycles runAt, string leaseName, Func<IServiceProvider, Task> job)
-            => new Registration(job, leaseName, TimeSpan.Zero, runAt);
+            => Create(job, leaseName, TimeSpan.Zero, runAt);
 
         public override IJob Create(IServiceProvider services)
-            => new DelegateJob(job, services);
+            => job(services);
     }
 
     private static class Counter
@@ -375,7 +408,7 @@ public class RecurringJobHostedServiceTests
                 return Task.CompletedTask;
             };
 
-            return new Registration(job, leaseName, interval, runAt);
+            return Registration.Create(job, leaseName, interval, runAt);
         }
 
         public static JobRegistration RunAt(JobHostLifecycles runAt, AtomicCounter counter)
@@ -383,5 +416,59 @@ public class RecurringJobHostedServiceTests
 
         public static JobRegistration RunAt(JobHostLifecycles runAt, string leaseName, AtomicCounter counter)
             => Create(counter, leaseName, TimeSpan.Zero, runAt);
+    }
+
+    private sealed class DisposableJob(AtomicCounter disposeCounter)
+        : IJob
+        , IDisposable
+    {
+        public void Dispose()
+        {
+            disposeCounter.Increment();
+        }
+
+        public Task RunAsync(CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class AsyncDisposableJob(AtomicCounter disposeCounter)
+        : IJob
+        , IAsyncDisposable
+    {
+        public ValueTask DisposeAsync()
+        {
+            disposeCounter.Increment();
+
+            return ValueTask.CompletedTask;
+        }
+
+        public Task RunAsync(CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class BothDisposableJob(AtomicCounter disposeCounter, AtomicCounter asyncDisposeCounter)
+        : IJob
+        , IAsyncDisposable
+    {
+        public void Dispose()
+        {
+            disposeCounter.Increment();
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            asyncDisposeCounter.Increment();
+
+            return ValueTask.CompletedTask;
+        }
+
+        public Task RunAsync(CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
     }
 }
