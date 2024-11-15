@@ -474,6 +474,8 @@ public class RecurringJobHostedServiceTests
         TimeProvider.Advance(TimeSpan.FromMinutes(20));
         await sut.WaitForRunningScheduledJobs();
         counter.Value.Should().Be(1);
+        result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), _ => false);
+        result.LastReleasedAt.Should().Be(TimeProvider.GetUtcNow());
 
         // advance 40 more minutes and renew the lease
         TimeProvider.Advance(TimeSpan.FromMinutes(40));
@@ -490,6 +492,8 @@ public class RecurringJobHostedServiceTests
         TimeProvider.Advance(TimeSpan.FromMinutes(40));
         await sut.WaitForRunningScheduledJobs();
         counter.Value.Should().Be(2);
+        result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), _ => false);
+        result.LastReleasedAt.Should().Be(TimeProvider.GetUtcNow());
     }
 
     private RecurringJobHostedService CreateService(IEnumerable<JobRegistration> registrations)
