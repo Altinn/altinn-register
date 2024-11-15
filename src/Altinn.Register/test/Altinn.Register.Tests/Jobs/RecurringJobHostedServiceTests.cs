@@ -370,12 +370,126 @@ public class RecurringJobHostedServiceTests
         for (var i = 0; i < 10; i++)
         {
             TimeProvider.Advance(TimeSpan.FromHours(1));
-            await sut.RunningScheduledJobs;
+            await sut.WaitForRunningScheduledJobs();
         }
 
         await Stop(sut);
 
         counter.Value.Should().Be(10);
+    }
+
+    [Fact]
+    public async Task ScheduledJobs_Interval_IsBetweenRuns()
+    {
+        var counter = new AtomicCounter();
+
+        using var sut = CreateService([
+            Registration.Scheduled(
+                TimeSpan.FromHours(1),
+                services =>
+                {
+                    var timeProvider = services.GetRequiredService<FakeTimeProvider>();
+
+                    counter.Increment();
+                    
+                    // this job took 10 minutes
+                    timeProvider.Advance(TimeSpan.FromMinutes(10));
+
+                    return Task.CompletedTask;
+                }),
+        ]);
+
+        await Start(sut);
+
+        var start = TimeProvider.GetUtcNow();
+        TimeProvider.SetUtcNow(start + TimeSpan.FromHours(1));
+        await sut.WaitForRunningScheduledJobs();
+
+        var afterFirst = TimeProvider.GetUtcNow();
+        counter.Value.Should().Be(1);
+
+        TimeProvider.SetUtcNow(start + TimeSpan.FromHours(2));
+        await sut.WaitForRunningScheduledJobs();
+        counter.Value.Should().Be(1);
+
+        TimeProvider.SetUtcNow(afterFirst + TimeSpan.FromHours(1));
+        await sut.WaitForRunningScheduledJobs();
+        counter.Value.Should().Be(2);
+
+        await Stop(sut);
+    }
+
+    [Fact]
+    public async Task ScheduledJobs_WithLease_RunsImmediately()
+    {
+        var counter = new AtomicCounter();
+
+        using var sut = CreateService([
+            Counter.Scheduled(TimeSpan.FromHours(1), "test", counter),
+        ]);
+
+        await Run(sut);
+
+        counter.Value.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ScheduledJobs_WithLease_ThatRanRecently_AreNotRunImmediately()
+    {
+        var result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1));
+        Assert.True(result.IsLeaseAcquired);
+        await Provider.ReleaseLease(result.Lease);
+
+        var counter = new AtomicCounter();
+
+        using var sut = CreateService([
+            Counter.Scheduled(TimeSpan.FromHours(1), "test", counter),
+        ]);
+
+        await Run(sut);
+
+        counter.Value.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ScheduledJobs_WithLease_UsesLeaseTime_ToScheduleRuns()
+    {
+        var result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1));
+        Assert.True(result.IsLeaseAcquired);
+        await Provider.ReleaseLease(result.Lease);
+
+        // advance 40 minutes since the lease was released
+        TimeProvider.Advance(TimeSpan.FromMinutes(40));
+
+        var counter = new AtomicCounter();
+
+        using var sut = CreateService([
+            Counter.Scheduled(TimeSpan.FromHours(1), "test", counter),
+        ]);
+
+        await Start(sut);
+        counter.Value.Should().Be(0);
+
+        // advance 20 minutes, 1 hour since the lease was released
+        TimeProvider.Advance(TimeSpan.FromMinutes(20));
+        await sut.WaitForRunningScheduledJobs();
+        counter.Value.Should().Be(1);
+
+        // advance 40 more minutes and renew the lease
+        TimeProvider.Advance(TimeSpan.FromMinutes(40));
+        result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1));
+        Assert.True(result.IsLeaseAcquired);
+        await Provider.ReleaseLease(result.Lease);
+
+        // advance 20 more minutes, 1 hour since the job last completed
+        TimeProvider.Advance(TimeSpan.FromMinutes(20));
+        await sut.WaitForRunningScheduledJobs();
+        counter.Value.Should().Be(1);
+
+        // advance 40 more minutes, 1 hour since the lease was last released
+        TimeProvider.Advance(TimeSpan.FromMinutes(40));
+        await sut.WaitForRunningScheduledJobs();
+        counter.Value.Should().Be(2);
     }
 
     private RecurringJobHostedService CreateService(IEnumerable<JobRegistration> registrations)
@@ -386,6 +500,7 @@ public class RecurringJobHostedServiceTests
         await service.StartingAsync(cancellationToken);
         await service.StartAsync(cancellationToken);
         await service.StartedAsync(cancellationToken);
+        await service.WaitForRunningScheduledJobs();
     }
 
     private static async Task Stop(RecurringJobHostedService service, CancellationToken cancellationToken = default)
@@ -429,6 +544,9 @@ public class RecurringJobHostedServiceTests
         public static new JobRegistration RunAt(JobHostLifecycles runAt, string leaseName, Func<IServiceProvider, Task> job)
             => Create(job, leaseName, TimeSpan.Zero, runAt);
 
+        public static JobRegistration Scheduled(TimeSpan interval, Func<IServiceProvider, Task> job)
+            => Create(job, null, interval, JobHostLifecycles.None);
+
         public override IJob Create(IServiceProvider services)
             => job(services);
     }
@@ -458,6 +576,9 @@ public class RecurringJobHostedServiceTests
 
         public static JobRegistration Scheduled(TimeSpan interval, AtomicCounter counter)
             => Create(counter, null, interval, JobHostLifecycles.None);
+
+        public static JobRegistration Scheduled(TimeSpan interval, string leaseName, AtomicCounter counter)
+            => Create(counter, leaseName, interval, JobHostLifecycles.None);
     }
 
     private sealed class DisposableJob(AtomicCounter disposeCounter)

@@ -4,9 +4,11 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Runtime.ExceptionServices;
+using System.Threading.Tasks.Sources;
 using Altinn.Register.Core;
 using Altinn.Register.Core.Leases;
 using CommunityToolkit.Diagnostics;
+using MassTransit;
 
 namespace Altinn.Register.Jobs;
 
@@ -29,12 +31,18 @@ internal sealed partial class RecurringJobHostedService
     private Task? _schedulerTask;
     private CancellationTokenSource? _stoppingCts;
 
-    private Task _runningScheduledJobs = Task.CompletedTask;
+    private readonly ScheduledJobTracker _tracker;
 
     /// <summary>
-    /// For test use only.
+    /// Wait for all scheduled jobs that are currently running to complete.
     /// </summary>
-    internal Task RunningScheduledJobs => Volatile.Read(ref _runningScheduledJobs);
+    /// <remarks>
+    /// For test use only. Only 1 of these can exist at once (per instance of <see cref="RecurringJobHostedService"/>).
+    /// If multiple tasks needs to wait for all scheduled running jobs, use the <see cref="ValueTask.AsTask"/> method
+    /// to get a <see cref="Task"/> that can safely be shared.
+    /// </remarks>
+    internal ValueTask WaitForRunningScheduledJobs()
+        => _tracker.WaitForRunningScheduledJobs();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RecurringJobHostedService"/> class.
@@ -56,6 +64,7 @@ internal sealed partial class RecurringJobHostedService
         _serviceScopeFactory = serviceScopeFactory;
         _logger = logger;
         _registrations = registrations.ToImmutableArray();
+        _tracker = new(_timeProvider);
     }
 
     /// <inheritdoc/>
@@ -230,63 +239,82 @@ internal sealed partial class RecurringJobHostedService
                 throw new InvalidOperationException($"Minimum interval for background jobs is currently set at 30 seconds");
             }
 
+            var scheduler = _tracker.CreateScheduler();
             var leaseName = registration.LeaseName;
             if (leaseName is null)
             {
-                tasks.Add(RunNormalScheduler(interval, registration, cancellationToken));
+                tasks.Add(Using(RunNormalScheduler(scheduler, interval, registration, cancellationToken), scheduler));
             }
             else
             {
-                tasks.Add(RunLeaseScheduler(leaseName, interval, registration, cancellationToken));
+                tasks.Add(Using(RunLeaseScheduler(scheduler, leaseName, interval, registration, cancellationToken), scheduler));
             }
         }
 
         return Task.WhenAll(tasks);
+
+        static Task Using(Task inner, IDisposable resource)
+        {
+            return inner.ContinueWith(
+                static (Task task, object? disposable) 
+                    => ((IDisposable)disposable!).Dispose(),
+                resource,
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+        }
     }
 
-    private async Task RunNormalScheduler(TimeSpan interval, JobRegistration registration, CancellationToken cancellationToken)
+    private async Task RunNormalScheduler(
+        JobScheduler scheduler,
+        TimeSpan interval,
+        JobRegistration registration,
+        CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
             // we wait first - if the job should also be ran at startup, set RunAt to the appropriate lifecycle
-            await _timeProvider.Delay(interval, cancellationToken);
-            using var tracker = TrackRunningScheduledJob();
+            await scheduler.Sleep(interval, cancellationToken).ConfigureAwait(false);
 
             // run the job
             await RunJob(registration, throwOnException: false, cancellationToken);
         }
     }
 
-    private async Task RunLeaseScheduler(string leaseName, TimeSpan interval, JobRegistration registration, CancellationToken cancellationToken)
+    private async Task RunLeaseScheduler(
+        JobScheduler scheduler,
+        string leaseName,
+        TimeSpan interval,
+        JobRegistration registration,
+        CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
             // we try to grab the lease first, as it might have been longer than `interval` time since we last ran
             var now = _timeProvider.GetUtcNow();
-            
+            await using var lease = await _leaseManager.AcquireLease(
+                leaseName,
+                (prev) => prev.LastReleasedAt is null || prev.LastReleasedAt.Value + interval <= now,
+                cancellationToken);
+
             DateTimeOffset lastCompleted;
+            if (lease.Acquired)
             {
-                using var tracker = TrackRunningScheduledJob();
-                await using var lease = await _leaseManager.AcquireLease(leaseName, (prev) => prev.LastReleasedAt + interval < now, cancellationToken);
+                // if we acquired the lease, run the job
+                await RunJob(registration, throwOnException: false, lease.Token);
+                var releaseResult = await lease.Release(cancellationToken);
 
-                if (lease.Acquired)
+                Debug.Assert(releaseResult is not null);
+                Debug.Assert(releaseResult.LastReleasedAt.HasValue);
+                lastCompleted = releaseResult.LastReleasedAt.Value;
+            }
+            else
+            {
+                // else record when it was last ran
+                lastCompleted = lease.Expires;
+                if (lease.LastReleasedAt.HasValue && lease.LastReleasedAt > lastCompleted)
                 {
-                    // if we acquired the lease, run the job
-                    await RunJob(registration, throwOnException: false, lease.Token);
-                    var releaseResult = await lease.Release(cancellationToken);
-
-                    Debug.Assert(releaseResult is not null);
-                    Debug.Assert(releaseResult.LastReleasedAt.HasValue);
-                    lastCompleted = releaseResult.LastReleasedAt.Value;
-                }
-                else
-                {
-                    // else record when it was last ran
-                    lastCompleted = lease.Expires;
-                    if (lease.LastReleasedAt.HasValue && lease.LastReleasedAt > lastCompleted)
-                    {
-                        lastCompleted = lease.LastReleasedAt.Value;
-                    }
+                    lastCompleted = lease.LastReleasedAt.Value;
                 }
             }
 
@@ -296,53 +324,231 @@ internal sealed partial class RecurringJobHostedService
 
             if (tilThen > TimeSpan.Zero)
             {
-                await _timeProvider.Delay(tilThen, cancellationToken);
+                // note, we grab the new delay task here to make sure we schedule the next run before releasing the tracker
+                await scheduler.Sleep(tilThen, cancellationToken).ConfigureAwait(false);
             }
         }
     }
 
-    /// <summary>
-    /// Records a new job task as running. This is used in tests to be able to wait for all running jobs to complete.
-    /// </summary>
-    private IDisposable TrackRunningScheduledJob()
-        => new ScheduledJobTracker(this);
-
     private sealed record JobRunResult(string Name, TimeSpan Duration, ExceptionDispatchInfo? Exception);
 
     private sealed class ScheduledJobTracker
-        : IDisposable
+        : IValueTaskSource
     {
-        private readonly TaskCompletionSource _tcs;
-        private readonly RecurringJobHostedService _service;
+        private readonly TimeProvider _timeProvider;
+        private readonly object _lock = new();
+        private ManualResetValueTaskSourceCore<object?> _source; // mutable struct; do not make this readonly
+        private int _totalSchedulers;
+        private int _awakeSchedulers;
 
-        public ScheduledJobTracker(RecurringJobHostedService service)
+        public ScheduledJobTracker(TimeProvider timeProvider)
         {
-            _service = service;
-            _tcs = new();
+            _timeProvider = timeProvider;
 
-            ImmutableInterlocked.Update(
-                ref _service._runningScheduledJobs,
-                static (runningJob, jobTask) =>
-                {
-                    return (runningJob.IsCompleted, jobTask.IsCompleted) switch
-                    {
-                        (true, true) => Task.CompletedTask,
-                        (true, false) => jobTask,
-                        (false, true) => runningJob,
-                        (false, false) => Task.WhenAll(runningJob, jobTask),
-                    };
-                },
-                _tcs.Task);
+            // initially set
+            _source.SetResult(null);
+            _source.RunContinuationsAsynchronously = true;
         }
 
-        public void Dispose()
+        public JobScheduler CreateScheduler()
         {
-            if (_tcs.TrySetResult())
+            lock (_lock)
             {
-                ImmutableInterlocked.Update(
-                    ref _service._runningScheduledJobs,
-                    static runningJob => runningJob.IsCompleted ? Task.CompletedTask : runningJob);
+                _totalSchedulers++;
             }
+
+            return new(this, _timeProvider);
+        }
+
+        public void TrackAwake() 
+        {
+            lock (_lock)
+            {
+                if (_awakeSchedulers == 0)
+                {
+                    _source.Reset();
+                }
+
+                _awakeSchedulers++;
+                Debug.Assert(_awakeSchedulers <= _totalSchedulers);
+            }
+        }
+
+        public void TrackSleeping()
+        {
+            lock (_lock)
+            {
+                _awakeSchedulers--;
+                Debug.Assert(_awakeSchedulers >= 0);
+
+                if (_awakeSchedulers == 0)
+                {
+                    _source.SetResult(null);
+                }
+            }
+        }
+
+        public void Unregister()
+        {
+            lock (_lock)
+            {
+                _totalSchedulers--;
+                Debug.Assert(_totalSchedulers >= 0);
+                Debug.Assert(_awakeSchedulers <= _totalSchedulers);
+            }
+        }
+
+        public ValueTask WaitForRunningScheduledJobs()
+            => new(this, _source.Version);
+
+        void IValueTaskSource.GetResult(short token)
+            => _source.GetResult(token);
+
+        ValueTaskSourceStatus IValueTaskSource.GetStatus(short token)
+            => _source.GetStatus(token);
+
+        void IValueTaskSource.OnCompleted(Action<object?> continuation, object? state, short token, ValueTaskSourceOnCompletedFlags flags)
+            => _source.OnCompleted(continuation, state, token, flags);
+    }
+
+    private sealed class JobScheduler
+        : IValueTaskSource
+        , IDisposable
+    {
+        private const int STATE_RUNNING = 0;
+        private const int STATE_SLEEPING = 1;
+        private const int STATE_DISPOSED = 2;
+
+        private static readonly TimerCallback _timerCallback = static state =>
+        {
+            var timer = (JobScheduler)state!;
+            timer.TimerCallback();
+        };
+
+        private static readonly Action<object?, CancellationToken> _cancellationCallback = static (state, ct) =>
+        {
+            var timer = (JobScheduler)state!;
+            timer.CancellationCallback(ct);
+        };
+
+        private readonly object _lock = new();
+        private readonly ITimer _timer;
+        private readonly ScheduledJobTracker _tracker;
+        private ManualResetValueTaskSourceCore<object?> _source; // mutable struct; do not make this readonly
+        private CancellationTokenRegistration _cancellationRegistration;
+        private int _state = STATE_RUNNING;
+
+        public JobScheduler(ScheduledJobTracker tracker, TimeProvider timeProvider)
+        {
+            _timer = timeProvider.CreateTimer(_timerCallback, this, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            _tracker = tracker;
+            _tracker.TrackAwake();
+        }
+
+        public ValueTask Sleep(TimeSpan duration, CancellationToken cancellationToken)
+        {
+            if (duration <= TimeSpan.Zero)
+            {
+                return ValueTask.CompletedTask;
+            }
+
+            _source.Reset();
+            _timer.Change(duration, Timeout.InfiniteTimeSpan);
+            if (cancellationToken.CanBeCanceled)
+            {
+                cancellationToken.UnsafeRegister(_cancellationCallback, this);
+            }
+
+            return new(this, _source.Version);
+        }
+
+        private void TimerCallback()
+        {
+            var transition = false;
+            lock (_lock)
+            {
+                if (_state == STATE_SLEEPING)
+                {
+                    _state = STATE_RUNNING;
+                    transition = true;
+                }
+            }
+
+            if (transition)
+            {
+                _tracker.TrackAwake();
+                _source.SetResult(null);
+            }
+        }
+
+        private void CancellationCallback(CancellationToken cancellationToken)
+        {
+            var transition = false;
+            lock (_lock)
+            {
+                if (_state == STATE_SLEEPING)
+                {
+                    _state = STATE_RUNNING;
+                    transition = true;
+                }
+            }
+
+            if (transition)
+            {
+                _tracker.TrackAwake();
+                _source.SetException(new OperationCanceledException(cancellationToken));
+            }
+        }
+
+        void IValueTaskSource.GetResult(short token)
+            => _source.GetResult(token);
+
+        ValueTaskSourceStatus IValueTaskSource.GetStatus(short token)
+            => _source.GetStatus(token);
+
+        void IValueTaskSource.OnCompleted(Action<object?> continuation, object? state, short token, ValueTaskSourceOnCompletedFlags flags)
+        {
+            var transition = false;
+            lock (_lock)
+            {
+                if (_state == STATE_RUNNING)
+                {
+                    _state = STATE_SLEEPING;
+                    transition = true;
+                }
+            }
+
+            if (transition)
+            {
+                _tracker.TrackSleeping();
+            }
+
+            _source.OnCompleted(continuation, state, token, flags);
+        }
+
+        void IDisposable.Dispose()
+        {
+            int oldState;
+            lock (_lock)
+            {
+                oldState = _state;
+                _state = STATE_DISPOSED;
+            }
+
+            if (oldState == STATE_DISPOSED)
+            {
+                return;
+            }
+
+            if (oldState == STATE_SLEEPING)
+            {
+                _tracker.TrackAwake();
+            }
+
+            _cancellationRegistration.Dispose();
+            _timer.Dispose();
+            _source.Reset();
+            _tracker.Unregister();
         }
     }
 
