@@ -1,10 +1,12 @@
 ﻿#nullable enable
 
+using Altinn.Register.Core;
 using Altinn.Register.Core.Leases;
 using Altinn.Register.Jobs;
 using Altinn.Register.Tests.Utils;
 using Altinn.Register.TestUtils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Time.Testing;
 
 namespace Altinn.Register.Tests.Jobs;
@@ -31,6 +33,7 @@ public class RecurringJobHostedServiceTests
         await base.ConfigureServices(services);
 
         services.AddLeaseManager();
+        services.TryAddSingleton<RegisterTelemetry>();
     }
 
     private ILeaseProvider Provider
@@ -339,6 +342,42 @@ public class RecurringJobHostedServiceTests
         job3DisposeAsync.Value.Should().Be(1);
     }
 
+    [Fact]
+    public async Task ScheduledJobs_WithoutLease_AreNotRunImmediately()
+    {
+        var counter = new AtomicCounter();
+
+        using var sut = CreateService([
+            Counter.Scheduled(TimeSpan.FromHours(1), counter),
+        ]);
+
+        await Run(sut);
+
+        counter.Value.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ScheduledJobs_RunMultipleTimes()
+    {
+        var counter = new AtomicCounter();
+
+        using var sut = CreateService([
+            Counter.Scheduled(TimeSpan.FromHours(1), counter),
+        ]);
+
+        await Start(sut);
+
+        for (var i = 0; i < 10; i++)
+        {
+            TimeProvider.Advance(TimeSpan.FromHours(1));
+            await sut.RunningScheduledJobs;
+        }
+
+        await Stop(sut);
+
+        counter.Value.Should().Be(10);
+    }
+
     private RecurringJobHostedService CreateService(IEnumerable<JobRegistration> registrations)
         => _factory(Services, [registrations]);
 
@@ -416,6 +455,9 @@ public class RecurringJobHostedServiceTests
 
         public static JobRegistration RunAt(JobHostLifecycles runAt, string leaseName, AtomicCounter counter)
             => Create(counter, leaseName, TimeSpan.Zero, runAt);
+
+        public static JobRegistration Scheduled(TimeSpan interval, AtomicCounter counter)
+            => Create(counter, null, interval, JobHostLifecycles.None);
     }
 
     private sealed class DisposableJob(AtomicCounter disposeCounter)

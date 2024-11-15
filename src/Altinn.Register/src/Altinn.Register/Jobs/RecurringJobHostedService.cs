@@ -2,6 +2,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.Runtime.ExceptionServices;
 using Altinn.Register.Core;
 using Altinn.Register.Core.Leases;
@@ -16,6 +17,10 @@ internal sealed partial class RecurringJobHostedService
     : IHostedLifecycleService
     , IDisposable
 {
+    private readonly Counter<int> _jobsStarted;
+    private readonly Counter<int> _jobsFailed;
+    private readonly Counter<int> _jobsSucceeded;
+
     private readonly TimeProvider _timeProvider;
     private readonly LeaseManager _leaseManager;
     private readonly IServiceScopeFactory _serviceScopeFactory;
@@ -24,16 +29,28 @@ internal sealed partial class RecurringJobHostedService
     private Task? _schedulerTask;
     private CancellationTokenSource? _stoppingCts;
 
+    private Task _runningScheduledJobs = Task.CompletedTask;
+
+    /// <summary>
+    /// For test use only.
+    /// </summary>
+    internal Task RunningScheduledJobs => Volatile.Read(ref _runningScheduledJobs);
+
     /// <summary>
     /// Initializes a new instance of the <see cref="RecurringJobHostedService"/> class.
     /// </summary>
     public RecurringJobHostedService(
+        RegisterTelemetry telemetry,
         TimeProvider timeProvider,
         LeaseManager leaseManager,
         IServiceScopeFactory serviceScopeFactory,
         ILogger<RecurringJobHostedService> logger,
         IEnumerable<JobRegistration> registrations)
     {
+        _jobsStarted = telemetry.CreateCounter<int>("register.jobs.started", unit: "jobs", description: "The number of jobs that have been started");
+        _jobsFailed = telemetry.CreateCounter<int>("register.jobs.failed", unit: "jobs", description: "The number of jobs that have failed");
+        _jobsSucceeded = telemetry.CreateCounter<int>("register.jobs.succeeded", unit: "jobs", description: "The number of jobs that have succeeded");
+
         _timeProvider = timeProvider;
         _leaseManager = leaseManager;
         _serviceScopeFactory = serviceScopeFactory;
@@ -148,14 +165,21 @@ internal sealed partial class RecurringJobHostedService
         var start = _timeProvider.GetTimestamp();
         var name = job.Name;
 
-        using var activity = RegisterActivitySource.StartActivity(ActivityKind.Internal, $"run job {name}");
+        var jobTags = new TagList([
+            new("job.name", name),
+        ]);
+        using var activity = RegisterTelemetry.StartActivity(ActivityKind.Internal, $"run job {name}");
         try
         {
+            _jobsStarted.Add(1, in jobTags);
+            Log.JobStarting(_logger, name);
+
             // update the start point to be more correct
             start = _timeProvider.GetTimestamp();
             await job.RunAsync(cancellationToken);
             var elapsed = _timeProvider.GetElapsedTime(start);
 
+            _jobsSucceeded.Add(1, in jobTags);
             Log.JobCompleted(_logger, name, elapsed);
             activity?.SetStatus(ActivityStatusCode.Ok);
             return new JobRunResult(name, elapsed, null);
@@ -168,6 +192,7 @@ internal sealed partial class RecurringJobHostedService
         {
             var elapsed = _timeProvider.GetElapsedTime(start);
 
+            _jobsFailed.Add(1, in jobTags);
             Log.JobFailed(_logger, name, elapsed, e);
             activity?.SetStatus(ActivityStatusCode.Error, e.Message);
 
@@ -225,6 +250,7 @@ internal sealed partial class RecurringJobHostedService
         {
             // we wait first - if the job should also be ran at startup, set RunAt to the appropriate lifecycle
             await _timeProvider.Delay(interval, cancellationToken);
+            using var tracker = TrackRunningScheduledJob();
 
             // run the job
             await RunJob(registration, throwOnException: false, cancellationToken);
@@ -240,6 +266,7 @@ internal sealed partial class RecurringJobHostedService
             
             DateTimeOffset lastCompleted;
             {
+                using var tracker = TrackRunningScheduledJob();
                 await using var lease = await _leaseManager.AcquireLease(leaseName, (prev) => prev.LastReleasedAt + interval < now, cancellationToken);
 
                 if (lease.Acquired)
@@ -274,14 +301,60 @@ internal sealed partial class RecurringJobHostedService
         }
     }
 
+    /// <summary>
+    /// Records a new job task as running. This is used in tests to be able to wait for all running jobs to complete.
+    /// </summary>
+    private IDisposable TrackRunningScheduledJob()
+        => new ScheduledJobTracker(this);
+
     private sealed record JobRunResult(string Name, TimeSpan Duration, ExceptionDispatchInfo? Exception);
+
+    private sealed class ScheduledJobTracker
+        : IDisposable
+    {
+        private readonly TaskCompletionSource _tcs;
+        private readonly RecurringJobHostedService _service;
+
+        public ScheduledJobTracker(RecurringJobHostedService service)
+        {
+            _service = service;
+            _tcs = new();
+
+            ImmutableInterlocked.Update(
+                ref _service._runningScheduledJobs,
+                static (runningJob, jobTask) =>
+                {
+                    return (runningJob.IsCompleted, jobTask.IsCompleted) switch
+                    {
+                        (true, true) => Task.CompletedTask,
+                        (true, false) => jobTask,
+                        (false, true) => runningJob,
+                        (false, false) => Task.WhenAll(runningJob, jobTask),
+                    };
+                },
+                _tcs.Task);
+        }
+
+        public void Dispose()
+        {
+            if (_tcs.TrySetResult())
+            {
+                ImmutableInterlocked.Update(
+                    ref _service._runningScheduledJobs,
+                    static runningJob => runningJob.IsCompleted ? Task.CompletedTask : runningJob);
+            }
+        }
+    }
 
     private static partial class Log
     {
-        [LoggerMessage(0, LogLevel.Information, "Job {JobName} completed successfully in {Duration}")]
+        [LoggerMessage(0, LogLevel.Information, "Job {JobName} starting")]
+        public static partial void JobStarting(ILogger logger, string jobName);
+
+        [LoggerMessage(1, LogLevel.Information, "Job {JobName} completed successfully in {Duration}")]
         public static partial void JobCompleted(ILogger logger, string jobName, TimeSpan duration);
 
-        [LoggerMessage(1, LogLevel.Warning, "Job {JobName} failed in {Duration}")]
+        [LoggerMessage(2, LogLevel.Error, "Job {JobName} failed in {Duration}")]
         public static partial void JobFailed(ILogger logger, string jobName, TimeSpan duration, Exception exception);
     }
 }
