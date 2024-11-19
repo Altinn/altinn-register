@@ -1,4 +1,5 @@
 using Altinn.Register.Core.Parties;
+using Altinn.Register.TestUtils;
 using Npgsql;
 using Xunit.Abstractions;
 

@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Altinn.Register\Altinn.Register.csproj" />
+    <ProjectReference Include="..\Altinn.Register.TestUtils\Altinn.Register.TestUtils.csproj" />
   </ItemGroup>
 
   <ItemGroup>

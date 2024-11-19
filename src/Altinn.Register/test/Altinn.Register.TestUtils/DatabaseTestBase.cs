@@ -1,9 +1,12 @@
-﻿using Altinn.Register.TestUtils;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Xunit;
 
-namespace Altinn.Register.Persistence.Tests;
+namespace Altinn.Register.TestUtils;
 
+/// <summary>
+/// Base class for tests that needs a database.
+/// </summary>
 public abstract class DatabaseTestBase
     : HostTestBase
     , IClassFixture<PostgreSqlManager>
@@ -15,8 +18,12 @@ public abstract class DatabaseTestBase
     /// </summary>
     protected virtual bool SeedData => true;
 
+    /// <summary>
+    /// Gets the database.
+    /// </summary>
     protected PostgreSqlDatabase Database => _db!;
 
+    /// <inheritdoc/>
     protected override async ValueTask ConfigureHost(IHostApplicationBuilder builder)
     {
         await base.ConfigureHost(builder);
@@ -33,6 +40,7 @@ public abstract class DatabaseTestBase
         builder.AddRegisterPersistence();
     }
 
+    /// <inheritdoc/>
     protected override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();

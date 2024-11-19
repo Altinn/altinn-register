@@ -206,7 +206,7 @@ internal partial class PostgresImportJobTracker
         CancellationToken cancellationToken,
         [CallerMemberName] string? activityName = null)
     {
-        using var activity = RegisterActivitySource.StartActivity(
+        using var activity = RegisterTelemetry.StartActivity(
             ActivityKind.Internal,
             $"{nameof(PostgresImportJobTracker)}.{activityName}",
             [

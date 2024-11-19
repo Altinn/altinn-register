@@ -1,5 +1,6 @@
 ﻿using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Persistence.ImportJobs;
+using Altinn.Register.TestUtils;
 
 namespace Altinn.Register.Persistence.Tests.ImportJobs;
 

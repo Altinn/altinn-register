@@ -9,6 +9,7 @@ using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Core.Utils;
+using Altinn.Register.TestUtils;
 using FluentAssertions.Execution;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.DependencyInjection;

@@ -22,6 +22,7 @@ using AltinnCore.Authentication.JwtCookie;
 using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OpenTelemetry.Trace;
@@ -77,7 +78,8 @@ internal static class RegisterHost
 
         services.AddSingleton<IOrgContactPoint, OrgContactPointService>();
 
-        services.ConfigureOpenTelemetryTracerProvider((builder) => builder.AddSource(RegisterActivitySource.Name));
+        services.TryAddSingleton<RegisterTelemetry>();
+        services.ConfigureOpenTelemetryTracerProvider((builder) => builder.AddSource(RegisterTelemetry.Name));
 
         services.AddAuthentication(JwtCookieDefaults.AuthenticationScheme)
           .AddJwtCookie(JwtCookieDefaults.AuthenticationScheme, options =>

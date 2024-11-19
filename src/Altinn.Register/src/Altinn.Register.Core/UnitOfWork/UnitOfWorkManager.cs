@@ -35,7 +35,7 @@ internal class UnitOfWorkManager
         ReadOnlySpan<KeyValuePair<string, object?>> tags = default,
         CancellationToken cancellationToken = default,
         [CallerMemberName] string activityName = "")
-        => _impl.CreateAsync(RegisterActivitySource.StartActivity(ActivityKind.Internal, activityName, tags), _services, cancellationToken);
+        => _impl.CreateAsync(RegisterTelemetry.StartActivity(ActivityKind.Internal, activityName, tags), _services, cancellationToken);
 
     /// <summary>
     /// The actual unit-of-work implementation.
