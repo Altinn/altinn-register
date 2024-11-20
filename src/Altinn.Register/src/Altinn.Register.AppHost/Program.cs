@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting;
 using Microsoft.Extensions.Configuration;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -42,7 +43,8 @@ var registerApi = builder.AddProject<Projects.Altinn_Register>("register")
         env[$"{prefix}RabbitMq__Password"] = ReferenceExpression.Create($"{rabbitMq.Resource.PasswordParameter}");
         env[$"{prefix}RabbitMq__VirtualHost"] = "/";
     })
-    .WithEnvironment("Altinn__Npgsql__register__Enable", "true");
+    .WithEnvironment("Altinn__Npgsql__register__Enable", "true")
+    .WithEnvironment("Altinn__register__PartyImport__A2__Enable", "true");
 
 await builder.Build().RunAsync();
 

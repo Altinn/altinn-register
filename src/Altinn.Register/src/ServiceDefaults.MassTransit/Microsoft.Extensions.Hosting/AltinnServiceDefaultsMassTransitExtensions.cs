@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
+using Altinn.Authorization.ServiceDefaults.MassTransit.Commands;
 using CommunityToolkit.Diagnostics;
 using MassTransit;
 using MassTransit.Logging;
@@ -81,32 +82,39 @@ public static class AltinnServiceDefaultsMassTransitExtensions
 
         helper.ConfigureHost(builder);
         builder.Services.AddSingleton<IEndpointNameFormatter, AltinnEndpointNameFormatter>();
+        builder.Services.AddSingleton<CommandQueueResolver>();
+        builder.Services.AddSingleton<ICommandQueueRegistry>(s => s.GetRequiredService<CommandQueueResolver>());
+        builder.Services.AddSingleton<ICommandQueueResolver>(s => s.GetRequiredService<CommandQueueResolver>());
+        builder.Services.AddSingleton<CommandQueueRegistryEndpointConfigurationObserver>();
+        builder.Services.AddScoped<ICommandSender, CommandSender>();
         builder.Services.AddMassTransit(configurator =>
         {
             configurator.AddConfigureEndpointsCallback((ctx, name, cfg) =>
             {
-                // retry messages 3 times, in short order, before failing back to the broker
-                cfg.UseMessageRetry(r => r.Intervals(
-                    TimeSpan.Zero,
-                    TimeSpan.FromMilliseconds(10),
-                    TimeSpan.FromMilliseconds(100)));
-
                 // redeliver if all retries fail
                 cfg.UseScheduledRedelivery(r => r.Intervals(
                     TimeSpan.FromMinutes(1),
                     TimeSpan.FromMinutes(5),
                     TimeSpan.FromMinutes(15)));
+
+                // retry messages 3 times, in short order, before failing back to the broker
+                cfg.UseMessageRetry(r => r.Intervals(
+                    TimeSpan.Zero,
+                    TimeSpan.FromMilliseconds(10),
+                    TimeSpan.FromMilliseconds(100)));
             });
 
             configureMassTransit?.Invoke(configurator);
             helper.ConfigureBus(configurator, (ctx, cfg) =>
             {
+                var observer = ctx.GetRequiredService<CommandQueueRegistryEndpointConfigurationObserver>();
+                cfg.ConnectEndpointConfigurationObserver(observer);
+
                 configureBus?.Invoke(cfg);
                 cfg.UseInMemoryOutbox(ctx, x => x.ConcurrentMessageDelivery = true);
             });
 
             configurator.AddInMemoryInboxOutbox();
-
         });
 
         if (!settings.DisableHealthChecks)
@@ -143,5 +151,51 @@ public static class AltinnServiceDefaultsMassTransitExtensions
     private sealed class Marker
     {
         public static readonly ServiceDescriptor ServiceDescriptor = ServiceDescriptor.Singleton<Marker, Marker>();
+    }
+
+    private class CommandQueueRegistryEndpointConfigurationObserver(ICommandQueueRegistry registry)
+        : IEndpointConfigurationObserver
+    {
+        public void EndpointConfigured<T>(T configurator)
+            where T : IReceiveEndpointConfigurator
+        {
+            configurator.ConnectConsumerConfigurationObserver(new CommandQueueRegistryConsumerConfigurationObserver(registry, configurator.InputAddress));
+        }
+    }
+
+    private class CommandQueueRegistryConsumerConfigurationObserver(ICommandQueueRegistry registry, Uri queueUri)
+        : IConsumerConfigurationObserver
+    {
+        public void ConsumerConfigured<TConsumer>(IConsumerConfigurator<TConsumer> configurator)
+            where TConsumer : class
+        {
+        }
+
+        public void ConsumerMessageConfigured<TConsumer, TMessage>(IConsumerMessageConfigurator<TConsumer, TMessage> configurator)
+            where TConsumer : class
+            where TMessage : class
+        {
+            if (TryGetCommandType(typeof(TMessage), out var commandType))
+            {
+                registry.RegisterConsumerCommandQueue(commandType, queueUri, typeof(TConsumer));
+            }
+        }
+
+        private static bool TryGetCommandType(Type messageType, [NotNullWhen(true)] out Type? commandType)
+        {
+            if (typeof(Command).IsAssignableFrom(messageType))
+            {
+                commandType = messageType;
+                return true;
+            }
+
+            if (messageType.IsConstructedGenericType && messageType.GetGenericTypeDefinition() == typeof(Batch<>))
+            {
+                return TryGetCommandType(messageType.GenericTypeArguments[0], out commandType);
+            }
+
+            commandType = null;
+            return false;
+        }
     }
 }

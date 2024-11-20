@@ -12,9 +12,11 @@ using Altinn.Register.Configuration;
 using Altinn.Register.Conventions;
 using Altinn.Register.Core;
 using Altinn.Register.Core.Parties;
+using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.Extensions;
 using Altinn.Register.ModelBinding;
 using Altinn.Register.PartyImport;
+using Altinn.Register.PartyImport.A2;
 using Altinn.Register.Services;
 using Altinn.Register.Services.Implementation;
 using Altinn.Register.Services.Interfaces;
@@ -134,6 +136,28 @@ internal static class RegisterHost
                 {
                     cfg.AddConsumers(typeof(RegisterHost).Assembly);
                 });
+        }
+
+        if (config.GetValue<bool>("Altinn:register:PartyImport:A2:Enable"))
+        {
+            services.AddHttpClient<IA2PartyImportService, A2PartyImportService>()
+                .ConfigureHttpClient((s, c) =>
+                {
+                    var config = s.GetRequiredService<IConfiguration>();
+                    var baseAddress = config.GetValue<Uri>("GeneralSettings:BridgeApiEndpoint");
+
+                    c.BaseAddress = baseAddress;
+                });
+            services.AddRecurringJob<A2PartyImportJob>(settings =>
+            {
+                settings.LeaseName = LeaseNames.A2PartyImport;
+                settings.Interval = TimeSpan.FromMinutes(5);
+
+#if DEBUG
+                // Run the job immediately on startup in debug mode
+                settings.RunAt = Jobs.JobHostLifecycles.Started;
+#endif
+            });
         }
 
         services.AddSwaggerGen(c =>

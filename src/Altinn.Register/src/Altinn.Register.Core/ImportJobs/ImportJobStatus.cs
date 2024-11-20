@@ -19,4 +19,9 @@ public readonly record struct ImportJobStatus
 
     /// <inheritdoc cref="ImportJobProcessingStatus.ProcessedMax"/>
     public readonly required ulong ProcessedMax { get; init; }
+
+    /// <summary>
+    /// Gets the number of items that has been enqueued but not yet processed.
+    /// </summary>
+    public readonly ulong Unprocessed => EnqueuedMax - ProcessedMax;
 }

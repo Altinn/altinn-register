@@ -44,7 +44,7 @@ public class DebugController
     [LocalDevCondition]
     public async Task<IActionResult> Test(
         [FromQuery(Name = "partyUuid")] Guid partyUuid,
-        [FromQuery(Name = "changeId")] int changeId,
+        [FromQuery(Name = "changeId")] uint changeId,
         [FromServices] IBus bus,
         [FromServices] IMessageScheduler scheduler,
         CancellationToken cancellationToken = default)

@@ -16,7 +16,7 @@ public sealed record ImportA2PartyCommand
     /// <summary>
     /// Gets the change ID.
     /// </summary>
-    public required int ChangeId { get; init; }
+    public required uint ChangeId { get; init; }
 
     /// <summary>
     /// Gets when the change was registered.
