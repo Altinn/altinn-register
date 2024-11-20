@@ -15,7 +15,7 @@
     <PackageVersion Include="Altinn.Common.AccessToken" Version="4.5.3" />
     <PackageVersion Include="Altinn.Common.PEP" Version="4.0.0" />
     <PackageVersion Include="Altinn.Swashbuckle.Abstractions" Version="2.1.1" />
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="8.2.2" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.0.0" />
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="8.2.2" />
     <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="8.2.2" />
     <PackageVersion Include="AspNetCore.HealthChecks.AzureServiceBus" Version="8.0.1" />
