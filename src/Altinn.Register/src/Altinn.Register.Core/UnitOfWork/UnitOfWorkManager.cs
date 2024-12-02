@@ -33,9 +33,10 @@ internal class UnitOfWorkManager
     /// <inheritdoc/>
     public ValueTask<IUnitOfWork> CreateAsync(
         ReadOnlySpan<KeyValuePair<string, object?>> tags = default,
+        ReadOnlySpan<ActivityLink> links = default,
         CancellationToken cancellationToken = default,
         [CallerMemberName] string activityName = "")
-        => _impl.CreateAsync(RegisterTelemetry.StartActivity(ActivityKind.Internal, activityName, tags), _services, cancellationToken);
+        => _impl.CreateAsync(RegisterTelemetry.StartActivity(activityName, ActivityKind.Internal, tags: tags, links: links), _services, cancellationToken);
 
     /// <summary>
     /// The actual unit-of-work implementation.
@@ -366,14 +367,16 @@ internal class UnitOfWorkManager
                 }
 
                 _status = UnitOfWorkStatus.Committed;
-                return Inner(_participants, cancellationToken);
+                return Inner(_activity, _participants, cancellationToken);
 
-                static async ValueTask Inner(ImmutableArray<IUnitOfWorkParticipant> participants, CancellationToken cancellationToken)
+                static async ValueTask Inner(Activity? activity, ImmutableArray<IUnitOfWorkParticipant> participants, CancellationToken cancellationToken)
                 {
                     foreach (var participant in participants)
                     {
                         await participant.CommitAsync(cancellationToken);
                     }
+
+                    activity?.SetStatus(ActivityStatusCode.Ok, description: "Committed");
                 }
             }
 
@@ -392,14 +395,17 @@ internal class UnitOfWorkManager
                 }
 
                 _status = UnitOfWorkStatus.RolledBack;
-                return Inner(_participants, cancellationToken);
+                return Inner(_activity, _participants, cancellationToken);
 
-                static async ValueTask Inner(ImmutableArray<IUnitOfWorkParticipant> participants, CancellationToken cancellationToken)
+                static async ValueTask Inner(Activity? activity, ImmutableArray<IUnitOfWorkParticipant> participants, CancellationToken cancellationToken)
                 {
                     foreach (var participant in participants)
                     {
                         await participant.RollbackAsync(cancellationToken);
                     }
+
+                    activity?.SetStatus(ActivityStatusCode.Ok, description: "Rolled back");
+
                 }
             }
 
