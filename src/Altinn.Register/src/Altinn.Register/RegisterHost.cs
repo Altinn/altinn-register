@@ -27,6 +27,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 
 namespace Altinn.Register;
@@ -82,6 +83,7 @@ internal static class RegisterHost
 
         services.TryAddSingleton<RegisterTelemetry>();
         services.ConfigureOpenTelemetryTracerProvider((builder) => builder.AddSource(RegisterTelemetry.Name));
+        services.ConfigureOpenTelemetryMeterProvider((builder) => builder.AddMeter(RegisterTelemetry.Name));
 
         services.AddAuthentication(JwtCookieDefaults.AuthenticationScheme)
           .AddJwtCookie(JwtCookieDefaults.AuthenticationScheme, options =>
@@ -131,6 +133,7 @@ internal static class RegisterHost
 
         if (config.GetValue<bool>("Altinn:MassTransit:register:Enable"))
         {
+            builder.Services.TryAddSingleton<A2PartyImportConsumer.A2PartyImportMeters>();
             builder.AddAltinnMassTransit(
                 configureMassTransit: (cfg) =>
                 {
@@ -148,6 +151,7 @@ internal static class RegisterHost
 
                     c.BaseAddress = baseAddress;
                 });
+
             services.AddRecurringJob<A2PartyImportJob>(settings =>
             {
                 settings.LeaseName = LeaseNames.A2PartyImport;

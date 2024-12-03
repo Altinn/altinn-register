@@ -16,9 +16,6 @@ namespace Altinn.Register.PartyImport;
 public sealed partial class A2PartyImportJob
     : IJob
 {
-    private const int MAX_UNPROCESSED = 10_000;
-    private const int RECORD_EVERY = 10;
-
     private readonly ILogger<A2PartyImportJob> _logger;
     private readonly IImportJobTracker _tracker;
     private readonly ICommandSender _sender;
@@ -42,42 +39,25 @@ public sealed partial class A2PartyImportJob
     /// <inheritdoc/>
     public async Task RunAsync(CancellationToken cancellationToken)
     {
-        using var activity = RegisterTelemetry.StartActivity(ActivityKind.Internal, "import a2-parties");
+        using var activity = RegisterTelemetry.StartActivity("import a2-parties", ActivityKind.Internal);
         var progress = await _tracker.GetStatus(JobNames.A2PartyImportParty, cancellationToken);
 
-        if (progress.Unprocessed >= MAX_UNPROCESSED)
-        {
-            Log.TooManyUnprocessedJobs(_logger, JobNames.A2PartyImportParty, progress);
-            return;
-        }
-
-        var unrecorded = 0;
-        uint lastChangeId = 0;
-
         var changes = _importService.GetChanges(checked((uint)progress.EnqueuedMax), cancellationToken);
-        await foreach (var change in changes)
+        await foreach (var batch in changes.Chunk(100))
         {
-            var cmd = new ImportA2PartyCommand
+            var cmd = new ImportA2PartyBatchCommand
             {
-                ChangedTime = change.ChangeTime,
-                ChangeId = change.ChangeId,
-                PartyUuid = change.PartyUuid,
+                Items = batch.Select(static c => new ImportA2PartyBatchCommand.Item
+                {
+                    ChangedTime = c.ChangeTime,
+                    ChangeId = c.ChangeId,
+                    PartyUuid = c.PartyUuid,
+                }).ToList(),
             };
 
             await _sender.Send(cmd, cancellationToken);
 
-            unrecorded++;
-            lastChangeId = change.ChangeId;
-            if (unrecorded >= RECORD_EVERY)
-            {
-                var sourceMax = await changes.GetLastChangeId(cancellationToken);
-                await _tracker.TrackQueueStatus(JobNames.A2PartyImportParty, new() { EnqueuedMax = lastChangeId, SourceMax = sourceMax }, cancellationToken);
-                unrecorded = 0;
-            }
-        }
-
-        if (unrecorded > 0)
-        {
+            var lastChangeId = batch[^1].ChangeId;
             var sourceMax = await changes.GetLastChangeId(cancellationToken);
             await _tracker.TrackQueueStatus(JobNames.A2PartyImportParty, new() { EnqueuedMax = lastChangeId, SourceMax = sourceMax }, cancellationToken);
         }
@@ -85,10 +65,5 @@ public sealed partial class A2PartyImportJob
 
     private static partial class Log
     {
-        [LoggerMessage(0, LogLevel.Warning, "Too many unprocessed items in job {job} - source contains {source} items, enqueued {enqueued} items for processing, and {processed} items has been processed")]
-        private static partial void TooManyUnprocessedJobs(ILogger logger, string job, ulong source, ulong enqueued, ulong processed);
-
-        public static void TooManyUnprocessedJobs(ILogger logger, string job, ImportJobStatus status)
-            => TooManyUnprocessedJobs(logger, job, status.SourceMax, status.EnqueuedMax, status.ProcessedMax);
     }
 }

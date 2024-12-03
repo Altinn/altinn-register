@@ -80,22 +80,43 @@ public static class AltinnServiceDefaultsMassTransitExtensions
 
         MassTransitTransportHelper helper = MassTransitTransportHelper.For(settings, busName);
 
+        TimeSpan[] redeliveryIntervals;
+        if (builder.Environment.IsDevelopment())
+        {
+            redeliveryIntervals = [
+                TimeSpan.FromSeconds(5),
+            ];
+        }
+        else
+        {
+            redeliveryIntervals = [
+                TimeSpan.FromMinutes(1),
+                TimeSpan.FromMinutes(5),
+                TimeSpan.FromMinutes(15),
+            ];
+        }
+
         helper.ConfigureHost(builder);
+        builder.Services.AddSingleton<MassTransitLifecycleObserver>();
         builder.Services.AddSingleton<IEndpointNameFormatter, AltinnEndpointNameFormatter>();
         builder.Services.AddSingleton<CommandQueueResolver>();
         builder.Services.AddSingleton<ICommandQueueRegistry>(s => s.GetRequiredService<CommandQueueResolver>());
         builder.Services.AddSingleton<ICommandQueueResolver>(s => s.GetRequiredService<CommandQueueResolver>());
         builder.Services.AddSingleton<CommandQueueRegistryEndpointConfigurationObserver>();
         builder.Services.AddScoped<ICommandSender, CommandSender>();
+        builder.Services.AddOptions<MassTransitHostOptions>()
+            .Configure(opts => opts.WaitUntilStarted = true);
+        builder.Services.TryInsertEnumerable(0, ServiceDescriptor.Singleton<IHostedService, MassTransitHostedService>());
         builder.Services.AddMassTransit(configurator =>
         {
+            configurator.AddBusObserver(s => s.GetRequiredService<MassTransitLifecycleObserver>());
+
             configurator.AddConfigureEndpointsCallback((ctx, name, cfg) =>
             {
+                cfg.UseInMemoryOutbox(ctx, x => x.ConcurrentMessageDelivery = true);
+
                 // redeliver if all retries fail
-                cfg.UseScheduledRedelivery(r => r.Intervals(
-                    TimeSpan.FromMinutes(1),
-                    TimeSpan.FromMinutes(5),
-                    TimeSpan.FromMinutes(15)));
+                cfg.UseScheduledRedelivery(r => r.Intervals(redeliveryIntervals));
 
                 // retry messages 3 times, in short order, before failing back to the broker
                 cfg.UseMessageRetry(r => r.Intervals(
@@ -104,6 +125,8 @@ public static class AltinnServiceDefaultsMassTransitExtensions
                     TimeSpan.FromMilliseconds(100)));
             });
 
+            configurator.AddSendObserver<DiagnosticHeadersSendObserver>();
+
             configureMassTransit?.Invoke(configurator);
             helper.ConfigureBus(configurator, (ctx, cfg) =>
             {
@@ -111,7 +134,6 @@ public static class AltinnServiceDefaultsMassTransitExtensions
                 cfg.ConnectEndpointConfigurationObserver(observer);
 
                 configureBus?.Invoke(cfg);
-                cfg.UseInMemoryOutbox(ctx, x => x.ConcurrentMessageDelivery = true);
             });
 
             configurator.AddInMemoryInboxOutbox();
@@ -151,6 +173,39 @@ public static class AltinnServiceDefaultsMassTransitExtensions
     private sealed class Marker
     {
         public static readonly ServiceDescriptor ServiceDescriptor = ServiceDescriptor.Singleton<Marker, Marker>();
+    }
+
+    private class DiagnosticHeadersSendObserver
+        : ISendObserver
+    {
+        public Task PostSend<T>(SendContext<T> context) 
+            where T : class
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task PreSend<T>(SendContext<T> context) 
+            where T : class
+        {
+            if (!context.Headers.TryGetHeader(DiagnosticHeaders.ActivityPropagation, out _))
+            {
+                // TODO: handle queries which should be children, not links
+                context.Headers.Set(DiagnosticHeaders.ActivityPropagation, "Link");
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public Task SendFault<T>(SendContext<T> context, Exception exception) 
+            where T : class
+        {
+            if (!context.Headers.TryGetHeader(DiagnosticHeaders.ActivityPropagation, out _))
+            {
+                context.Headers.Set(DiagnosticHeaders.ActivityPropagation, "Link");
+            }
+
+            return Task.CompletedTask;
+        }
     }
 
     private class CommandQueueRegistryEndpointConfigurationObserver(ICommandQueueRegistry registry)
