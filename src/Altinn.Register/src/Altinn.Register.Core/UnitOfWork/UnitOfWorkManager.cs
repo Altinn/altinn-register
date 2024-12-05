@@ -405,7 +405,6 @@ internal class UnitOfWorkManager
                     }
 
                     activity?.SetStatus(ActivityStatusCode.Ok, description: "Rolled back");
-
                 }
             }
 
