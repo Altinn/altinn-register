@@ -26,4 +26,9 @@ public interface IJobSettings
     /// Gets or sets the <see cref="JobHostLifecycles"/> that the job should run at.
     /// </summary>
     JobHostLifecycles RunAt { get; set; }
+
+    /// <summary>
+    /// Gets or sets a delegate that will be called before the first job from a job registration is run.
+    /// </summary>
+    Func<IServiceProvider, CancellationToken, ValueTask>? WaitForReady { get; set; }
 }

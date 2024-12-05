@@ -52,7 +52,7 @@ public static class RecurringJobServiceCollectionExtensions
             ThrowHelper.ThrowArgumentException(nameof(settings), "Interval must be greater than zero or RunAt must be set.");
         }
 
-        var registration = new JobRegistration<T>(settings.LeaseName, settings.Interval, settings.RunAt, serviceKey);
+        var registration = new JobRegistration<T>(settings.LeaseName, settings.Interval, settings.RunAt, settings.WaitForReady, serviceKey);
         return services.AddRecurringJob(registration);
     }
 
@@ -87,8 +87,13 @@ public static class RecurringJobServiceCollectionExtensions
         return services;
     }
 
-    private sealed class JobRegistration<T>(string? leaseName, TimeSpan interval, JobHostLifecycles runAt, object? serviceKey)
-        : JobRegistration(leaseName, interval, runAt)
+    private sealed class JobRegistration<T>(
+        string? leaseName,
+        TimeSpan interval,
+        JobHostLifecycles runAt,
+        Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady,
+        object? serviceKey)
+        : JobRegistration(leaseName, interval, runAt, waitForReady)
         where T : IJob
     {
         public override IJob Create(IServiceProvider services)
@@ -106,5 +111,8 @@ public static class RecurringJobServiceCollectionExtensions
 
         /// <inheritdoc/>
         public JobHostLifecycles RunAt { get; set; } = JobHostLifecycles.None;
+
+        /// <inheritdoc/>
+        public Func<IServiceProvider, CancellationToken, ValueTask>? WaitForReady { get; set; } = null;
     }
 }

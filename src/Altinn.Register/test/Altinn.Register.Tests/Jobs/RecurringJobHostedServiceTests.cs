@@ -301,6 +301,33 @@ public class RecurringJobHostedServiceTests
     }
 
     [Theory]
+    [InlineData(JobHostLifecycles.Starting)]
+    [InlineData(JobHostLifecycles.Start)]
+    [InlineData(JobHostLifecycles.Started)]
+    [InlineData(JobHostLifecycles.Stopping)]
+    [InlineData(JobHostLifecycles.Stop)]
+    [InlineData(JobHostLifecycles.Stopped)]
+    public async Task LifecycleJobs_Can_WaitFor(JobHostLifecycles lifecycle)
+    {
+        var counter = new AtomicCounter();
+
+        var tcs = new TaskCompletionSource();
+        using var sut = CreateService([
+            Counter.RunAt(lifecycle, counter, tcs.Task),
+        ]);
+
+        var task = Run(sut);
+
+        await Task.Yield();
+        counter.Value.Should().Be(0);
+        task.IsCompleted.Should().BeFalse();
+
+        tcs.SetResult();
+        await task;
+        counter.Value.Should().Be(1);
+    }
+
+    [Theory]
     [InlineData(JobHostLifecycles.Start)]
     [InlineData(JobHostLifecycles.Started)]
     [InlineData(JobHostLifecycles.Stopping)]
@@ -354,6 +381,27 @@ public class RecurringJobHostedServiceTests
         await Run(sut);
 
         counter.Value.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ScheduledJobs_WithoutLease_CanWaitFor()
+    {
+        var counter = new AtomicCounter();
+        var tcs = new TaskCompletionSource();
+
+        using var sut = CreateService([
+            Counter.Scheduled(TimeSpan.FromHours(1), counter, tcs.Task),
+        ]);
+
+        await Start(sut);
+        TimeProvider.Advance(TimeSpan.FromHours(1));
+        await sut.WaitForRunningScheduledJobs();
+        counter.Value.Should().Be(0);
+
+        tcs.SetResult();
+        await Task.Yield();
+        await sut.WaitForRunningScheduledJobs();
+        counter.Value.Should().Be(1);
     }
 
     [Fact]
@@ -527,29 +575,44 @@ public class RecurringJobHostedServiceTests
             => run(services);
     }
 
-    private sealed class Registration(Func<IServiceProvider, IJob> job, string? leaseName, TimeSpan interval, JobHostLifecycles runAt)
-        : JobRegistration(leaseName, interval, runAt)
+    private sealed class Registration(
+        Func<IServiceProvider, IJob> job,
+        string? leaseName,
+        TimeSpan interval,
+        JobHostLifecycles runAt,
+        Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady)
+        : JobRegistration(leaseName, interval, runAt, waitForReady)
     {
-        public static JobRegistration Create(Func<IServiceProvider, IJob> job, string? leaseName, TimeSpan interval, JobHostLifecycles runAt)
-            => new Registration(job, leaseName, interval, runAt);
+        public static JobRegistration Create(
+            Func<IServiceProvider, IJob> job,
+            string? leaseName,
+            TimeSpan interval,
+            JobHostLifecycles runAt,
+            Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady)
+            => new Registration(job, leaseName, interval, runAt, waitForReady);
 
-        public static JobRegistration Create(Func<IServiceProvider, Task> job, string? leaseName, TimeSpan interval, JobHostLifecycles runAt)
-            => new Registration(services => new DelegateJob(job, services), leaseName, interval, runAt);
+        public static JobRegistration Create(
+            Func<IServiceProvider, Task> job,
+            string? leaseName,
+            TimeSpan interval,
+            JobHostLifecycles runAt,
+            Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady)
+            => new Registration(services => new DelegateJob(job, services), leaseName, interval, runAt, waitForReady);
 
         public static new JobRegistration RunAt(JobHostLifecycles runAt, Func<IServiceProvider, IJob> job)
-            => Create(job, null, TimeSpan.Zero, runAt);
+            => Create(job, null, TimeSpan.Zero, runAt, null);
 
         public static new JobRegistration RunAt(JobHostLifecycles runAt, Func<IServiceProvider, Task> job)
-            => Create(job, null, TimeSpan.Zero, runAt);
+            => Create(job, null, TimeSpan.Zero, runAt, null);
 
         public static new JobRegistration RunAt(JobHostLifecycles runAt, string leaseName, Func<IServiceProvider, IJob> job)
-            => Create(job, leaseName, TimeSpan.Zero, runAt);
+            => Create(job, leaseName, TimeSpan.Zero, runAt, null);
 
         public static new JobRegistration RunAt(JobHostLifecycles runAt, string leaseName, Func<IServiceProvider, Task> job)
-            => Create(job, leaseName, TimeSpan.Zero, runAt);
+            => Create(job, leaseName, TimeSpan.Zero, runAt, null);
 
         public static JobRegistration Scheduled(TimeSpan interval, Func<IServiceProvider, Task> job)
-            => Create(job, null, interval, JobHostLifecycles.None);
+            => Create(job, null, interval, JobHostLifecycles.None, null);
 
         public override IJob Create(IServiceProvider services)
             => job(services);
@@ -557,7 +620,12 @@ public class RecurringJobHostedServiceTests
 
     private static class Counter
     {
-        public static JobRegistration Create(AtomicCounter counter, string? leaseName, TimeSpan interval, JobHostLifecycles runAt)
+        public static JobRegistration Create(
+            AtomicCounter counter,
+            string? leaseName,
+            TimeSpan interval,
+            JobHostLifecycles runAt,
+            Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady = null)
         {
             var job = (IServiceProvider services) =>
             {
@@ -569,17 +637,23 @@ public class RecurringJobHostedServiceTests
                 return Task.CompletedTask;
             };
 
-            return Registration.Create(job, leaseName, interval, runAt);
+            return Registration.Create(job, leaseName, interval, runAt, waitForReady);
         }
 
-        public static JobRegistration RunAt(JobHostLifecycles runAt, AtomicCounter counter)
-            => Create(counter, null, TimeSpan.Zero, runAt);
+        public static JobRegistration RunAt(JobHostLifecycles runAt, AtomicCounter counter, Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady = null)
+            => Create(counter, null, TimeSpan.Zero, runAt, waitForReady);
+
+        public static JobRegistration RunAt(JobHostLifecycles runAt, AtomicCounter counter, Task waitForReady)
+            => Create(counter, null, TimeSpan.Zero, runAt, (_, _) => new(waitForReady));
 
         public static JobRegistration RunAt(JobHostLifecycles runAt, string leaseName, AtomicCounter counter)
             => Create(counter, leaseName, TimeSpan.Zero, runAt);
 
-        public static JobRegistration Scheduled(TimeSpan interval, AtomicCounter counter)
-            => Create(counter, null, interval, JobHostLifecycles.None);
+        public static JobRegistration Scheduled(TimeSpan interval, AtomicCounter counter, Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady = null)
+            => Create(counter, null, interval, JobHostLifecycles.None, waitForReady);
+
+        public static JobRegistration Scheduled(TimeSpan interval, AtomicCounter counter, Task waitForReady)
+            => Create(counter, null, interval, JobHostLifecycles.None, (_, _) => new(waitForReady));
 
         public static JobRegistration Scheduled(TimeSpan interval, string leaseName, AtomicCounter counter)
             => Create(counter, leaseName, interval, JobHostLifecycles.None);
