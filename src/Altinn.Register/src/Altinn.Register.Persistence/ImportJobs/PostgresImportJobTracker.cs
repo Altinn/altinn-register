@@ -207,9 +207,9 @@ internal partial class PostgresImportJobTracker
         [CallerMemberName] string? activityName = null)
     {
         using var activity = RegisterTelemetry.StartActivity(
-            ActivityKind.Internal,
             $"{nameof(PostgresImportJobTracker)}.{activityName}",
-            [
+            ActivityKind.Internal,
+            tags: [
                 new("import-job.id", id),
                 new("retry.count", 0),
             ]);
