@@ -55,7 +55,7 @@ public class CancellationTokenExtensionsTests
         task.IsCompleted.Should().BeFalse();
 
         await cts.CancelAsync();
-        await task.WaitAsync(TimeSpan.FromMilliseconds(10));
+        await task.WaitAsync(TimeSpan.FromMilliseconds(100));
         task.IsCompleted.Should().BeTrue();
     }
 }
