@@ -2,6 +2,9 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.Core.Utils;
@@ -35,6 +38,64 @@ public static class FieldValue
     [EditorBrowsable(EditorBrowsableState.Never)]
     public readonly struct NullSentinel
     {
+    }
+
+    /// <summary>
+    /// Adds support for <see cref="FieldValue{T}"/> to the specified <see cref="JsonSerializerOptions"/>.
+    /// </summary>
+    /// <param name="options">The <see cref="JsonSerializerOptions"/>.</param>
+    /// <returns></returns>
+    public static JsonSerializerOptions WithFieldValueSupport(this JsonSerializerOptions options)
+    {
+        options.TypeInfoResolver = (options.TypeInfoResolver ?? new DefaultJsonTypeInfoResolver()).WithFieldValueSupport();
+        return options;
+    }
+
+    /// <summary>
+    /// Adds support for <see cref="FieldValue{T}"/> to the specified <see cref="JsonTypeInfoResolver"/>.
+    /// </summary>
+    /// <param name="resolver">The <see cref="IJsonTypeInfoResolver"/>.</param>
+    /// <returns>A chained <see cref="IJsonTypeInfoResolver"/>.</returns>
+    public static IJsonTypeInfoResolver WithFieldValueSupport(this IJsonTypeInfoResolver resolver)
+    {
+        return resolver.WithAddedModifier(ModifyFieldValueProperties);
+    }
+
+    private static void ModifyFieldValueProperties(JsonTypeInfo jsonTypeInfo)
+    {
+        foreach (var property in jsonTypeInfo.Properties)
+        {
+            var propertyType = property.PropertyType;
+            if (propertyType.IsConstructedGenericType && propertyType.GetGenericTypeDefinition() == typeof(FieldValue<>))
+            {
+                var fieldType = propertyType.GetGenericArguments()[0];
+                ModifyFieldValueProperty(property, fieldType);
+            }
+        }
+    }
+
+    private static void ModifyFieldValueProperty(JsonPropertyInfo property, Type fieldType)
+    {
+        var converterType = typeof(FieldValue<>.JsonConverter).MakeGenericType(fieldType);
+        var fieldTypeInfo = property.Options.GetTypeInfo(fieldType).Converter;
+        var converter = (JsonConverter)Activator.CreateInstance(converterType, [fieldTypeInfo])!;
+
+        property.CustomConverter = converter;
+        property.IsRequired = false;
+        property.ShouldSerialize = ((IFieldValueConverter)converter).CreateShouldSerialize(property.ShouldSerialize);
+    }
+
+    /// <summary>
+    /// Helpers for modifying <see cref="JsonTypeInfo"/> for <see cref="FieldValue{T}"/>.
+    /// </summary>
+    internal interface IFieldValueConverter
+    {
+        /// <summary>
+        /// Creates a delegate that determines whether the property should be serialized.
+        /// </summary>
+        /// <param name="inner">The original <see cref="JsonPropertyInfo.ShouldSerialize"/> delegate.</param>
+        /// <returns>A delegate that determines whether a property should be serialized.</returns>
+        Func<object, object?, bool> CreateShouldSerialize(Func<object, object?, bool>? inner);
     }
 }
 
@@ -209,5 +270,74 @@ public readonly struct FieldValue<T>
         Unset = default,
         Null,
         NonNull,
+    }
+
+    /// <summary>
+    /// Json converter for <see cref="FieldValue{T}"/>.
+    /// </summary>
+    internal class JsonConverter
+        : JsonConverter<FieldValue<T>>
+        , FieldValue.IFieldValueConverter
+    {
+        private readonly JsonConverter<T> _fieldConverter;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FieldValue{T}.JsonConverter"/> class.
+        /// </summary>
+        /// <param name="fieldConverter">The <see cref="JsonConverter{T}"/> for the field type.</param>
+        public JsonConverter(JsonConverter<T> fieldConverter)
+        {
+            _fieldConverter = fieldConverter;
+        }
+
+        /// <inheritdoc/>
+        public override bool HandleNull => true;
+
+        /// <inheritdoc/>
+        public Func<object, object?, bool> CreateShouldSerialize(Func<object, object?, bool>? inner)
+        {
+            if (inner is null)
+            {
+                return (parent, value) => !((FieldValue<T>)value!).IsUnset;
+            }
+
+            return (parent, value) => !((FieldValue<T>)value!).IsUnset && inner(parent, value);
+        }
+
+        /////// <inheritdoc/>
+        ////public bool ShouldSerialize(object parent, object? value)
+        ////    => !((FieldValue<T>)value!).IsUnset;
+
+        /// <inheritdoc/>
+        public override FieldValue<T> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType == JsonTokenType.Null)
+            {
+                return Null;
+            }
+
+            return _fieldConverter.Read(ref reader, typeof(T), options) switch
+            {
+                null => Null,
+                T value => value,
+            };
+        }
+
+        /// <inheritdoc/>
+        public override void Write(Utf8JsonWriter writer, FieldValue<T> value, JsonSerializerOptions options)
+        {
+            if (value.IsUnset)
+            {
+                throw new JsonException("Cannot serialize an unset field value");
+            }
+
+            if (value.IsNull)
+            {
+                writer.WriteNullValue();
+                return;
+            }
+
+            _fieldConverter.Write(writer, value._value!, options);
+        }
     }
 }
