@@ -13,7 +13,7 @@
     <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Telemetry" Version="2.7.0" />
     <PackageVersion Include="Altinn.Authorization.ServiceDefaults" Version="2.7.0" />
     <PackageVersion Include="Altinn.Common.AccessToken" Version="4.5.4" />
-    <PackageVersion Include="Altinn.Common.PEP" Version="4.1.1" />
+    <PackageVersion Include="Altinn.Common.PEP" Version="4.1.2" />
     <PackageVersion Include="Altinn.Swashbuckle.Abstractions" Version="2.1.1" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="8.2.2" />
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="8.2.2" />
@@ -26,12 +26,12 @@
     <PackageVersion Include="FluentAssertions.Analyzers" Version="0.34.1" />
     <PackageVersion Include="FluentAssertions" Version="6.12.2" />
     <PackageVersion Include="JWTCookieAuthentication" Version="4.0.1" />
-    <PackageVersion Include="MassTransit" Version="8.3.2" />
-    <PackageVersion Include="MassTransit.Abstractions" Version="8.3.2" />
-    <PackageVersion Include="MassTransit.Analyzers" Version="8.3.2" />
-    <PackageVersion Include="MassTransit.Azure.ServiceBus.Core" Version="8.3.2" />
-    <PackageVersion Include="MassTransit.Quartz" Version="8.3.2" />
-    <PackageVersion Include="MassTransit.RabbitMQ" Version="8.3.2" />
+    <PackageVersion Include="MassTransit" Version="8.3.3" />
+    <PackageVersion Include="MassTransit.Abstractions" Version="8.3.3" />
+    <PackageVersion Include="MassTransit.Analyzers" Version="8.3.3" />
+    <PackageVersion Include="MassTransit.Azure.ServiceBus.Core" Version="8.3.3" />
+    <PackageVersion Include="MassTransit.Quartz" Version="8.3.3" />
+    <PackageVersion Include="MassTransit.RabbitMQ" Version="8.3.3" />
     <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.11" />
     <PackageVersion Include="Microsoft.Build.Artifacts" Version="6.1.48" />
