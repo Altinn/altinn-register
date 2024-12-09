@@ -173,11 +173,9 @@ internal partial class PostgresImportJobTracker
     {
         const string QUERY =
             /*strpsql*/"""
-            INSERT INTO register.import_job (id, source_max, enqueued_max, processed_max)
-            VALUES (@id, 0, 0, @processed_max)
-            ON CONFLICT (id) DO UPDATE
-                SET processed_max = GREATEST(import_job.processed_max, EXCLUDED.processed_max)
-                WHERE import_job.processed_max < EXCLUDED.processed_max
+            UPDATE register.import_job
+            SET processed_max = @processed_max
+            WHERE id = @id AND processed_max < @processed_max
             """;
 
         return WithTransaction(
