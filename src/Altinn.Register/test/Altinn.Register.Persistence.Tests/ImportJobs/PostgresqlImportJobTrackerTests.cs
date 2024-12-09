@@ -132,4 +132,41 @@ public class PostgresqlImportJobTrackerTests
         var exn = (await act.Should().ThrowAsync<InvalidOperationException>()).Which;
         exn.Message.Should().Be("Processed max must be less than or equal to enqueued max");
     }
+
+    [Fact]
+    public async Task Track_NormalLifecycle()
+    {
+        const string JOB_NAME = "test";
+
+        UpdateTimerRealtime(
+            interval: TimeSpan.FromMilliseconds(2),
+            stepSize: TimeSpan.FromMilliseconds(10));
+
+        await Tracker.TrackQueueStatus("test", new ImportJobQueueStatus
+        {
+            EnqueuedMax = 10,
+            SourceMax = 20,
+        });
+
+        await Tracker.TrackProcessedStatus(JOB_NAME, new ImportJobProcessingStatus
+        {
+            ProcessedMax = 5,
+        });
+
+        await Tracker.TrackQueueStatus(JOB_NAME, new ImportJobQueueStatus
+        {
+            EnqueuedMax = 20,
+            SourceMax = 20,
+        });
+
+        await Tracker.TrackProcessedStatus(JOB_NAME, new ImportJobProcessingStatus
+        {
+            ProcessedMax = 15,
+        });
+
+        await Tracker.TrackProcessedStatus(JOB_NAME, new ImportJobProcessingStatus
+        {
+            ProcessedMax = 20,
+        });
+    }
 }
