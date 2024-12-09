@@ -27,7 +27,7 @@ public sealed class OrganizationIdentifier
     , IEqualityOperators<OrganizationIdentifier, string, bool>
 {
     private const int LENGTH = 9;
-    private static readonly SearchValues<char> NUMBERS = SearchValues.Create(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']);
+    private static readonly SearchValues<char> NUMBERS = SearchValues.Create('0', '1', '2', '3', '4', '5', '6', '7', '8', '9');
 
     private readonly string _value;
 
