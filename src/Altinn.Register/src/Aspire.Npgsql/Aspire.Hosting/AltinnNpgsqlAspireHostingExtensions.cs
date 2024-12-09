@@ -80,13 +80,15 @@ public static class AltinnNpgsqlAspireHostingExtensions
         this IResourceBuilder<TDestination> builder, 
         IResourceBuilder<AltinnPostgresDatabaseResource> source, 
         string? connectionName = null)
-        where TDestination : IResourceWithEnvironment
+        where TDestination : IResourceWithEnvironment, IResourceWithWaitSupport
     {
         var resource = source.Resource;
         connectionName ??= resource.Name;
 
+        var parentBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource.Parent);
+
         var callback = CreateDatabaseResourceEnvironmentPopulationCallback(resource, connectionName);
-        return builder.WithEnvironment(callback);
+        return builder.WaitFor(parentBuilder).WithEnvironment(callback);
     }
 
     private static Action<EnvironmentCallbackContext> CreateDatabaseResourceEnvironmentPopulationCallback(AltinnPostgresDatabaseResource resource, string connectionName)

@@ -11,7 +11,8 @@ var rabbitMqMgmtPort = builder.Configuration.GetValue("RabbitMq:ManagementPort",
 // databases
 var postgresServer = builder.AddPostgres("postgres", port: postgresPort)
     .WithDataVolume()
-    .WithPgAdmin();
+    .WithPgAdmin()
+    .WithLifetime(ContainerLifetime.Persistent);
 
 var registerDb = postgresServer.AddAltinnDatabase(
     "register-db",
@@ -21,10 +22,12 @@ var registerDb = postgresServer.AddAltinnDatabase(
 var rabbitMqUsername = builder.CreateResourceBuilder(new ParameterResource("rabbitmq-username", _ => "rabbit-admin"));
 var rabbitMq = builder.AddRabbitMQ("rabbitmq", userName: rabbitMqUsername, port: rabbitMqPort)
     .WithDataVolume()
-    .WithManagementPlugin(port: rabbitMqMgmtPort);
+    .WithManagementPlugin(port: rabbitMqMgmtPort)
+    .WithLifetime(ContainerLifetime.Persistent);
 
 var registerApi = builder.AddProject<Projects.Altinn_Register>("register")
     .WithReference(registerDb, "register")
+    .WaitFor(rabbitMq)
     .WithEnvironment(ctx =>
     {
         var env = ctx.EnvironmentVariables;
