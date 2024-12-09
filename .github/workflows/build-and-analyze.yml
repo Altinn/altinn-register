@@ -18,6 +18,7 @@ jobs:
         with:
           dotnet-version: |
             8.0.x
+            9.0.x
 
       - uses: actions/setup-node@v4
         with:
@@ -48,6 +49,7 @@ jobs:
         with:
           dotnet-version: |
             8.0.x
+            9.0.x
 
       - name: Restore dotnet workloads
         run: dotnet workload restore
@@ -67,6 +69,7 @@ jobs:
         with:
           dotnet-version: |
             8.0.x
+            9.0.x
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4

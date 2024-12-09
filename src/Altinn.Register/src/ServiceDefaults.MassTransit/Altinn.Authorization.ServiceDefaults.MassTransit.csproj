@@ -25,6 +25,7 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.Quartz" />
     <PackageReference Include="Quartz.AspNetCore" />
     <PackageReference Include="Quartz.Serialization.SystemTextJson" />
+    <PackageReference Include="System.Text.RegularExpressions" />
   </ItemGroup>
 
   <ItemGroup>

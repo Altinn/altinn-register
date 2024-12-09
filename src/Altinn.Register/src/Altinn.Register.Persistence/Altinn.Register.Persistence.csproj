@@ -15,6 +15,7 @@
     <PackageReference Include="Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" />
     <PackageReference Include="Polly" />
+    <PackageReference Include="System.Text.RegularExpressions" />
   </ItemGroup>
 
   <ItemGroup>

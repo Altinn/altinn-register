@@ -36,7 +36,9 @@ jobs:
       - name: Setup .NET 8.0.* SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.*"
+          dotnet-version: |
+            8.0.x
+            9.0.x
 
       - name: Restore dotnet workloads
         run: dotnet workload restore
