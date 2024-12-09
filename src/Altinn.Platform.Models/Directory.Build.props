@@ -2,6 +2,8 @@
   <Import Project="../../Directory.Build.props" />
 
   <PropertyGroup>
+    <TargetFramework></TargetFramework>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
