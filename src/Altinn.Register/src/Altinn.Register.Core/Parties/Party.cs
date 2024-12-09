@@ -47,12 +47,12 @@ public record Party
     public required OrganizationIdentifier? OrganizationIdentifier { get; init; }
 
     /// <summary>
-    /// Gets when the party was created.
+    /// Gets when the party was created in Altinn 3.
     /// </summary>
     public required DateTimeOffset CreatedAt { get; init; }
 
     /// <summary>
-    /// Gets when the party was last modified.
+    /// Gets when the party was last modified in Altinn 3.
     /// </summary>
     public required DateTimeOffset ModifiedAt { get; init; }
 
