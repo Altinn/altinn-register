@@ -77,12 +77,19 @@ public static class AltinnServiceDefaultsMassTransitExtensions
         configuration.Bind(settings);
         configureSettings?.Invoke(settings);
 
+        builder.Services.AddOptions<MassTransitHostOptions>()
+            .Configure(s => s.WaitUntilStarted = true);
+
         MassTransitTransportHelper helper = MassTransitTransportHelper.For(settings, busName);
 
         helper.ConfigureHost(builder);
+        builder.Services.AddSingleton<MassTransitLifecycleObserver>();
+        builder.Services.AddSingleton<IBusLifetime>(s => s.GetRequiredService<MassTransitLifecycleObserver>());
         builder.Services.AddSingleton<IEndpointNameFormatter, AltinnEndpointNameFormatter>();
         builder.Services.AddMassTransit(configurator =>
         {
+            configurator.AddBusObserver(s => s.GetRequiredService<MassTransitLifecycleObserver>());
+
             configurator.AddConfigureEndpointsCallback((ctx, name, cfg) =>
             {
                 // retry messages 3 times, in short order, before failing back to the broker
@@ -106,7 +113,6 @@ public static class AltinnServiceDefaultsMassTransitExtensions
             });
 
             configurator.AddInMemoryInboxOutbox();
-
         });
 
         if (!settings.DisableHealthChecks)
