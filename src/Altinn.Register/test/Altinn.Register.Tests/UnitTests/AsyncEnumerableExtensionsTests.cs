@@ -1,13 +1,7 @@
 ﻿#nullable enable
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Altinn.Register.Extensions;
 using Altinn.Register.Tests.Utils;
-using Xunit;
 
 namespace Altinn.Register.Tests.UnitTests;
 
@@ -64,16 +58,65 @@ public class AsyncEnumerableExtensionsTests
     }
 
     [Fact]
-    public async Task Merge_Merges_Sources()
+    public async Task Merge_Merges_Sources_Fairly()
     {
-        IAsyncEnumerable<string> enumerable = new AsyncList<string> { "a", "b", "c" };
+        IAsyncEnumerable<string> enumerable = new AsyncList<string>(yieldBeforeItems: false) { "a", "b", "c" };
 
         var result = await enumerable
-            .Merge(new AsyncList<string> { "d", "e", "f" })
-            .Merge([new AsyncList<string> { "g", "h", "i" }, new AsyncList<string> { "j", "k", "l" }])
+            .Merge(new AsyncList<string>(yieldBeforeItems: false) { "d", "e", "f" })
+            .Merge([new AsyncList<string>(yieldBeforeItems: false) { "g", "h", "i" }, new AsyncList<string>(yieldBeforeItems: false) { "j", "k", "l" }])
             .ToListAsync();
 
-        Assert.Equal(12, result.Count);
+        result.Should().HaveCount(12);
+        result[0].Should().Be("a");
+        result[1].Should().Be("d");
+        result[2].Should().Be("g");
+        result[3].Should().Be("j");
+        result[4].Should().Be("b");
+        result[5].Should().Be("e");
+        result[6].Should().Be("h");
+        result[7].Should().Be("k");
+        result[8].Should().Be("c");
+        result[9].Should().Be("f");
+        result[10].Should().Be("i");
+        result[11].Should().Be("l");
+    }
+
+    [Fact]
+    public async Task Merge_IsFair_WithSyncAsync_Combination()
+    {
+        var infiniteSequence = Enumerable.Range(0, int.MaxValue).ToAsyncEnumerable();
+        var yielding = new AsyncList<int>(yieldBeforeItems: true) { -1 };
+
+        var merged = infiniteSequence.Merge(yielding);
+        await foreach (var item in merged)
+        {
+            await Task.Yield();
+
+            if (item == -1)
+            {
+                // success
+                break;
+            }
+
+            if (item > 10)
+            {
+                throw new InvalidOperationException("Should have yielded -1 before 10");
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Merge_Merges_AsyncSources()
+    {
+        IAsyncEnumerable<string> enumerable = new AsyncList<string>(yieldBeforeItems: true) { "a", "b", "c" };
+
+        var result = await enumerable
+            .Merge(new AsyncList<string>(yieldBeforeItems: true) { "d", "e", "f" })
+            .Merge([new AsyncList<string>(yieldBeforeItems: true) { "g", "h", "i" }, new AsyncList<string>(yieldBeforeItems: true) { "j", "k", "l" }])
+            .ToListAsync();
+
+        result.Should().HaveCount(12);
     }
 
     [Fact]
@@ -81,7 +124,7 @@ public class AsyncEnumerableExtensionsTests
     {
         using var cts = new CancellationTokenSource();
 
-        var infiniteSequence = Enumerable.Range(0, int.MaxValue).ToAsyncEnumerable();
+        var infiniteSequence = Enumerable.Range(0, int.MaxValue).ToAsyncEnumerable().Yielding();
         var cancelableSequence = new CancellableEnumerable<int>(cts.Token);
         var merged = infiniteSequence.Merge(cancelableSequence);
 
@@ -94,21 +137,13 @@ public class AsyncEnumerableExtensionsTests
         using var resetEvent = new ManualResetEvent(false);
         cts.Token.Register(() => resetEvent.Set());
 
-        cts.Cancel();
+        await cts.CancelAsync();
         var ex = await Assert.ThrowsAsync<TaskCanceledException>(async () =>
         {
             resetEvent.WaitOne();
 
-            var remaining = 10;
-            while (await enumerator.MoveNextAsync())
-            {
-                await Task.Yield();
-
-                if (remaining-- == 0)
-                {
-                    throw new InvalidOperationException("Should have cancelled");
-                }
-            }
+            await enumerator.MoveNextAsync();
+            throw new InvalidOperationException("Should have cancelled");
         });
 
         Assert.Equal(cts.Token, ex.CancellationToken);
