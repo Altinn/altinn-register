@@ -3,15 +3,19 @@
 namespace Altinn.Register.Tests.Utils;
 
 internal class AsyncList<T>
-    : IAsyncEnumerable<T>, IEnumerable<T>
+    : IAsyncEnumerable<T>
+    , IEnumerable<T>
 {
+    private readonly bool _yieldBeforeItems;
     private readonly List<T> _list = new();
 
-    public AsyncList()
+    public AsyncList(bool yieldBeforeItems = true)
     {
+        _yieldBeforeItems = yieldBeforeItems;
     }
 
-    public AsyncList(List<T> values)
+    public AsyncList(List<T> values, bool yieldBeforeItems = true)
+        : this(yieldBeforeItems)
     {
         _list = values;
     }
@@ -30,7 +34,11 @@ internal class AsyncList<T>
     {
         foreach (var item in _list)
         {
-            await Task.Yield();
+            if (_yieldBeforeItems)
+            {
+                await Task.Yield();
+            }
+
             yield return item;
         }
     }
