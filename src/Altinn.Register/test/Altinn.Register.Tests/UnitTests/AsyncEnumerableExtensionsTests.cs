@@ -91,7 +91,7 @@ public class AsyncEnumerableExtensionsTests
         var merged = infiniteSequence.Merge(yielding);
         await foreach (var item in merged)
         {
-            await Task.Yield();
+            await Task.Delay(TimeSpan.FromMilliseconds(10));
 
             if (item == -1)
             {
