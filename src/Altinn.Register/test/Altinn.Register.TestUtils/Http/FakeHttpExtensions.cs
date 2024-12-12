@@ -1,8 +1,8 @@
-﻿using Altinn.Register.TestUtils.Http.Filters;
+﻿using System.Net.Http.Headers;
+using System.Text;
+using Altinn.Register.TestUtils.Http.Filters;
 using Altinn.Register.TestUtils.Http.Handlers;
 using Microsoft.AspNetCore.Http;
-using System.Net.Http.Headers;
-using System.Text;
 
 namespace Altinn.Register.TestUtils.Http;
 
