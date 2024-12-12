@@ -537,9 +537,9 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
     {
         return new TheoryData<string[], string>
         {
-            { ["01039012345","01017512345"], string.Empty },
-            { ["01039012345","01017512345"], "?partyComponentOption=" },
-            { ["01039012345","01017512345"], "?partyComponentOption=person-name" }
+            { ["01039012345","25871999336"], string.Empty },
+            { ["01039012345","25871999336"], "?partyComponentOption=" },
+            { ["01039012345","25871999336"], "?partyComponentOption=person-name" }
         };
     }
 
@@ -551,8 +551,8 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
     {
         return new TheoryData<string[], string>
         {
-            { ["01039012345","01017512345"], "?partyComponentOption=none" },
-            { ["01039012345","01017512345"], "?partyComponentOption=non-existent" },
+            { ["01039012345","25871999336"], "?partyComponentOption=none" },
+            { ["01039012345","25871999336"], "?partyComponentOption=non-existent" },
         };
     }
 }
