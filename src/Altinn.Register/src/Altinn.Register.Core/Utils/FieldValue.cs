@@ -25,6 +25,16 @@ public static class FieldValue
     public static readonly NullSentinel Null = default;
 
     /// <summary>
+    /// Creates a <see cref="FieldValue{T}"/> from a nullable struct.
+    /// </summary>
+    /// <typeparam name="T">The field type.</typeparam>
+    /// <param name="value">The value.</param>
+    /// <returns>A <see cref="FieldValue{T}"/>.</returns>
+    public static FieldValue<T> From<T>(T? value)
+        where T : struct
+        => value.HasValue ? value.Value : Null;
+
+    /// <summary>
     /// A value that implicitly converts to any <see cref="FieldValue{T}"/> in the unset state.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
