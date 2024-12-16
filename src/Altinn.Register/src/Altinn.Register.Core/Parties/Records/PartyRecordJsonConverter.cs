@@ -35,11 +35,10 @@ internal class PartyRecordJsonConverter
 
         public TypedPartyRecordJsonConverter(JsonSerializerOptions options)
         {
-            var cached = PartyRecordReaderCache<T>.Instance;
-            var builder = ImmutableArray.CreateBuilder<PropertyContract>(cached.Properties.Length);
+            var builder = ImmutableArray.CreateBuilder<PropertyContract>(PartyRecordReaderCache<T>.Properties.Length);
 
             var namingPolicy = options.PropertyNamingPolicy;
-            foreach (var property in cached.Properties)
+            foreach (var property in PartyRecordReaderCache<T>.Properties)
             {
                 var propertyNameString = namingPolicy is null ? property.Name : namingPolicy.ConvertName(property.Name);
                 var propertyName = new PropertyName(propertyNameString, options.PropertyNameCaseInsensitive);
@@ -49,8 +48,8 @@ internal class PartyRecordJsonConverter
 
             var typeNameString = namingPolicy is null ? nameof(PartyRecord.PartyType) : namingPolicy.ConvertName(nameof(PartyRecord.PartyType));
 
-            _factory = cached.Factory;
-            _converterLookup = cached.ConverterLookup;
+            _factory = PartyRecordReaderCache<T>.Factory;
+            _converterLookup = PartyRecordReaderCache<T>.ConverterLookup;
             _typeName = new PropertyName(typeNameString, options.PropertyNameCaseInsensitive);
             _properties = builder.ToImmutable();
         }
@@ -368,13 +367,13 @@ internal class PartyRecordJsonConverter
             return (IReadOnlyList<IPartyRecordProperty<T2>>)(IReadOnlyList<object>)_properties;
         }
 
-        public Func<FieldValue<PartyType>, T> Factory
+        public static Func<FieldValue<PartyType>, T> Factory
             => _factory;
 
-        public Func<FieldValue<PartyType>, JsonConverter, JsonSerializerOptions, IPartyRecordJsonConverter<T>> ConverterLookup
+        public static Func<FieldValue<PartyType>, JsonConverter, JsonSerializerOptions, IPartyRecordJsonConverter<T>> ConverterLookup
             => _converterLookup;
 
-        public ReadOnlySpan<IPartyRecordProperty<T>> Properties
+        public static ReadOnlySpan<IPartyRecordProperty<T>> Properties
             => _properties.AsSpan();
     }
 
@@ -426,8 +425,8 @@ internal class PartyRecordJsonConverter
 
             _info = propertyInfo;
             _ignoreCondition = propertyInfo.GetCustomAttribute<JsonIgnoreAttribute>()?.Condition;
-            _getter = (Func<TOwner, FieldValue<TProperty>>)propertyInfo.GetMethod.CreateDelegate(typeof(Func<TOwner, FieldValue<TProperty>>));
-            _setter = (Action<TOwner, FieldValue<TProperty>>)propertyInfo.SetMethod.CreateDelegate(typeof(Action<TOwner, FieldValue<TProperty>>));
+            _getter = propertyInfo.GetMethod.CreateDelegate<Func<TOwner, FieldValue<TProperty>>>();
+            _setter = propertyInfo.SetMethod.CreateDelegate<Action<TOwner, FieldValue<TProperty>>>();
         }
 
         public string Name
