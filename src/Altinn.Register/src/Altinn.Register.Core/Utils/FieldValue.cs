@@ -82,17 +82,17 @@ public static class FieldValue
                 ModifyFieldValueProperty(property, fieldType);
             }
         }
-    }
 
-    private static void ModifyFieldValueProperty(JsonPropertyInfo property, Type fieldType)
-    {
-        var converterType = typeof(FieldValue<>.JsonConverter).MakeGenericType(fieldType);
-        var fieldTypeInfo = property.Options.GetTypeInfo(fieldType).Converter;
-        var converter = (JsonConverter)Activator.CreateInstance(converterType, [fieldTypeInfo])!;
+        static void ModifyFieldValueProperty(JsonPropertyInfo property, Type fieldType)
+        {
+            var converterType = typeof(FieldValue<>.JsonConverter).MakeGenericType(fieldType);
+            var fieldTypeInfo = property.Options.GetTypeInfo(fieldType).Converter;
+            var converter = (JsonConverter)Activator.CreateInstance(converterType, [fieldTypeInfo])!;
 
-        property.CustomConverter = converter;
-        property.IsRequired = false;
-        property.ShouldSerialize = ((IFieldValueConverter)converter).CreateShouldSerialize(property.ShouldSerialize);
+            property.CustomConverter = converter;
+            property.IsRequired = false;
+            property.ShouldSerialize = ((IFieldValueConverter)converter).CreateShouldSerialize(property.ShouldSerialize);
+        }
     }
 
     /// <summary>
