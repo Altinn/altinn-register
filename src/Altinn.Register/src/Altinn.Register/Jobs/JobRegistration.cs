@@ -11,7 +11,7 @@ public abstract class JobRegistration(
     JobHostLifecycles runAt,
     Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady)
 {
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
     private Task? _ready;
 
     /// <summary>

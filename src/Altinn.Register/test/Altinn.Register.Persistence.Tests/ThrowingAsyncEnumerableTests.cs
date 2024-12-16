@@ -66,7 +66,7 @@ public class ThrowingAsyncEnumerableTests
     private sealed class TestDisposable
         : IAsyncDisposable
     {
-        private readonly object _lock = new();
+        private readonly Lock _lock = new();
         private bool _disposed;
 
         public bool IsDisposed
