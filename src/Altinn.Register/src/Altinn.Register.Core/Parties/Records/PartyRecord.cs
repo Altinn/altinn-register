@@ -1,10 +1,12 @@
-﻿using Altinn.Register.Core.Utils;
+﻿using System.Text.Json.Serialization;
+using Altinn.Register.Core.Utils;
 
 namespace Altinn.Register.Core.Parties.Records;
 
 /// <summary>
 /// A database record for a party.
 /// </summary>
+[JsonConverter(typeof(PartyRecordJsonConverter))]
 public record PartyRecord
 {
     /// <summary>

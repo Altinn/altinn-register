@@ -1,10 +1,12 @@
-﻿using Altinn.Register.Core.Utils;
+﻿using System.Text.Json.Serialization;
+using Altinn.Register.Core.Utils;
 
 namespace Altinn.Register.Core.Parties.Records;
 
 /// <summary>
 /// A database record for an organization.
 /// </summary>
+[JsonConverter(typeof(PartyRecordJsonConverter))]
 public sealed record OrganizationRecord
     : PartyRecord
 {
@@ -64,5 +66,6 @@ public sealed record OrganizationRecord
     /// <summary>
     /// Gets the parent organization of the organization (if any).
     /// </summary>
+    [JsonIgnore]
     public FieldValue<Guid> ParentOrganizationUuid { get; init; }
 }
