@@ -191,6 +191,8 @@ internal class JsonElementEquivalencyStep
 
         public Type RuntimeType => throw new NotImplementedException();
 
-        private JsonArrayObjectInfo() { }
+        private JsonArrayObjectInfo()
+        { 
+        }
     }
 }
