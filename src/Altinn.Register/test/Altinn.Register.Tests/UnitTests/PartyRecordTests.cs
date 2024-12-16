@@ -529,4 +529,11 @@ public class PartyRecordTests
         org.Name.Should().HaveValue().Which.Should().Be("Test");
         org.UnitType.Should().HaveValue().Which.Should().Be("type");
     }
+
+    [Fact]
+    public void Deserialize_Subclasses()
+    {
+        JsonSerializer.Deserialize<PersonRecord>("""{}""", _options).Should().NotBeNull();
+        JsonSerializer.Deserialize<OrganizationRecord>("""{}""", _options).Should().NotBeNull();
+    }
 }

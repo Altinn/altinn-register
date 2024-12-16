@@ -194,8 +194,21 @@ internal class PartyRecordJsonConverter
         }
     }
 
+    /// <summary>
+    /// Helper interface for serializing and deserializing <see cref="PartyRecord"/> and subclasses.
+    /// </summary>
+    /// <typeparam name="T">The party record type.</typeparam>
     private interface IPartyRecordJsonConverter<out T>
+        where T : PartyRecord
     {
+        /// <summary>
+        /// Reads a party record from the JSON reader.
+        /// </summary>
+        /// <param name="reader">The json reader.</param>
+        /// <param name="partyType">The <see cref="PartyRecord.PartyType"/> field value.</param>
+        /// <param name="propertyNameScratch">A scratch space to temporarily write property names to avoid allocations.</param>
+        /// <param name="options">The <see cref="JsonSerializerOptions"/>.</param>
+        /// <returns>A <typeparamref name="T"/> that has been deserialized from the reader.</returns>
         T ReadPartyRecord(ref Utf8JsonReader reader, FieldValue<PartyType> partyType, Span<char> propertyNameScratch, JsonSerializerOptions options);
     }
 
@@ -365,13 +378,33 @@ internal class PartyRecordJsonConverter
             => _properties.AsSpan();
     }
 
+    /// <summary>
+    /// A helper for reading and writing JSON properties of a <see cref="PartyRecord"/>.
+    /// </summary>
+    /// <typeparam name="TOwner">The party record type.</typeparam>
     private interface IPartyRecordProperty<in TOwner>
         where TOwner : PartyRecord
     {
+        /// <summary>
+        /// Gets the name of the property.
+        /// </summary>
         string Name { get; }
 
+        /// <summary>
+        /// Writes the property to the JSON writer.
+        /// </summary>
+        /// <param name="writer">The JSON writer.</param>
+        /// <param name="propertyName">The encoded property name.</param>
+        /// <param name="owner">The property owner.</param>
+        /// <param name="options">The <see cref="JsonSerializerOptions"/>.</param>
         void Write(Utf8JsonWriter writer, JsonEncodedText propertyName, TOwner owner, JsonSerializerOptions options);
 
+        /// <summary>
+        /// Sets the property value from the JSON reader.
+        /// </summary>
+        /// <param name="reader">The JSON reader.</param>
+        /// <param name="owner">The owner object.</param>
+        /// <param name="options">The <see cref="JsonSerializerOptions"/>.</param>
         void SetValueFromJson(ref Utf8JsonReader reader, TOwner owner, JsonSerializerOptions options);
     }
 
