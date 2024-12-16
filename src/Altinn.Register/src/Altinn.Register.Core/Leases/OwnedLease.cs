@@ -24,7 +24,7 @@ internal sealed partial class OwnedLease
         ((TimerState)state!).Tick();
     };
 
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
     private readonly ILeaseProvider _leaseProvider;
     private readonly ILogger<OwnedLease> _logger;
     private readonly TimeProvider _timeProvider;

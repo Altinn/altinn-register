@@ -403,7 +403,7 @@ internal sealed partial class RecurringJobHostedService
         : IValueTaskSource
     {
         private readonly TimeProvider _timeProvider;
-        private readonly object _lock = new();
+        private readonly Lock _lock = new();
         private ManualResetValueTaskSourceCore<object?> _source; // mutable struct; do not make this readonly
         private int _totalSchedulers;
         private int _awakeSchedulers;
@@ -498,7 +498,7 @@ internal sealed partial class RecurringJobHostedService
             timer.CancellationCallback(ct);
         };
 
-        private readonly object _lock = new();
+        private readonly Lock _lock = new();
         private readonly ITimer _timer;
         private readonly ScheduledJobTracker _tracker;
         private ManualResetValueTaskSourceCore<object?> _source; // mutable struct; do not make this readonly
