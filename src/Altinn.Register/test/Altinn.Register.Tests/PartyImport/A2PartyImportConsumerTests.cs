@@ -25,6 +25,7 @@ public class A2PartyImportConsumerTests
 
         await CommandSender.Send(new ImportA2PartyCommand { PartyUuid = partyUuid, ChangeId = 1, ChangedTime = TimeProvider.GetUtcNow() });
 
+        Assert.True(await Harness.Consumed.Any<ImportA2PartyCommand>());
         Assert.True(await ConsumerHarness.Consumed.Any<ImportA2PartyCommand>());
         var sent = await Harness.Sent.SelectAsync<UpsertPartyCommand>().FirstOrDefaultAsync();
         Assert.NotNull(sent);
