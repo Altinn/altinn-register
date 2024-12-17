@@ -46,6 +46,7 @@ public class PartyImportConsumerTests
         };
 
         await CommandSender.Send(cmd1);
+        await Harness.Consumed.Any<UpsertPartyCommand>(m => m.Context.CorrelationId == cmd1.CommandId);
         var consumed = await ConsumerHarness.Consumed.SelectAsync<UpsertPartyCommand>(m => m.Context.CorrelationId == cmd1.CommandId).FirstOrDefaultAsync();
         Assert.NotNull(consumed);
 
@@ -80,6 +81,7 @@ public class PartyImportConsumerTests
         };
 
         await CommandSender.Send(cmd2);
+        await Harness.Consumed.Any<UpsertPartyCommand>(m => m.Context.CorrelationId == cmd2.CommandId);
         consumed = await ConsumerHarness.Consumed.SelectAsync<UpsertPartyCommand>(m => m.Context.CorrelationId == cmd2.CommandId).FirstOrDefaultAsync();
         Assert.NotNull(consumed);
 
