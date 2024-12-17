@@ -17,7 +17,7 @@ public class PartyRecordTests
     [Fact]
     public void Serialize_PartyRecord_AllUnset()
     {
-        var record = new PartyRecord(FieldValue.Unset)
+        PartyRecord record = new PartyRecord(FieldValue.Unset)
         {
             PartyUuid = FieldValue.Unset,
             PartyId = FieldValue.Unset,
@@ -39,7 +39,7 @@ public class PartyRecordTests
     [Fact]
     public void Serialize_PartyRecord_TypeUnset()
     {
-        var record = new PartyRecord(FieldValue.Unset)
+        PartyRecord record = new PartyRecord(FieldValue.Unset)
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
@@ -70,7 +70,7 @@ public class PartyRecordTests
     [Fact]
     public void Serialize_PartyRecord_PersonType()
     {
-        var record = new PartyRecord(PartyType.Person)
+        PartyRecord record = new PartyRecord(PartyType.Person)
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
@@ -103,7 +103,7 @@ public class PartyRecordTests
     [Fact]
     public void Serialize_PartyRecord_OrganizationType()
     {
-        var record = new PartyRecord(PartyType.Organization)
+        PartyRecord record = new PartyRecord(PartyType.Organization)
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
@@ -136,7 +136,7 @@ public class PartyRecordTests
     [Fact]
     public void Serialize_PersonRecord_Empty()
     {
-        var record = new PersonRecord
+        PartyRecord record = new PersonRecord
         {
             PartyUuid = FieldValue.Unset,
             PartyId = FieldValue.Unset,
@@ -171,7 +171,7 @@ public class PartyRecordTests
     [Fact]
     public void Serialize_PersonRecord_OnlyPartyFields()
     {
-        var record = new PersonRecord
+        PartyRecord record = new PersonRecord
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
@@ -212,7 +212,7 @@ public class PartyRecordTests
     [Fact]
     public void Serialize_PersonRecord_Full()
     {
-        var record = new PersonRecord
+        PartyRecord record = new PersonRecord
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
@@ -286,7 +286,7 @@ public class PartyRecordTests
     [Fact]
     public void Serialize_OrganizationRecord_Empty()
     {
-        var record = new OrganizationRecord
+        PartyRecord record = new OrganizationRecord
         {
             PartyUuid = FieldValue.Unset,
             PartyId = FieldValue.Unset,
@@ -322,7 +322,7 @@ public class PartyRecordTests
     [Fact]
     public void Serialize_OrganizationRecord_Full()
     {
-        var record = new OrganizationRecord
+        PartyRecord record = new OrganizationRecord
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
@@ -392,7 +392,7 @@ public class PartyRecordTests
     [Fact]
     public void Serialize_OrganizationRecord_ParentOrganizationUuid_IsIgnored()
     {
-        var record = new OrganizationRecord
+        PartyRecord record = new OrganizationRecord
         {
             PartyUuid = FieldValue.Unset,
             PartyId = FieldValue.Unset,
@@ -440,7 +440,7 @@ public class PartyRecordTests
     {
         var options = JsonSerializerOptions.Default;
 
-        var record = new OrganizationRecord
+        PartyRecord record = new OrganizationRecord
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,

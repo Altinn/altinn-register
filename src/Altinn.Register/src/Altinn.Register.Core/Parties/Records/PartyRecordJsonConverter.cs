@@ -106,6 +106,14 @@ internal class PartyRecordJsonConverter
 
         public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
         {
+            // we've received a subclass of T - move to the correct converter
+            var valueType = value.GetType();
+            if (valueType != typeof(T))
+            {
+                JsonSerializer.Serialize(writer, value, valueType, options);
+                return;
+            }
+
             writer.WriteStartObject();
 
             var type = value.PartyType;
