@@ -28,4 +28,8 @@
     <ProjectReference Include="..\ServiceDefaults.MassTransit\Altinn.Authorization.ServiceDefaults.MassTransit.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+		<InternalsVisibleTo Include="Altinn.Register.TestUtils" />
+  </ItemGroup>
+
 </Project>

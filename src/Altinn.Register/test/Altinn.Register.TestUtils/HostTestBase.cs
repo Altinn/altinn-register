@@ -1,7 +1,10 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Altinn.Register.TestUtils.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Http;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 
 namespace Altinn.Register.TestUtils;
@@ -12,14 +15,22 @@ namespace Altinn.Register.TestUtils;
 public abstract class HostTestBase
     : ServicesTestBase
 {
+    private readonly FakeHttpHandlers _httpHandlers = new();
+    private readonly FakeTimeProvider _timeProvider = new();
+
     private IHost? _host;
-    private FakeTimeProvider? _timeProvider;
 
     /// <summary>
     /// Gets a time provider.
     /// </summary>
     protected FakeTimeProvider TimeProvider 
-        => _timeProvider!;
+        => _timeProvider;
+
+    /// <summary>
+    /// Gets the <see cref="FakeHttpMessageHandler"/> used by the host.
+    /// </summary>
+    protected FakeHttpHandlers HttpHandlers
+        => _httpHandlers;
 
     /// <summary>
     /// Initialize the host.
@@ -55,8 +66,6 @@ public abstract class HostTestBase
 
         await _host.StartAsync();
 
-        _timeProvider = host.Services.GetRequiredService<FakeTimeProvider>();
-
         return _host.Services;
     }
 
@@ -66,8 +75,10 @@ public abstract class HostTestBase
     /// <param name="builder">Host builder.</param>
     protected virtual async ValueTask ConfigureHost(IHostApplicationBuilder builder)
     {
-        builder.Services.TryAddSingleton(new FakeTimeProvider());
+        builder.Services.TryAddSingleton(_timeProvider);
+        builder.Services.TryAddSingleton(_httpHandlers);
         builder.Services.TryAddSingleton<TimeProvider>(s => s.GetRequiredService<FakeTimeProvider>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<HttpClientFactoryOptions>, ConfigureFakeHandlers>());
         await ConfigureServices(builder.Services);
     }
 
@@ -152,5 +163,27 @@ public abstract class HostTestBase
                 dispose = null!;
             }
         }
+    }
+
+    private class ConfigureFakeHandlers
+        : IConfigureNamedOptions<HttpClientFactoryOptions>
+    {
+        private readonly FakeHttpHandlers _handlers;
+
+        public ConfigureFakeHandlers(FakeHttpHandlers handlers)
+        {
+            _handlers = handlers;
+        }
+
+        public void Configure(string? name, HttpClientFactoryOptions options)
+        {
+            var handler = _handlers.For(name ?? Options.DefaultName);
+
+            options.HttpMessageHandlerBuilderActions.Insert(0, b => b.PrimaryHandler = handler);
+            options.HttpClientActions.Insert(0, c => c.BaseAddress = FakeHttpMessageHandler.FakeBasePath);
+        }
+
+        public void Configure(HttpClientFactoryOptions options)
+            => Configure(Options.DefaultName, options);
     }
 }
