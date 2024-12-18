@@ -204,7 +204,7 @@ public static class AltinnServiceDefaultsMassTransitExtensions
         public static readonly ServiceDescriptor ServiceDescriptor = ServiceDescriptor.Singleton<Marker, Marker>();
     }
 
-    private class DiagnosticHeadersSendObserver
+    private sealed class DiagnosticHeadersSendObserver
         : ISendObserver
     {
         public Task PostSend<T>(SendContext<T> context)
@@ -237,7 +237,7 @@ public static class AltinnServiceDefaultsMassTransitExtensions
         }
     }
 
-    private class CommandQueueRegistryEndpointConfigurationObserver(ICommandQueueRegistry registry)
+    private sealed class CommandQueueRegistryEndpointConfigurationObserver(ICommandQueueRegistry registry)
         : IEndpointConfigurationObserver
     {
         public void EndpointConfigured<T>(T configurator)
@@ -247,7 +247,7 @@ public static class AltinnServiceDefaultsMassTransitExtensions
         }
     }
 
-    private class CommandQueueRegistryConsumerConfigurationObserver(ICommandQueueRegistry registry, Uri queueUri)
+    private sealed class CommandQueueRegistryConsumerConfigurationObserver(ICommandQueueRegistry registry, Uri queueUri)
         : IConsumerConfigurationObserver
     {
         public void ConsumerConfigured<TConsumer>(IConsumerConfigurator<TConsumer> configurator)

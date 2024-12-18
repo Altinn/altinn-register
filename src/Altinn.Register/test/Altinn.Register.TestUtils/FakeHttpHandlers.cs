@@ -6,7 +6,7 @@ namespace Altinn.Register.TestUtils;
 /// <summary>
 /// A collection of fake HTTP handlers.
 /// </summary>
-public class FakeHttpHandlers
+public sealed class FakeHttpHandlers
     : IDisposable
 {
     private readonly ConcurrentDictionary<string, FakeHttpMessageHandler> _handlers = new();
