@@ -26,9 +26,10 @@ public abstract class DatabaseTestBase
     /// <inheritdoc/>
     protected override async ValueTask ConfigureHost(IHostApplicationBuilder builder)
     {
+        _db = await PostgreSqlManager.CreateDatabase();
+
         await base.ConfigureHost(builder);
 
-        _db = await PostgreSqlManager.CreateDatabase();
         builder.Configuration.AddInMemoryCollection([
             new($"Altinn:Npgsql:register:ConnectionString", _db.ConnectionString),
             new($"Altinn:Npgsql:register:Migrate:ConnectionString", _db.MigratorConnectionString),
