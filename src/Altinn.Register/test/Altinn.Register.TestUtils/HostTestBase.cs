@@ -1,4 +1,5 @@
-﻿using Altinn.Register.TestUtils.Http;
+﻿using Altinn.Register.Core;
+using Altinn.Register.TestUtils.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -79,6 +80,7 @@ public abstract class HostTestBase
         builder.Services.TryAddSingleton(_httpHandlers);
         builder.Services.TryAddSingleton<TimeProvider>(s => s.GetRequiredService<FakeTimeProvider>());
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<HttpClientFactoryOptions>, ConfigureFakeHandlers>());
+        builder.Services.TryAddSingleton<RegisterTelemetry>();
         await ConfigureServices(builder.Services);
     }
 
