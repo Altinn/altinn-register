@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using Altinn.Authorization.ServiceDefaults.Telemetry;
 
@@ -16,6 +17,7 @@ public sealed class RegisterTelemetry
     private static readonly ActivitySource _activitySource = new(Name);
     
     private readonly Meter _meter;
+    private readonly ConcurrentDictionary<Type, object> _serviceMeters = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RegisterTelemetry"/> class.
@@ -48,4 +50,28 @@ public sealed class RegisterTelemetry
     public Counter<T> CreateCounter<T>(string name, string? unit = null, string? description = null)
         where T : struct
         => _meter.CreateCounter<T>(name, unit, description);
+
+    /// <summary>
+    /// Gets
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
+    public T GetServiceMeters<T>()
+        where T : class, IServiceMeters<T>
+        => (T)_serviceMeters.GetOrAdd(typeof(T), static (_, telemetry) => T.Create(telemetry), this);
+}
+
+/// <summary>
+/// A set of meters for a service.
+/// </summary>
+/// <typeparam name="TSelf">Self type.</typeparam>
+public interface IServiceMeters<TSelf>
+    where TSelf : class, IServiceMeters<TSelf>
+{
+    /// <summary>
+    /// Creates a new instance of self.
+    /// </summary>
+    /// <param name="telemetry">The <see cref="RegisterTelemetry"/>.</param>
+    /// <returns>A new instance of self.</returns>
+    public static abstract TSelf Create(RegisterTelemetry telemetry);
 }
