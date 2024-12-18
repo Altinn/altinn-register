@@ -37,5 +37,6 @@ public interface IImportJobTracker
     /// This should only update the status if the new status is higher than the current status. In other words, this is not only
     /// idempotent, but also only incrementing with respect to <see cref="ImportJobProcessingStatus.ProcessedMax"/>.
     /// </remarks>
-    Task TrackProcessedStatus(string id, ImportJobProcessingStatus status, CancellationToken cancellationToken = default);
+    /// <returns>Whether or not the job status was updated.</returns>
+    Task<bool> TrackProcessedStatus(string id, ImportJobProcessingStatus status, CancellationToken cancellationToken = default);
 }

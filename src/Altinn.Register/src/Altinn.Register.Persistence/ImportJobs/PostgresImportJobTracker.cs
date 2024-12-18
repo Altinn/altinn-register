@@ -47,6 +47,7 @@ internal partial class PostgresImportJobTracker
         pipelineBuilder.AddRetry(new RetryStrategyOptions
         {
             ShouldHandle = new PredicateBuilder()
+                .Handle<JobDoesNotExistException>()
                 .Handle<PostgresException>(static e =>
                 {
                     if (e.SqlState == PostgresErrorCodes.SerializationFailure)
@@ -169,13 +170,23 @@ internal partial class PostgresImportJobTracker
     }
 
     /// <inheritdoc/>
-    public Task TrackProcessedStatus(string id, ImportJobProcessingStatus status, CancellationToken cancellationToken = default)
+    public Task<bool> TrackProcessedStatus(string id, ImportJobProcessingStatus status, CancellationToken cancellationToken = default)
     {
         const string QUERY =
             /*strpsql*/"""
-            UPDATE register.import_job
-            SET processed_max = @processed_max
-            WHERE id = @id AND processed_max < @processed_max
+            WITH existing AS (
+                SELECT 1
+                FROM register.import_job
+                WHERE id = @id
+            ), updated AS (
+                UPDATE register.import_job
+                SET processed_max = @processed_max
+                WHERE id = @id AND processed_max < @processed_max
+                RETURNING 1
+            )
+            SELECT 
+                EXISTS (SELECT 1 FROM existing) existing,
+                EXISTS (SELECT 1 FROM updated) updated
             """;
 
         return WithTransaction(
@@ -191,7 +202,20 @@ internal partial class PostgresImportJobTracker
 
                 Log.UpdateProcessedStatus(logger, id, status);
                 await cmd.PrepareAsync(cancellationToken);
-                await cmd.ExecuteNonQueryAsync(cancellationToken);
+                await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleResult | CommandBehavior.SingleRow, cancellationToken);
+
+                var read = await reader.ReadAsync(cancellationToken);
+                Debug.Assert(read);
+
+                var existing = reader.GetFieldValue<bool>("existing");
+                var updated = reader.GetFieldValue<bool>("updated");
+
+                if (!existing)
+                {
+                    throw new JobDoesNotExistException(id);
+                }
+
+                return updated;
             },
             new WithLoggerState<ImportJobProcessingStatus>(status, _logger),
             cancellationToken);
@@ -305,6 +329,11 @@ internal partial class PostgresImportJobTracker
         TState State);
 
     private readonly record struct WithLoggerState<T>(T State, ILogger Logger);
+
+    private sealed class JobDoesNotExistException(string jobName)
+        : InvalidOperationException($"Job '{jobName}' does not exist")
+    {
+    }
 
     private static partial class Log
     {
