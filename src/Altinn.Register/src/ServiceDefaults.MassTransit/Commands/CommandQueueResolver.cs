@@ -61,7 +61,7 @@ internal class CommandQueueResolver
                 return frozen!;
             }
 
-            frozen = _builder.ToFrozenDictionary(kv => kv.Key.TypeHandle, kv => kv.Value.QueueUri)
+            frozen = _builder.ToFrozenDictionary(kv => kv.Key.TypeHandle, kv => kv.Value.QueueUri);
             Volatile.Write(ref _frozen, frozen);
             Volatile.Write(ref _frozenVersion, builderVersion);
         }
