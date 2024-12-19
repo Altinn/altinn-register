@@ -107,7 +107,7 @@ internal partial class PostgresImportJobTracker
     internal async Task<bool> ClearCache(string id, CancellationToken cancellationToken = default)
     {
         var tcs = new TaskCompletionSource<bool>();
-        var message = new WorkerMessage.ClearCache(id, Activity.Current, cancellationToken, tcs);
+        var message = new WorkerMessage.ClearCacheMessage(id, Activity.Current, cancellationToken, tcs);
         await _writer.WriteAsync(message, cancellationToken);
         return await tcs.Task;
     }
@@ -211,11 +211,11 @@ internal partial class PostgresImportJobTracker
 
             switch (message)
             {
-                case WorkerMessage.ClearCache { Id: var id, CancellationToken: var ct, CompletionSource: var tcs }:
+                case WorkerMessage.ClearCacheMessage { Id: var id, CompletionSource: var tcs }:
                     {
-                        if (ct.IsCancellationRequested)
+                        if (cts.IsCancellationRequested)
                         {
-                            tcs.TrySetCanceled(ct);
+                            tcs.TrySetCanceled(cts.Token);
                             break;
                         }
 
@@ -224,7 +224,7 @@ internal partial class PostgresImportJobTracker
                         break;
                     }
 
-                case WorkerMessage.GetStatusMessage { Id: var id, CancellationToken: var ct, CompletionSource: var tcs }:
+                case WorkerMessage.GetStatusMessage { Id: var id, CompletionSource: var tcs }:
                     {
                         var task = GetStatus(conn, cache, id, cts.Token);
                         await ((Task)task).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
@@ -232,7 +232,7 @@ internal partial class PostgresImportJobTracker
                         break;
                     }
 
-                case WorkerMessage.TrackQueueStatusMessage { Id: var id, Status: var status, CancellationToken: var ct, CompletionSource: var tcs }:
+                case WorkerMessage.TrackQueueStatusMessage { Id: var id, Status: var status, CompletionSource: var tcs }:
                     {
                         var task = TrackQueueStatus(conn, cache, id, status, cts.Token);
                         await ((Task)task).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
@@ -240,7 +240,7 @@ internal partial class PostgresImportJobTracker
                         break;
                     }
 
-                case WorkerMessage.TrackProcessedStatusMessage { Id: var id, Status: var status, CancellationToken: var ct, CompletionSource: var tcs }:
+                case WorkerMessage.TrackProcessedStatusMessage { Id: var id, Status: var status, CompletionSource: var tcs }:
                     {
                         var task = TrackProcessedStatus(conn, cache, id, status, cts.Token);
                         await ((Task)task).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
@@ -507,7 +507,7 @@ internal partial class PostgresImportJobTracker
 
     private abstract record WorkerMessage(string Id, Activity? Activity, CancellationToken CancellationToken)
     {
-        public sealed record ClearCache(string Id, Activity? Activity, CancellationToken CancellationToken, TaskCompletionSource<bool> CompletionSource)
+        public sealed record ClearCacheMessage(string Id, Activity? Activity, CancellationToken CancellationToken, TaskCompletionSource<bool> CompletionSource)
             : WorkerMessage(Id, Activity, CancellationToken);
 
         public sealed record GetStatusMessage(string Id, Activity? Activity, CancellationToken CancellationToken, TaskCompletionSource<ImportJobStatus> CompletionSource)
