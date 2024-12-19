@@ -112,6 +112,55 @@ public class PostgresqlImportJobTrackerTests
     }
 
     [Fact]
+    public async Task TrackProcessedStatus_ReturnsWhetherUpdated()
+    {
+        UpdateTimerRealtime(
+            interval: TimeSpan.FromMilliseconds(2),
+            stepSize: TimeSpan.FromMilliseconds(10));
+
+        await Tracker.TrackQueueStatus("test", new ImportJobQueueStatus
+        {
+            EnqueuedMax = 10,
+            SourceMax = 10,
+        });
+
+        var result = await Tracker.TrackProcessedStatus("test", new ImportJobProcessingStatus
+        {
+            ProcessedMax = 5,
+        });
+
+        result.Should().BeTrue();
+
+        result = await Tracker.TrackProcessedStatus("test", new ImportJobProcessingStatus
+        {
+            ProcessedMax = 4,
+        });
+
+        result.Should().BeFalse();
+
+        result = await Tracker.TrackProcessedStatus("test", new ImportJobProcessingStatus
+        {
+            ProcessedMax = 5,
+        });
+
+        result.Should().BeFalse();
+
+        result = await Tracker.TrackProcessedStatus("test", new ImportJobProcessingStatus
+        {
+            ProcessedMax = 6,
+        });
+
+        result.Should().BeTrue();
+
+        result = await Tracker.TrackProcessedStatus("test", new ImportJobProcessingStatus
+        {
+            ProcessedMax = 10,
+        });
+
+        result.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task TrackProcessedStatus_ProcessedMaxThanEnqueued_Throws()
     {
         UpdateTimerRealtime(
@@ -131,6 +180,22 @@ public class PostgresqlImportJobTrackerTests
 
         var exn = (await act.Should().ThrowAsync<InvalidOperationException>()).Which;
         exn.Message.Should().Be("Processed max must be less than or equal to enqueued max");
+    }
+
+    [Fact]
+    public async Task TrackProcessedStatus_NonExisting_Throws()
+    {
+        UpdateTimerRealtime(
+            interval: TimeSpan.FromMilliseconds(2),
+            stepSize: TimeSpan.FromMilliseconds(10));
+
+        var act = () => Tracker.TrackProcessedStatus("test", new ImportJobProcessingStatus
+        {
+            ProcessedMax = 11,
+        });
+
+        var exn = (await act.Should().ThrowAsync<InvalidOperationException>()).Which;
+        exn.Message.Should().Be($"Job 'test' does not exist");
     }
 
     [Fact]
