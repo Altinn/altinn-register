@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
+using Altinn.Authorization.ServiceDefaults.MassTransit.Commands;
 using CommunityToolkit.Diagnostics;
 using MassTransit;
 using MassTransit.Logging;
@@ -82,38 +83,30 @@ public static class AltinnServiceDefaultsMassTransitExtensions
 
         MassTransitTransportHelper helper = MassTransitTransportHelper.For(settings, busName);
 
-        helper.ConfigureHost(builder);
-        builder.Services.AddSingleton<MassTransitLifecycleObserver>();
-        builder.Services.AddSingleton<IBusLifetime>(s => s.GetRequiredService<MassTransitLifecycleObserver>());
-        builder.Services.AddSingleton<IEndpointNameFormatter, AltinnEndpointNameFormatter>();
-        builder.Services.AddMassTransit(configurator =>
+        TimeSpan[] redeliveryIntervals;
+        if (builder.Environment.IsDevelopment())
         {
-            configurator.AddBusObserver(s => s.GetRequiredService<MassTransitLifecycleObserver>());
+            redeliveryIntervals = [
+                TimeSpan.FromSeconds(5),
+            ];
+        }
+        else
+        {
+            redeliveryIntervals = [
+                TimeSpan.FromMinutes(1),
+                TimeSpan.FromMinutes(5),
+                TimeSpan.FromMinutes(15),
+            ];
+        }
 
-            configurator.AddConfigureEndpointsCallback((ctx, name, cfg) =>
-            {
-                // retry messages 3 times, in short order, before failing back to the broker
-                cfg.UseMessageRetry(r => r.Intervals(
-                    TimeSpan.Zero,
-                    TimeSpan.FromMilliseconds(10),
-                    TimeSpan.FromMilliseconds(100)));
-
-                // redeliver if all retries fail
-                cfg.UseScheduledRedelivery(r => r.Intervals(
-                    TimeSpan.FromMinutes(1),
-                    TimeSpan.FromMinutes(5),
-                    TimeSpan.FromMinutes(15)));
-            });
-
-            configureMassTransit?.Invoke(configurator);
-            helper.ConfigureBus(configurator, (ctx, cfg) =>
-            {
-                configureBus?.Invoke(cfg);
-                cfg.UseInMemoryOutbox(ctx, x => x.ConcurrentMessageDelivery = true);
-            });
-
-            configurator.AddInMemoryInboxOutbox();
-        });
+        helper.ConfigureHost(builder);
+        SetupCoreBusServices(
+            builder.Services,
+            helper,
+            redeliveryIntervals,
+            configureMassTransit,
+            configureBus,
+            static (s, c) => s.AddMassTransit(c));
 
         if (!settings.DisableHealthChecks)
         {
@@ -146,8 +139,147 @@ public static class AltinnServiceDefaultsMassTransitExtensions
         return new MassTransitBuilder(builder.Services, configuration);
     }
 
+    /// <summary>
+    /// Setup core MassTransit services.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="helper">The <see cref="MassTransitTransportHelper"/>.</param>
+    /// <param name="redeliveryIntervals">Redelivery intervals (or <see langword="null"/> to disable redelivery)</param>
+    /// <param name="configureMassTransit">Configuration delegate for <see cref="IBusRegistrationConfigurator"/>.</param>
+    /// <param name="configureBus">Configuration delegate for <see cref="IBusFactoryConfigurator"/>.</param>
+    /// <param name="addBus">The method used to add the bus to the service collection.</param>
+    internal static void SetupCoreBusServices(
+        IServiceCollection services,
+        MassTransitTransportHelper helper,
+        TimeSpan[]? redeliveryIntervals,
+        Action<IBusRegistrationConfigurator>? configureMassTransit,
+        Action<IBusFactoryConfigurator>? configureBus,
+        Action<IServiceCollection, Action<IBusRegistrationConfigurator>> addBus)
+    {
+        services.AddSingleton<MassTransitLifecycleObserver>();
+        services.AddSingleton<IBusLifetime>(s => s.GetRequiredService<MassTransitLifecycleObserver>());
+        services.AddSingleton<IEndpointNameFormatter, AltinnEndpointNameFormatter>();
+        services.AddSingleton<CommandQueueResolver>();
+        services.AddSingleton<ICommandQueueRegistry>(s => s.GetRequiredService<CommandQueueResolver>());
+        services.AddSingleton<ICommandQueueResolver>(s => s.GetRequiredService<CommandQueueResolver>());
+        services.AddSingleton<CommandQueueRegistryEndpointConfigurationObserver>();
+        services.AddScoped<ICommandSender, CommandSender>();
+        addBus(services, configurator =>
+        {
+            configurator.AddBusObserver(s => s.GetRequiredService<MassTransitLifecycleObserver>());
+
+            configurator.AddConfigureEndpointsCallback((ctx, name, cfg) =>
+            {
+                cfg.UseInMemoryOutbox(ctx, x => x.ConcurrentMessageDelivery = true);
+
+                // redeliver if all retries fail
+                if (redeliveryIntervals is not null)
+                {
+                    cfg.UseScheduledRedelivery(r => r.Intervals(redeliveryIntervals));
+                }
+
+                // retry messages 3 times, in short order, before failing back to the broker
+                cfg.UseMessageRetry(r => r.Intervals(
+                    TimeSpan.Zero,
+                    TimeSpan.FromMilliseconds(10),
+                    TimeSpan.FromMilliseconds(100)));
+            });
+
+            configurator.AddSendObserver<DiagnosticHeadersSendObserver>();
+
+            configureMassTransit?.Invoke(configurator);
+            helper.ConfigureBus(configurator, (ctx, cfg) =>
+            {
+                var observer = ctx.GetRequiredService<CommandQueueRegistryEndpointConfigurationObserver>();
+                cfg.ConnectEndpointConfigurationObserver(observer);
+
+                configureBus?.Invoke(cfg);
+                cfg.UseInMemoryOutbox(ctx, x => x.ConcurrentMessageDelivery = true);
+            });
+        });
+    }
+
     private sealed class Marker
     {
         public static readonly ServiceDescriptor ServiceDescriptor = ServiceDescriptor.Singleton<Marker, Marker>();
+    }
+
+    private sealed class DiagnosticHeadersSendObserver
+        : ISendObserver
+    {
+        public Task PostSend<T>(SendContext<T> context)
+            where T : class
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task PreSend<T>(SendContext<T> context)
+            where T : class
+        {
+            if (!context.Headers.TryGetHeader(DiagnosticHeaders.ActivityPropagation, out _))
+            {
+                // TODO: handle queries which should be children, not links
+                context.Headers.Set(DiagnosticHeaders.ActivityPropagation, "Link");
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public Task SendFault<T>(SendContext<T> context, Exception exception)
+            where T : class
+        {
+            if (!context.Headers.TryGetHeader(DiagnosticHeaders.ActivityPropagation, out _))
+            {
+                context.Headers.Set(DiagnosticHeaders.ActivityPropagation, "Link");
+            }
+
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class CommandQueueRegistryEndpointConfigurationObserver(ICommandQueueRegistry registry)
+        : IEndpointConfigurationObserver
+    {
+        public void EndpointConfigured<T>(T configurator)
+            where T : IReceiveEndpointConfigurator
+        {
+            configurator.ConnectConsumerConfigurationObserver(new CommandQueueRegistryConsumerConfigurationObserver(registry, configurator.InputAddress));
+        }
+    }
+
+    private sealed class CommandQueueRegistryConsumerConfigurationObserver(ICommandQueueRegistry registry, Uri queueUri)
+        : IConsumerConfigurationObserver
+    {
+        public void ConsumerConfigured<TConsumer>(IConsumerConfigurator<TConsumer> configurator)
+            where TConsumer : class
+        {
+        }
+
+        public void ConsumerMessageConfigured<TConsumer, TMessage>(IConsumerMessageConfigurator<TConsumer, TMessage> configurator)
+            where TConsumer : class
+            where TMessage : class
+        {
+            if (TryGetCommandType(typeof(TMessage), out var commandType))
+            {
+                registry.RegisterConsumerCommandQueue(commandType, queueUri, typeof(TConsumer));
+            }
+        }
+
+        private static bool TryGetCommandType(Type messageType, [NotNullWhen(true)] out Type? commandType)
+        {
+            if (typeof(CommandBase).IsAssignableFrom(messageType))
+            {
+                commandType = messageType;
+                return true;
+            }
+
+            if (messageType.IsConstructedGenericType && messageType.GetGenericTypeDefinition() == typeof(Batch<>))
+            {
+                return TryGetCommandType(messageType.GenericTypeArguments[0], out commandType);
+            }
+
+            commandType = null;
+            return false;
+        }
     }
 }

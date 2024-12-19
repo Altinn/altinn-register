@@ -29,6 +29,18 @@ internal abstract partial class MassTransitTransportHelper(MassTransitSettings s
         };
 
     /// <summary>
+    /// Gets a <see cref="MassTransitTransportHelper"/> for the test harness.
+    /// </summary>
+    /// <returns>A <see cref="MassTransitTransportHelper"/>.</returns>
+    public static MassTransitTransportHelper ForTestHarness()
+        => For(
+            new MassTransitSettings
+            {
+                Transport = MassTransitTransport.InMemory,
+            },
+            "integration-test");
+
+    /// <summary>
     /// Gets the settings for the bus.
     /// </summary>
     protected MassTransitSettings BusSettings => settings;

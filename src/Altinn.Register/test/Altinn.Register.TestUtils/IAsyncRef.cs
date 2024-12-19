@@ -27,9 +27,16 @@ public interface IAsyncRef
     }
 }
 
-internal interface IAsyncRef<T>
+/// <summary>
+/// A typed <see cref="IAsyncRef"/>.
+/// </summary>
+/// <typeparam name="T">The resource type.</typeparam>
+public interface IAsyncRef<T>
     : IAsyncRef
     where T : notnull
 {
+    /// <summary>
+    /// Gets the value of the reference.
+    /// </summary>
     T Value { get; }
 }

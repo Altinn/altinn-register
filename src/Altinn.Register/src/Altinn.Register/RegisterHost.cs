@@ -12,9 +12,11 @@ using Altinn.Register.Configuration;
 using Altinn.Register.Conventions;
 using Altinn.Register.Core;
 using Altinn.Register.Core.Parties;
+using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.Extensions;
 using Altinn.Register.ModelBinding;
 using Altinn.Register.PartyImport;
+using Altinn.Register.PartyImport.A2;
 using Altinn.Register.Services;
 using Altinn.Register.Services.Implementation;
 using Altinn.Register.Services.Interfaces;
@@ -133,6 +135,18 @@ internal static class RegisterHost
                 configureMassTransit: (cfg) =>
                 {
                     cfg.AddConsumers(typeof(RegisterHost).Assembly);
+                });
+        }
+
+        if (config.GetValue<bool>("Altinn:register:PartyImport:A2:Enable"))
+        {
+            services.AddHttpClient<IA2PartyImportService, A2PartyImportService>()
+                .ConfigureHttpClient((s, c) =>
+                {
+                    var config = s.GetRequiredService<IConfiguration>();
+                    var baseAddress = config.GetValue<Uri>("GeneralSettings:BridgeApiEndpoint");
+
+                    c.BaseAddress = baseAddress;
                 });
         }
 
