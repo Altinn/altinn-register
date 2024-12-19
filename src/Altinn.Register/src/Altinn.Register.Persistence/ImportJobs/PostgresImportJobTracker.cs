@@ -2,8 +2,11 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 using Altinn.Register.Core;
 using Altinn.Register.Core.ImportJobs;
+using Altinn.Register.Core.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using NpgsqlTypes;
@@ -13,34 +16,37 @@ using Polly.Retry;
 namespace Altinn.Register.Persistence.ImportJobs;
 
 /// <summary>
-/// Postgresql backed implementation of <see cref="IImportJobTracker"/>.
+/// Implementation of <see cref="IImportJobTracker"/> that uses a hybrid approach of in-memory caching and database
+/// calls, using a background worker to process messages from a channel.
 /// </summary>
+/// <remarks>
+/// This class must be registered as a singleton, due to among other things the <see cref="_retryPipeline"/> being expensive to create.
+/// </remarks>
 internal partial class PostgresImportJobTracker
     : IImportJobTracker
+    , IAsyncDisposable
 {
     private static readonly ResiliencePropertyKey<Activity?> ActivityPropertyKey = new($"{nameof(PostgresImportJobTracker)}.{nameof(Activity)}");
 
-    private readonly NpgsqlDataSource _dataSource;
+    private readonly CancellationTokenSource _cts = new();
     private readonly ILogger<PostgresImportJobTracker> _logger;
-
-    /// <remarks>
-    /// This class is designed to be a singleton due to the <see cref="_retryPipeline"/>
-    /// being expensive to create. If for whatever reason this class needs to be registered
-    /// as a transient/scoped service, the <see cref="_retryPipeline"/> should be moved to
-    /// a separate singleton (nested) class and injected as a dependency.
-    /// </remarks>
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly TimeProvider _timeProvider;
+    private readonly ChannelWriter<WorkerMessage> _writer;
     private readonly ResiliencePipeline _retryPipeline;
+    private readonly Task _runTask;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PostgresImportJobTracker"/> class.
     /// </summary>
     public PostgresImportJobTracker(
-        NpgsqlDataSource dataSource,
-        TimeProvider timeProvider,
-        ILogger<PostgresImportJobTracker> logger)
+        ILogger<PostgresImportJobTracker> logger,
+        IServiceScopeFactory scopeFactory,
+        TimeProvider timeProvider)
     {
-        _dataSource = dataSource;
         _logger = logger;
+        _scopeFactory = scopeFactory;
+        _timeProvider = timeProvider;
 
         var pipelineBuilder = new ResiliencePipelineBuilder();
         pipelineBuilder.TimeProvider = timeProvider;
@@ -67,18 +73,8 @@ internal partial class PostgresImportJobTracker
                 }),
             BackoffType = DelayBackoffType.Constant,
             UseJitter = false,
-            MaxRetryAttempts = 3,
-            DelayGenerator = static args =>
-            {
-                if (args.Outcome.Exception is PostgresException e
-                    && e.SqlState == PostgresErrorCodes.CheckViolation)
-                {
-                    // all check violations are generally due to race conditions, so delay a shot while before retrying
-                    return new(TimeSpan.FromMilliseconds(10));
-                }
-
-                return new(TimeSpan.Zero);
-            },
+            MaxRetryAttempts = 5,
+            DelayGenerator = static args => new(TimeSpan.FromMilliseconds(10 * args.AttemptNumber)),
             OnRetry = args =>
             {
                 var activity = args.Context.Properties.GetValue(ActivityPropertyKey, defaultValue: null);
@@ -90,10 +86,172 @@ internal partial class PostgresImportJobTracker
         });
 
         _retryPipeline = pipelineBuilder.Build();
+
+        var channel = Channel.CreateUnbounded<WorkerMessage>(new UnboundedChannelOptions
+        {
+            AllowSynchronousContinuations = true,
+            SingleReader = true,
+            SingleWriter = false,
+        });
+
+        _writer = channel.Writer;
+        _runTask = Run(channel.Reader, _cts.Token);
+    }
+
+    /// <summary>
+    /// Clears the cache for the given job id.
+    /// </summary>
+    /// <param name="id">The job id.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>Whether or not there was any cache entry to clear.</returns>
+    internal async Task<bool> ClearCache(string id, CancellationToken cancellationToken = default)
+    {
+        var tcs = new TaskCompletionSource<bool>();
+        var message = new WorkerMessage.ClearCache(id, Activity.Current, cancellationToken, tcs);
+        await _writer.WriteAsync(message, cancellationToken);
+        return await tcs.Task;
     }
 
     /// <inheritdoc/>
-    public Task<ImportJobStatus> GetStatus(string id, CancellationToken cancellationToken = default)
+    async Task<ImportJobStatus> IImportJobTracker.GetStatus(string id, CancellationToken cancellationToken)
+    {
+        var tcs = new TaskCompletionSource<ImportJobStatus>();
+        var message = new WorkerMessage.GetStatusMessage(id, Activity.Current, cancellationToken, tcs);
+        await _writer.WriteAsync(message, cancellationToken);
+        return await tcs.Task;
+    }
+
+    /// <inheritdoc/>
+    async Task<bool> IImportJobTracker.TrackQueueStatus(string id, ImportJobQueueStatus status, CancellationToken cancellationToken)
+    {
+        var tcs = new TaskCompletionSource<bool>();
+        var message = new WorkerMessage.TrackQueueStatusMessage(id, status, Activity.Current, cancellationToken, tcs);
+        await _writer.WriteAsync(message, cancellationToken);
+        return await tcs.Task;
+    }
+
+    /// <inheritdoc/>
+    async Task<bool> IImportJobTracker.TrackProcessedStatus(string id, ImportJobProcessingStatus status, CancellationToken cancellationToken)
+    {
+        var tcs = new TaskCompletionSource<bool>();
+        var message = new WorkerMessage.TrackProcessedStatusMessage(id, status, Activity.Current, cancellationToken, tcs);
+        await _writer.WriteAsync(message, cancellationToken);
+        return await tcs.Task;
+    }
+
+    /// <inheritdoc/>
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        await _cts.CancelAsync();
+        await _runTask.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+
+        _cts.Dispose();
+    }
+
+    private async Task Run(ChannelReader<WorkerMessage> reader, CancellationToken cancellationToken)
+    {
+        Dictionary<string, ImportJobStatus> cache = new();
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var done = !await reader.WaitToReadAsync(cancellationToken);
+            if (done)
+            {
+                break;
+            }
+
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            try
+            {
+                await RunInner(reader, scope.ServiceProvider, cache, cancellationToken);
+            }
+            catch (OperationCanceledException e) when (e.CancellationToken == cancellationToken)
+            {
+                break;
+            }
+            catch (Exception e)
+            {
+                Log.ProcessingError(_logger, e);
+            }
+        }
+    }
+
+    private async Task RunInner(ChannelReader<WorkerMessage> reader, IServiceProvider services, Dictionary<string, ImportJobStatus> cache, CancellationToken cancellationToken)
+    {
+        var dataSource = services.GetRequiredService<NpgsqlDataSource>();
+        await using var conn = await dataSource.OpenConnectionAsync(cancellationToken);
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                // allow keeping the connection for a short while
+                var done = !await reader.WaitToReadAsync(cancellationToken).WaitAsync(TimeSpan.FromSeconds(1), _timeProvider);
+                
+                if (done)
+                {
+                    // no more items, channel is closed
+                    break;
+                }
+            }
+            catch (TimeoutException)
+            {
+                // release the db connection, return to outer loop
+                break;
+            }
+
+            if (!reader.TryRead(out var message))
+            {
+                // this in general shouldn't happen as we've already waited for a message
+                continue;
+            }
+
+            Activity.Current = message.Activity;
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(message.CancellationToken, cancellationToken);
+
+            switch (message)
+            {
+                case WorkerMessage.ClearCache { Id: var id, CancellationToken: var ct, CompletionSource: var tcs }:
+                    {
+                        if (ct.IsCancellationRequested)
+                        {
+                            tcs.TrySetCanceled(ct);
+                            break;
+                        }
+
+                        var result = cache.Remove(id);
+                        tcs.TrySetResult(result);
+                        break;
+                    }
+
+                case WorkerMessage.GetStatusMessage { Id: var id, CancellationToken: var ct, CompletionSource: var tcs }:
+                    {
+                        var task = GetStatus(conn, cache, id, cts.Token);
+                        await ((Task)task).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+                        tcs.TrySetFromTask(task);
+                        break;
+                    }
+
+                case WorkerMessage.TrackQueueStatusMessage { Id: var id, Status: var status, CancellationToken: var ct, CompletionSource: var tcs }:
+                    {
+                        var task = TrackQueueStatus(conn, cache, id, status, cts.Token);
+                        await ((Task)task).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+                        tcs.TrySetFromTask(task);
+                        break;
+                    }
+
+                case WorkerMessage.TrackProcessedStatusMessage { Id: var id, Status: var status, CancellationToken: var ct, CompletionSource: var tcs }:
+                    {
+                        var task = TrackProcessedStatus(conn, cache, id, status, cts.Token);
+                        await ((Task)task).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+                        tcs.TrySetFromTask(task);
+                        break;
+                    }
+            }
+        }
+    }
+
+    private async Task<ImportJobStatus> GetStatus(NpgsqlConnection conn, Dictionary<string, ImportJobStatus> cache, string id, CancellationToken cancellationToken = default)
     {
         const string QUERY =
             /*strpsql*/"""
@@ -102,7 +260,8 @@ internal partial class PostgresImportJobTracker
             WHERE id = @id
             """;
 
-        return WithTransaction(
+        var status = await WithConnection(
+            conn,
             id,
             static async (id, conn, logger, cancellationToken) =>
             {
@@ -133,23 +292,42 @@ internal partial class PostgresImportJobTracker
             },
             _logger,
             cancellationToken);
+
+        cache[id] = status;
+        return status;
     }
 
-    /// <inheritdoc/>
-    public Task TrackQueueStatus(string id, ImportJobQueueStatus status, CancellationToken cancellationToken = default)
+    private async Task<bool> TrackQueueStatus(NpgsqlConnection conn, Dictionary<string, ImportJobStatus> cache, string id, ImportJobQueueStatus status, CancellationToken cancellationToken = default)
     {
         const string QUERY =
             /*strpsql*/"""
-            INSERT INTO register.import_job (id, source_max, enqueued_max, processed_max)
-            VALUES (@id, @source_max, @enqueued_max, 0)
-            ON CONFLICT (id) DO UPDATE
-                SET source_max = GREATEST(import_job.source_max, EXCLUDED.source_max),
-                    enqueued_max = GREATEST(import_job.enqueued_max, EXCLUDED.enqueued_max)
-                WHERE import_job.enqueued_max < EXCLUDED.enqueued_max
-                    OR import_job.source_max < EXCLUDED.source_max
+            WITH existing AS (
+                SELECT source_max, enqueued_max, 0 as source
+                FROM register.import_job
+                WHERE id = @id
+            ), updated AS (
+                INSERT INTO register.import_job (id, source_max, enqueued_max, processed_max)
+                VALUES (@id, @source_max, @enqueued_max, 0)
+                ON CONFLICT (id) DO UPDATE
+                    SET source_max = GREATEST(import_job.source_max, EXCLUDED.source_max),
+                        enqueued_max = GREATEST(import_job.enqueued_max, EXCLUDED.enqueued_max)
+                    WHERE import_job.enqueued_max < EXCLUDED.enqueued_max
+                        OR import_job.source_max < EXCLUDED.source_max
+                RETURNING source_max, enqueued_max, 1 as source
+            )
+            SELECT source_max, enqueued_max, source FROM updated
+            UNION SELECT source_max, enqueued_max, source FROM existing
+            ORDER BY source DESC
+            LIMIT 1
             """;
 
-        return WithTransaction(
+        if (cache.TryGetValue(id, out var cached) && cached.EnqueuedMax >= status.EnqueuedMax && cached.SourceMax >= status.SourceMax)
+        {
+            return false;
+        }
+
+        var (sourceMax, enqueuedMax, updated) = await WithConnection(
+            conn,
             id,
             static async (id, conn, state, cancellationToken) =>
             {
@@ -163,33 +341,52 @@ internal partial class PostgresImportJobTracker
 
                 Log.UpdateQueueStatus(logger, id, status);
                 await cmd.PrepareAsync(cancellationToken);
-                await cmd.ExecuteNonQueryAsync(cancellationToken);
+                await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow | CommandBehavior.SingleResult, cancellationToken);
+
+                var read = await reader.ReadAsync(cancellationToken);
+                Debug.Assert(read);
+
+                var sourceMax = (ulong)reader.GetFieldValue<long>("source_max");
+                var enqueuedMax = (ulong)reader.GetFieldValue<long>("enqueued_max");
+                var source = reader.GetFieldValue<int>("source");
+                var updated = source == 1;
+
+                return (sourceMax, enqueuedMax, updated);
             },
             new WithLoggerState<ImportJobQueueStatus>(status, _logger),
             cancellationToken);
+
+        cache[id] = cached with { EnqueuedMax = enqueuedMax, SourceMax = sourceMax };
+        return updated;
     }
 
-    /// <inheritdoc/>
-    public Task<bool> TrackProcessedStatus(string id, ImportJobProcessingStatus status, CancellationToken cancellationToken = default)
+    private async Task<bool> TrackProcessedStatus(NpgsqlConnection conn, Dictionary<string, ImportJobStatus> cache, string id, ImportJobProcessingStatus status, CancellationToken cancellationToken = default)
     {
         const string QUERY =
             /*strpsql*/"""
             WITH existing AS (
-                SELECT 1
+                SELECT processed_max, 0 as source
                 FROM register.import_job
                 WHERE id = @id
             ), updated AS (
                 UPDATE register.import_job
                 SET processed_max = @processed_max
                 WHERE id = @id AND processed_max < @processed_max
-                RETURNING 1
+                RETURNING processed_max, 1 as source
             )
-            SELECT 
-                EXISTS (SELECT 1 FROM existing) existing,
-                EXISTS (SELECT 1 FROM updated) updated
+            SELECT processed_max, source FROM updated
+            UNION SELECT processed_max, source FROM existing
+            ORDER BY source DESC
+            LIMIT 1
             """;
 
-        return WithTransaction(
+        if (cache.TryGetValue(id, out var cached) && cached.ProcessedMax >= status.ProcessedMax)
+        {
+            return false;
+        }
+
+        var (processedMax, updated) = await WithConnection(
+            conn,
             id,
             static async (id, conn, state, cancellationToken) =>
             {
@@ -205,23 +402,26 @@ internal partial class PostgresImportJobTracker
                 await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleResult | CommandBehavior.SingleRow, cancellationToken);
 
                 var read = await reader.ReadAsync(cancellationToken);
-                Debug.Assert(read);
-
-                var existing = reader.GetFieldValue<bool>("existing");
-                var updated = reader.GetFieldValue<bool>("updated");
-
-                if (!existing)
+                if (!read)
                 {
                     throw new JobDoesNotExistException(id);
                 }
 
-                return updated;
+                var processedMax = (ulong)reader.GetFieldValue<long>("processed_max");
+                var source = reader.GetFieldValue<int>("source");
+                var updated = source == 1;
+
+                return (processedMax, updated);
             },
             new WithLoggerState<ImportJobProcessingStatus>(status, _logger),
             cancellationToken);
+
+        cache[id] = cached with { ProcessedMax = processedMax };
+        return updated;
     }
 
-    private async Task<TResult> WithTransaction<TResult, TState>(
+    private async Task<TResult> WithConnection<TResult, TState>(
+        NpgsqlConnection conn,
         string id,
         Func<string, NpgsqlConnection, TState, CancellationToken, Task<TResult>> action,
         TState state,
@@ -242,20 +442,15 @@ internal partial class PostgresImportJobTracker
         {
             ctx.Properties.Set(ActivityPropertyKey, activity);
 
-            await using var conn = await _dataSource.OpenConnectionAsync(cancellationToken);
-            var txCtx = new WithTransactionContext<TResult, TState>(id, state, action, conn);
+            var txCtx = new WithConnectionContext<TResult, TState>(id, state, action, conn);
 
             var result = await _retryPipeline.ExecuteAsync(
-                static async (ResilienceContext ctx, WithTransactionContext<TResult, TState> txCtx) =>
+                static async (ResilienceContext ctx, WithConnectionContext<TResult, TState> connCtx) =>
                 {
                     var cancellationToken = ctx.CancellationToken;
-                    var (id, state, action, conn) = txCtx;
+                    var (id, state, action, conn) = connCtx;
 
-                    await using var tx = await conn.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
-                    var result = await action(id, conn, state, cancellationToken);
-                    await tx.CommitAsync(cancellationToken);
-                    
-                    return result;
+                    return await action(id, conn, state, cancellationToken);
                 },
                 ctx,
                 txCtx);
@@ -263,7 +458,7 @@ internal partial class PostgresImportJobTracker
             success = true;
             return result!;
         }
-        catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.CheckViolation && e.ConstraintName 
+        catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.CheckViolation && e.ConstraintName
             is "source_max_positive"
             or "enqueued_max_positive"
             or "processed_max_positive"
@@ -297,42 +492,32 @@ internal partial class PostgresImportJobTracker
         static T Unreachable<T>(Exception inner) => throw new UnreachableException(null, inner);
     }
 
-    private Task WithTransaction<TState>(
-        string id,
-        Func<string, NpgsqlConnection, TState, CancellationToken, Task> action,
-        TState state,
-        CancellationToken cancellationToken,
-        [CallerMemberName] string? activityName = null)
-    {
-        return WithTransaction<object?, WithTransactionObjectStateWrapper<TState>>(
-            id,
-            static async (id, conn, stateWrapper, cancellationToken) =>
-            {
-                var (innerAction, state) = stateWrapper;
-                await innerAction(id, conn, state, cancellationToken);
-
-                return null;
-            },
-            new(action, state),
-            cancellationToken,
-            activityName);
-    }
-
-    private readonly record struct WithTransactionContext<TResult, TState>(
+    private readonly record struct WithConnectionContext<TResult, TState>(
         string Id,
         TState State,
         Func<string, NpgsqlConnection, TState, CancellationToken, Task<TResult>> Action,
         NpgsqlConnection Connection);
-
-    private readonly record struct WithTransactionObjectStateWrapper<TState>(
-        Func<string, NpgsqlConnection, TState, CancellationToken, Task> InnerAction,
-        TState State);
 
     private readonly record struct WithLoggerState<T>(T State, ILogger Logger);
 
     private sealed class JobDoesNotExistException(string jobName)
         : InvalidOperationException($"Job '{jobName}' does not exist")
     {
+    }
+
+    private abstract record WorkerMessage(string Id, Activity? Activity, CancellationToken CancellationToken)
+    {
+        public sealed record ClearCache(string Id, Activity? Activity, CancellationToken CancellationToken, TaskCompletionSource<bool> CompletionSource)
+            : WorkerMessage(Id, Activity, CancellationToken);
+
+        public sealed record GetStatusMessage(string Id, Activity? Activity, CancellationToken CancellationToken, TaskCompletionSource<ImportJobStatus> CompletionSource)
+            : WorkerMessage(Id, Activity, CancellationToken);
+
+        public sealed record TrackQueueStatusMessage(string Id, ImportJobQueueStatus Status, Activity? Activity, CancellationToken CancellationToken, TaskCompletionSource<bool> CompletionSource)
+            : WorkerMessage(Id, Activity, CancellationToken);
+
+        public sealed record TrackProcessedStatusMessage(string Id, ImportJobProcessingStatus Status, Activity? Activity, CancellationToken CancellationToken, TaskCompletionSource<bool> CompletionSource)
+            : WorkerMessage(Id, Activity, CancellationToken);
     }
 
     private static partial class Log
@@ -343,7 +528,7 @@ internal partial class PostgresImportJobTracker
         [LoggerMessage(1, LogLevel.Debug, "Updating queue status for job {JobId} with source max {SourceMax} and enqueued max {EnqueuedMax}")]
         private static partial void UpdateQueueStatus(ILogger logger, string jobId, ulong sourceMax, ulong enqueuedMax);
 
-        public static void UpdateQueueStatus(ILogger logger, string jobId, ImportJobQueueStatus status) 
+        public static void UpdateQueueStatus(ILogger logger, string jobId, ImportJobQueueStatus status)
             => UpdateQueueStatus(logger, jobId, status.SourceMax, status.EnqueuedMax);
 
         [LoggerMessage(2, LogLevel.Debug, "Updating processed status for job {JobId} with processed max {ProcessedMax}")]
@@ -351,5 +536,8 @@ internal partial class PostgresImportJobTracker
 
         public static void UpdateProcessedStatus(ILogger logger, string jobId, ImportJobProcessingStatus status)
             => UpdateProcessedStatus(logger, jobId, status.ProcessedMax);
+
+        [LoggerMessage(3, LogLevel.Error, "Error processing messages")]
+        public static partial void ProcessingError(ILogger logger, Exception exception);
     }
 }
