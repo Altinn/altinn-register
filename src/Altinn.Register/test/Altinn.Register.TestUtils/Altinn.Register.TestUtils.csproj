@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Diagnostics" />
     <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="MassTransit" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <PackageReference Include="Nerdbank.Streams" />
@@ -19,6 +20,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Altinn.Register.Core\Altinn.Register.Core.csproj" />
     <ProjectReference Include="..\..\src\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\Altinn.Register\Altinn.Register.csproj" />
+    <ProjectReference Include="..\..\src\ServiceDefaults.MassTransit.Abstractions\Altinn.Authorization.ServiceDefaults.MassTransit.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\ServiceDefaults.MassTransit\Altinn.Authorization.ServiceDefaults.MassTransit.csproj" />
   </ItemGroup>
 
 </Project>

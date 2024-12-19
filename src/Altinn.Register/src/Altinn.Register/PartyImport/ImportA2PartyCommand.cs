@@ -1,4 +1,6 @@
-﻿using Altinn.Authorization.ServiceDefaults.MassTransit;
+﻿#nullable enable
+
+using Altinn.Authorization.ServiceDefaults.MassTransit;
 
 namespace Altinn.Register.PartyImport;
 
@@ -6,7 +8,7 @@ namespace Altinn.Register.PartyImport;
 /// A command for importing a party from A2.
 /// </summary>
 public sealed record ImportA2PartyCommand
-    : Command
+    : CommandBase
 {
     /// <summary>
     /// Gets the party UUID.

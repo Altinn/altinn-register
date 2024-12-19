@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
-using System.Net.Mail;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -11,9 +10,7 @@ using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Core.Utils;
 using Altinn.Register.TestUtils;
 using FluentAssertions.Execution;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.Latency;
 using Npgsql;
 using NpgsqlTypes;
 

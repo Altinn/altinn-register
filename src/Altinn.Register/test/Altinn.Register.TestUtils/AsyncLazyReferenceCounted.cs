@@ -2,14 +2,41 @@
 
 namespace Altinn.Register.TestUtils;
 
-internal static class AsyncLazyReferenceCounted
+/// <summary>
+/// Helper for creating an asynchronous lazy reference counted resource.
+/// </summary>
+public static class AsyncLazyReferenceCounted
 {
+    /// <summary>
+    /// Creates a new instance of the <see cref="AsyncLazyReferenceCounted{T}"/> class.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="allowReuse">Whether or not to allow reuse of this <see cref="AsyncLazyReferenceCounted{T}"/>.</param>
+    /// <returns>A <see cref="AsyncLazyReferenceCounted{T}"/>.</returns>
     public static AsyncLazyReferenceCounted<T> Create<T>(bool allowReuse = true)
         where T : notnull, IAsyncResource<T>
-        => new(static () => T.New(), static value => value.DisposeAsync(), allowReuse);
+        => Create(static () => T.New(), static value => value.DisposeAsync(), allowReuse);
+
+    /// <summary>
+    /// Creates a new instance of the <see cref="AsyncLazyReferenceCounted{T}"/> class.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="factory">The resource factory.</param>
+    /// <param name="destructor">The resource destructor.</param>
+    /// <param name="allowReuse">Whether or not to allow reuse of this <see cref="AsyncLazyReferenceCounted{T}"/>.</param>
+    /// <returns>A <see cref="AsyncLazyReferenceCounted{T}"/>.</returns>
+    public static AsyncLazyReferenceCounted<T> Create<T>(
+        Func<ValueTask<T>> factory,
+        Func<T, ValueTask> destructor,
+        bool allowReuse = true)
+        where T : notnull
+        => new(factory, destructor, allowReuse);
 }
 
-internal sealed class AsyncLazyReferenceCounted<T>
+/// <summary>
+/// Helper for creating an asynchronous lazy reference counted resource.
+/// </summary>
+public sealed class AsyncLazyReferenceCounted<T>
     : IDisposable
     where T : notnull
 {
@@ -21,6 +48,12 @@ internal sealed class AsyncLazyReferenceCounted<T>
     private int _referenceCount = -1;
     private T? _value;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AsyncLazyReferenceCounted{T}"/> class.
+    /// </summary>
+    /// <param name="factory">The resource factory.</param>
+    /// <param name="destructor">The resource destructor.</param>
+    /// <param name="allowReuse">Whether or not to allow reuse of this <see cref="AsyncLazyReferenceCounted{T}"/>.</param>
     public AsyncLazyReferenceCounted(
         Func<ValueTask<T>> factory,
         Func<T, ValueTask> destructor,
@@ -34,9 +67,16 @@ internal sealed class AsyncLazyReferenceCounted<T>
         _allowReuse = allowReuse;
     }
 
+    /// <summary>
+    /// Gets a reference to the resource.
+    /// </summary>
+    /// <returns>A <see cref="IAsyncRef{T}"/> to this resource.</returns>
     public async Task<IAsyncRef<T>> Get()
         => await Acquire();
 
+    /// <summary>
+    /// Disposes the resource.
+    /// </summary>
     public void Dispose()
     {
         _lock.Dispose();
