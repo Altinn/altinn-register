@@ -35,6 +35,7 @@ internal partial class PostgresImportJobTracker
     private readonly ChannelWriter<WorkerMessage> _writer;
     private readonly ResiliencePipeline _retryPipeline;
     private readonly Task _runTask;
+    private int _disposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PostgresImportJobTracker"/> class.
@@ -142,8 +143,11 @@ internal partial class PostgresImportJobTracker
     /// <inheritdoc/>
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        await _cts.CancelAsync();
-        await _runTask.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 0)
+        {
+            await _cts.CancelAsync();
+            await _runTask.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        }
 
         _cts.Dispose();
     }
