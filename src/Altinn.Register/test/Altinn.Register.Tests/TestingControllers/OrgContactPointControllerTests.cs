@@ -1,34 +1,18 @@
 ﻿using System.Net;
-using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
-
-using Altinn.Register.Controllers;
 using Altinn.Register.Models;
 using Altinn.Register.Services.Interfaces;
-
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
+using Altinn.Register.Tests.TestingControllers.Utils;
 using Microsoft.Extensions.DependencyInjection;
-
 using Moq;
-using Xunit;
 
 namespace Altinn.Register.Tests.TestingControllers;
 
-public class OrgContactPointControllerTests : IClassFixture<WebApplicationFactory<OrgContactPointController>>
+public class OrgContactPointControllerTests(WebApplicationFixture fixture)
+    : BaseControllerTests(fixture)
 {
-    private readonly WebApplicationFactory<OrgContactPointController> _factory;
-
-    /// <summary>
-    /// Initialises a new instance of the <see cref="OrgContactPointControllerTests"/> class with the given WebApplicationFactory.
-    /// </summary>
-    /// <param name="factory">The WebApplicationFactory to use when creating a test server.</param>
-    public OrgContactPointControllerTests(WebApplicationFactory<OrgContactPointController> factory)
-    {
-        _factory = factory;
-    }
+    private readonly Mock<IOrgContactPoint> _orgContactPointService = new();
 
     [Fact]
     public async Task GetOrgContactPoint_ValidOrgContactPointLookup_ReturnsOrgContactPointList()
@@ -53,10 +37,9 @@ public class OrgContactPointControllerTests : IClassFixture<WebApplicationFactor
         orgContactsPointList.ContactPointsList.Add(orgContactPoints);
 
         // Arrange
-        Mock<IOrgContactPoint> orgContactPointService = new();
-        orgContactPointService.Setup(s => s.GetContactPoints(It.Is<OrgContactPointLookup>(o => o.OrganizationNumbers.Contains(orgNo)), It.IsAny<CancellationToken>())).ReturnsAsync(orgContactsPointList);
+        _orgContactPointService.Setup(s => s.GetContactPoints(It.Is<OrgContactPointLookup>(o => o.OrganizationNumbers.Contains(orgNo)), It.IsAny<CancellationToken>())).ReturnsAsync(orgContactsPointList);
         
-        HttpClient client = GetTestClient(orgContactPointService.Object);
+        HttpClient client = CreateClient();
 
         HttpRequestMessage httpRequestMessage = 
             new HttpRequestMessage(HttpMethod.Post, "/register/api/v1/organizations/contactpoint/lookup")
@@ -69,22 +52,16 @@ public class OrgContactPointControllerTests : IClassFixture<WebApplicationFactor
         OrgContactPointsList orgContactsPointListResponse = await JsonSerializer.DeserializeAsync<OrgContactPointsList>(await response.Content.ReadAsStreamAsync());
 
         // Assert
-        orgContactPointService.VerifyAll();
+        _orgContactPointService.VerifyAll();
         Assert.Equal(emailAddr, orgContactsPointListResponse.ContactPointsList[0].EmailList[0]);
         Assert.Equal(mobileNo, orgContactsPointListResponse.ContactPointsList[0].MobileNumberList[0]);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
-    private HttpClient GetTestClient(IOrgContactPoint orgContactPointService)
+    protected override void ConfigureTestServices(IServiceCollection services)
     {
-        HttpClient client = _factory.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureTestServices(services =>
-            {
-                services.AddSingleton(orgContactPointService);
-            });
-        }).CreateClient();
+        services.AddSingleton(_orgContactPointService.Object);
 
-        return client;
+        base.ConfigureTestServices(services);
     }
 }

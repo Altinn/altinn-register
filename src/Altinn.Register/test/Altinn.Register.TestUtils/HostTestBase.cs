@@ -1,10 +1,13 @@
-﻿using Altinn.Register.Core;
+﻿using System.Diagnostics;
+using Altinn.Authorization.ServiceDefaults;
+using Altinn.Register.Core;
 using Altinn.Register.TestUtils.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 
@@ -34,6 +37,12 @@ public abstract class HostTestBase
         => _httpHandlers;
 
     /// <summary>
+    /// Gets a value indicating whether to disable logging.
+    /// </summary>
+    protected virtual bool DisableLogging
+        => !Debugger.IsAttached;
+
+    /// <summary>
     /// Initialize the host.
     /// </summary>
     /// <returns>The host.</returns>
@@ -44,6 +53,13 @@ public abstract class HostTestBase
             new("Logging:LogLevel:Default", "Warning"),
         ]);
 
+        if (DisableLogging)
+        {
+            configuration.AddInMemoryCollection([
+                new(AltinnPreStartLogger.DisableConfigKey, "true"),
+            ]);
+        }
+
         await Configure(configuration);
 
         var builder = new HostApplicationBuilder(new HostApplicationBuilderSettings
@@ -52,6 +68,11 @@ public abstract class HostTestBase
             EnvironmentName = "Development",
             Configuration = configuration,
         });
+
+        if (DisableLogging)
+        {
+            builder.Logging.ClearProviders();
+        }
 
         await ConfigureHost(builder);
 
@@ -77,10 +98,10 @@ public abstract class HostTestBase
     protected virtual async ValueTask ConfigureHost(IHostApplicationBuilder builder)
     {
         builder.Services.TryAddSingleton(_timeProvider);
-        builder.Services.TryAddSingleton(_httpHandlers);
         builder.Services.TryAddSingleton<TimeProvider>(s => s.GetRequiredService<FakeTimeProvider>());
-        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<HttpClientFactoryOptions>, ConfigureFakeHandlers>());
+        builder.Services.AddFakeHttpHandlers(_httpHandlers);
         builder.Services.TryAddSingleton<RegisterTelemetry>();
+
         await ConfigureServices(builder.Services);
     }
 
@@ -165,27 +186,5 @@ public abstract class HostTestBase
                 dispose = null!;
             }
         }
-    }
-
-    private class ConfigureFakeHandlers
-        : IConfigureNamedOptions<HttpClientFactoryOptions>
-    {
-        private readonly FakeHttpHandlers _handlers;
-
-        public ConfigureFakeHandlers(FakeHttpHandlers handlers)
-        {
-            _handlers = handlers;
-        }
-
-        public void Configure(string? name, HttpClientFactoryOptions options)
-        {
-            var handler = _handlers.For(name ?? Options.DefaultName);
-
-            options.HttpMessageHandlerBuilderActions.Insert(0, b => b.PrimaryHandler = handler);
-            options.HttpClientActions.Insert(0, c => c.BaseAddress = FakeHttpMessageHandler.FakeBasePath);
-        }
-
-        public void Configure(HttpClientFactoryOptions options)
-            => Configure(Options.DefaultName, options);
     }
 }

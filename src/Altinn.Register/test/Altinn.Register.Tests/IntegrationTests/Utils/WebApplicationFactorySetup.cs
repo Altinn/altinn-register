@@ -1,7 +1,7 @@
 #nullable enable
 
 using System.Diagnostics.CodeAnalysis;
-
+using Altinn.Authorization.ServiceDefaults;
 using Altinn.Common.AccessToken.Services;
 using Altinn.Register.Clients;
 using Altinn.Register.Clients.Interfaces;
@@ -58,6 +58,13 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
         {
             return _webApplicationFactory.WithWebHostBuilder(builder =>
             {
+                builder.ConfigureAppConfiguration((ctx, c) =>
+                {
+                    c.AddInMemoryCollection([
+                        new(AltinnPreStartLogger.DisableConfigKey, "true"),
+                    ]);
+                });
+
                 builder.ConfigureTestServices(services =>
                 {
                     services.AddSingleton<IPostConfigureOptions<JwtCookieOptions>, JwtCookiePostConfigureOptionsStub>();

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Reflection;
 using CommunityToolkit.Diagnostics;
 
@@ -227,9 +228,19 @@ internal static class FakeRequestDelegateFactory
                 return new ConvertResultExecutor<string>(static s => new StringContent(s), inner);
             }
 
+            if (type == typeof(HttpStatusCode))
+            {
+                return new HttpStatusCodeExecutor();
+            }
+
             if (type.IsAssignableTo(typeof(HttpContent)))
             {
                 return new HttpContentResultExecutor();
+            }
+
+            if (type.IsAssignableTo(typeof(HttpResponseMessage)))
+            {
+                return new HttpResponseMessageResultExecutor();
             }
 
             return ThrowHelper.ThrowNotSupportedException<ResultExecutor>($"Unsupported return type: {type}");
@@ -247,10 +258,21 @@ internal static class FakeRequestDelegateFactory
         }
 
         private sealed class VoidResultExecutor
-            : TypedResultExecutor<object>
+            : ResultExecutor
         {
-            public override ValueTask Execute(object result, FakeRequestContext context, CancellationToken cancellationToken)
+            public override ValueTask ExecuteResult(object? result, FakeRequestContext context, CancellationToken cancellationToken)
             {
+                return ValueTask.CompletedTask;
+            }
+        }
+
+        private sealed class HttpStatusCodeExecutor
+            : TypedResultExecutor<HttpStatusCode>
+        {
+            public override ValueTask Execute(HttpStatusCode result, FakeRequestContext context, CancellationToken cancellationToken)
+            {
+                context.Response.StatusCode = result;
+
                 return ValueTask.CompletedTask;
             }
         }
@@ -270,6 +292,29 @@ internal static class FakeRequestDelegateFactory
             public override ValueTask Execute(HttpContent result, FakeRequestContext context, CancellationToken cancellationToken)
             {
                 return new(context.Response.SetContent(result, cancellationToken));
+            }
+        }
+
+        private sealed class HttpResponseMessageResultExecutor
+            : TypedResultExecutor<HttpResponseMessage>
+        {
+            public override async ValueTask Execute(HttpResponseMessage result, FakeRequestContext context, CancellationToken cancellationToken)
+            {
+                await context.Response.SetContent(result.Content, cancellationToken);
+                
+                context.Response.StatusCode = result.StatusCode;
+                context.Response.ReasonPhrase = result.ReasonPhrase;
+                context.Response.Version = result.Version;
+
+                foreach (var h in result.Headers)
+                {
+                    context.Response.Headers.TryAddWithoutValidation(h.Key, h.Value);
+                }
+
+                foreach (var h in result.TrailingHeaders)
+                {
+                    context.Response.TrailingHeaders.TryAddWithoutValidation(h.Key, h.Value);
+                }
             }
         }
     }
