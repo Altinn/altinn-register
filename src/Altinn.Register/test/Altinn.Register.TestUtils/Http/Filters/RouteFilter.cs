@@ -1,21 +1,26 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Routing.Template;
 
 namespace Altinn.Register.TestUtils.Http.Filters;
 
 internal sealed class RouteFilter
     : IFakeRequestFilter
 {
-    public static IFakeRequestFilter Create(PathString path)
-        => new RouteFilter(path);
+    public static IFakeRequestFilter Create([StringSyntax("Route")] string routeTemplate)
+        => Create(TemplateParser.Parse(routeTemplate));
 
-    private readonly PathString _path;
+    public static IFakeRequestFilter Create(RouteTemplate routeTemplate)
+        => new RouteFilter(routeTemplate);
 
-    private RouteFilter(PathString path)
+    private readonly TemplateMatcher _matcher;
+
+    private RouteFilter(RouteTemplate template)
     {
-        _path = path;
+        _matcher = new(template, new());
     }
 
-    public string Description => $"has path '{_path}'";
+    public string Description => $"has path '{_matcher.Template.TemplateText}'";
 
     public bool Matches(FakeHttpRequestMessage request)
     {
@@ -25,21 +30,30 @@ internal sealed class RouteFilter
         }
 
         var baseUrl = FakeHttpMessageHandler.FakeBasePath;
-        var relative = baseUrl.MakeRelativeUri(request.RequestUri).OriginalString;
-
-        PathString path;
-        var queryIndex = relative.IndexOf('?');
-
-        if (queryIndex == -1)
+        var relativeUrl = baseUrl.MakeRelativeUri(request.RequestUri);
+        if (relativeUrl.IsAbsoluteUri)
         {
-            path = "/" + relative;
-        }
-        else
-        {
-            path = string.Concat("/", relative.AsSpan(0, queryIndex));
+            return false;
         }
 
-        // Paths are case-insensitive
-        return string.Equals(_path, path, StringComparison.OrdinalIgnoreCase);
+        var relStr = $"/{relativeUrl}";
+        if (relStr.StartsWith("/../"))
+        {
+            return false;
+        }
+
+        if (relStr.IndexOf('?') is var queryStart and >= 0)
+        {
+            relStr = relStr[..queryStart];
+        }
+
+        var values = new RouteValueDictionary();
+        if (!_matcher.TryMatch(relStr, values))
+        {
+            return false;
+        }
+
+        request.RouteData = new RouteData(values);
+        return true;
     }
 }

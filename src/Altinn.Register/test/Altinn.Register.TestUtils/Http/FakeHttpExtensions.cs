@@ -1,8 +1,8 @@
-﻿using System.Net.Http.Headers;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Net.Http.Headers;
 using System.Text;
 using Altinn.Register.TestUtils.Http.Filters;
 using Altinn.Register.TestUtils.Http.Handlers;
-using Microsoft.AspNetCore.Http;
 
 namespace Altinn.Register.TestUtils.Http;
 
@@ -18,7 +18,7 @@ public static class FakeHttpExtensions
     /// <param name="method">The <see cref="HttpMethod"/>.</param>
     /// <param name="route">The request path.</param>
     /// <returns>A <see cref="IFakeRequestBuilder"/> to continue building the expectation.</returns>
-    public static IFakeRequestBuilder Expect(this FakeHttpMessageHandler handler, HttpMethod method, PathString route)
+    public static IFakeRequestBuilder Expect(this FakeHttpMessageHandler handler, HttpMethod method, [StringSyntax("Route")] string route)
     {
         var requestHandler = new FakeRequestHandler();
         handler.Expect(requestHandler);
@@ -43,6 +43,22 @@ public static class FakeHttpExtensions
     {
         builder.AddFilter(QueryParamFilter.Create(queryParam, value));
         
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a route value filter to the request.
+    /// </summary>
+    /// <typeparam name="T">The request builder type.</typeparam>
+    /// <param name="builder">The builder.</param>
+    /// <param name="key">The route value key.</param>
+    /// <param name="value">The expected route value.</param>
+    /// <returns><paramref name="builder"/>.</returns>
+    public static T WithRouteValue<T>(this T builder, string key, string value)
+        where T : IFilterFakeRequest
+    {
+        builder.AddFilter(RouteValueFilter.Create(key, v => v is string s && string.Equals(s, value, StringComparison.Ordinal)));
+
         return builder;
     }
 

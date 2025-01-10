@@ -1,10 +1,7 @@
-using System.IO;
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using System.Threading.Tasks;
-
+using Altinn.Authorization.ServiceDefaults;
 using Altinn.Common.AccessToken.Services;
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Clients.Interfaces;
@@ -12,18 +9,13 @@ using Altinn.Register.Controllers;
 using Altinn.Register.Tests.Mocks;
 using Altinn.Register.Tests.Mocks.Authentication;
 using Altinn.Register.Tests.Utils;
-
 using AltinnCore.Authentication.JwtCookie;
-
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-
 using Moq;
-
-using Xunit;
 
 namespace Altinn.Register.Tests.TestingControllers
 {
@@ -37,7 +29,12 @@ namespace Altinn.Register.Tests.TestingControllers
         /// <param name="factory">The WebApplicationFactory to use when creating a test server.</param>
         public OrganizationsControllerTests(WebApplicationFactory<OrganizationsController> factory)
         {
-            _factory = factory;
+            _factory = factory.WithWebHostBuilder(b => b.ConfigureAppConfiguration((ctx, c) =>
+            {
+                c.AddInMemoryCollection([
+                    new(AltinnPreStartLogger.DisableConfigKey, "true"),
+                ]);
+            }));
         }
 
         [Fact]

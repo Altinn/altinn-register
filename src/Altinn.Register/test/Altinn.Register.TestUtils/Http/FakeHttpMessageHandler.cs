@@ -11,7 +11,12 @@ namespace Altinn.Register.TestUtils.Http;
 public class FakeHttpMessageHandler
     : HttpMessageHandler
 {
-    internal static readonly Uri FakeBasePath = new Uri("https://fake.example.com/fake/root/");
+    /// <summary>
+    /// Gets the root path used for routing by the fake message handler. Any requests made to
+    /// the fake message handler will have to be relative to this path in order to match any
+    /// routes.
+    /// </summary>
+    public static readonly Uri FakeBasePath = new Uri("https://fake.example.com/fake/root/");
 
     private readonly Lock _lock = new();
 
