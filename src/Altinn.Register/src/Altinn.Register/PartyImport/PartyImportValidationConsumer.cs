@@ -14,7 +14,7 @@ namespace Altinn.Register.PartyImport;
 public sealed class PartyImportValidationConsumer
     : IConsumer<UpsertPartyCommand>
 {
-    private ICommandSender _sender;
+    private readonly ICommandSender _sender;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PartyImportValidationConsumer"/> class.

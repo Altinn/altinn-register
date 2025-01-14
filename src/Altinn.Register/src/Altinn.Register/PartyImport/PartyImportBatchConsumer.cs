@@ -17,6 +17,8 @@ namespace Altinn.Register.PartyImport;
 public sealed class PartyImportBatchConsumer
     : IConsumer<Batch<UpsertValidatedPartyCommand>>
 {
+    private const int BATCH_SIZE = 100;
+
     private readonly IUnitOfWorkManager _uow;
     private readonly IImportJobTracker _tracker;
     private readonly ImportMeters _meters;
@@ -56,8 +58,8 @@ public sealed class PartyImportBatchConsumer
         try
         {
             int index = 0;
-            evts = ArrayPool<PartyUpdatedEvent>.Shared.Rent(upserts.Length);
-            tracking = ArrayPool<UpsertPartyTracking>.Shared.Rent(upserts.Length);
+            evts = ArrayPool<PartyUpdatedEvent>.Shared.Rent(BATCH_SIZE);
+            tracking = ArrayPool<UpsertPartyTracking>.Shared.Rent(BATCH_SIZE);
 
             {
                 await using var uow = await _uow.CreateAsync(cancellationToken: cancellationToken);
@@ -142,7 +144,7 @@ public sealed class PartyImportBatchConsumer
                 }
             }
 
-            Debug.Assert(false, "Tracking array is full.");
+            Debug.Fail("Tracking array is full.");
         }
     }
 
@@ -160,12 +162,12 @@ public sealed class PartyImportBatchConsumer
         {
             base.ConfigureConsumer(endpointConfigurator, consumerConfigurator, context);
 
-            endpointConfigurator.PrefetchCount = 500;
+            endpointConfigurator.PrefetchCount = BATCH_SIZE * 5;
 
             consumerConfigurator.Options<BatchOptions>(options =>
             {
                 options
-                    .SetMessageLimit(100)
+                    .SetMessageLimit(BATCH_SIZE)
                     .SetTimeLimit(TimeSpan.FromSeconds(5))
                     .SetTimeLimitStart(BatchTimeLimitStart.FromFirst)
                     .SetConcurrencyLimit(3);
