@@ -51,6 +51,7 @@ public abstract class BusTestBase
             {
                 cfg.AddConsumers(typeof(RegisterHost).Assembly);
             });
+
         return base.ConfigureServices(services);
     }
 
@@ -62,5 +63,8 @@ public abstract class BusTestBase
         _bus = Services.GetRequiredService<IBusControl>();
         _commandSender = Services.GetRequiredService<ICommandSender>();
         _commandQueueResolver = Services.GetRequiredService<ICommandQueueResolver>();
+
+        var lifetime = Services.GetRequiredService<IBusLifetime>();
+        await lifetime.WaitForBus();
     }
 }

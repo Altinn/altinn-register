@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Net.Http.Headers;
 using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.PartyImport;
+using Altinn.Register.PartyImport.A2;
 using Altinn.Register.Tests.Utils;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Http;
@@ -12,7 +13,7 @@ using Nerdbank.Streams;
 namespace Altinn.Register.Tests.PartyImport;
 
 public class A2PartyImportConsumerTests
-    : ConsumerTestBase<A2PartyImportConsumer>
+    : BusTestBase
 {
     [Fact]
     public async Task ImportA2PartyCommand_FetchesParty_AndSendsUpsertCommand()
@@ -26,7 +27,7 @@ public class A2PartyImportConsumerTests
         await CommandSender.Send(new ImportA2PartyCommand { PartyUuid = partyUuid, ChangeId = 1, ChangedTime = TimeProvider.GetUtcNow() });
 
         Assert.True(await Harness.Consumed.Any<ImportA2PartyCommand>());
-        Assert.True(await ConsumerHarness.Consumed.Any<ImportA2PartyCommand>());
+        Assert.True(await Harness.Consumed.Any<ImportA2PartyCommand>());
         var sent = await Harness.Sent.SelectAsync<UpsertPartyCommand>().FirstOrDefaultAsync();
         Assert.NotNull(sent);
 

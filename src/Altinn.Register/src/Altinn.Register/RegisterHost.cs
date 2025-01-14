@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using Altinn.Authorization.ServiceDefaults;
+using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Common.AccessToken;
 using Altinn.Common.AccessToken.Configuration;
 using Altinn.Common.AccessToken.Services;
@@ -15,7 +16,6 @@ using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.Extensions;
 using Altinn.Register.ModelBinding;
-using Altinn.Register.PartyImport;
 using Altinn.Register.PartyImport.A2;
 using Altinn.Register.Services;
 using Altinn.Register.Services.Implementation;
@@ -27,6 +27,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 
 namespace Altinn.Register;
@@ -82,6 +83,7 @@ internal static class RegisterHost
 
         services.TryAddSingleton<RegisterTelemetry>();
         services.ConfigureOpenTelemetryTracerProvider((builder) => builder.AddSource(RegisterTelemetry.Name));
+        services.ConfigureOpenTelemetryMeterProvider((builder) => builder.AddMeter(RegisterTelemetry.Name));
 
         services.AddAuthentication(JwtCookieDefaults.AuthenticationScheme)
           .AddJwtCookie(JwtCookieDefaults.AuthenticationScheme, options =>
@@ -148,6 +150,13 @@ internal static class RegisterHost
 
                     c.BaseAddress = baseAddress;
                 });
+
+            services.AddRecurringJob<A2PartyImportJob>(settings =>
+            {
+                settings.LeaseName = LeaseNames.A2PartyImport;
+                settings.Interval = TimeSpan.FromMinutes(1);
+                settings.WaitForReady = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
+            });
         }
 
         services.AddSwaggerGen(c =>

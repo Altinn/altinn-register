@@ -30,4 +30,13 @@ internal class CommandSender
         var endpoint = await _sendEndpointProvider.GetSendEndpoint(uri).WaitAsync(cancellationToken);
         await endpoint.Send(command, cancellationToken);
     }
+
+    /// <inheritdoc/>
+    public async Task Send<T>(IEnumerable<T> commands, CancellationToken cancellationToken = default)
+        where T : CommandBase
+    {
+        var uri = _queueResolver.GetQueueUriForCommandType<T>();
+        var endpoint = await _sendEndpointProvider.GetSendEndpoint(uri).WaitAsync(cancellationToken);
+        await endpoint.SendBatch(commands, cancellationToken);
+    }
 }

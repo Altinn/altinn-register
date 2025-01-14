@@ -51,6 +51,11 @@ public sealed class RegisterTelemetry
         where T : struct
         => _meter.CreateCounter<T>(name, unit, description);
 
+    /// <inheritdoc cref="Meter.CreateHistogram{T}(string, string?, string?)"/>
+    public Histogram<T> CreateHistogram<T>(string name, string? unit = null, string? description = null)
+        where T : struct
+        => _meter.CreateHistogram<T>(name, unit, description);
+
     /// <summary>
     /// Gets
     /// </summary>

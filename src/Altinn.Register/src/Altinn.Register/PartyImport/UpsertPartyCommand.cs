@@ -12,7 +12,12 @@ public sealed record UpsertPartyCommand
     : CommandBase
 {
     /// <summary>
-    /// The updated party record.
+    /// Gets the party to import.
     /// </summary>
     public required PartyRecord Party { get; init; }
+
+    /// <summary>
+    /// Gets the tracking information for the import.
+    /// </summary>
+    public UpsertPartyTracking Tracking { get; init; }
 }

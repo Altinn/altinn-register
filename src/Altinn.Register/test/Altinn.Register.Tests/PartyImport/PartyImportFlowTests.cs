@@ -10,8 +10,8 @@ using Altinn.Register.TestUtils;
 
 namespace Altinn.Register.Tests.PartyImport;
 
-public class PartyImportConsumerTests
-    : ConsumerTestBase<PartyImportConsumer>
+public class PartyImportFlowTests
+    : BusTestBase
 {
     private IUnitOfWorkManager UOW => GetRequiredService<IUnitOfWorkManager>();
 
@@ -46,11 +46,11 @@ public class PartyImportConsumerTests
         };
 
         await CommandSender.Send(cmd1);
-        await Harness.Consumed.Any<UpsertPartyCommand>(m => m.Context.CorrelationId == cmd1.CommandId);
-        var consumed = await ConsumerHarness.Consumed.SelectAsync<UpsertPartyCommand>(m => m.Context.CorrelationId == cmd1.CommandId).FirstOrDefaultAsync();
+        var conversationId = await Harness.Consumed.SelectAsync<UpsertPartyCommand>(m => m.Context.CorrelationId == cmd1.CommandId).Select(m => m.Context.ConversationId).FirstOrDefaultAsync();
+        var consumed = await Harness.Consumed.SelectAsync<BatchedUpsertPartyCommand>(m => m.Context.ConversationId == conversationId).FirstOrDefaultAsync();
         Assert.NotNull(consumed);
 
-        var published = await Harness.Published.SelectAsync<PartyUpdatedEvent>(m => m.Context.ConversationId == consumed.Context.ConversationId).FirstOrDefaultAsync();
+        var published = await Harness.Published.SelectAsync<PartyUpdatedEvent>(m => m.Context.ConversationId == conversationId).FirstOrDefaultAsync();
         Assert.NotNull(published);
 
         published.Context.Message.PartyUuid.Should().Be(partyUuid);
@@ -81,11 +81,11 @@ public class PartyImportConsumerTests
         };
 
         await CommandSender.Send(cmd2);
-        await Harness.Consumed.Any<UpsertPartyCommand>(m => m.Context.CorrelationId == cmd2.CommandId);
-        consumed = await ConsumerHarness.Consumed.SelectAsync<UpsertPartyCommand>(m => m.Context.CorrelationId == cmd2.CommandId).FirstOrDefaultAsync();
+        conversationId = await Harness.Consumed.SelectAsync<UpsertPartyCommand>(m => m.Context.CorrelationId == cmd2.CommandId).Select(m => m.Context.ConversationId).FirstOrDefaultAsync();
+        consumed = await Harness.Consumed.SelectAsync<BatchedUpsertPartyCommand>(m => m.Context.ConversationId == conversationId).FirstOrDefaultAsync();
         Assert.NotNull(consumed);
 
-        published = await Harness.Published.SelectAsync<PartyUpdatedEvent>(m => m.Context.ConversationId == consumed.Context.ConversationId).FirstOrDefaultAsync();
+        published = await Harness.Published.SelectAsync<PartyUpdatedEvent>(m => m.Context.ConversationId == conversationId).FirstOrDefaultAsync();
         Assert.NotNull(published);
 
         published.Context.Message.PartyUuid.Should().Be(partyUuid);
