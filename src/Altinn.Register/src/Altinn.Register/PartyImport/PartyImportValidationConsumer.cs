@@ -32,7 +32,7 @@ public sealed class PartyImportValidationConsumer
     {
         PartyImportHelper.ValidatePartyForUpset(context.Message.Party);
 
-        await _sender.Send(BatchedUpsertPartyCommand.From(context.Message), context.CancellationToken);
+        await _sender.Send(UpsertValidatedPartyCommand.From(context.Message), context.CancellationToken);
     }
 
     /// <summary>

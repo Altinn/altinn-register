@@ -47,7 +47,7 @@ public class PartyImportFlowTests
 
         await CommandSender.Send(cmd1);
         var conversationId = await Harness.Consumed.SelectAsync<UpsertPartyCommand>(m => m.Context.CorrelationId == cmd1.CommandId).Select(m => m.Context.ConversationId).FirstOrDefaultAsync();
-        var consumed = await Harness.Consumed.SelectAsync<BatchedUpsertPartyCommand>(m => m.Context.ConversationId == conversationId).FirstOrDefaultAsync();
+        var consumed = await Harness.Consumed.SelectAsync<UpsertValidatedPartyCommand>(m => m.Context.ConversationId == conversationId).FirstOrDefaultAsync();
         Assert.NotNull(consumed);
 
         var published = await Harness.Published.SelectAsync<PartyUpdatedEvent>(m => m.Context.ConversationId == conversationId).FirstOrDefaultAsync();
@@ -82,7 +82,7 @@ public class PartyImportFlowTests
 
         await CommandSender.Send(cmd2);
         conversationId = await Harness.Consumed.SelectAsync<UpsertPartyCommand>(m => m.Context.CorrelationId == cmd2.CommandId).Select(m => m.Context.ConversationId).FirstOrDefaultAsync();
-        consumed = await Harness.Consumed.SelectAsync<BatchedUpsertPartyCommand>(m => m.Context.ConversationId == conversationId).FirstOrDefaultAsync();
+        consumed = await Harness.Consumed.SelectAsync<UpsertValidatedPartyCommand>(m => m.Context.ConversationId == conversationId).FirstOrDefaultAsync();
         Assert.NotNull(consumed);
 
         published = await Harness.Published.SelectAsync<PartyUpdatedEvent>(m => m.Context.ConversationId == conversationId).FirstOrDefaultAsync();

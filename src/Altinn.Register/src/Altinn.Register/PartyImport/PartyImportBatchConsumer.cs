@@ -15,7 +15,7 @@ namespace Altinn.Register.PartyImport;
 /// Consumer for upserting parties from different sources in batches.
 /// </summary>
 public sealed class PartyImportBatchConsumer
-    : IConsumer<Batch<BatchedUpsertPartyCommand>>
+    : IConsumer<Batch<UpsertValidatedPartyCommand>>
 {
     private readonly IUnitOfWorkManager _uow;
     private readonly IImportJobTracker _tracker;
@@ -35,7 +35,7 @@ public sealed class PartyImportBatchConsumer
     /// Consumes a batch of upsert party commands.
     /// </summary>
     /// <param name="context">The consume context.</param>
-    public async Task Consume(ConsumeContext<Batch<BatchedUpsertPartyCommand>> context)
+    public async Task Consume(ConsumeContext<Batch<UpsertValidatedPartyCommand>> context)
     {
         await UpsertParties(context, context.Message, context.CancellationToken);
     }
@@ -48,7 +48,7 @@ public sealed class PartyImportBatchConsumer
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     private async Task UpsertParties(
         ConsumeContext context,
-        Batch<BatchedUpsertPartyCommand> upserts,
+        Batch<UpsertValidatedPartyCommand> upserts,
         CancellationToken cancellationToken)
     {
         PartyUpdatedEvent[]? evts = null;
@@ -66,6 +66,11 @@ public sealed class PartyImportBatchConsumer
                 foreach (var upsert in upserts)
                 {
                     var party = upsert.Message.Party;
+
+                    // Note: even though the party has already been validated, we still run the validation logic here
+                    // since it's cheap and gives much better error messages than the database layer. This is mostly
+                    // to catch if anyone produces UpsertValidatedPartyCommand instances somewhere in the future without
+                    // actually validating the party.
                     PartyImportHelper.ValidatePartyForUpset(party);
 
                     var result = await persistence.UpsertParty(party, cancellationToken);
