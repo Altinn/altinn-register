@@ -1,8 +1,11 @@
-﻿namespace Altinn.Authorization.ServiceDefaults.MassTransit;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace Altinn.Authorization.ServiceDefaults.MassTransit;
 
 /// <summary>
 /// Provides the client configuration settings for connecting to a MassTransit bus.
 /// </summary>
+[ExcludeFromCodeCoverage]
 public sealed class MassTransitSettings
 {
     /// <summary>
@@ -69,6 +72,7 @@ public enum MassTransitTransport
 /// <summary>
 /// Provides the client configuration settings for connecting to a Rabbit MQ bus.
 /// </summary>
+[ExcludeFromCodeCoverage]
 public sealed class MassTransitRabbitMqSettings
 {
     /// <summary>
@@ -110,6 +114,7 @@ public sealed class MassTransitRabbitMqSettings
 /// <summary>
 /// Provides the client configuration settings for connecting to an Azure Service Bus.
 /// </summary>
+[ExcludeFromCodeCoverage]
 public sealed class MassTransitAzureServiceBusSettings
 {
     /// <summary>
