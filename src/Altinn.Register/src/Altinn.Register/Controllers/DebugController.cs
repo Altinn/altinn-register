@@ -4,8 +4,10 @@ using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Net.Http.Headers;
+using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Configuration;
 using Altinn.Register.Conventions;
+using Altinn.Register.PartyImport.A2;
 using CommunityToolkit.Diagnostics;
 using MassTransit;
 using Microsoft.AspNetCore.Authorization;
@@ -60,6 +62,23 @@ public class DebugController
     [HttpGet("parties/{partyId:int}")]
     public IActionResult Party(int partyId)
         => ForwardTo($"parties/{partyId}");
+
+    /// <summary>
+    /// Manually trigger import of a party from A2.
+    /// </summary>
+    /// <param name="command">The import command.</param>
+    /// <param name="sender">The command sender.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    [HttpPost("import/a2")]
+    public async Task<IActionResult> ImportA2Party(
+        [FromBody] ImportA2PartyCommand command,
+        [FromServices] ICommandSender sender,
+        CancellationToken cancellationToken = default)
+    {
+        await sender.Send(command, cancellationToken);
+
+        return Ok(command);
+    }
 
     [NonAction]
     private HttpProxyResult ForwardTo(string path)

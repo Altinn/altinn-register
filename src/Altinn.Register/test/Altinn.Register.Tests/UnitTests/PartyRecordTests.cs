@@ -26,6 +26,8 @@ public class PartyRecordTests
             OrganizationIdentifier = FieldValue.Unset,
             CreatedAt = FieldValue.Unset,
             ModifiedAt = FieldValue.Unset,
+            IsDeleted = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
         };
 
         var json = JsonSerializer.Serialize(record, _options);
@@ -48,6 +50,8 @@ public class PartyRecordTests
             OrganizationIdentifier = FieldValue.Unset,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = 50,
         };
 
         var json = JsonSerializer.SerializeToElement(record, _options);
@@ -58,7 +62,9 @@ public class PartyRecordTests
                 "partyId":1,
                 "name":"1",
                 "createdAt":"2000-01-01T00:00:00+00:00",
-                "modifiedAt":"2000-01-01T00:00:00+00:00"
+                "modifiedAt":"2000-01-01T00:00:00+00:00",
+                "isDeleted":false,
+                "versionId":50
             }
             """);
 
@@ -79,6 +85,8 @@ public class PartyRecordTests
             OrganizationIdentifier = FieldValue.Unset,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = true,
+            VersionId = 42,
         };
 
         var json = JsonSerializer.SerializeToElement(record, _options);
@@ -91,7 +99,9 @@ public class PartyRecordTests
                 "name":"1",
                 "personIdentifier":"25871999336",
                 "createdAt":"2000-01-01T00:00:00+00:00",
-                "modifiedAt":"2000-01-01T00:00:00+00:00"
+                "modifiedAt":"2000-01-01T00:00:00+00:00",
+                "isDeleted":true,
+                "versionId":42
             }
             """);
 
@@ -112,6 +122,8 @@ public class PartyRecordTests
             OrganizationIdentifier = OrganizationIdentifier.Parse("123456785"),
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = 42,
         };
 
         var json = JsonSerializer.SerializeToElement(record, _options);
@@ -124,7 +136,9 @@ public class PartyRecordTests
                 "name":"1",
                 "organizationIdentifier":"123456785",
                 "createdAt":"2000-01-01T00:00:00+00:00",
-                "modifiedAt":"2000-01-01T00:00:00+00:00"
+                "modifiedAt":"2000-01-01T00:00:00+00:00",
+                "isDeleted":false,
+                "versionId":42
             }
             """);
 
@@ -145,6 +159,8 @@ public class PartyRecordTests
             OrganizationIdentifier = FieldValue.Unset,
             CreatedAt = FieldValue.Unset,
             ModifiedAt = FieldValue.Unset,
+            IsDeleted = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
 
             FirstName = FieldValue.Unset,
             MiddleName = FieldValue.Unset,
@@ -180,6 +196,8 @@ public class PartyRecordTests
             OrganizationIdentifier = FieldValue.Unset,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = 42,
 
             FirstName = FieldValue.Unset,
             MiddleName = FieldValue.Unset,
@@ -200,7 +218,9 @@ public class PartyRecordTests
                 "name":"1",
                 "personIdentifier":"25871999336",
                 "createdAt":"2000-01-01T00:00:00+00:00",
-                "modifiedAt":"2000-01-01T00:00:00+00:00"
+                "modifiedAt":"2000-01-01T00:00:00+00:00",
+                "isDeleted":false,
+                "versionId":42
             }
             """);
 
@@ -221,6 +241,8 @@ public class PartyRecordTests
             OrganizationIdentifier = FieldValue.Unset,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow() + TimeSpan.FromDays(1),
+            IsDeleted = true,
+            VersionId = 42,
 
             FirstName = "First",
             MiddleName = null,
@@ -256,6 +278,8 @@ public class PartyRecordTests
                 "personIdentifier": "25871999336",
                 "createdAt": "2000-01-01T00:00:00+00:00",
                 "modifiedAt": "2000-01-02T00:00:00+00:00",
+                "isDeleted": true,
+                "versionId": 42,
                 "firstName": "First",
                 "middleName": null,
                 "lastName": "Last",
@@ -295,6 +319,8 @@ public class PartyRecordTests
             OrganizationIdentifier = FieldValue.Unset,
             CreatedAt = FieldValue.Unset,
             ModifiedAt = FieldValue.Unset,
+            IsDeleted = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
 
             UnitStatus = FieldValue.Unset,
             UnitType = FieldValue.Unset,
@@ -331,6 +357,8 @@ public class PartyRecordTests
             OrganizationIdentifier = OrganizationIdentifier.Parse("123456785"),
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = 42,
 
             UnitStatus = "status",
             UnitType = "type",
@@ -364,6 +392,8 @@ public class PartyRecordTests
                 "organizationIdentifier":"123456785",
                 "createdAt":"2000-01-01T00:00:00+00:00",
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
+                "isDeleted":false,
+                "versionId":42,
                 "unitStatus":"status",
                 "unitType":"type",
                 "telephoneNumber":"telephone",
@@ -401,6 +431,8 @@ public class PartyRecordTests
             OrganizationIdentifier = FieldValue.Unset,
             CreatedAt = FieldValue.Unset,
             ModifiedAt = FieldValue.Unset,
+            IsDeleted = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
 
             UnitStatus = FieldValue.Unset,
             UnitType = FieldValue.Unset,
@@ -449,6 +481,8 @@ public class PartyRecordTests
             OrganizationIdentifier = OrganizationIdentifier.Parse("123456785"),
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = 42,
 
             UnitStatus = "status",
             UnitType = "type",
@@ -482,6 +516,8 @@ public class PartyRecordTests
                 "OrganizationIdentifier":"123456785",
                 "CreatedAt":"2000-01-01T00:00:00+00:00",
                 "ModifiedAt":"2000-01-01T00:00:00+00:00",
+                "IsDeleted":false,
+                "VersionId":42,
                 "UnitStatus":"status",
                 "UnitType":"type",
                 "TelephoneNumber":"telephone",

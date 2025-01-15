@@ -498,6 +498,8 @@ public class PostgreSqlPartyPersistenceTests
             OrganizationIdentifier = orgNo,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = FieldValue.Unset,
             UnitStatus = "N",
             UnitType = "AS",
             TelephoneNumber = null,
@@ -511,10 +513,10 @@ public class PostgreSqlPartyPersistenceTests
 
         var result = await Persistence.UpsertParty(toInsert);
         var inserted = result.Should().HaveValue().Which.Should().BeOfType<OrganizationRecord>().Which;
-        inserted.Should().BeEquivalentTo(toInsert);
+        inserted.Should().BeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization).SingleAsync();
-        fromDb.Should().BeEquivalentTo(toInsert);
+        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
@@ -533,6 +535,8 @@ public class PostgreSqlPartyPersistenceTests
             OrganizationIdentifier = orgNo,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = FieldValue.Unset,
             UnitStatus = "N",
             UnitType = "AS",
             TelephoneNumber = null,
@@ -574,10 +578,10 @@ public class PostgreSqlPartyPersistenceTests
         };
 
         var updated = result.Value.Should().BeOfType<OrganizationRecord>().Which;
-        updated.Should().BeEquivalentTo(expected);
+        updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization).SingleAsync();
-        fromDb.Should().BeEquivalentTo(expected);
+        fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
@@ -596,6 +600,8 @@ public class PostgreSqlPartyPersistenceTests
             OrganizationIdentifier = orgNo,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = FieldValue.Unset,
             UnitStatus = "N",
             UnitType = "AS",
             TelephoneNumber = null,
@@ -621,7 +627,7 @@ public class PostgreSqlPartyPersistenceTests
         result.Should().BeProblem(Problems.InvalidPartyUpdate.ErrorCode);
         
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization).SingleAsync();
-        fromDb.Should().BeEquivalentTo(toInsert);
+        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
@@ -640,6 +646,8 @@ public class PostgreSqlPartyPersistenceTests
             OrganizationIdentifier = orgNo,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = FieldValue.Unset,
             UnitStatus = "N",
             UnitType = "AS",
             TelephoneNumber = null,
@@ -665,7 +673,7 @@ public class PostgreSqlPartyPersistenceTests
         result.Should().BeProblem(Problems.InvalidPartyUpdate.ErrorCode);
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization).SingleAsync();
-        fromDb.Should().BeEquivalentTo(toInsert);
+        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
@@ -684,6 +692,8 @@ public class PostgreSqlPartyPersistenceTests
             OrganizationIdentifier = orgNo,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = FieldValue.Unset,
             UnitStatus = "N",
             UnitType = "AS",
             TelephoneNumber = null,
@@ -710,6 +720,8 @@ public class PostgreSqlPartyPersistenceTests
             OrganizationIdentifier = await GetNewOrgNumber(),
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = FieldValue.Unset,
             UnitStatus = "N",
             UnitType = "AS",
             TelephoneNumber = null,
@@ -750,6 +762,8 @@ public class PostgreSqlPartyPersistenceTests
             OrganizationIdentifier = null,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = FieldValue.Unset,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -761,10 +775,10 @@ public class PostgreSqlPartyPersistenceTests
 
         var result = await Persistence.UpsertParty(toInsert);
         var inserted = result.Should().HaveValue().Which.Should().BeOfType<PersonRecord>().Which;
-        inserted.Should().BeEquivalentTo(toInsert);
+        inserted.Should().BeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person).SingleAsync();
-        fromDb.Should().BeEquivalentTo(toInsert);
+        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
@@ -785,6 +799,8 @@ public class PostgreSqlPartyPersistenceTests
             OrganizationIdentifier = null,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = FieldValue.Unset,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -831,10 +847,10 @@ public class PostgreSqlPartyPersistenceTests
         };
 
         var updated = result.Value.Should().BeOfType<PersonRecord>().Which;
-        updated.Should().BeEquivalentTo(expected);
+        updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person).SingleAsync();
-        fromDb.Should().BeEquivalentTo(expected);
+        fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
@@ -855,6 +871,8 @@ public class PostgreSqlPartyPersistenceTests
             OrganizationIdentifier = null,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = FieldValue.Unset,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -878,7 +896,7 @@ public class PostgreSqlPartyPersistenceTests
         result.Should().BeProblem(Problems.InvalidPartyUpdate.ErrorCode);
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person).SingleAsync();
-        fromDb.Should().BeEquivalentTo(toInsert);
+        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
@@ -899,6 +917,8 @@ public class PostgreSqlPartyPersistenceTests
             OrganizationIdentifier = null,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = FieldValue.Unset,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -922,7 +942,7 @@ public class PostgreSqlPartyPersistenceTests
         result.Should().BeProblem(Problems.InvalidPartyUpdate.ErrorCode);
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person).SingleAsync();
-        fromDb.Should().BeEquivalentTo(toInsert);
+        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
@@ -943,6 +963,8 @@ public class PostgreSqlPartyPersistenceTests
             OrganizationIdentifier = null,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = FieldValue.Unset,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -967,6 +989,8 @@ public class PostgreSqlPartyPersistenceTests
             OrganizationIdentifier = null,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = FieldValue.Unset,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -1207,6 +1231,7 @@ public class PostgreSqlPartyPersistenceTests
         FieldValue<OrganizationIdentifier> identifier = default,
         FieldValue<DateTimeOffset> createdAt = default,
         FieldValue<DateTimeOffset> modifiedAt = default,
+        FieldValue<bool> isDeleted = default,
         FieldValue<string> unitStatus = default,
         FieldValue<string> unitType = default,
         FieldValue<string> telephoneNumber = default,
@@ -1236,6 +1261,8 @@ public class PostgreSqlPartyPersistenceTests
             OrganizationIdentifier = identifier,
             CreatedAt = createdAt.HasValue ? createdAt.Value : TimeProvider.GetUtcNow(),
             ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : TimeProvider.GetUtcNow(),
+            IsDeleted = isDeleted.HasValue ? isDeleted.Value : false,
+            VersionId = FieldValue.Unset,
             UnitStatus = unitStatus.HasValue ? unitStatus.Value : "N",
             UnitType = unitType.HasValue ? unitType.Value : "AS",
             TelephoneNumber = telephoneNumber.HasValue ? telephoneNumber.Value : null,

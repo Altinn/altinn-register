@@ -56,4 +56,14 @@ public record PartyRecord
     /// Gets when the party was last modified in Altinn 3.
     /// </summary>
     public required FieldValue<DateTimeOffset> ModifiedAt { get; init; }
+
+    /// <summary>
+    /// Gets whether the party is deleted.
+    /// </summary>
+    public required FieldValue<bool> IsDeleted { get; init; }
+
+    /// <summary>
+    /// Gets the version ID of the party.
+    /// </summary>
+    public required FieldValue<ulong> VersionId { get; init; }
 }

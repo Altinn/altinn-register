@@ -28,6 +28,7 @@ public static class PartyImportHelper
         Check(ref builder, party.OrganizationIdentifier.IsSet, "/organizationIdentifier");
         Check(ref builder, party.CreatedAt.HasValue, "/createdAt");
         Check(ref builder, party.ModifiedAt.HasValue, "/modifiedAt");
+        Check(ref builder, party.IsDeleted.HasValue, "/isDeleted");
 
         if (party is PersonRecord person)
         {
