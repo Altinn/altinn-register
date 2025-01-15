@@ -25,6 +25,7 @@ internal abstract partial class MassTransitTransportHelper(MassTransitSettings s
         {
             MassTransitTransport.InMemory => new InMemoryTransportHelper(settings, busName),
             MassTransitTransport.RabbitMq => new RabbitMqTransportHelper(settings, busName),
+            MassTransitTransport.AzureServiceBus => new AzureServiceBusTransportHelper(settings, busName),
             _ => ThrowHelper.ThrowArgumentException<MassTransitTransportHelper>(nameof(settings), "Invalid transport"),
         };
 
