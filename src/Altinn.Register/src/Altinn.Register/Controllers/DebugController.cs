@@ -38,30 +38,6 @@ public class DebugController
     }
 
     /// <summary>
-    /// test
-    /// </summary>
-    [HttpGet("queue-import")]
-    [LocalDevCondition]
-    public async Task<IActionResult> Test(
-        [FromQuery(Name = "partyUuid")] Guid partyUuid,
-        [FromQuery(Name = "changeId")] int changeId,
-        [FromServices] IBus bus,
-        [FromServices] IMessageScheduler scheduler,
-        CancellationToken cancellationToken = default)
-    {
-        var command = new PartyImport.ImportA2PartyCommand
-        {
-            PartyUuid = partyUuid,
-            ChangeId = changeId,
-            ChangedTime = DateTimeOffset.UtcNow,
-        };
-
-        // TODO: send, not publish
-        await bus.Publish(command, cancellationToken);
-        return Accepted($"Queued import of {partyUuid}");
-    }
-
-    /// <summary>
     /// Gets the party changes.
     /// </summary>
     /// <param name="changeId">The change id to start from.</param>
