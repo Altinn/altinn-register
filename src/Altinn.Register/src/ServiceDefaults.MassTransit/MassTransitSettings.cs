@@ -1,8 +1,11 @@
-﻿namespace Altinn.Authorization.ServiceDefaults.MassTransit;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace Altinn.Authorization.ServiceDefaults.MassTransit;
 
 /// <summary>
 /// Provides the client configuration settings for connecting to a MassTransit bus.
 /// </summary>
+[ExcludeFromCodeCoverage]
 public sealed class MassTransitSettings
 {
     /// <summary>
@@ -38,6 +41,11 @@ public sealed class MassTransitSettings
     /// Gets or sets the Rabbit MQ specific settings.
     /// </summary>
     public MassTransitRabbitMqSettings RabbitMq { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the Azure Service Bus specific settings.
+    /// </summary>
+    public MassTransitAzureServiceBusSettings AzureServiceBus { get; set; } = new();
 }
 
 /// <summary>
@@ -64,6 +72,7 @@ public enum MassTransitTransport
 /// <summary>
 /// Provides the client configuration settings for connecting to a Rabbit MQ bus.
 /// </summary>
+[ExcludeFromCodeCoverage]
 public sealed class MassTransitRabbitMqSettings
 {
     /// <summary>
@@ -100,4 +109,16 @@ public sealed class MassTransitRabbitMqSettings
     /// Gets or sets a value indicating whether to use SSL or not.
     /// </summary>
     public bool UseSsl { get; set; } = false;
+}
+
+/// <summary>
+/// Provides the client configuration settings for connecting to an Azure Service Bus.
+/// </summary>
+[ExcludeFromCodeCoverage]
+public sealed class MassTransitAzureServiceBusSettings
+{
+    /// <summary>
+    /// Gets or sets the connection string for the Azure Service Bus.
+    /// </summary>
+    public string? ConnectionString { get; set; }
 }
