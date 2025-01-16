@@ -139,25 +139,25 @@ public class AltinnPostgresDatabaseResource
     /// Gets the connection string expression for the application role.
     /// </summary>
     public ReferenceExpression ApplicationConnectionStringValueExpression
-        => ReferenceExpression.Create($"Host={Parent.PrimaryEndpoint.Property(EndpointProperty.Host)};Port={Parent.PrimaryEndpoint.Property(EndpointProperty.Port)};Username={RoleNameReference};Password={PasswordParameter};Database={DatabaseName}");
+        => ReferenceExpression.Create($"Host={Parent.PrimaryEndpoint.Property(EndpointProperty.Host)};Port={Parent.PrimaryEndpoint.Property(EndpointProperty.Port)};Username={RoleNameReference};Password={PasswordParameter};Database={DatabaseName};Include Error Detail=true");
 
     /// <summary>
     /// Gets the connection string expression for the database migrator role.
     /// </summary>
     public ReferenceExpression MigratorConnectionStringValueExpression
-        => ReferenceExpression.Create($"Host={Parent.PrimaryEndpoint.Property(EndpointProperty.Host)};Port={Parent.PrimaryEndpoint.Property(EndpointProperty.Port)};Username={MigratorRoleNameReference};Password={MigratorPasswordParameter};Database={DatabaseName}");
+        => ReferenceExpression.Create($"Host={Parent.PrimaryEndpoint.Property(EndpointProperty.Host)};Port={Parent.PrimaryEndpoint.Property(EndpointProperty.Port)};Username={MigratorRoleNameReference};Password={MigratorPasswordParameter};Database={DatabaseName};Include Error Detail=true");
 
     /// <summary>
     /// Gets the connection string expression for the database seeder role.
     /// </summary>
     public ReferenceExpression SeederConnectionStringValueExpression
-        => ReferenceExpression.Create($"Host={Parent.PrimaryEndpoint.Property(EndpointProperty.Host)};Port={Parent.PrimaryEndpoint.Property(EndpointProperty.Port)};Username={SeederRoleNameReference};Password={SeederPasswordParameter};Database={DatabaseName}");
+        => ReferenceExpression.Create($"Host={Parent.PrimaryEndpoint.Property(EndpointProperty.Host)};Port={Parent.PrimaryEndpoint.Property(EndpointProperty.Port)};Username={SeederRoleNameReference};Password={SeederPasswordParameter};Database={DatabaseName};Include Error Detail=true");
 
     /// <summary>
     /// Gets the connection string expression for the database creator role.
     /// </summary>
     public ReferenceExpression CreatorConnectionStringValueExpression
-        => ReferenceExpression.Create($"Host={Parent.PrimaryEndpoint.Property(EndpointProperty.Host)};Port={Parent.PrimaryEndpoint.Property(EndpointProperty.Port)};Username={OwnerRoleNameReference};Password={OwnerPasswordParameter};Database={DatabaseName}");
+        => ReferenceExpression.Create($"Host={Parent.PrimaryEndpoint.Property(EndpointProperty.Host)};Port={Parent.PrimaryEndpoint.Property(EndpointProperty.Port)};Username={OwnerRoleNameReference};Password={OwnerPasswordParameter};Database={DatabaseName};Include Error Detail=true");
 
     /// <summary>
     /// Gets the connection string expression for the database server.

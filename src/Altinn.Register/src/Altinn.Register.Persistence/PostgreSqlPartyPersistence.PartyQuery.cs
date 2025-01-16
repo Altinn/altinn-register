@@ -144,6 +144,8 @@ internal partial class PostgreSqlPartyPersistence
                     OrganizationIdentifier = reader.GetConditionalParsableFieldValue<OrganizationIdentifier>(fields.PartyOrganizationIdentifier),
                     CreatedAt = reader.GetConditionalFieldValue<DateTimeOffset>(fields.PartyCreated),
                     ModifiedAt = reader.GetConditionalFieldValue<DateTimeOffset>(fields.PartyUpdated),
+                    IsDeleted = reader.GetConditionalFieldValue<bool>(fields.PartyIsDeleted),
+                    VersionId = reader.GetConditionalFieldValue<long>(fields.PartyVersionId).Select(static v => (ulong)v),
                 };
             }
 
@@ -158,6 +160,8 @@ internal partial class PostgreSqlPartyPersistence
                     OrganizationIdentifier = reader.GetConditionalParsableFieldValue<OrganizationIdentifier>(fields.PartyOrganizationIdentifier),
                     CreatedAt = reader.GetConditionalFieldValue<DateTimeOffset>(fields.PartyCreated),
                     ModifiedAt = reader.GetConditionalFieldValue<DateTimeOffset>(fields.PartyUpdated),
+                    IsDeleted = reader.GetConditionalFieldValue<bool>(fields.PartyIsDeleted),
+                    VersionId = reader.GetConditionalFieldValue<long>(fields.PartyVersionId).Select(static v => (ulong)v),
                     FirstName = reader.GetConditionalFieldValue<string>(fields.PersonFirstName),
                     MiddleName = reader.GetConditionalFieldValue<string>(fields.PersonMiddleName),
                     LastName = reader.GetConditionalFieldValue<string>(fields.PersonLastName),
@@ -179,6 +183,8 @@ internal partial class PostgreSqlPartyPersistence
                     OrganizationIdentifier = reader.GetConditionalParsableFieldValue<OrganizationIdentifier>(fields.PartyOrganizationIdentifier),
                     CreatedAt = reader.GetConditionalFieldValue<DateTimeOffset>(fields.PartyCreated),
                     ModifiedAt = reader.GetConditionalFieldValue<DateTimeOffset>(fields.PartyUpdated),
+                    IsDeleted = reader.GetConditionalFieldValue<bool>(fields.PartyIsDeleted),
+                    VersionId = reader.GetConditionalFieldValue<long>(fields.PartyVersionId).Select(static v => (ulong)v),
                     UnitStatus = reader.GetConditionalFieldValue<string>(fields.OrganizationUnitStatus),
                     UnitType = reader.GetConditionalFieldValue<string>(fields.OrganizationUnitType),
                     TelephoneNumber = reader.GetConditionalFieldValue<string>(fields.OrganizationTelephoneNumber),
@@ -212,6 +218,8 @@ internal partial class PostgreSqlPartyPersistence
                     partyOrganizationIdentifier: builder._partyOrganizationIdentifier,
                     partyCreated: builder._partyCreated,
                     partyUpdated: builder._partyUpdated,
+                    partyIsDeleted: builder._partyIsDeleted,
+                    partyVersionId: builder._partyVersionId,
                     personFirstName: builder._personFirstName,
                     personMiddleName: builder._personMiddleName,
                     personLastName: builder._personLastName,
@@ -239,6 +247,8 @@ internal partial class PostgreSqlPartyPersistence
                         partyOrganizationIdentifier: builder._childPartyOrganizationIdentifier,
                         partyCreated: builder._childPartyCreated,
                         partyUpdated: builder._childPartyUpdated,
+                        partyIsDeleted: builder._childPartyIsDeleted,
+                        partyVersionId: builder._childPartyVersionId,
                         personFirstName: -1,
                         personMiddleName: -1,
                         personLastName: -1,
@@ -296,6 +306,8 @@ internal partial class PostgreSqlPartyPersistence
             private sbyte _partyOrganizationIdentifier = -1;
             private sbyte _partyCreated = -1;
             private sbyte _partyUpdated = -1;
+            private sbyte _partyIsDeleted = -1;
+            private sbyte _partyVersionId = -1;
 
             // parent register.person
             private sbyte _personFirstName = -1;
@@ -326,6 +338,8 @@ internal partial class PostgreSqlPartyPersistence
             private sbyte _childPartyOrganizationIdentifier = -1;
             private sbyte _childPartyCreated = -1;
             private sbyte _childPartyUpdated = -1;
+            private sbyte _childPartyIsDeleted = -1;
+            private sbyte _childPartyVersionId = -1;
 
             // child register.organization
             private sbyte _childOrganizationUnitStatus = -1;
@@ -350,6 +364,8 @@ internal partial class PostgreSqlPartyPersistence
                 _partyOrganizationIdentifier = AddField("p.organization_identifier", "p_organization_identifier", includes.HasFlag(PartyFieldIncludes.PartyOrganizationIdentifier));
                 _partyCreated = AddField("p.created", "p_created", includes.HasFlag(PartyFieldIncludes.PartyCreatedAt));
                 _partyUpdated = AddField("p.updated", "p_updated", includes.HasFlag(PartyFieldIncludes.PartyModifiedAt));
+                _partyIsDeleted = AddField("p.is_deleted", "p_is_deleted", includes.HasFlag(PartyFieldIncludes.PartyIsDeleted));
+                _partyVersionId = AddField("p.version_id", "p_version_id", includes.HasFlag(PartyFieldIncludes.PartyVersionId));
 
                 _personFirstName = AddField("f.first_name", "p_first_name", includes.HasFlag(PartyFieldIncludes.PersonFirstName));
                 _personMiddleName = AddField("f.middle_name", "p_middle_name", includes.HasFlag(PartyFieldIncludes.PersonMiddleName));
@@ -379,6 +395,8 @@ internal partial class PostgreSqlPartyPersistence
                     _childPartyOrganizationIdentifier = AddField("cp.organization_identifier", "cp_organization_identifier", includes.HasFlag(PartyFieldIncludes.PartyOrganizationIdentifier));
                     _childPartyCreated = AddField("cp.created", "cp_created", includes.HasFlag(PartyFieldIncludes.PartyCreatedAt));
                     _childPartyUpdated = AddField("cp.updated", "cp_updated", includes.HasFlag(PartyFieldIncludes.PartyModifiedAt));
+                    _childPartyIsDeleted = AddField("cp.is_deleted", "cp_is_deleted", includes.HasFlag(PartyFieldIncludes.PartyIsDeleted));
+                    _childPartyVersionId = AddField("cp.version_id", "cp_version_id", includes.HasFlag(PartyFieldIncludes.PartyVersionId));
 
                     _childOrganizationUnitStatus = AddField("cp.unit_status", "cp_unit_status", includes.HasFlag(PartyFieldIncludes.OrganizationUnitStatus));
                     _childOrganizationUnitType = AddField("cp.unit_type", "cp_unit_type", includes.HasFlag(PartyFieldIncludes.OrganizationUnitType));
@@ -419,7 +437,9 @@ internal partial class PostgreSqlPartyPersistence
                     AddJoinField("cp.organization_identifier", includes.HasFlag(PartyFieldIncludes.PartyOrganizationIdentifier), ref first);
                     AddJoinField("cp.created", includes.HasFlag(PartyFieldIncludes.PartyCreatedAt), ref first);
                     AddJoinField("cp.updated", includes.HasFlag(PartyFieldIncludes.PartyModifiedAt), ref first);
-                    
+                    AddJoinField("cp.is_deleted", includes.HasFlag(PartyFieldIncludes.PartyIsDeleted), ref first);
+                    AddJoinField("cp.version_id", includes.HasFlag(PartyFieldIncludes.PartyVersionId), ref first);
+
                     AddJoinField("co.unit_status", includes.HasFlag(PartyFieldIncludes.OrganizationUnitStatus), ref first);
                     AddJoinField("co.unit_type", includes.HasFlag(PartyFieldIncludes.OrganizationUnitType), ref first);
                     AddJoinField("co.telephone_number", includes.HasFlag(PartyFieldIncludes.OrganizationTelephoneNumber), ref first);
@@ -607,6 +627,8 @@ internal partial class PostgreSqlPartyPersistence
             sbyte partyOrganizationIdentifier,
             sbyte partyCreated,
             sbyte partyUpdated,
+            sbyte partyIsDeleted,
+            sbyte partyVersionId,
 
             // register.person
             sbyte personFirstName,
@@ -637,6 +659,8 @@ internal partial class PostgreSqlPartyPersistence
             public int PartyOrganizationIdentifier => partyOrganizationIdentifier;
             public int PartyCreated => partyCreated;
             public int PartyUpdated => partyUpdated;
+            public int PartyIsDeleted => partyIsDeleted;
+            public int PartyVersionId => partyVersionId;
 
             // register.person
             public int PersonFirstName => personFirstName;

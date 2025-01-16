@@ -243,9 +243,9 @@ internal partial class PostgreSqlPartyPersistence
             const string SAVEPOINT_NAME = "try_insert_party";
             const string QUERY =
                 /*strpsql*/"""
-                INSERT INTO register.party (uuid, id, party_type, name, person_identifier, organization_identifier, created, updated)
-                VALUES (@uuid, @id, @party_type, @name, @person_identifier, @organization_identifier, @created, @updated)
-                RETURNING uuid, id, party_type, name, person_identifier, organization_identifier, created, updated
+                INSERT INTO register.party (uuid, id, party_type, name, person_identifier, organization_identifier, created, updated, is_deleted)
+                VALUES (@uuid, @id, @party_type, @name, @person_identifier, @organization_identifier, @created, @updated, @is_deleted)
+                RETURNING uuid, id, party_type, name, person_identifier, organization_identifier, created, updated, is_deleted, version_id
                 """;
 
             await using var cmd = _connection.CreateCommand();
@@ -259,6 +259,7 @@ internal partial class PostgreSqlPartyPersistence
             cmd.Parameters.Add<string>("organization_identifier", NpgsqlDbType.Text).TypedValue = party.OrganizationIdentifier.Value?.ToString();
             cmd.Parameters.Add<DateTimeOffset>("created", NpgsqlDbType.TimestampTz).TypedValue = party.CreatedAt.Value;
             cmd.Parameters.Add<DateTimeOffset>("updated", NpgsqlDbType.TimestampTz).TypedValue = party.ModifiedAt.Value;
+            cmd.Parameters.Add<bool>("is_deleted", NpgsqlDbType.Boolean).TypedValue = party.IsDeleted.Value;
 
             await cmd.PrepareAsync(cancellationToken);
             await using var savePoint = await _savePointManager.CreateSavePoint(SAVEPOINT_NAME, cancellationToken);
@@ -280,6 +281,8 @@ internal partial class PostgreSqlPartyPersistence
                     OrganizationIdentifier = reader.GetConditionalParsableFieldValue<OrganizationIdentifier>("organization_identifier"),
                     CreatedAt = reader.GetConditionalFieldValue<DateTimeOffset>("created"),
                     ModifiedAt = reader.GetConditionalFieldValue<DateTimeOffset>("updated"),
+                    IsDeleted = reader.GetConditionalFieldValue<bool>("is_deleted"),
+                    VersionId = reader.GetConditionalFieldValue<long>("version_id").Select(static v => (ulong)v),
                 };
             }
             catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.UniqueViolation && e.ConstraintName == "party_pkey")
@@ -307,14 +310,14 @@ internal partial class PostgreSqlPartyPersistence
             const string QUERY =
                 /*strpsql*/"""
                 UPDATE register.party
-                SET name = @name, updated = @updated
+                SET name = @name, updated = @updated, is_deleted = @is_deleted
                 WHERE 
                         uuid = @uuid
                     AND id = @id
                     AND party_type = @party_type
                     AND person_identifier IS NOT DISTINCT FROM @person_identifier
                     AND organization_identifier IS NOT DISTINCT FROM @organization_identifier
-                RETURNING uuid, id, party_type, name, person_identifier, organization_identifier, created, updated
+                RETURNING uuid, id, party_type, name, person_identifier, organization_identifier, created, updated, is_deleted, version_id
                 """;
 
             await using var cmd = _connection.CreateCommand();
@@ -327,6 +330,7 @@ internal partial class PostgreSqlPartyPersistence
             cmd.Parameters.Add<string>("person_identifier", NpgsqlDbType.Text).TypedValue = party.PersonIdentifier.Value?.ToString();
             cmd.Parameters.Add<string>("organization_identifier", NpgsqlDbType.Text).TypedValue = party.OrganizationIdentifier.Value?.ToString();
             cmd.Parameters.Add<DateTimeOffset>("updated", NpgsqlDbType.TimestampTz).TypedValue = party.ModifiedAt.Value;
+            cmd.Parameters.Add<bool>("is_deleted", NpgsqlDbType.Boolean).TypedValue = party.IsDeleted.Value;
 
             await cmd.PrepareAsync(cancellationToken);
 
@@ -350,6 +354,8 @@ internal partial class PostgreSqlPartyPersistence
                 OrganizationIdentifier = reader.GetConditionalParsableFieldValue<OrganizationIdentifier>("organization_identifier"),
                 CreatedAt = reader.GetConditionalFieldValue<DateTimeOffset>("created"),
                 ModifiedAt = reader.GetConditionalFieldValue<DateTimeOffset>("updated"),
+                IsDeleted = reader.GetConditionalFieldValue<bool>("is_deleted"),
+                VersionId = reader.GetConditionalFieldValue<long>("version_id").Select(static v => (ulong)v),
             };
 
             Debug.Assert(result.PartyUuid == party.PartyUuid, "PartyUuid should match");
@@ -368,6 +374,7 @@ internal partial class PostgreSqlPartyPersistence
             Debug.Assert(party.OrganizationIdentifier.IsSet, "party must have OrganizationIdentifier set");
             Debug.Assert(party.CreatedAt.HasValue, "party must have CreatedAt set");
             Debug.Assert(party.ModifiedAt.HasValue, "party must have ModifiedAt set");
+            Debug.Assert(party.IsDeleted.HasValue, "party must have IsDeleted set");
 
             // Note: we're running inside a transaction, so we don't need to worry about data races except in the case where the entire transaction fails
             var result = await TryInsertParty(party, cancellationToken);
@@ -442,6 +449,8 @@ internal partial class PostgreSqlPartyPersistence
                 OrganizationIdentifier = partyData.OrganizationIdentifier,
                 CreatedAt = partyData.CreatedAt,
                 ModifiedAt = partyData.ModifiedAt,
+                IsDeleted = partyData.IsDeleted,
+                VersionId = partyData.VersionId,
                 FirstName = reader.GetConditionalFieldValue<string>("first_name"),
                 MiddleName = reader.GetConditionalFieldValue<string>("middle_name"),
                 LastName = reader.GetConditionalFieldValue<string>("last_name"),
@@ -525,6 +534,8 @@ internal partial class PostgreSqlPartyPersistence
                 OrganizationIdentifier = partyData.OrganizationIdentifier,
                 CreatedAt = partyData.CreatedAt,
                 ModifiedAt = partyData.ModifiedAt,
+                IsDeleted = partyData.IsDeleted,
+                VersionId = partyData.VersionId,
                 UnitStatus = reader.GetConditionalFieldValue<string>("unit_status"),
                 UnitType = reader.GetConditionalFieldValue<string>("unit_type"),
                 TelephoneNumber = reader.GetConditionalFieldValue<string>("telephone_number"),

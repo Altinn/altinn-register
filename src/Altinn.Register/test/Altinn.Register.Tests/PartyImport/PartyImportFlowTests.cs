@@ -30,6 +30,8 @@ public class PartyImportFlowTests
             OrganizationIdentifier = null,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = FieldValue.Unset,
 
             FirstName = "Test",
             MiddleName = "Mid",
@@ -60,7 +62,7 @@ public class PartyImportFlowTests
             var persistence = uow.GetPartyPersistence();
             var fromDb = await persistence.GetPartyById(partyUuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person).FirstOrDefaultAsync();
 
-            fromDb.Should().BeEquivalentTo(person);
+            fromDb.Should().BeEquivalentTo(person with { VersionId = fromDb!.VersionId });
         }
 
         var personUpdated = person with
@@ -94,7 +96,7 @@ public class PartyImportFlowTests
             await using var uow = await UOW.CreateAsync();
             var persistence = uow.GetPartyPersistence();
             var fromDb = await persistence.GetPartyById(partyUuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person).FirstOrDefaultAsync();
-            fromDb.Should().BeEquivalentTo(personUpdated);
+            fromDb.Should().BeEquivalentTo(personUpdated with { VersionId = fromDb!.VersionId });
         }
     }
 }

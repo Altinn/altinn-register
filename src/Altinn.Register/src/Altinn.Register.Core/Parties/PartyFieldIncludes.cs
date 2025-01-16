@@ -55,9 +55,24 @@ public enum PartyFieldIncludes
     PartyModifiedAt = 1 << 7,
 
     /// <summary>
+    /// Whether the party is deleted.
+    /// </summary>
+    PartyIsDeleted = 1 << 24,
+
+    /// <summary>
+    /// The version ID of the party.
+    /// </summary>
+    PartyVersionId = 1 << 25,
+
+    /// <summary>
+    /// All party identifiers.
+    /// </summary>
+    Identifiers = PartyUuid | PartyId | PartyPersonIdentifier | PartyOrganizationIdentifier,
+
+    /// <summary>
     /// All party fields.
     /// </summary>
-    Party = PartyUuid | PartyId | PartyType | PartyName | PartyPersonIdentifier | PartyOrganizationIdentifier | PartyCreatedAt | PartyModifiedAt,
+    Party = Identifiers | PartyType | PartyName | PartyCreatedAt | PartyModifiedAt | PartyIsDeleted | PartyVersionId,
 
     /// <summary>
     /// The first name of the person, if the party is a person.
@@ -153,5 +168,5 @@ public enum PartyFieldIncludes
     /// <summary>
     /// Include subunits (if party is an organization).
     /// </summary>
-    SubUnits = 1 << 30,
+    SubUnits = 1 << 26,
 }

@@ -216,11 +216,12 @@ internal sealed class A2PartyImportService
 
             var partyUuid = party.PartyUuid!.Value;
             var partyId = party.PartyId;
-            var personIdentifier = PersonIdentifier.Parse(person.SSN.AsSpan().Trim());
+            var personIdentifier = MapPersonIdentifier(person.SSN.AsSpan().Trim());
             var name = Normalize(person.Name);
             var firstName = Normalize(person.FirstName);
             var middleName = Normalize(person.MiddleName);
             var lastName = Normalize(person.LastName);
+            var isDeleted = party.IsDeleted;
 
             var address = MapStreetAddress(
                 municipalNumber: person.AddressMunicipalNumber,
@@ -270,6 +271,8 @@ internal sealed class A2PartyImportService
                 OrganizationIdentifier = null,
                 CreatedAt = now,
                 ModifiedAt = now,
+                IsDeleted = isDeleted,
+                VersionId = FieldValue.Unset,
 
                 // person fields
                 FirstName = firstName,
@@ -282,13 +285,23 @@ internal sealed class A2PartyImportService
             };
         }
 
+        static PersonIdentifier MapPersonIdentifier(ReadOnlySpan<char> source)
+        {
+            if (source.SequenceEqual("00000000000"))
+            {
+                ThrowHelper.ThrowArgumentException(nameof(source), "Person identifier cannot be all zeroes.");
+            }
+
+            return PersonIdentifier.Parse(source);
+        }
+
         static OrganizationRecord MapOrganization(V1Models.Party party, DateTimeOffset now)
         {
             var organization = party.Organization!;
 
             var partyUuid = party.PartyUuid!.Value;
             var partyId = party.PartyId;
-            var organizationNumber = OrganizationIdentifier.Parse(organization.OrgNumber.AsSpan().Trim());
+            var organizationNumber = MapOrganizationIdentifier(organization.OrgNumber.AsSpan().Trim());
             var name = Normalize(organization.Name);
             var unitStatus = Normalize(organization.UnitStatus);
             var unitType = Normalize(organization.UnitType);
@@ -297,6 +310,7 @@ internal sealed class A2PartyImportService
             var faxNumber = Normalize(organization.FaxNumber);
             var emailAddress = Normalize(organization.EMailAddress);
             var internetAddress = Normalize(organization.InternetAddress);
+            var isDeleted = party.IsDeleted;
 
             var mailingAddress = MapMailingAddress(
                 address: organization.MailingAddress,
@@ -318,6 +332,8 @@ internal sealed class A2PartyImportService
                 OrganizationIdentifier = organizationNumber,
                 CreatedAt = now,
                 ModifiedAt = now,
+                IsDeleted = isDeleted,
+                VersionId = FieldValue.Unset,
 
                 // organization fields
                 UnitStatus = unitStatus,
@@ -330,6 +346,21 @@ internal sealed class A2PartyImportService
                 MailingAddress = mailingAddress,
                 BusinessAddress = businessAddress,
             };
+        }
+
+        static OrganizationIdentifier MapOrganizationIdentifier(ReadOnlySpan<char> source)
+        {
+            // there are some organization numbers that are 8 in length,
+            // they should be 0-prefixed.
+            if (source.Length == 8)
+            {
+                Span<char> padded = stackalloc char[9];
+                padded[0] = '0';
+                source.CopyTo(padded[1..]);
+                return OrganizationIdentifier.Parse(padded);
+            }
+
+            return OrganizationIdentifier.Parse(source);
         }
     }
 
