@@ -12,7 +12,7 @@
     <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql" Version="2.9.0" />
     <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Telemetry" Version="2.9.0" />
     <PackageVersion Include="Altinn.Authorization.ServiceDefaults" Version="2.9.0" />
-    <PackageVersion Include="Altinn.Common.AccessToken" Version="4.5.4" />
+    <PackageVersion Include="Altinn.Common.AccessToken" Version="4.5.5" />
     <PackageVersion Include="Altinn.Common.PEP" Version="4.1.2" />
     <PackageVersion Include="Altinn.Swashbuckle.Abstractions" Version="2.2.0" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.0.0" />
@@ -20,7 +20,7 @@
     <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="9.0.0" />
     <PackageVersion Include="Azure.Identity" Version="1.13.1" />
     <PackageVersion Include="CommunityToolkit.Diagnostics" Version="8.4.0" />
-    <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.3" />
     <PackageVersion Include="FluentAssertions.Analyzers" Version="0.34.1" />
     <PackageVersion Include="FluentAssertions" Version="7.0.0" />
     <PackageVersion Include="JWTCookieAuthentication" Version="4.0.1" />
@@ -44,10 +44,10 @@
     <PackageVersion Include="Nerdbank.Streams" Version="2.11.79" />
     <PackageVersion Include="Npgsql" Version="9.0.2" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Quartz" Version="1.0.0-beta.3" />
-    <PackageVersion Include="Polly" Version="8.5.0" />
+    <PackageVersion Include="Polly" Version="8.5.1" />
     <PackageVersion Include="Quartz.AspNetCore" Version="3.13.1" />
     <PackageVersion Include="Quartz.Serialization.SystemTextJson" Version="3.13.1" />
-    <PackageVersion Include="Scrutor" Version="5.0.2" />
+    <PackageVersion Include="Scrutor" Version="5.1.2" />
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="7.2.0" />
     <PackageVersion Include="System.ComponentModel.Annotations" Version="5.0.0" />
@@ -56,7 +56,7 @@
     <PackageVersion Include="System.Text.Json" Version="9.0.0" />
     <PackageVersion Include="System.Text.RegularExpressions" Version="4.3.1" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.1.0" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.0" />
-    <PackageVersion Include="xunit" Version="2.9.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
   </ItemGroup>
 </Project>
