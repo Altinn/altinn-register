@@ -125,6 +125,15 @@ internal static class RegisterHost
         services.AddHttpClient<IV1PartyService, PartiesClient>();
         services.AddHttpClient<IAuthorizationClient, AuthorizationClient>();
 
+        services.AddHttpClient<IA2PartyImportService, A2PartyImportService>()
+            .ConfigureHttpClient((s, c) =>
+            {
+                var config = s.GetRequiredService<IConfiguration>();
+                var baseAddress = config.GetValue<Uri>("GeneralSettings:BridgeApiEndpoint");
+
+                c.BaseAddress = baseAddress;
+            });
+
         if (config.GetValue<bool>("Altinn:Npgsql:register:Enable"))
         {
             builder.AddRegisterPersistence();
@@ -142,15 +151,6 @@ internal static class RegisterHost
 
         if (config.GetValue<bool>("Altinn:register:PartyImport:A2:Enable"))
         {
-            services.AddHttpClient<IA2PartyImportService, A2PartyImportService>()
-                .ConfigureHttpClient((s, c) =>
-                {
-                    var config = s.GetRequiredService<IConfiguration>();
-                    var baseAddress = config.GetValue<Uri>("GeneralSettings:BridgeApiEndpoint");
-
-                    c.BaseAddress = baseAddress;
-                });
-
             services.AddRecurringJob<A2PartyImportJob>(settings =>
             {
                 settings.LeaseName = LeaseNames.A2PartyImport;
