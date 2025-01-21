@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Data;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Core.Errors;
@@ -222,6 +223,57 @@ internal partial class PostgreSqlPartyPersistence
         {
             return new ThrowingAsyncEnumerable<PartyRecord>(e).Using(cmd);
         }
+    }
+
+    /// <inheritdoc/>
+    public IAsyncEnumerable<PartyRecord> GetPartyStream(
+        ulong from,
+        ushort limit,
+        PartyFieldIncludes include = PartyFieldIncludes.Party,
+        CancellationToken cancellationToken = default)
+    {
+        Guard.IsFalse(include.HasFlag(PartyFieldIncludes.SubUnits), nameof(include), $"{nameof(PartyFieldIncludes)}.{nameof(PartyFieldIncludes.SubUnits)} is not allowed");
+
+        var query = PartyQuery.Get(include, PartyFilters.StreamPage);
+        NpgsqlCommand? cmd = null;
+        try
+        {
+            cmd = _connection.CreateCommand();
+            cmd.CommandText = query.CommandText;
+
+            query.AddStreamPageParameters(cmd, from, limit);
+
+            return PrepareAndReadPartiesAsync(cmd, query, cancellationToken);
+        }
+        catch (Exception e)
+        {
+            return new ThrowingAsyncEnumerable<PartyRecord>(e).Using(cmd);
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<ulong> GetMaxPartyVersionId(CancellationToken cancellationToken)
+    {
+        const string QUERY =
+            /*strpsql*/"""
+            SELECT MAX(version_id) FROM register.party
+            """;
+
+        await using var cmd = _connection.CreateCommand();
+        cmd.CommandText = QUERY;
+
+        await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleResult | CommandBehavior.SingleRow, cancellationToken);
+        if (!await reader.ReadAsync(cancellationToken))
+        {
+            ThrowHelper.ThrowInvalidOperationException("No rows returned from MAX(version_id) query");
+        }
+
+        if (reader.IsDBNull(0))
+        {
+            return 0;
+        }
+
+        return (ulong)reader.GetFieldValue<long>(0);
     }
 
     /// <inheritdoc/>
@@ -597,6 +649,7 @@ internal partial class PostgreSqlPartyPersistence
         PartyUuid = 1 << 1,
         PersonIdentifier = 1 << 2,
         OrganizationIdentifier = 1 << 3,
+        StreamPage = 1 << 4,
 
         Multiple = 1 << 7,
     }

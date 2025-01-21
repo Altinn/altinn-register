@@ -1,6 +1,5 @@
 ﻿using Altinn.Platform.Register.Models;
 using Altinn.Register.ModelBinding;
-
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 

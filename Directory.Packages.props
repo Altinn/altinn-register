@@ -6,6 +6,7 @@
     <GlobalPackageReference Include="DotNet.ReproducibleBuilds" Version="1.2.25" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
+    <PackageVersion Include="Altinn.Authorization.ProblemDetails" Version="3.2.1" />
     <PackageVersion Include="Altinn.Authorization.ProblemDetails.Abstractions" Version="3.2.1" />
     <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql.TestSeed" Version="2.9.0" />
     <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql" Version="2.9.0" />
@@ -14,6 +15,7 @@
     <PackageVersion Include="Altinn.Authorization.ServiceDefaults" Version="2.9.0" />
     <PackageVersion Include="Altinn.Common.AccessToken" Version="4.5.5" />
     <PackageVersion Include="Altinn.Common.PEP" Version="4.1.2" />
+    <PackageVersion Include="Altinn.Swashbuckle" Version="2.2.0" />
     <PackageVersion Include="Altinn.Swashbuckle.Abstractions" Version="2.2.0" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.0.0" />
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="9.0.0" />
@@ -50,6 +52,8 @@
     <PackageVersion Include="Scrutor" Version="5.1.2" />
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.Annotations" Version="7.2.0" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.Filters" Version="8.0.2" />
     <PackageVersion Include="System.ComponentModel.Annotations" Version="5.0.0" />
     <PackageVersion Include="System.Configuration.ConfigurationManager" Version="9.0.0" />
     <PackageVersion Include="System.Linq.Async" Version="6.0.1" />

@@ -52,6 +52,7 @@ internal static class RegisterHost
         services.AddControllers().AddMvcOptions(opt =>
         {
             opt.ModelBinderProviders.InsertSingleton<PartyComponentOptionModelBinder>(0);
+            opt.ModelBinderProviders.InsertSingleton<PartyFieldIncludesModelBinder>(0);
         }).AddJsonOptions(options =>
         {
             options.JsonSerializerOptions.WriteIndented = true;
@@ -159,6 +160,8 @@ internal static class RegisterHost
             });
         }
 
+        services.AddOpenApiExampleProvider();
+        services.AddSwaggerFilterAttributeSupport();
         services.AddSwaggerGen(c =>
         {
             c.SwaggerDoc("v1", new OpenApiInfo { Title = "Altinn Platform Register", Version = "v1" });
@@ -170,15 +173,25 @@ internal static class RegisterHost
                 c.IncludeXmlComments(xmlFile);
             }
 
+            c.EnableAnnotations();
             c.SupportNonNullableReferenceTypes();
             c.SchemaFilter<PartyComponentOptionSchemaFilter>();
+            c.SchemaFilter<FieldValueSchemaFilter>();
+            c.SchemaFilter<PartyRecordSchemaFilter>();
 
             var originalIdSelector = c.SchemaGeneratorOptions.SchemaIdSelector;
             c.SchemaGeneratorOptions.SchemaIdSelector = (Type t) =>
             {
                 if (!t.IsNested)
                 {
-                    return originalIdSelector(t);
+                    var orig = originalIdSelector(t);
+
+                    if (t.Assembly == typeof(Platform.Register.Enums.PartyType).Assembly)
+                    {
+                        orig = $"PlatformModels.{orig}";
+                    }
+
+                    return orig;
                 }
 
                 var chain = new List<string>();

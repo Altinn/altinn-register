@@ -40,7 +40,9 @@ internal partial class PostgreSqlPartyPersistence
             FilterParameter paramPartyUuidList,
             FilterParameter paramPartyIdList,
             FilterParameter paramPersonIdentifierList,
-            FilterParameter paramOrganizationIdentifierList)
+            FilterParameter paramOrganizationIdentifierList,
+            FilterParameter paramStreamFrom,
+            FilterParameter paramStreamLimit)
         {
             CommandText = commandText;
             _parentFields = parentFields;
@@ -53,6 +55,8 @@ internal partial class PostgreSqlPartyPersistence
             _paramPartyIdList = paramPartyIdList;
             _paramPersonIdentifierList = paramPersonIdentifierList;
             _paramOrganizationIdentifierList = paramOrganizationIdentifierList;
+            _paramStreamFrom = paramStreamFrom;
+            _paramStreamLimit = paramStreamLimit;
 
             HasSubUnits = childField.HasValue;
         }
@@ -67,6 +71,8 @@ internal partial class PostgreSqlPartyPersistence
         private readonly FilterParameter _paramPartyIdList;
         private readonly FilterParameter _paramPersonIdentifierList;
         private readonly FilterParameter _paramOrganizationIdentifierList;
+        private readonly FilterParameter _paramStreamFrom;
+        private readonly FilterParameter _paramStreamLimit;
 
         public string CommandText { get; }
 
@@ -95,6 +101,14 @@ internal partial class PostgreSqlPartyPersistence
 
         public NpgsqlParameter<IList<string>> AddOrganizationIdentifierListParameter(NpgsqlCommand cmd, IList<string> value)
             => AddParameter(cmd, in _paramOrganizationIdentifierList, value);
+
+        public (NpgsqlParameter<long> From, NpgsqlParameter<int> Limit) AddStreamPageParameters(NpgsqlCommand cmd, ulong from, ushort limit)
+        {
+            var fromParam = AddParameter(cmd, in _paramStreamFrom, (long)from);
+            var limitParam = AddParameter(cmd, in _paramStreamLimit, (int)limit);
+
+            return (fromParam, limitParam);
+        }
 
         private NpgsqlParameter<T> AddParameter<T>(NpgsqlCommand cmd, in FilterParameter config, T value)
         {
@@ -278,7 +292,9 @@ internal partial class PostgreSqlPartyPersistence
                     paramPartyUuidList: builder._paramPartyUuidList,
                     paramPartyIdList: builder._paramPartyIdList,
                     paramPersonIdentifierList: builder._paramPersonIdentifierList,
-                    paramOrganizationIdentifierList: builder._paramOrganizationIdentifierList);
+                    paramOrganizationIdentifierList: builder._paramOrganizationIdentifierList,
+                    paramStreamFrom: builder._paramStreamFrom,
+                    paramStreamLimit: builder._paramStreamLimit);
             }
 
             private readonly StringBuilder _builder = new();
@@ -292,6 +308,8 @@ internal partial class PostgreSqlPartyPersistence
             private FilterParameter _paramPartyIdList;
             private FilterParameter _paramPersonIdentifierList;
             private FilterParameter _paramOrganizationIdentifierList;
+            private FilterParameter _paramStreamFrom;
+            private FilterParameter _paramStreamLimit;
 
             // fields
             private sbyte _fieldIndex = 0;
@@ -463,26 +481,30 @@ internal partial class PostgreSqlPartyPersistence
                     _builder.AppendLine().Append(/*strpsql*/") cp ON cp.parent_uuid = p.uuid");
                 }
 
+                var firstFilter = true;
                 if (!filterBy.HasFlag(PartyFilters.Multiple))
                 {
                     // if we are not filtering on multiple values, we only allow a single filter type
-                    var first = true;
                     switch (filterBy)
                     {
                         case PartyFilters.PartyUuid:
-                            _paramPartyUuid = AddFilter(typeof(Guid), "partyUuid", /*strpsql*/"p.uuid =", NpgsqlDbType.Uuid, ref first);
+                            _paramPartyUuid = AddFilter(typeof(Guid), "partyUuid", /*strpsql*/"p.uuid =", NpgsqlDbType.Uuid, ref firstFilter);
                             break;
 
                         case PartyFilters.PartyId:
-                            _paramPartyId = AddFilter(typeof(int), "partyId", /*strpsql*/"p.id =", NpgsqlDbType.Integer, ref first);
+                            _paramPartyId = AddFilter(typeof(int), "partyId", /*strpsql*/"p.id =", NpgsqlDbType.Integer, ref firstFilter);
                             break;
 
                         case PartyFilters.PersonIdentifier:
-                            _paramPersonIdentifier = AddFilter(typeof(string), "personIdentifier", /*strpsql*/"p.person_identifier =", NpgsqlDbType.Text, ref first);
+                            _paramPersonIdentifier = AddFilter(typeof(string), "personIdentifier", /*strpsql*/"p.person_identifier =", NpgsqlDbType.Text, ref firstFilter);
                             break;
 
                         case PartyFilters.OrganizationIdentifier:
-                            _paramOrganizationIdentifier = AddFilter(typeof(string), "organizationIdentifier", /*strpsql*/"p.organization_identifier =", NpgsqlDbType.Text, ref first);
+                            _paramOrganizationIdentifier = AddFilter(typeof(string), "organizationIdentifier", /*strpsql*/"p.organization_identifier =", NpgsqlDbType.Text, ref firstFilter);
+                            break;
+
+                        case PartyFilters.StreamPage:
+                            // handled later, but legal
                             break;
 
                         default:
@@ -492,39 +514,51 @@ internal partial class PostgreSqlPartyPersistence
                 }
                 else
                 {
-                    var first = true;
                     if (filterBy.HasFlag(PartyFilters.PartyUuid))
                     {
                         // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
-                        _paramPartyUuidList = AddFilter(typeof(IList<Guid>), "partyUuids", /*strpsql*/"p.uuid = ANY", NpgsqlDbType.Array | NpgsqlDbType.Uuid, ref first);
+                        _paramPartyUuidList = AddFilter(typeof(IList<Guid>), "partyUuids", /*strpsql*/"p.uuid = ANY", NpgsqlDbType.Array | NpgsqlDbType.Uuid, ref firstFilter);
                     }
 
                     if (filterBy.HasFlag(PartyFilters.PartyId))
                     {
                         // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
-                        _paramPartyIdList = AddFilter(typeof(IList<int>), "partyIds", /*strpsql*/"p.id = ANY", NpgsqlDbType.Array | NpgsqlDbType.Integer, ref first);
+                        _paramPartyIdList = AddFilter(typeof(IList<int>), "partyIds", /*strpsql*/"p.id = ANY", NpgsqlDbType.Array | NpgsqlDbType.Integer, ref firstFilter);
                     }
 
                     if (filterBy.HasFlag(PartyFilters.PersonIdentifier))
                     {
                         // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
-                        _paramPersonIdentifierList = AddFilter(typeof(IList<string>), "personIdentifiers", /*strpsql*/"p.person_identifier = ANY", NpgsqlDbType.Array | NpgsqlDbType.Text, ref first);
+                        _paramPersonIdentifierList = AddFilter(typeof(IList<string>), "personIdentifiers", /*strpsql*/"p.person_identifier = ANY", NpgsqlDbType.Array | NpgsqlDbType.Text, ref firstFilter);
                     }
 
                     if (filterBy.HasFlag(PartyFilters.OrganizationIdentifier))
                     {
                         // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
-                        _paramOrganizationIdentifierList = AddFilter(typeof(IList<string>), "organizationIdentifiers", /*strpsql*/"p.organization_identifier = ANY", NpgsqlDbType.Array | NpgsqlDbType.Text, ref first);
+                        _paramOrganizationIdentifierList = AddFilter(typeof(IList<string>), "organizationIdentifiers", /*strpsql*/"p.organization_identifier = ANY", NpgsqlDbType.Array | NpgsqlDbType.Text, ref firstFilter);
                     }
 
-                    Debug.Assert(!first, "No filters were added, but multiple filters were requested");
+                    Debug.Assert(!firstFilter, "No filters were added, but multiple filters were requested");
                 }
 
-                _builder.AppendLine().Append(/*strpsql*/"ORDER BY p.uuid");
-
-                if (_hasSubUnits)
+                if (filterBy.HasFlag(PartyFilters.StreamPage))
                 {
-                    _builder.AppendLine(",").Append(/*strpsql*/"    cp.uuid");
+                    Debug.Assert(!_hasSubUnits, "A query cannot get both a stream page and subunits");
+
+                    _paramStreamFrom = AddFilter(typeof(long), "streamFrom", /*strpsql*/"p.version_id >=", NpgsqlDbType.Bigint, ref firstFilter);
+                    _paramStreamLimit = new(typeof(int), "streamLimit", NpgsqlDbType.Integer);
+
+                    _builder.AppendLine().Append(/*strpsql*/"ORDER BY p.version_id ASC");
+                    _builder.AppendLine().Append(/*strpsql*/"LIMIT @streamLimit");
+                }
+                else
+                {
+                    _builder.AppendLine().Append(/*strpsql*/"ORDER BY p.uuid");
+
+                    if (_hasSubUnits)
+                    {
+                        _builder.AppendLine(",").Append(/*strpsql*/"    cp.uuid");
+                    }
                 }
             }
 
