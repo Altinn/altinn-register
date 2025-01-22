@@ -1,4 +1,5 @@
-﻿using MassTransit;
+﻿using System.Diagnostics;
+using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -13,11 +14,13 @@ public static class AltinnServiceDefaultsMassTransitTestingExtensions
     /// Adds the necessary services for MassTransit testing.
     /// </summary>
     /// <param name="service">The <see cref="IServiceCollection"/>.</param>
+    /// <param name="output">Optional output writer for logging.</param>
     /// <param name="configureMassTransit">Optional bus registration configurator delegate.</param>
     /// <param name="configureBus">Optional bus factory configurator delegate.</param>
     /// <returns><paramref name="service"/>.</returns>
     public static IServiceCollection AddAltinnMassTransitTestHarness(
         this IServiceCollection service,
+        TextWriter? output = null,
         Action<IBusRegistrationConfigurator>? configureMassTransit = null,
         Action<IBusFactoryConfigurator>? configureBus = null)
     {
@@ -28,7 +31,17 @@ public static class AltinnServiceDefaultsMassTransitTestingExtensions
             redeliveryIntervals: null,
             configureMassTransit,
             configureBus,
-            static (s, c) => s.AddMassTransitTestHarness(c));
+            (s, c) => s.AddMassTransitTestHarness(output ?? Console.Out, cfg =>
+            {
+                if (!Debugger.IsAttached)
+                {
+                    cfg.SetTestTimeouts(
+                        testTimeout: TimeSpan.FromMinutes(10),
+                        testInactivityTimeout: TimeSpan.FromMinutes(2));
+                }
+
+                c(cfg);
+            }));
 
         return service;
     }

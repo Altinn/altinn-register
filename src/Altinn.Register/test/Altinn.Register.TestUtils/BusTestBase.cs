@@ -18,6 +18,7 @@ namespace Altinn.Register.TestUtils;
 public abstract class BusTestBase(ITestOutputHelper output)
     : DatabaseTestBase
 {
+    private StringBuilder _harnessLogger = new();
     private ITestHarness? _harness;
     private IBusControl? _bus;
     private ICommandSender? _commandSender;
@@ -49,6 +50,7 @@ public abstract class BusTestBase(ITestOutputHelper output)
         services.AddHttpClient<IA2PartyImportService, A2PartyImportService>();
         AltinnServiceDefaultsMassTransitTestingExtensions.AddAltinnMassTransitTestHarness(
             services,
+            output: new StringWriter(_harnessLogger),
             configureMassTransit: (cfg) =>
             {
                 cfg.AddConsumers(typeof(RegisterHost).Assembly);
@@ -66,9 +68,6 @@ public abstract class BusTestBase(ITestOutputHelper output)
         _commandSender = Services.GetRequiredService<ICommandSender>();
         _commandQueueResolver = Services.GetRequiredService<ICommandQueueResolver>();
 
-        _harness.TestInactivityTimeout = TimeSpan.FromMinutes(2);
-        _harness.TestTimeout = TimeSpan.FromMinutes(5);
-        await _harness.RestartHostedServices();
         _harness.InactivityToken.Register(() => output.WriteLine("Test harness inactivity timeout reached."));
     }
 
@@ -79,9 +78,8 @@ public abstract class BusTestBase(ITestOutputHelper output)
         {
             _harness.ForceInactive();
             _harness.Cancel();
-            var builder = new StringBuilder();
-            await _harness.OutputTimeline(new StringWriter(builder));
-            output.WriteLine(builder.ToString());
+            await _harness.OutputTimeline(new StringWriter(_harnessLogger));
+            output.WriteLine(_harnessLogger.ToString());
 
             await foreach (var consumeException in _harness.Consumed.SelectAsync(static m => m.Exception is not null).Select(static m => m.Exception))
             {
