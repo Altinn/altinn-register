@@ -110,4 +110,30 @@ public interface IPartyPersistence
         IList<PersonIdentifier>? personIdentifiers = null,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a page of the parties-stream.
+    /// </summary>
+    /// <param name="from">From where to start the page.</param>
+    /// <param name="limit">The maximum number of parties to return.</param>
+    /// <param name="include">What fields to include.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>
+    /// A <see cref="IAsyncEnumerable{T}"/> containing a page of parties.
+    /// </returns>
+    /// <remarks>
+    /// <paramref name="include"/> is not allowed to specify <see cref="PartyFieldIncludes.SubUnits"/>.
+    /// </remarks>
+    public IAsyncEnumerable<PartyRecord> GetPartyStream(
+        ulong from,
+        ushort limit,
+        PartyFieldIncludes include = PartyFieldIncludes.Party,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the maximum version ID of a party.
+    /// </summary>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>The highest version ID of a party.</returns>
+    public Task<ulong> GetMaxPartyVersionId(CancellationToken cancellationToken);
 }

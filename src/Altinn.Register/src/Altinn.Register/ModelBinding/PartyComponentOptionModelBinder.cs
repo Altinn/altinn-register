@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Text;
 
 using Altinn.Platform.Register.Models;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Model.Extensions;
 
 using CommunityToolkit.Diagnostics;

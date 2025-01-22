@@ -12,6 +12,7 @@ using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Configuration;
 using Altinn.Register.Conventions;
 using Altinn.Register.Core;
+using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.Extensions;
@@ -52,6 +53,7 @@ internal static class RegisterHost
         services.AddControllers().AddMvcOptions(opt =>
         {
             opt.ModelBinderProviders.InsertSingleton<PartyComponentOptionModelBinder>(0);
+            opt.ModelBinderProviders.InsertSingleton<PartyFieldIncludesModelBinder>(0);
         }).AddJsonOptions(options =>
         {
             options.JsonSerializerOptions.WriteIndented = true;
@@ -134,10 +136,15 @@ internal static class RegisterHost
                 c.BaseAddress = baseAddress;
             });
 
+        services.AddUnitOfWorkManager();
         if (config.GetValue<bool>("Altinn:Npgsql:register:Enable"))
         {
             builder.AddRegisterPersistence();
             builder.Services.AddLeaseManager();
+        }
+        else
+        {
+            services.AddSingleton<IImportJobTracker>(s => throw new InvalidOperationException("Npgsql is not enabled"));
         }
 
         if (config.GetValue<bool>("Altinn:MassTransit:register:Enable"))
@@ -159,6 +166,8 @@ internal static class RegisterHost
             });
         }
 
+        services.AddOpenApiExampleProvider();
+        services.AddSwaggerFilterAttributeSupport();
         services.AddSwaggerGen(c =>
         {
             c.SwaggerDoc("v1", new OpenApiInfo { Title = "Altinn Platform Register", Version = "v1" });
@@ -170,15 +179,26 @@ internal static class RegisterHost
                 c.IncludeXmlComments(xmlFile);
             }
 
+            c.EnableAnnotations();
             c.SupportNonNullableReferenceTypes();
             c.SchemaFilter<PartyComponentOptionSchemaFilter>();
+            c.SchemaFilter<FieldValueSchemaFilter>();
+            c.SchemaFilter<PartyRecordSchemaFilter>();
+            c.SchemaFilter<PartyFieldIncludesSchemaFilter>();
 
             var originalIdSelector = c.SchemaGeneratorOptions.SchemaIdSelector;
             c.SchemaGeneratorOptions.SchemaIdSelector = (Type t) =>
             {
                 if (!t.IsNested)
                 {
-                    return originalIdSelector(t);
+                    var orig = originalIdSelector(t);
+
+                    if (t.Assembly == typeof(Platform.Register.Enums.PartyType).Assembly)
+                    {
+                        orig = $"PlatformModels.{orig}";
+                    }
+
+                    return orig;
                 }
 
                 var chain = new List<string>();

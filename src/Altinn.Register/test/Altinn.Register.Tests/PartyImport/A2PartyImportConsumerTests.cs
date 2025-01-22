@@ -9,11 +9,12 @@ using Altinn.Register.Tests.Utils;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Http;
 using Nerdbank.Streams;
+using Xunit.Abstractions;
 
 namespace Altinn.Register.Tests.PartyImport;
 
-public class A2PartyImportConsumerTests
-    : BusTestBase
+public class A2PartyImportConsumerTests(ITestOutputHelper output)
+    : BusTestBase(output)
 {
     [Fact]
     public async Task ImportA2PartyCommand_FetchesParty_AndSendsUpsertCommand()

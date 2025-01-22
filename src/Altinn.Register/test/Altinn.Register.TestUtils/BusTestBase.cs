@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Authorization.ServiceDefaults.MassTransit.Commands;
 using Altinn.Authorization.ServiceDefaults.MassTransit.Testing;
@@ -7,15 +8,17 @@ using Altinn.Register.PartyImport.A2;
 using MassTransit;
 using MassTransit.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit.Abstractions;
 
 namespace Altinn.Register.TestUtils;
 
 /// <summary>
 /// Base class for tests that needs a bus.
 /// </summary>
-public abstract class BusTestBase
+public abstract class BusTestBase(ITestOutputHelper output)
     : DatabaseTestBase
 {
+    private StringBuilder _harnessLogger = new();
     private ITestHarness? _harness;
     private IBusControl? _bus;
     private ICommandSender? _commandSender;
@@ -47,6 +50,7 @@ public abstract class BusTestBase
         services.AddHttpClient<IA2PartyImportService, A2PartyImportService>();
         AltinnServiceDefaultsMassTransitTestingExtensions.AddAltinnMassTransitTestHarness(
             services,
+            output: new StringWriter(_harnessLogger),
             configureMassTransit: (cfg) =>
             {
                 cfg.AddConsumers(typeof(RegisterHost).Assembly);
@@ -64,7 +68,25 @@ public abstract class BusTestBase
         _commandSender = Services.GetRequiredService<ICommandSender>();
         _commandQueueResolver = Services.GetRequiredService<ICommandQueueResolver>();
 
-        var lifetime = Services.GetRequiredService<IBusLifetime>();
-        await lifetime.WaitForBus();
+        _harness.InactivityToken.Register(() => output.WriteLine("Test harness inactivity timeout reached."));
+    }
+
+    /// <inheritdoc/>
+    protected override async ValueTask DisposeAsync()
+    {
+        if (_harness is { } harness)
+        {
+            _harness.ForceInactive();
+            _harness.Cancel();
+            await _harness.OutputTimeline(new StringWriter(_harnessLogger));
+            output.WriteLine(_harnessLogger.ToString());
+
+            await foreach (var consumeException in _harness.Consumed.SelectAsync(static m => m.Exception is not null).Select(static m => m.Exception))
+            {
+                output.WriteLine(consumeException.ToString());
+            }
+        }
+
+        await base.DisposeAsync();
     }
 }

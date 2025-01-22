@@ -46,7 +46,7 @@ var registerApi = builder.AddProject<Projects.Altinn_Register>("register")
         env[$"{prefix}RabbitMq__VirtualHost"] = "/";
     })
     .WithEnvironment("Altinn__Npgsql__register__Enable", "true")
-    .WithEnvironment("Altinn__register__PartyImport__A2__Enable", "true")
+    .WithEnvironment("Altinn__register__PartyImport__A2__Enable", "false")
     .WithHttpHealthCheck("/health");
 
 await builder.Build().RunAsync();

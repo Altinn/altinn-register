@@ -1,4 +1,5 @@
-﻿using CommunityToolkit.Diagnostics;
+﻿using System.Diagnostics;
+using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.TestUtils;
 
@@ -26,7 +27,7 @@ internal class AsyncConcurrencyLimiter
     public async Task<IDisposable> Acquire()
     {
         await _semaphoreSlim.WaitAsync();
-        return new Ticket(_semaphoreSlim);
+        return new Ticket(_semaphoreSlim, new StackTrace());
     }
 
     /// <summary>
@@ -34,14 +35,17 @@ internal class AsyncConcurrencyLimiter
     /// </summary>
     private sealed class Ticket : IDisposable
     {
+        private readonly StackTrace _stackTrace;
         private SemaphoreSlim? _semaphoreSlim;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Ticket" /> class.
         /// </summary>
         /// <param name="semaphoreSlim">The semaphore slim to synchronize threads.</param>
-        public Ticket(SemaphoreSlim semaphoreSlim)
+        /// <param name="stackTrace">The stack trace where the lock was created.</param>
+        public Ticket(SemaphoreSlim semaphoreSlim, StackTrace stackTrace)
         {
+            _stackTrace = stackTrace;
             _semaphoreSlim = semaphoreSlim;
         }
 
@@ -49,7 +53,7 @@ internal class AsyncConcurrencyLimiter
         {
             if (_semaphoreSlim != null)
             {
-                ThrowHelper.ThrowInvalidOperationException("Lock not released.");
+                ThrowHelper.ThrowInvalidOperationException($"Lock not released: {_stackTrace}");
             }
         }
 
