@@ -12,6 +12,7 @@ using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Configuration;
 using Altinn.Register.Conventions;
 using Altinn.Register.Core;
+using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.Extensions;
@@ -135,10 +136,15 @@ internal static class RegisterHost
                 c.BaseAddress = baseAddress;
             });
 
+        services.AddUnitOfWorkManager();
         if (config.GetValue<bool>("Altinn:Npgsql:register:Enable"))
         {
             builder.AddRegisterPersistence();
             builder.Services.AddLeaseManager();
+        }
+        else
+        {
+            services.AddSingleton<IImportJobTracker>(s => throw new InvalidOperationException("Npgsql is not enabled"));
         }
 
         if (config.GetValue<bool>("Altinn:MassTransit:register:Enable"))
