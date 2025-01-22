@@ -78,13 +78,14 @@ public abstract class BusTestBase(ITestOutputHelper output)
         if (_harness is { } harness)
         {
             _harness.ForceInactive();
+            _harness.Cancel();
             var builder = new StringBuilder();
             await _harness.OutputTimeline(new StringWriter(builder));
             output.WriteLine(builder.ToString());
 
-            await foreach (var fault in _harness.Published.SelectAsync<Fault>())
+            await foreach (var consumeException in _harness.Consumed.SelectAsync(static m => m.Exception is not null).Select(static m => m.Exception))
             {
-                output.WriteLine(fault.Exception.ToString());
+                output.WriteLine(consumeException.ToString());
             }
         }
 
