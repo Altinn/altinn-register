@@ -90,6 +90,11 @@ public sealed class FlagsEnumModel<TEnum>
     }
 
     /// <summary>
+    /// Gets the items in the model.
+    /// </summary>
+    public ImmutableArray<Item> Items => _items;
+
+    /// <summary>
     /// Tries to parse a <see cref="ReadOnlySpan{T}"/> of characters to an enum value.
     /// </summary>
     /// <param name="name">The name to match.</param>
@@ -151,5 +156,10 @@ public sealed class FlagsEnumModel<TEnum>
         return string.Join(',', items.Select(static i => i.Name));
     }
 
-    private readonly record struct Item(TEnum Value, string Name);
+    /// <summary>
+    /// An item in the model.
+    /// </summary>
+    /// <param name="Value">The value of the item.</param>
+    /// <param name="Name">The name of the item.</param>
+    public readonly record struct Item(TEnum Value, string Name);
 }

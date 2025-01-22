@@ -12,11 +12,14 @@ public class PartyFieldIncludesModelBinder
     : FlagsEnumModelBinder<PartyFieldIncludes>
     , ISingleton<PartyFieldIncludesModelBinder>
 {
-    private static FlagsEnumModel<PartyFieldIncludes> _model
+    /// <summary>
+    /// Gets the model for <see cref="PartyFieldIncludes"/>.
+    /// </summary>
+    public static FlagsEnumModel<PartyFieldIncludes> Model { get; }
         = FlagsEnumModel.Create<PartyFieldIncludes>(JsonNamingPolicy.KebabCaseLower, StringComparison.Ordinal);
 
     private PartyFieldIncludesModelBinder()
-        : base(_model)
+        : base(Model)
     {
     }
 
@@ -29,5 +32,5 @@ public class PartyFieldIncludesModelBinder
     /// <param name="value">The value.</param>
     /// <returns>The formatted <paramref name="value"/>.</returns>
     public static string? Format(PartyFieldIncludes value)
-        => _model.Format(value);
+        => Model.Format(value);
 }

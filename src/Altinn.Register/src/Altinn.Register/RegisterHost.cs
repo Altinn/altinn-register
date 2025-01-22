@@ -178,6 +178,7 @@ internal static class RegisterHost
             c.SchemaFilter<PartyComponentOptionSchemaFilter>();
             c.SchemaFilter<FieldValueSchemaFilter>();
             c.SchemaFilter<PartyRecordSchemaFilter>();
+            c.SchemaFilter<PartyFieldIncludesSchemaFilter>();
 
             var originalIdSelector = c.SchemaGeneratorOptions.SchemaIdSelector;
             c.SchemaGeneratorOptions.SchemaIdSelector = (Type t) =>
