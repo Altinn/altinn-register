@@ -48,19 +48,17 @@ public class PartyImportFlowTests
         };
 
         await CommandSender.Send(cmd1);
-        var conversationId = await Harness.Consumed.SelectAsync<UpsertPartyCommand>(m => m.Context.CorrelationId == cmd1.CommandId).Select(m => m.Context.ConversationId).FirstOrDefaultAsync();
-        var consumed = await Harness.Consumed.SelectAsync<UpsertValidatedPartyCommand>(m => m.Context.ConversationId == conversationId).FirstOrDefaultAsync();
-        Assert.NotNull(consumed);
+        var conversationId = await Harness.Consumed.SelectAsync<UpsertPartyCommand>(m => m.Context.CorrelationId == cmd1.CommandId).Select(m => m.Context.ConversationId).FirstAsync();
+        var consumed = await Harness.Consumed.SelectAsync<UpsertValidatedPartyCommand>(m => m.Context.ConversationId == conversationId).FirstAsync();
 
-        var published = await Harness.Published.SelectAsync<PartyUpdatedEvent>(m => m.Context.ConversationId == conversationId).FirstOrDefaultAsync();
-        Assert.NotNull(published);
+        var published = await Harness.Published.SelectAsync<PartyUpdatedEvent>(m => m.Context.ConversationId == conversationId).FirstAsync();
 
         published.Context.Message.PartyUuid.Should().Be(partyUuid);
 
         {
             await using var uow = await UOW.CreateAsync();
             var persistence = uow.GetPartyPersistence();
-            var fromDb = await persistence.GetPartyById(partyUuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person).FirstOrDefaultAsync();
+            var fromDb = await persistence.GetPartyById(partyUuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person).FirstAsync();
 
             fromDb.Should().BeEquivalentTo(person with { VersionId = fromDb!.VersionId });
         }
@@ -83,11 +81,10 @@ public class PartyImportFlowTests
         };
 
         await CommandSender.Send(cmd2);
-        conversationId = await Harness.Consumed.SelectAsync<UpsertPartyCommand>(m => m.Context.CorrelationId == cmd2.CommandId).Select(m => m.Context.ConversationId).FirstOrDefaultAsync();
-        consumed = await Harness.Consumed.SelectAsync<UpsertValidatedPartyCommand>(m => m.Context.ConversationId == conversationId).FirstOrDefaultAsync();
-        Assert.NotNull(consumed);
+        conversationId = await Harness.Consumed.SelectAsync<UpsertPartyCommand>(m => m.Context.CorrelationId == cmd2.CommandId).Select(m => m.Context.ConversationId).FirstAsync();
+        consumed = await Harness.Consumed.SelectAsync<UpsertValidatedPartyCommand>(m => m.Context.ConversationId == conversationId).FirstAsync();
 
-        published = await Harness.Published.SelectAsync<PartyUpdatedEvent>(m => m.Context.ConversationId == conversationId).FirstOrDefaultAsync();
+        published = await Harness.Published.SelectAsync<PartyUpdatedEvent>(m => m.Context.ConversationId == conversationId).FirstAsync();
         Assert.NotNull(published);
 
         published.Context.Message.PartyUuid.Should().Be(partyUuid);
@@ -95,7 +92,7 @@ public class PartyImportFlowTests
         {
             await using var uow = await UOW.CreateAsync();
             var persistence = uow.GetPartyPersistence();
-            var fromDb = await persistence.GetPartyById(partyUuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person).FirstOrDefaultAsync();
+            var fromDb = await persistence.GetPartyById(partyUuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person).FirstAsync();
             fromDb.Should().BeEquivalentTo(personUpdated with { VersionId = fromDb!.VersionId });
         }
     }
