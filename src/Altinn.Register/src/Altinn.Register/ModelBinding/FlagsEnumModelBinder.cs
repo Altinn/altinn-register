@@ -14,7 +14,7 @@ public abstract class FlagsEnumModelBinder<TEnum>
     : ModelBinder<TEnum>
     where TEnum : struct, Enum
 {
-    private FlagsEnumModel<TEnum> _model;
+    private readonly FlagsEnumModel<TEnum> _model;
 
     /// <summary>
     /// Initializes the model binder.

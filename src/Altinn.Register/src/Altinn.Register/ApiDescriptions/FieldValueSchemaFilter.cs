@@ -106,7 +106,7 @@ public sealed class FieldValueSchemaFilter
         }
     }
 
-    private IEnumerable<OpenApiSchema> ReferenceChain(OpenApiSchema schema, SchemaFilterContext context)
+    private static IEnumerable<OpenApiSchema> ReferenceChain(OpenApiSchema schema, SchemaFilterContext context)
     {
         while (true)
         {

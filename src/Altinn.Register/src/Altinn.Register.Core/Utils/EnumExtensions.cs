@@ -127,7 +127,7 @@ public static class EnumExtensions
     /// <typeparam name="T">The enum type.</typeparam>
     /// <param name="left">The value to or with <paramref name="right"/>.</param>
     /// <param name="right">The value to or with <paramref name="left"/>.</param>
-    /// <returns>The bitwise-or of <paramref name="left" /> and <paramref name="right" />.
+    /// <returns>The bitwise-or of <paramref name="left" /> and <paramref name="right" />.</returns>
     /// <exception cref="InvalidOperationException">If the underlying type of <typeparamref name="T"/> is not supported.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static T BitwiseOr<T>(this T left, T right)
@@ -186,7 +186,7 @@ public static class EnumExtensions
     /// <typeparam name="T">The enum type.</typeparam>
     /// <param name="value">The value to remove <paramref name="toRemove"/> from.</param>
     /// <param name="toRemove">The value to remove from <paramref name="value"/>.</param>
-    /// <returns>All the flags in <paramref name="value" /> minus the flags in <paramref name="toRemove" />.
+    /// <returns>All the flags in <paramref name="value" /> minus the flags in <paramref name="toRemove" />.</returns>
     /// <exception cref="InvalidOperationException">If the underlying type of <typeparamref name="T"/> is not supported.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static T RemoveFlags<T>(this T value, T toRemove)

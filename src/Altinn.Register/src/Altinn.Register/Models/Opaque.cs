@@ -255,7 +255,7 @@ public static partial class Opaque
         }
     }
 
-    private class OpaqueJsonConverter<T>
+    private sealed class OpaqueJsonConverter<T>
         : JsonConverter<Opaque<T>>
         where T : notnull
     {

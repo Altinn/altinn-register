@@ -72,7 +72,7 @@ public class PartyController
             limit: PAGE_SIZE + 1,
             fields | PartyFieldIncludes.PartyVersionId,
             cancellationToken)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         string? nextLink = null;
         if (parties.Count > PAGE_SIZE)
