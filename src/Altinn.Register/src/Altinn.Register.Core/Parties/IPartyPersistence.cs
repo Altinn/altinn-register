@@ -104,10 +104,10 @@ public interface IPartyPersistence
     /// </remarks>
     // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
     public IAsyncEnumerable<PartyRecord> LookupParties(
-        IList<Guid>? partyUuids = null,
-        IList<int>? partyIds = null,
-        IList<OrganizationIdentifier>? organizationIdentifiers = null,
-        IList<PersonIdentifier>? personIdentifiers = null,
+        IReadOnlyList<Guid>? partyUuids = null,
+        IReadOnlyList<int>? partyIds = null,
+        IReadOnlyList<OrganizationIdentifier>? organizationIdentifiers = null,
+        IReadOnlyList<PersonIdentifier>? personIdentifiers = null,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default);
 
