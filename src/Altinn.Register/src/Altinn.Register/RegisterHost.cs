@@ -168,6 +168,7 @@ internal static class RegisterHost
 
         services.AddOpenApiExampleProvider();
         services.AddSwaggerFilterAttributeSupport();
+        services.AddUrnSwaggerSupport();
         services.AddSwaggerGen(c =>
         {
             c.SwaggerDoc("v1", new OpenApiInfo { Title = "Altinn Platform Register", Version = "v1" });

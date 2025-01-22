@@ -139,10 +139,10 @@ internal partial class PostgreSqlPartyPersistence
 
     /// <inheritdoc/>
     public IAsyncEnumerable<PartyRecord> LookupParties(
-        IList<Guid>? partyUuids = null,
-        IList<int>? partyIds = null,
-        IList<OrganizationIdentifier>? organizationIdentifiers = null,
-        IList<PersonIdentifier>? personIdentifiers = null,
+        IReadOnlyList<Guid>? partyUuids = null,
+        IReadOnlyList<int>? partyIds = null,
+        IReadOnlyList<OrganizationIdentifier>? organizationIdentifiers = null,
+        IReadOnlyList<PersonIdentifier>? personIdentifiers = null,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default)
     {
@@ -180,13 +180,13 @@ internal partial class PostgreSqlPartyPersistence
 
         if (!orgs)
         {
-            // filter out organization fields as result is guaranteed to be a person
+            // filter out organization fields as result is guaranteed to not be organizations
             include &= ~(PartyFieldIncludes.Organization & PartyFieldIncludes.SubUnits);
         }
 
         if (!persons)
         {
-            // filter out person fields as result is guaranteed to be an organization
+            // filter out person fields as result is guaranteed to not be persons
             include &= ~PartyFieldIncludes.Person;
         }
 
@@ -199,12 +199,12 @@ internal partial class PostgreSqlPartyPersistence
 
             if (partyUuids is { Count: > 0 })
             {
-                query.AddPartyUuidListParameter(cmd, partyUuids);
+                query.AddPartyUuidListParameter(cmd, partyUuids.ToList());
             }
             
             if (partyIds is { Count: > 0 })
             {
-                query.AddPartyIdListParameter(cmd, partyIds);
+                query.AddPartyIdListParameter(cmd, partyIds.ToList());
             }
 
             if (organizationIdentifiers is { Count: > 0 })
