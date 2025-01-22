@@ -81,6 +81,11 @@ public abstract class BusTestBase(ITestOutputHelper output)
             var builder = new StringBuilder();
             await _harness.OutputTimeline(new StringWriter(builder));
             output.WriteLine(builder.ToString());
+
+            await foreach (var fault in _harness.Published.SelectAsync<Fault>())
+            {
+                output.WriteLine(fault.Exception.ToString());
+            }
         }
 
         await base.DisposeAsync();
