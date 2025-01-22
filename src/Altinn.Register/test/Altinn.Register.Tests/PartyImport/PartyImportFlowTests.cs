@@ -7,11 +7,12 @@ using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Core.Utils;
 using Altinn.Register.PartyImport;
 using Altinn.Register.TestUtils;
+using Xunit.Abstractions;
 
 namespace Altinn.Register.Tests.PartyImport;
 
-public class PartyImportFlowTests
-    : BusTestBase
+public class PartyImportFlowTests(ITestOutputHelper output)
+    : BusTestBase(output)
 {
     private IUnitOfWorkManager UOW => GetRequiredService<IUnitOfWorkManager>();
 

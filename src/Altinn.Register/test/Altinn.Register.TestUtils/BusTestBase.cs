@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Authorization.ServiceDefaults.MassTransit.Commands;
 using Altinn.Authorization.ServiceDefaults.MassTransit.Testing;
@@ -7,13 +8,14 @@ using Altinn.Register.PartyImport.A2;
 using MassTransit;
 using MassTransit.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit.Abstractions;
 
 namespace Altinn.Register.TestUtils;
 
 /// <summary>
 /// Base class for tests that needs a bus.
 /// </summary>
-public abstract class BusTestBase
+public abstract class BusTestBase(ITestOutputHelper output)
     : DatabaseTestBase
 {
     private ITestHarness? _harness;
@@ -64,7 +66,23 @@ public abstract class BusTestBase
         _commandSender = Services.GetRequiredService<ICommandSender>();
         _commandQueueResolver = Services.GetRequiredService<ICommandQueueResolver>();
 
-        var lifetime = Services.GetRequiredService<IBusLifetime>();
-        await lifetime.WaitForBus();
+        _harness.TestInactivityTimeout = TimeSpan.FromMinutes(2);
+        _harness.TestTimeout = TimeSpan.FromMinutes(5);
+        await _harness.RestartHostedServices();
+        _harness.InactivityToken.Register(() => output.WriteLine("Test harness inactivity timeout reached."));
+    }
+
+    /// <inheritdoc/>
+    protected override async ValueTask DisposeAsync()
+    {
+        if (_harness is { } harness)
+        {
+            _harness.ForceInactive();
+            var builder = new StringBuilder();
+            await _harness.OutputTimeline(new StringWriter(builder));
+            output.WriteLine(builder.ToString());
+        }
+
+        await base.DisposeAsync();
     }
 }
