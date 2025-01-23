@@ -49,7 +49,7 @@
     <PackageVersion Include="Polly" Version="8.5.1" />
     <PackageVersion Include="Quartz.AspNetCore" Version="3.13.1" />
     <PackageVersion Include="Quartz.Serialization.SystemTextJson" Version="3.13.1" />
-    <PackageVersion Include="Scrutor" Version="5.1.2" />
+    <PackageVersion Include="Scrutor" Version="6.0.1" />
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="7.2.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore.Annotations" Version="7.2.0" />
