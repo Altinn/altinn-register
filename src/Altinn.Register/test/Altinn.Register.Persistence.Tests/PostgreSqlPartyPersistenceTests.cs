@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Data;
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -1009,9 +1010,68 @@ public class PostgreSqlPartyPersistenceTests
 
     #endregion
 
-    private async Task<OrganizationIdentifier> GetNewOrgNumber()
+    #region Sequence Transaction handling
+
+    [Fact]
+    public async Task Sequence_Transaction_Handling()
     {
-        await using var cmd = Connection.CreateCommand();
+        var dataSource = GetRequiredService<NpgsqlDataSource>();
+        await using var noTxConn = await dataSource.OpenConnectionAsync();
+        await using var maxSafeCmd = noTxConn.CreateCommand();
+        maxSafeCmd.CommandText = /*strpsql*/"SELECT register.tx_max_safeval('register.party_version_id_seq')";
+        await maxSafeCmd.PrepareAsync();
+
+        await using var uow1 = await GetRequiredService<IUnitOfWorkManager>().CreateAsync(activityName: "uow1");
+        await using var uow2 = await GetRequiredService<IUnitOfWorkManager>().CreateAsync(activityName: "uow2");
+
+        var tx1Conn = uow1.GetRequiredService<NpgsqlConnection>();
+        var tx2Conn = uow2.GetRequiredService<NpgsqlConnection>();
+
+        Assert.Equal(9223372036854775807UL, await GetVisible());
+        
+        var val1 = await NextVal(tx1Conn);
+        var val2 = await NextVal(tx2Conn);
+        val1.Should().BeLessThan(val2);
+
+        (await GetVisible()).Should().Be(val1 - 1);
+
+        await uow2.CommitAsync();
+        (await GetVisible()).Should().Be(val1 - 1);
+
+        await uow1.CommitAsync();
+        Assert.Equal(9223372036854775807UL, await GetVisible());
+
+        async Task<ulong> GetVisible()
+        {
+            await using var reader = await maxSafeCmd.ExecuteReaderAsync(CommandBehavior.SingleResult | CommandBehavior.SingleRow);
+            Assert.True(await reader.ReadAsync());
+
+            var result = reader.GetFieldValue<long>(0);
+            return (ulong)result;
+        }
+
+        async Task<ulong> NextVal(NpgsqlConnection conn)
+        {
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = /*strpsql*/"SELECT register.tx_nextval('register.party_version_id_seq')";
+            await cmd.PrepareAsync();
+
+            await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleResult | CommandBehavior.SingleRow);
+            Assert.True(await reader.ReadAsync());
+
+            var result = reader.GetFieldValue<long>(0);
+            return (ulong)result;
+        }
+    }
+
+    #endregion
+
+    private async Task<OrganizationIdentifier> GetNewOrgNumber(IUnitOfWork? uow = null)
+    {
+        uow ??= _unitOfWork!;
+
+        var connection = uow.GetRequiredService<NpgsqlConnection>();
+        await using var cmd = connection.CreateCommand();
         cmd.CommandText =
             /*strpsql*/"""
             SELECT organization_identifier 
