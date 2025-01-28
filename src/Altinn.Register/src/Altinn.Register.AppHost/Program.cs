@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Altinn.Register.AppHost;
 using Microsoft.Extensions.Configuration;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -12,7 +13,8 @@ var rabbitMqMgmtPort = builder.Configuration.GetValue("RabbitMq:ManagementPort",
 var postgresServer = builder.AddPostgres("postgres", port: postgresPort)
     .WithDataVolume()
     .WithPgAdmin()
-    .WithLifetime(ContainerLifetime.Persistent);
+    .WithLifetime(ContainerLifetime.Persistent)
+    .WithPublicEndpoints();
 
 var registerDb = postgresServer.AddAltinnDatabase(
     "register-db",
@@ -23,7 +25,8 @@ var rabbitMqUsername = builder.CreateResourceBuilder(new ParameterResource("rabb
 var rabbitMq = builder.AddRabbitMQ("rabbitmq", userName: rabbitMqUsername, port: rabbitMqPort)
     .WithDataVolume()
     .WithManagementPlugin(port: rabbitMqMgmtPort)
-    .WithLifetime(ContainerLifetime.Persistent);
+    .WithLifetime(ContainerLifetime.Persistent)
+    .WithPublicEndpoints();
 
 var registerApi = builder.AddProject<Projects.Altinn_Register>("register")
     .WithReference(registerDb, "register")
