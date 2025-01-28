@@ -541,13 +541,30 @@ internal partial class PostgreSqlPartyPersistence
                     Debug.Assert(!firstFilter, "No filters were added, but multiple filters were requested");
                 }
 
+                if (!firstFilter)
+                {
+                    _builder.AppendLine().Append(/*strpsql*/")");
+                }
+
                 if (filterBy.HasFlag(PartyFilters.StreamPage))
                 {
                     Debug.Assert(!_hasSubUnits, "A query cannot get both a stream page and subunits");
 
-                    _paramStreamFrom = AddFilter(typeof(long), "streamFrom", /*strpsql*/"p.version_id >=", NpgsqlDbType.Bigint, ref firstFilter);
+                    _paramStreamFrom = new(typeof(long), "streamFrom", NpgsqlDbType.Bigint);
                     _paramStreamLimit = new(typeof(int), "streamLimit", NpgsqlDbType.Integer);
 
+                    if (firstFilter)
+                    {
+                        firstFilter = false;
+                        _builder.AppendLine().Append(/*strpsql*/"WHERE");
+                    }
+                    else
+                    {
+                        _builder.AppendLine().Append(/*strpsql*/"    AND");
+                    }
+
+                    _builder.Append(/*strpsql*/"p.version_id >= @streamFrom");
+                    _builder.AppendLine().Append(/*strpsql*/"    AND p.version_id <= register.tx_max_safeval('register.party_version_id_seq')");
                     _builder.AppendLine().Append(/*strpsql*/"ORDER BY p.version_id ASC");
                     _builder.AppendLine().Append(/*strpsql*/"LIMIT @streamLimit");
                 }
@@ -604,7 +621,7 @@ internal partial class PostgreSqlPartyPersistence
             {
                 if (first)
                 {
-                    _builder.AppendLine().Append(/*strpsql*/"WHERE ");
+                    _builder.AppendLine().Append(/*strpsql*/"WHERE (");
                     first = false;
                 }
                 else
