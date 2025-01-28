@@ -556,11 +556,11 @@ internal partial class PostgreSqlPartyPersistence
                     if (firstFilter)
                     {
                         firstFilter = false;
-                        _builder.AppendLine().Append(/*strpsql*/"WHERE");
+                        _builder.AppendLine().Append(/*strpsql*/"WHERE ");
                     }
                     else
                     {
-                        _builder.AppendLine().Append(/*strpsql*/"    AND");
+                        _builder.AppendLine().Append(/*strpsql*/"    AND ");
                     }
 
                     _builder.Append(/*strpsql*/"p.version_id >= @streamFrom");
