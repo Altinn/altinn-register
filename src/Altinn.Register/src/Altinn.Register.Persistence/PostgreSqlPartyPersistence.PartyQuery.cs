@@ -550,7 +550,7 @@ internal partial class PostgreSqlPartyPersistence
                 {
                     Debug.Assert(!_hasSubUnits, "A query cannot get both a stream page and subunits");
 
-                    _paramStreamFrom = AddFilter(typeof(long), "streamFrom", /*strpsql*/"p.version_id >=", NpgsqlDbType.Bigint, ref firstFilter);
+                    _paramStreamFrom = new(typeof(long), "streamFrom", NpgsqlDbType.Bigint);
                     _paramStreamLimit = new(typeof(int), "streamLimit", NpgsqlDbType.Integer);
 
                     if (firstFilter)
