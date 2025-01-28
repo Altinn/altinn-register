@@ -481,6 +481,17 @@ public class PostgreSqlPartyPersistenceTests
         });
     }
 
+    [Theory]
+    [InlineData(PartyFieldIncludes.Party)]
+    [InlineData(PartyFieldIncludes.Identifiers)]
+    [InlineData(PartyFieldIncludes.Party | PartyFieldIncludes.Organization | PartyFieldIncludes.Person)]
+    public async Task GetPartyStream(PartyFieldIncludes includes)
+    {
+        var items = await Persistence.GetPartyStream(0, 100, includes).ToListAsync();
+
+        items.Should().HaveCount(100);
+    }
+
     #region Upsert Org
 
     [Fact]
