@@ -13,4 +13,12 @@ public static class ValidationErrors
     /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
     public static ValidationErrorDescriptor PartyFields_SubUnits_Forbidden { get; }
         = _factory.Create(0, "Cannot request party subunits");
+
+    /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
+    public static ValidationErrorDescriptor TooManyItems { get; }
+        = _factory.Create(1, "Too many items requested");
+
+    /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
+    public static ValidationErrorDescriptor PartyUrn_Invalid { get; }
+        = _factory.Create(2, "Invalid party URN");
 }
