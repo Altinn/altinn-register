@@ -26,7 +26,7 @@ public interface IImportJobTracker
     /// <see cref="ImportJobQueueStatus.SourceMax"/>.
     /// </remarks>
     /// <returns>Whether or not the job status was updated.</returns>
-    Task<bool> TrackQueueStatus(string id, ImportJobQueueStatus status, CancellationToken cancellationToken = default);
+    Task<(ImportJobStatus Status, bool Updated)> TrackQueueStatus(string id, ImportJobQueueStatus status, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Updates the processing status for the given job.
@@ -39,5 +39,5 @@ public interface IImportJobTracker
     /// idempotent, but also only incrementing with respect to <see cref="ImportJobProcessingStatus.ProcessedMax"/>.
     /// </remarks>
     /// <returns>Whether or not the job status was updated.</returns>
-    Task<bool> TrackProcessedStatus(string id, ImportJobProcessingStatus status, CancellationToken cancellationToken = default);
+    Task<(ImportJobStatus Status, bool Updated)> TrackProcessedStatus(string id, ImportJobProcessingStatus status, CancellationToken cancellationToken = default);
 }

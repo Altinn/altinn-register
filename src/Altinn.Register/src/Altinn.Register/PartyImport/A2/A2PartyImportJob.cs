@@ -66,7 +66,7 @@ public sealed partial class A2PartyImportJob
 
             var enqueuedMax = page[^1].ChangeId;
             var sourceMax = page.LastKnownChangeId;
-            await _tracker.TrackQueueStatus(JobNames.A2PartyImportParty, new() { EnqueuedMax = enqueuedMax, SourceMax = sourceMax }, cancellationToken);
+            (progress, _) = await _tracker.TrackQueueStatus(JobNames.A2PartyImportParty, new() { EnqueuedMax = enqueuedMax, SourceMax = sourceMax }, cancellationToken);
             _meters.PartiesEnqueued.Add(page.Count);
 
             if (enqueuedMax - progress.ProcessedMax > 50_000)
