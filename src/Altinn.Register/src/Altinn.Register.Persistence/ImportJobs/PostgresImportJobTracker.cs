@@ -123,21 +123,23 @@ internal partial class PostgresImportJobTracker
     }
 
     /// <inheritdoc/>
-    async Task<bool> IImportJobTracker.TrackQueueStatus(string id, ImportJobQueueStatus status, CancellationToken cancellationToken)
+    async Task<(ImportJobStatus Status, bool Updated)> IImportJobTracker.TrackQueueStatus(string id, ImportJobQueueStatus status, CancellationToken cancellationToken)
     {
-        var tcs = new TaskCompletionSource<bool>();
+        var tcs = new TaskCompletionSource<ImportJobUpdateStatus>();
         var message = new WorkerMessage.TrackQueueStatusMessage(id, status, Activity.Current, cancellationToken, tcs);
         await _writer.WriteAsync(message, cancellationToken);
-        return await tcs.Task;
+        var (newStatus, updated) = await tcs.Task;
+        return (newStatus, updated);
     }
 
     /// <inheritdoc/>
-    async Task<bool> IImportJobTracker.TrackProcessedStatus(string id, ImportJobProcessingStatus status, CancellationToken cancellationToken)
+    async Task<(ImportJobStatus Status, bool Updated)> IImportJobTracker.TrackProcessedStatus(string id, ImportJobProcessingStatus status, CancellationToken cancellationToken)
     {
-        var tcs = new TaskCompletionSource<bool>();
+        var tcs = new TaskCompletionSource<ImportJobUpdateStatus>();
         var message = new WorkerMessage.TrackProcessedStatusMessage(id, status, Activity.Current, cancellationToken, tcs);
         await _writer.WriteAsync(message, cancellationToken);
-        return await tcs.Task;
+        var (newStatus, updated) = await tcs.Task;
+        return (newStatus, updated);
     }
 
     /// <inheritdoc/>
@@ -301,12 +303,17 @@ internal partial class PostgresImportJobTracker
         return status;
     }
 
-    private async Task<bool> TrackQueueStatus(NpgsqlConnection conn, Dictionary<string, ImportJobStatus> cache, string id, ImportJobQueueStatus status, CancellationToken cancellationToken = default)
+    private async Task<ImportJobUpdateStatus> TrackQueueStatus(
+        NpgsqlConnection conn,
+        Dictionary<string, ImportJobStatus> cache,
+        string id,
+        ImportJobQueueStatus status,
+        CancellationToken cancellationToken = default)
     {
         const string QUERY =
             /*strpsql*/"""
             WITH existing AS (
-                SELECT source_max, enqueued_max, 0 as source
+                SELECT source_max, enqueued_max, processed_max, 0 as source
                 FROM register.import_job
                 WHERE id = @id
             ), updated AS (
@@ -317,20 +324,20 @@ internal partial class PostgresImportJobTracker
                         enqueued_max = GREATEST(import_job.enqueued_max, EXCLUDED.enqueued_max)
                     WHERE import_job.enqueued_max < EXCLUDED.enqueued_max
                         OR import_job.source_max < EXCLUDED.source_max
-                RETURNING source_max, enqueued_max, 1 as source
+                RETURNING source_max, enqueued_max, processed_max, 1 as source
             )
-            SELECT source_max, enqueued_max, source FROM updated
-            UNION SELECT source_max, enqueued_max, source FROM existing
+            SELECT source_max, enqueued_max, processed_max, source FROM updated
+            UNION SELECT source_max, enqueued_max, processed_max, source FROM existing
             ORDER BY source DESC
             LIMIT 1
             """;
 
         if (cache.TryGetValue(id, out var cached) && cached.EnqueuedMax >= status.EnqueuedMax && cached.SourceMax >= status.SourceMax)
         {
-            return false;
+            return new(cached, false);
         }
 
-        var (sourceMax, enqueuedMax, updated) = await WithConnection(
+        var (sourceMax, enqueuedMax, processedMax, updated) = await WithConnection(
             conn,
             id,
             static async (id, conn, state, cancellationToken) =>
@@ -352,44 +359,51 @@ internal partial class PostgresImportJobTracker
 
                 var sourceMax = (ulong)reader.GetFieldValue<long>("source_max");
                 var enqueuedMax = (ulong)reader.GetFieldValue<long>("enqueued_max");
+                var processedMax = (ulong)reader.GetFieldValue<long>("processed_max");
                 var source = reader.GetFieldValue<int>("source");
                 var updated = source == 1;
 
-                return (sourceMax, enqueuedMax, updated);
+                return (sourceMax, enqueuedMax, processedMax, updated);
             },
             new WithLoggerState<ImportJobQueueStatus>(status, _logger),
             cancellationToken);
 
-        cache[id] = cached with { EnqueuedMax = enqueuedMax, SourceMax = sourceMax };
-        return updated;
+        cached = new() { EnqueuedMax = enqueuedMax, SourceMax = sourceMax, ProcessedMax = processedMax };
+        cache[id] = cached;
+        return new(cached, updated);
     }
 
-    private async Task<bool> TrackProcessedStatus(NpgsqlConnection conn, Dictionary<string, ImportJobStatus> cache, string id, ImportJobProcessingStatus status, CancellationToken cancellationToken = default)
+    private async Task<ImportJobUpdateStatus> TrackProcessedStatus(
+        NpgsqlConnection conn,
+        Dictionary<string, ImportJobStatus> cache,
+        string id,
+        ImportJobProcessingStatus status,
+        CancellationToken cancellationToken = default)
     {
         const string QUERY =
             /*strpsql*/"""
             WITH existing AS (
-                SELECT processed_max, 0 as source
+                SELECT source_max, enqueued_max, processed_max, 0 as source
                 FROM register.import_job
                 WHERE id = @id
             ), updated AS (
                 UPDATE register.import_job
                 SET processed_max = @processed_max
                 WHERE id = @id AND processed_max < @processed_max
-                RETURNING processed_max, 1 as source
+                RETURNING source_max, enqueued_max, processed_max, 1 as source
             )
-            SELECT processed_max, source FROM updated
-            UNION SELECT processed_max, source FROM existing
+            SELECT source_max, enqueued_max, processed_max, source FROM updated
+            UNION SELECT source_max, enqueued_max, processed_max, source FROM existing
             ORDER BY source DESC
             LIMIT 1
             """;
 
         if (cache.TryGetValue(id, out var cached) && cached.ProcessedMax >= status.ProcessedMax)
         {
-            return false;
+            return new(cached, false);
         }
 
-        var (processedMax, updated) = await WithConnection(
+        var (sourceMax, enqueuedMax, processedMax, updated) = await WithConnection(
             conn,
             id,
             static async (id, conn, state, cancellationToken) =>
@@ -411,17 +425,20 @@ internal partial class PostgresImportJobTracker
                     throw new JobDoesNotExistException(id);
                 }
 
+                var sourceMax = (ulong)reader.GetFieldValue<long>("source_max");
+                var enqueuedMax = (ulong)reader.GetFieldValue<long>("enqueued_max");
                 var processedMax = (ulong)reader.GetFieldValue<long>("processed_max");
                 var source = reader.GetFieldValue<int>("source");
                 var updated = source == 1;
 
-                return (processedMax, updated);
+                return (sourceMax, enqueuedMax, processedMax, updated);
             },
             new WithLoggerState<ImportJobProcessingStatus>(status, _logger),
             cancellationToken);
 
-        cache[id] = cached with { ProcessedMax = processedMax };
-        return updated;
+        cached = new() { EnqueuedMax = enqueuedMax, SourceMax = sourceMax, ProcessedMax = processedMax };
+        cache[id] = cached;
+        return new(cached, updated);
     }
 
     private async Task<TResult> WithConnection<TResult, TState>(
@@ -509,6 +526,8 @@ internal partial class PostgresImportJobTracker
     {
     }
 
+    private readonly record struct ImportJobUpdateStatus(ImportJobStatus Status, bool Updated);
+
     private abstract record WorkerMessage(string Id, Activity? Activity, CancellationToken CancellationToken)
     {
         public sealed record ClearCacheMessage(string Id, Activity? Activity, CancellationToken CancellationToken, TaskCompletionSource<bool> CompletionSource)
@@ -517,10 +536,10 @@ internal partial class PostgresImportJobTracker
         public sealed record GetStatusMessage(string Id, Activity? Activity, CancellationToken CancellationToken, TaskCompletionSource<ImportJobStatus> CompletionSource)
             : WorkerMessage(Id, Activity, CancellationToken);
 
-        public sealed record TrackQueueStatusMessage(string Id, ImportJobQueueStatus Status, Activity? Activity, CancellationToken CancellationToken, TaskCompletionSource<bool> CompletionSource)
+        public sealed record TrackQueueStatusMessage(string Id, ImportJobQueueStatus Status, Activity? Activity, CancellationToken CancellationToken, TaskCompletionSource<ImportJobUpdateStatus> CompletionSource)
             : WorkerMessage(Id, Activity, CancellationToken);
 
-        public sealed record TrackProcessedStatusMessage(string Id, ImportJobProcessingStatus Status, Activity? Activity, CancellationToken CancellationToken, TaskCompletionSource<bool> CompletionSource)
+        public sealed record TrackProcessedStatusMessage(string Id, ImportJobProcessingStatus Status, Activity? Activity, CancellationToken CancellationToken, TaskCompletionSource<ImportJobUpdateStatus> CompletionSource)
             : WorkerMessage(Id, Activity, CancellationToken);
     }
 

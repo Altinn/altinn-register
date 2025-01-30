@@ -54,7 +54,13 @@ public class PostgresqlImportJobTrackerTests
             EnqueuedMax = 5,
             SourceMax = 5,
         });
-        result.Should().BeTrue();
+        result.Updated.Should().BeTrue();
+        result.Status.Should().Be(new ImportJobStatus
+        {
+            EnqueuedMax = 5,
+            SourceMax = 5,
+            ProcessedMax = 0,
+        });
 
         await clearCache("test");
         result = await Tracker.TrackQueueStatus("test", new ImportJobQueueStatus
@@ -62,7 +68,13 @@ public class PostgresqlImportJobTrackerTests
             EnqueuedMax = 4,
             SourceMax = 4,
         });
-        result.Should().BeFalse();
+        result.Updated.Should().BeFalse();
+        result.Status.Should().Be(new ImportJobStatus
+        {
+            EnqueuedMax = 5,
+            SourceMax = 5,
+            ProcessedMax = 0,
+        });
 
         await clearCache("test");
         result = await Tracker.TrackQueueStatus("test", new ImportJobQueueStatus
@@ -70,7 +82,13 @@ public class PostgresqlImportJobTrackerTests
             EnqueuedMax = 4,
             SourceMax = 5,
         });
-        result.Should().BeFalse();
+        result.Updated.Should().BeFalse();
+        result.Status.Should().Be(new ImportJobStatus
+        {
+            EnqueuedMax = 5,
+            SourceMax = 5,
+            ProcessedMax = 0,
+        });
 
         await clearCache("test");
         result = await Tracker.TrackQueueStatus("test", new ImportJobQueueStatus
@@ -78,7 +96,13 @@ public class PostgresqlImportJobTrackerTests
             EnqueuedMax = 5,
             SourceMax = 5,
         });
-        result.Should().BeFalse();
+        result.Updated.Should().BeFalse();
+        result.Status.Should().Be(new ImportJobStatus
+        {
+            EnqueuedMax = 5,
+            SourceMax = 5,
+            ProcessedMax = 0,
+        });
 
         await clearCache("test");
         result = await Tracker.TrackQueueStatus("test", new ImportJobQueueStatus
@@ -86,7 +110,13 @@ public class PostgresqlImportJobTrackerTests
             EnqueuedMax = 5,
             SourceMax = 6,
         });
-        result.Should().BeTrue();
+        result.Updated.Should().BeTrue();
+        result.Status.Should().Be(new ImportJobStatus
+        {
+            EnqueuedMax = 5,
+            SourceMax = 6,
+            ProcessedMax = 0,
+        });
 
         await clearCache("test");
         result = await Tracker.TrackQueueStatus("test", new ImportJobQueueStatus
@@ -94,7 +124,13 @@ public class PostgresqlImportJobTrackerTests
             EnqueuedMax = 6,
             SourceMax = 6,
         });
-        result.Should().BeTrue();
+        result.Updated.Should().BeTrue();
+        result.Status.Should().Be(new ImportJobStatus
+        {
+            EnqueuedMax = 6,
+            SourceMax = 6,
+            ProcessedMax = 0,
+        });
 
         await clearCache("test");
         result = await Tracker.TrackQueueStatus("test", new ImportJobQueueStatus
@@ -102,7 +138,13 @@ public class PostgresqlImportJobTrackerTests
             EnqueuedMax = 6,
             SourceMax = 6,
         });
-        result.Should().BeFalse();
+        result.Updated.Should().BeFalse();
+        result.Status.Should().Be(new ImportJobStatus
+        {
+            EnqueuedMax = 6,
+            SourceMax = 6,
+            ProcessedMax = 0,
+        });
     }
 
     [Fact]
@@ -208,7 +250,13 @@ public class PostgresqlImportJobTrackerTests
             ProcessedMax = 5,
         });
 
-        result.Should().BeTrue();
+        result.Updated.Should().BeTrue();
+        result.Status.Should().Be(new ImportJobStatus
+        {
+            EnqueuedMax = 10,
+            SourceMax = 10,
+            ProcessedMax = 5,
+        });
 
         await clearCache("test");
         result = await Tracker.TrackProcessedStatus("test", new ImportJobProcessingStatus
@@ -216,7 +264,13 @@ public class PostgresqlImportJobTrackerTests
             ProcessedMax = 4,
         });
 
-        result.Should().BeFalse();
+        result.Updated.Should().BeFalse();
+        result.Status.Should().Be(new ImportJobStatus
+        {
+            EnqueuedMax = 10,
+            SourceMax = 10,
+            ProcessedMax = 5,
+        });
 
         await clearCache("test");
         result = await Tracker.TrackProcessedStatus("test", new ImportJobProcessingStatus
@@ -224,7 +278,13 @@ public class PostgresqlImportJobTrackerTests
             ProcessedMax = 5,
         });
 
-        result.Should().BeFalse();
+        result.Updated.Should().BeFalse();
+        result.Status.Should().Be(new ImportJobStatus
+        {
+            EnqueuedMax = 10,
+            SourceMax = 10,
+            ProcessedMax = 5,
+        });
 
         await clearCache("test");
         result = await Tracker.TrackProcessedStatus("test", new ImportJobProcessingStatus
@@ -232,7 +292,13 @@ public class PostgresqlImportJobTrackerTests
             ProcessedMax = 6,
         });
 
-        result.Should().BeTrue();
+        result.Updated.Should().BeTrue();
+        result.Status.Should().Be(new ImportJobStatus
+        {
+            EnqueuedMax = 10,
+            SourceMax = 10,
+            ProcessedMax = 6,
+        });
 
         await clearCache("test");
         result = await Tracker.TrackProcessedStatus("test", new ImportJobProcessingStatus
@@ -240,7 +306,13 @@ public class PostgresqlImportJobTrackerTests
             ProcessedMax = 10,
         });
 
-        result.Should().BeTrue();
+        result.Updated.Should().BeTrue();
+        result.Status.Should().Be(new ImportJobStatus
+        {
+            EnqueuedMax = 10,
+            SourceMax = 10,
+            ProcessedMax = 10,
+        });
     }
 
     [Fact]
