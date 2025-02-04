@@ -26,7 +26,6 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
     {
         private readonly Lock _lock = new();
         private readonly NpgsqlDataSource _dataSource;
-        private readonly TimeProvider _timeProvider;
         private readonly IHostApplicationLifetime _applicationLifetime;
         private readonly ILogger<Cache> _logger;
 
@@ -38,12 +37,10 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
         public Cache(
             ILogger<Cache> logger,
             NpgsqlDataSource dataSource,
-            TimeProvider timeProvider,
             IHostApplicationLifetime applicationLifetime)
         {
             _logger = logger;
             _dataSource = dataSource;
-            _timeProvider = timeProvider;
             _applicationLifetime = applicationLifetime;
         }
 
@@ -97,13 +94,13 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
 
             if (!stateTask.IsCompletedSuccessfully)
             {
-                return AwaitStateAsync(stateTask, arg, func, cancellationToken);
+                return AwaitStateAsync(stateTask, arg, func);
             }
 
             var state = stateTask.GetAwaiter().GetResult();
             return ValueTask.FromResult(func(state, arg));
             
-            async static ValueTask<T> AwaitStateAsync(ValueTask<State> stateTask, TArg arg, Func<State, TArg, T> func, CancellationToken cancellationToken)
+            async static ValueTask<T> AwaitStateAsync(ValueTask<State> stateTask, TArg arg, Func<State, TArg, T> func)
             {
                 var state = await stateTask;
 
