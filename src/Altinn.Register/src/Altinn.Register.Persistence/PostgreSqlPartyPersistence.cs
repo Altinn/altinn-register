@@ -334,7 +334,7 @@ internal partial class PostgreSqlPartyPersistence
                     CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("created", cancellationToken),
                     ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("updated", cancellationToken),
                     IsDeleted = await reader.GetConditionalFieldValueAsync<bool>("is_deleted", cancellationToken),
-                    VersionId = await reader.GetConditionalFieldValueAsync<long>("version_id").Select(static v => (ulong)v),
+                    VersionId = await reader.GetConditionalFieldValueAsync<long>("version_id", cancellationToken).Select(static v => (ulong)v),
                 };
             }
             catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.UniqueViolation && e.ConstraintName == "party_pkey")
@@ -407,7 +407,7 @@ internal partial class PostgreSqlPartyPersistence
                 CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("created", cancellationToken),
                 ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("updated", cancellationToken),
                 IsDeleted = await reader.GetConditionalFieldValueAsync<bool>("is_deleted", cancellationToken),
-                VersionId = await reader.GetConditionalFieldValueAsync<long>("version_id").Select(static v => (ulong)v),
+                VersionId = await reader.GetConditionalFieldValueAsync<long>("version_id", cancellationToken).Select(static v => (ulong)v),
             };
 
             Debug.Assert(result.PartyUuid == party.PartyUuid, "PartyUuid should match");
