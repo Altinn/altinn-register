@@ -273,7 +273,7 @@ internal partial class PostgreSqlPartyPersistence
             return 0;
         }
 
-        return (ulong)reader.GetFieldValue<long>(0);
+        return (ulong)await reader.GetFieldValueAsync<long>(0, cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -324,17 +324,17 @@ internal partial class PostgreSqlPartyPersistence
 
                 Debug.Assert(read, "INSERT should return a row");
 
-                result = new PartyRecord(reader.GetConditionalFieldValue<PartyType>("party_type"))
+                result = new PartyRecord(await reader.GetConditionalFieldValueAsync<PartyType>("party_type", cancellationToken))
                 {
-                    PartyUuid = reader.GetConditionalFieldValue<Guid>("uuid"),
-                    PartyId = reader.GetConditionalFieldValue<int>("id"),
-                    Name = reader.GetConditionalFieldValue<string>("name"),
-                    PersonIdentifier = reader.GetConditionalParsableFieldValue<PersonIdentifier>("person_identifier"),
-                    OrganizationIdentifier = reader.GetConditionalParsableFieldValue<OrganizationIdentifier>("organization_identifier"),
-                    CreatedAt = reader.GetConditionalFieldValue<DateTimeOffset>("created"),
-                    ModifiedAt = reader.GetConditionalFieldValue<DateTimeOffset>("updated"),
-                    IsDeleted = reader.GetConditionalFieldValue<bool>("is_deleted"),
-                    VersionId = reader.GetConditionalFieldValue<long>("version_id").Select(static v => (ulong)v),
+                    PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("uuid", cancellationToken),
+                    PartyId = await reader.GetConditionalFieldValueAsync<int>("id", cancellationToken),
+                    Name = await reader.GetConditionalFieldValueAsync<string>("name", cancellationToken),
+                    PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>("person_identifier", cancellationToken),
+                    OrganizationIdentifier = await reader.GetConditionalParsableFieldValueAsync<OrganizationIdentifier>("organization_identifier", cancellationToken),
+                    CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("created", cancellationToken),
+                    ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("updated", cancellationToken),
+                    IsDeleted = await reader.GetConditionalFieldValueAsync<bool>("is_deleted", cancellationToken),
+                    VersionId = await reader.GetConditionalFieldValueAsync<long>("version_id", cancellationToken).Select(static v => (ulong)v),
                 };
             }
             catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.UniqueViolation && e.ConstraintName == "party_pkey")
@@ -397,17 +397,17 @@ internal partial class PostgreSqlPartyPersistence
                 return Problems.InvalidPartyUpdate;
             }
 
-            var result = new PartyRecord(reader.GetConditionalFieldValue<PartyType>("party_type"))
+            var result = new PartyRecord(await reader.GetConditionalFieldValueAsync<PartyType>("party_type", cancellationToken))
             {
-                PartyUuid = reader.GetConditionalFieldValue<Guid>("uuid"),
-                PartyId = reader.GetConditionalFieldValue<int>("id"),
-                Name = reader.GetConditionalFieldValue<string>("name"),
-                PersonIdentifier = reader.GetConditionalParsableFieldValue<PersonIdentifier>("person_identifier"),
-                OrganizationIdentifier = reader.GetConditionalParsableFieldValue<OrganizationIdentifier>("organization_identifier"),
-                CreatedAt = reader.GetConditionalFieldValue<DateTimeOffset>("created"),
-                ModifiedAt = reader.GetConditionalFieldValue<DateTimeOffset>("updated"),
-                IsDeleted = reader.GetConditionalFieldValue<bool>("is_deleted"),
-                VersionId = reader.GetConditionalFieldValue<long>("version_id").Select(static v => (ulong)v),
+                PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("uuid", cancellationToken),
+                PartyId = await reader.GetConditionalFieldValueAsync<int>("id", cancellationToken),
+                Name = await reader.GetConditionalFieldValueAsync<string>("name", cancellationToken),
+                PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>("person_identifier", cancellationToken),
+                OrganizationIdentifier = await reader.GetConditionalParsableFieldValueAsync<OrganizationIdentifier>("organization_identifier", cancellationToken),
+                CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("created", cancellationToken),
+                ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("updated", cancellationToken),
+                IsDeleted = await reader.GetConditionalFieldValueAsync<bool>("is_deleted", cancellationToken),
+                VersionId = await reader.GetConditionalFieldValueAsync<long>("version_id", cancellationToken).Select(static v => (ulong)v),
             };
 
             Debug.Assert(result.PartyUuid == party.PartyUuid, "PartyUuid should match");
@@ -503,13 +503,13 @@ internal partial class PostgreSqlPartyPersistence
                 ModifiedAt = partyData.ModifiedAt,
                 IsDeleted = partyData.IsDeleted,
                 VersionId = partyData.VersionId,
-                FirstName = reader.GetConditionalFieldValue<string>("first_name"),
-                MiddleName = reader.GetConditionalFieldValue<string>("middle_name"),
-                LastName = reader.GetConditionalFieldValue<string>("last_name"),
-                Address = reader.GetConditionalFieldValue<StreetAddress>("address"),
-                MailingAddress = reader.GetConditionalFieldValue<MailingAddress>("mailing_address"),
-                DateOfBirth = reader.GetConditionalFieldValue<DateOnly>("date_of_birth"),
-                DateOfDeath = reader.GetConditionalFieldValue<DateOnly>("date_of_death"),
+                FirstName = await reader.GetConditionalFieldValueAsync<string>("first_name", cancellationToken),
+                MiddleName = await reader.GetConditionalFieldValueAsync<string>("middle_name", cancellationToken),
+                LastName = await reader.GetConditionalFieldValueAsync<string>("last_name", cancellationToken),
+                Address = await reader.GetConditionalFieldValueAsync<StreetAddress>("address", cancellationToken),
+                MailingAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>("mailing_address", cancellationToken),
+                DateOfBirth = await reader.GetConditionalFieldValueAsync<DateOnly>("date_of_birth", cancellationToken),
+                DateOfDeath = await reader.GetConditionalFieldValueAsync<DateOnly>("date_of_death", cancellationToken),
             };
         }
 
@@ -588,15 +588,15 @@ internal partial class PostgreSqlPartyPersistence
                 ModifiedAt = partyData.ModifiedAt,
                 IsDeleted = partyData.IsDeleted,
                 VersionId = partyData.VersionId,
-                UnitStatus = reader.GetConditionalFieldValue<string>("unit_status"),
-                UnitType = reader.GetConditionalFieldValue<string>("unit_type"),
-                TelephoneNumber = reader.GetConditionalFieldValue<string>("telephone_number"),
-                MobileNumber = reader.GetConditionalFieldValue<string>("mobile_number"),
-                FaxNumber = reader.GetConditionalFieldValue<string>("fax_number"),
-                EmailAddress = reader.GetConditionalFieldValue<string>("email_address"),
-                InternetAddress = reader.GetConditionalFieldValue<string>("internet_address"),
-                MailingAddress = reader.GetConditionalFieldValue<MailingAddress>("mailing_address"),
-                BusinessAddress = reader.GetConditionalFieldValue<MailingAddress>("business_address"),
+                UnitStatus = await reader.GetConditionalFieldValueAsync<string>("unit_status", cancellationToken),
+                UnitType = await reader.GetConditionalFieldValueAsync<string>("unit_type", cancellationToken),
+                TelephoneNumber = await reader.GetConditionalFieldValueAsync<string>("telephone_number", cancellationToken),
+                MobileNumber = await reader.GetConditionalFieldValueAsync<string>("mobile_number", cancellationToken),
+                FaxNumber = await reader.GetConditionalFieldValueAsync<string>("fax_number", cancellationToken),
+                EmailAddress = await reader.GetConditionalFieldValueAsync<string>("email_address", cancellationToken),
+                InternetAddress = await reader.GetConditionalFieldValueAsync<string>("internet_address", cancellationToken),
+                MailingAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>("mailing_address", cancellationToken),
+                BusinessAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>("business_address", cancellationToken),
 
                 ParentOrganizationUuid = FieldValue.Unset,
             };
@@ -620,20 +620,20 @@ internal partial class PostgreSqlPartyPersistence
         Guid lastParent = default;
         while (await reader.ReadAsync(cancellationToken))
         {
-            var parentUuid = query.ReadParentUuid(reader);
+            var parentUuid = await query.ReadParentUuid(reader, cancellationToken);
             if (parentUuid != lastParent)
             {
                 lastParent = parentUuid;
-                var parent = query.ReadParentParty(reader);
+                var parent = await query.ReadParentParty(reader, cancellationToken);
                 yield return parent;
             }
 
             if (includeSubunits)
             {
-                var childUuid = query.ReadChildUuid(reader);
+                var childUuid = await query.ReadChildUuid(reader, cancellationToken);
                 if (childUuid.HasValue)
                 {
-                    var child = query.ReadChildParty(reader, parentUuid);
+                    var child = await query.ReadChildParty(reader, parentUuid, cancellationToken);
                     yield return child;
                 }
             }
@@ -719,7 +719,7 @@ internal partial class PostgreSqlPartyPersistence
 
         while (await reader.ReadAsync(cancellationToken))
         {
-            var role = query.ReadRole(reader);
+            var role = await query.ReadRole(reader, cancellationToken);
             yield return role;
         }
     }

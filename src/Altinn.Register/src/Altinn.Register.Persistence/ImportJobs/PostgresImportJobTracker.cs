@@ -285,9 +285,9 @@ internal partial class PostgresImportJobTracker
                     return default;
                 }
 
-                var sourceMax = reader.GetFieldValue<long>("source_max");
-                var enqueuedMax = reader.GetFieldValue<long>("enqueued_max");
-                var processedMax = reader.GetFieldValue<long>("processed_max");
+                var sourceMax = await reader.GetFieldValueAsync<long>("source_max", cancellationToken);
+                var enqueuedMax = await reader.GetFieldValueAsync<long>("enqueued_max", cancellationToken);
+                var processedMax = await reader.GetFieldValueAsync<long>("processed_max", cancellationToken);
 
                 return new ImportJobStatus
                 {
@@ -357,10 +357,10 @@ internal partial class PostgresImportJobTracker
                 var read = await reader.ReadAsync(cancellationToken);
                 Debug.Assert(read);
 
-                var sourceMax = (ulong)reader.GetFieldValue<long>("source_max");
-                var enqueuedMax = (ulong)reader.GetFieldValue<long>("enqueued_max");
-                var processedMax = (ulong)reader.GetFieldValue<long>("processed_max");
-                var source = reader.GetFieldValue<int>("source");
+                var sourceMax = (ulong)await reader.GetFieldValueAsync<long>("source_max", cancellationToken);
+                var enqueuedMax = (ulong)await reader.GetFieldValueAsync<long>("enqueued_max", cancellationToken);
+                var processedMax = (ulong)await reader.GetFieldValueAsync<long>("processed_max", cancellationToken);
+                var source = await reader.GetFieldValueAsync<int>("source", cancellationToken);
                 var updated = source == 1;
 
                 return (sourceMax, enqueuedMax, processedMax, updated);
@@ -425,10 +425,10 @@ internal partial class PostgresImportJobTracker
                     throw new JobDoesNotExistException(id);
                 }
 
-                var sourceMax = (ulong)reader.GetFieldValue<long>("source_max");
-                var enqueuedMax = (ulong)reader.GetFieldValue<long>("enqueued_max");
-                var processedMax = (ulong)reader.GetFieldValue<long>("processed_max");
-                var source = reader.GetFieldValue<int>("source");
+                var sourceMax = (ulong)await reader.GetFieldValueAsync<long>("source_max", cancellationToken);
+                var enqueuedMax = (ulong)await reader.GetFieldValueAsync<long>("enqueued_max", cancellationToken);
+                var processedMax = (ulong)await reader.GetFieldValueAsync<long>("processed_max", cancellationToken);
+                var source = await reader.GetFieldValueAsync<int>("source", cancellationToken);
                 var updated = source == 1;
 
                 return (sourceMax, enqueuedMax, processedMax, updated);

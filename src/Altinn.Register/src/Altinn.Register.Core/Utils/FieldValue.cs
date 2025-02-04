@@ -53,6 +53,26 @@ public static class FieldValue
         };
 
     /// <summary>
+    /// Maps a <see cref="FieldValue{T}"/> to another type.
+    /// </summary>
+    /// <typeparam name="TSource">The source type.</typeparam>
+    /// <typeparam name="TState">The state type.</typeparam>
+    /// <typeparam name="TResult">The result type.</typeparam>
+    /// <param name="value">The field value to map.</param>
+    /// <param name="state">The state to pass to the mapper.</param>
+    /// <param name="selector">The mapper.</param>
+    /// <returns>The mapped field value.</returns>
+    public static FieldValue<TResult> Select<TSource, TState, TResult>(this FieldValue<TSource> value, TState state, Func<TSource, TState, TResult> selector)
+        where TSource : notnull
+        where TResult : notnull
+        => value switch
+        {
+            { HasValue: true } => selector(value.Value!, state),
+            { IsNull: true } => Null,
+            _ => Unset,
+        };
+
+    /// <summary>
     /// A value that implicitly converts to any <see cref="FieldValue{T}"/> in the unset state.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]

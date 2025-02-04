@@ -61,19 +61,19 @@ internal partial class PostgreSqlPartyPersistence
             return param;
         }
 
-        public PartyRoleRecord ReadRole(NpgsqlDataReader reader)
-            => ReadRole(reader, in _fields);
+        public ValueTask<PartyRoleRecord> ReadRole(NpgsqlDataReader reader, CancellationToken cancellationToken)
+            => ReadRole(reader, _fields, cancellationToken);
 
-        private PartyRoleRecord ReadRole(NpgsqlDataReader reader, in PartyRoleFields fields)
+        private async ValueTask<PartyRoleRecord> ReadRole(NpgsqlDataReader reader, PartyRoleFields fields, CancellationToken cancellationToken)
         {
             return new PartyRoleRecord
             {
-                Source = reader.GetConditionalFieldValue<PartySource>(fields.RoleSource),
-                Identifier = reader.GetConditionalFieldValue<string>(fields.RoleIdentifier),
-                FromParty = reader.GetConditionalFieldValue<Guid>(fields.RoleFromParty),
-                ToParty = reader.GetConditionalFieldValue<Guid>(fields.RoleToParty),
-                Name = reader.GetConditionalConvertibleFieldValue<Dictionary<string, string>, TranslatedText>(fields.RoleDefinitionName),
-                Description = reader.GetConditionalConvertibleFieldValue<Dictionary<string, string>, TranslatedText>(fields.RoleDefinitionDescription),
+                Source = await reader.GetConditionalFieldValueAsync<PartySource>(fields.RoleSource, cancellationToken),
+                Identifier = await reader.GetConditionalFieldValueAsync<string>(fields.RoleIdentifier, cancellationToken),
+                FromParty = await reader.GetConditionalFieldValueAsync<Guid>(fields.RoleFromParty, cancellationToken),
+                ToParty = await reader.GetConditionalFieldValueAsync<Guid>(fields.RoleToParty, cancellationToken),
+                Name = await reader.GetConditionalConvertibleFieldValueAsync<Dictionary<string, string>, TranslatedText>(fields.RoleDefinitionName, cancellationToken),
+                Description = await reader.GetConditionalConvertibleFieldValueAsync<Dictionary<string, string>, TranslatedText>(fields.RoleDefinitionDescription, cancellationToken),
             };
         }
 
@@ -220,7 +220,7 @@ internal partial class PostgreSqlPartyPersistence
         }
 
         [SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1515:Single-line comment should be preceded by blank line", Justification = "This rule makes no sense here")]
-        private readonly struct PartyRoleFields(
+        private class PartyRoleFields(
             // register.external_role
             sbyte roleSource,
             sbyte roleIdentifier,

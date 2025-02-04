@@ -244,15 +244,15 @@ internal partial class PostgresqlLeaseProvider
 
                 if (await reader.ReadAsync(cancellationToken))
                 {
-                    if (upsert.Filter is null || upsert.Filter(ReadLeaseInfo(reader)))
+                    if (upsert.Filter is null || upsert.Filter(await ReadLeaseInfo(reader, cancellationToken)))
                     {
-                        result = ReadLease(reader);
+                        result = await ReadLease(reader, cancellationToken);
                     } 
                     else
                     {
-                        var expires = reader.GetFieldValue<DateTimeOffset?>("prev_expires");
-                        var lastAcquiredAt = reader.GetFieldValue<DateTimeOffset?>("prev_acquired");
-                        var lastReleasedAt = reader.GetFieldValue<DateTimeOffset?>("prev_released");
+                        var expires = await reader.GetFieldValueAsync<DateTimeOffset?>("prev_expires", cancellationToken);
+                        var lastAcquiredAt = await reader.GetFieldValueAsync<DateTimeOffset?>("prev_acquired", cancellationToken);
+                        var lastReleasedAt = await reader.GetFieldValueAsync<DateTimeOffset?>("prev_released", cancellationToken);
 
                         // returning here rolls back the transaction
                         return LeaseAcquireResult.Failed(
@@ -295,18 +295,18 @@ internal partial class PostgresqlLeaseProvider
                 throw new UnreachableException("Lease was not acquired, but no lease was found in the database");
             }
 
-            var expires = reader.GetFieldValue<DateTimeOffset>("expires");
-            var lastAcquiredAt = reader.GetFieldValue<DateTimeOffset?>("acquired");
-            var lastReleasedAt = reader.GetFieldValue<DateTimeOffset?>("released");
+            var expires = await reader.GetFieldValueAsync<DateTimeOffset>("expires", cancellationToken);
+            var lastAcquiredAt = await reader.GetFieldValueAsync<DateTimeOffset?>("acquired", cancellationToken);
+            var lastReleasedAt = await reader.GetFieldValueAsync<DateTimeOffset?>("released", cancellationToken);
 
             return LeaseAcquireResult.Failed(expires, lastAcquiredAt: lastAcquiredAt, lastReleasedAt: lastReleasedAt);
         }
 
-        static LeaseInfo ReadLeaseInfo(NpgsqlDataReader reader)
+        static async ValueTask<LeaseInfo> ReadLeaseInfo(NpgsqlDataReader reader, CancellationToken cancellationToken)
         {
-            var id = reader.GetFieldValue<string>("id");
-            var acquired = reader.GetFieldValue<DateTimeOffset?>("prev_acquired");
-            var released = reader.GetFieldValue<DateTimeOffset?>("prev_released");
+            var id = await reader.GetFieldValueAsync<string>("id", cancellationToken);
+            var acquired = await reader.GetFieldValueAsync<DateTimeOffset?>("prev_acquired", cancellationToken);
+            var released = await reader.GetFieldValueAsync<DateTimeOffset?>("prev_released", cancellationToken);
 
             return new LeaseInfo
             {
@@ -316,13 +316,13 @@ internal partial class PostgresqlLeaseProvider
             };
         }
 
-        static LeaseAcquireResult ReadLease(NpgsqlDataReader reader)
+        static async ValueTask<LeaseAcquireResult> ReadLease(NpgsqlDataReader reader, CancellationToken cancellationToken)
         {
-            var id = reader.GetFieldValue<string>("id");
-            var token = reader.GetFieldValue<Guid>("token");
-            var expires = reader.GetFieldValue<DateTimeOffset>("expires");
-            var lastAcquiredAt = reader.GetFieldValue<DateTimeOffset?>("acquired");
-            var lastReleasedAt = reader.GetFieldValue<DateTimeOffset?>("released");
+            var id = await reader.GetFieldValueAsync<string>("id", cancellationToken);
+            var token = await reader.GetFieldValueAsync<Guid>("token", cancellationToken);
+            var expires = await reader.GetFieldValueAsync<DateTimeOffset>("expires", cancellationToken);
+            var lastAcquiredAt = await reader.GetFieldValueAsync<DateTimeOffset?>("acquired", cancellationToken);
+            var lastReleasedAt = await reader.GetFieldValueAsync<DateTimeOffset?>("released", cancellationToken);
 
             var lease = new LeaseTicket(id, token, expires);
             return LeaseAcquireResult.Acquired(lease, lastAcquiredAt: lastAcquiredAt, lastReleasedAt: lastReleasedAt);
