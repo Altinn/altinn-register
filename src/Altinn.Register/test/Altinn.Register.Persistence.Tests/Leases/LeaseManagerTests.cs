@@ -94,7 +94,7 @@ public class LeaseManagerTests
 
         lease.Token.IsCancellationRequested.Should().BeFalse();
 
-        tcs.Cancel();
+        await tcs.CancelAsync();
 
         lease.Token.IsCancellationRequested.Should().BeTrue();
     }
@@ -106,7 +106,7 @@ public class LeaseManagerTests
         await using var lease = await Manager.AcquireLease("test", tcs.Token);
         Assert.True(lease.Acquired);
 
-        tcs.Cancel();
+        await tcs.CancelAsync();
 
         var token = lease.Inner.LeaseToken;
 

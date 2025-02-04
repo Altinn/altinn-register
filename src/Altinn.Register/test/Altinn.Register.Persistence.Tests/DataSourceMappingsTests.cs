@@ -26,7 +26,7 @@ public class DataSourceMappingsTests
         await using var reader = await cmd.ExecuteReaderAsync();
         (await reader.ReadAsync()).Should().BeTrue();
 
-        var result = reader.GetFieldValue<PartyType>(0);
+        var result = await reader.GetFieldValueAsync<PartyType>(0);
         result.Should().Be(partyType);
     }
 
@@ -48,7 +48,7 @@ public class DataSourceMappingsTests
         await using var reader = await cmd.ExecuteReaderAsync();
         (await reader.ReadAsync()).Should().BeTrue();
 
-        var result = reader.GetFieldValue<PartySource>(0);
+        var result = await reader.GetFieldValueAsync<PartySource>(0);
         result.Should().Be(partySource);
     }
 
@@ -71,7 +71,7 @@ public class DataSourceMappingsTests
         await using var reader = await cmd.ExecuteReaderAsync();
         (await reader.ReadAsync()).Should().BeTrue();
 
-        var result = reader.GetFieldValueOrDefault<MailingAddress>(0);
+        var result = await reader.GetFieldValueOrDefaultAsync<MailingAddress>(0);
         result.Should().Be(value);
     }
 
@@ -104,7 +104,7 @@ public class DataSourceMappingsTests
         await using var reader = await cmd.ExecuteReaderAsync();
         (await reader.ReadAsync()).Should().BeTrue();
 
-        var result = reader.GetFieldValueOrDefault<StreetAddress>(0);
+        var result = await reader.GetFieldValueOrDefaultAsync<StreetAddress>(0);
         result.Should().Be(value);
     }
 
