@@ -1,14 +1,16 @@
 ﻿using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
-using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.TestUtils;
+using Xunit.Abstractions;
 
 namespace Altinn.Register.Persistence.Tests;
 
-public class PostgreSqlExternalRoleDefinitionPersistenceTests
+public class PostgreSqlExternalRoleDefinitionPersistenceTests(ITestOutputHelper output)
     : DatabaseTestBase
 {
     protected override bool SeedData => false;
+
+    protected override ITestOutputHelper? TestOutputHelper => output;
 
     private PostgreSqlExternalRoleDefinitionPersistence? _persistence;
 
@@ -26,7 +28,14 @@ public class PostgreSqlExternalRoleDefinitionPersistenceTests
     [InlineData(PartySource.CentralCoordinatingRegister, "aafy")]
     public async Task GetsRoleDefinition(PartySource source, string identifier)
     {
+        // cold
         var def = await Persistence.TryGetRoleDefinition(source, identifier);
+        Assert.NotNull(def);
+        Assert.Equal(source, def.Source);
+        Assert.Equal(identifier, def.Identifier);
+
+        // from cache
+        def = await Persistence.TryGetRoleDefinition(source, identifier);
         Assert.NotNull(def);
         Assert.Equal(source, def.Source);
         Assert.Equal(identifier, def.Identifier);
@@ -37,7 +46,14 @@ public class PostgreSqlExternalRoleDefinitionPersistenceTests
     [InlineData("AAFY", PartySource.CentralCoordinatingRegister, "aafy")]
     public async Task GetsRoleDefinition_ByRoleCode(string roleCode, PartySource source, string identifier)
     {
+        // cold
         var def = await Persistence.TryGetRoleDefinitionByRoleCode(roleCode);
+        Assert.NotNull(def);
+        Assert.Equal(source, def.Source);
+        Assert.Equal(identifier, def.Identifier);
+
+        // from cache
+        def = await Persistence.TryGetRoleDefinitionByRoleCode(roleCode);
         Assert.NotNull(def);
         Assert.Equal(source, def.Source);
         Assert.Equal(identifier, def.Identifier);

@@ -4,8 +4,8 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
-using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace Altinn.Register.Persistence;
@@ -22,12 +22,13 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
     /// Given that adding role definitions requires redeploying the application, we can cache them indefinitely.
     /// If ever the ability to add role definitions dynamically is added, this will need some sort of eviction policy.
     /// </remarks>
-    internal sealed class Cache
+    internal sealed partial class Cache
     {
         private readonly Lock _lock = new();
         private readonly NpgsqlDataSource _dataSource;
         private readonly TimeProvider _timeProvider;
         private readonly IHostApplicationLifetime _applicationLifetime;
+        private readonly ILogger<Cache> _logger;
 
         private object? _state; // State | Task<State> | null
 
@@ -35,10 +36,12 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
         /// Initializes a new instance of the <see cref="Cache"/> class.
         /// </summary>
         public Cache(
+            ILogger<Cache> logger,
             NpgsqlDataSource dataSource,
             TimeProvider timeProvider,
             IHostApplicationLifetime applicationLifetime)
         {
+            _logger = logger;
             _dataSource = dataSource;
             _timeProvider = timeProvider;
             _applicationLifetime = applicationLifetime;
@@ -85,20 +88,40 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private ValueTask<ExternalRoleDefinition?> WithStateAsync<TArg>(
+        private ValueTask<T> WithStateAsync<T, TArg>(
             TArg arg,
-            Func<State, TArg, ExternalRoleDefinition?> func,
+            Func<State, TArg, T> func,
             CancellationToken cancellationToken)
+        {
+            var stateTask = GetState(cancellationToken);
+
+            if (!stateTask.IsCompletedSuccessfully)
+            {
+                return AwaitStateAsync(stateTask, arg, func, cancellationToken);
+            }
+
+            var state = stateTask.GetAwaiter().GetResult();
+            return ValueTask.FromResult(func(state, arg));
+            
+            async static ValueTask<T> AwaitStateAsync(ValueTask<State> stateTask, TArg arg, Func<State, TArg, T> func, CancellationToken cancellationToken)
+            {
+                var state = await stateTask;
+
+                return func(state, arg);
+            }
+        }
+
+        private ValueTask<State> GetState(CancellationToken cancellationToken)
         {
             object? current;
             Task<Task<State>>? coldTask = null;
             lock (_lock)
             {
                 current = Volatile.Read(ref _state);
-                
+
                 if (current is State s)
                 {
-                    return new(func(s, arg));
+                    return ValueTask.FromResult(s);
                 }
 
                 if (current is null)
@@ -107,24 +130,35 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
                     current = coldTask.Unwrap().ContinueWith(
                         task =>
                         {
+                            if (!task.IsCompletedSuccessfully)
+                            {
+                                return task;
+                            }
+
+                            var result = task.GetAwaiter().GetResult();
                             lock (_lock)
                             {
                                 if (ReferenceEquals(_state, current))
                                 {
                                     if (task.IsCompletedSuccessfully)
                                     {
-                                        _state = task.Result;
+                                        _state = result;
+                                        return task;
                                     }
                                     else
                                     {
                                         _state = null;
                                     }
                                 }
-
-                                return task.Result;
                             }
+
+                            // state has been updated since this task started, use the new value
+                            return GetState(cancellationToken).AsTask();
                         },
-                        TaskContinuationOptions.ExecuteSynchronously);
+                        TaskContinuationOptions.ExecuteSynchronously)
+                        .Unwrap();
+
+                    Volatile.Write(ref _state, current);
                 }
             }
 
@@ -132,17 +166,7 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
             coldTask?.Start();
 
             Debug.Assert(current is Task<State>);
-            return new(AwaitStateAsync(Unsafe.As<Task<State>>(current), arg, func, cancellationToken));
-        }
-
-        private async Task<ExternalRoleDefinition?> AwaitStateAsync<TArg>(
-            Task<State> stateTask,
-            TArg arg,
-            Func<State, TArg, ExternalRoleDefinition?> func,
-            CancellationToken cancellationToken)
-        {
-            var state = await stateTask.WaitAsync(cancellationToken);
-            return func(state, arg);
+            return new(Unsafe.As<Task<State>>(current));
         }
 
         private async Task<State> LoadStateAsync(CancellationToken cancellationToken)
@@ -153,6 +177,7 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
                 FROM register.external_role_definition
                 """;
 
+            Log.FetchingExternalRoleDefinitions(_logger);
             await using var conn = await _dataSource.OpenConnectionAsync(cancellationToken);
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = QUERY;
@@ -220,6 +245,12 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
 
             public ExternalRoleDefinition? TryGetRoleDefinitionByRoleCode(string roleCode)
                 => _byRoleCode.TryGetValue(roleCode, out var value) ? value : null;
+        }
+
+        private static partial class Log
+        {
+            [LoggerMessage(0, LogLevel.Debug, "Fetching external role definitions.")]
+            public static partial void FetchingExternalRoleDefinitions(ILogger logger);
         }
     }
 }

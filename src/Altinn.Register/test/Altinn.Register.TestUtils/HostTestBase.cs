@@ -1,15 +1,20 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ServiceDefaults;
 using Altinn.Register.Core;
 using Altinn.Register.TestUtils.Http;
+using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
+using Xunit.Abstractions;
 
 namespace Altinn.Register.TestUtils;
 
@@ -43,6 +48,12 @@ public abstract class HostTestBase
         => !Debugger.IsAttached;
 
     /// <summary>
+    /// Gets the test output helper.
+    /// </summary>
+    protected virtual ITestOutputHelper? TestOutputHelper
+        => null;
+
+    /// <summary>
     /// Initialize the host.
     /// </summary>
     /// <returns>The host.</returns>
@@ -72,6 +83,21 @@ public abstract class HostTestBase
         if (DisableLogging)
         {
             builder.Logging.ClearProviders();
+        }
+
+        if (TestOutputHelper is { } output)
+        {
+            builder.Services.AddSingleton<ILoggerProvider>(s =>
+            {
+                var scopeProvider = s.GetService<IExternalScopeProvider>();
+                var formatter = s.GetServices<ConsoleFormatter>().FirstOrDefault(f => f.Name == ConsoleFormatterNames.Simple);
+                if (formatter is null)
+                {
+                    ThrowHelper.ThrowInvalidOperationException($"The '{ConsoleFormatterNames.Simple}' console formatter is not registered.");
+                }
+
+                return new XunitLoggerProvider(output, scopeProvider, formatter);
+            });
         }
 
         await ConfigureHost(builder);
@@ -173,7 +199,7 @@ public abstract class HostTestBase
         });
     }
 
-    private class Disposable(Action dispose)
+    private sealed class Disposable(Action dispose)
         : IDisposable
     {
         private int _disposed = 0;
@@ -184,6 +210,99 @@ public abstract class HostTestBase
             {
                 dispose();
                 dispose = null!;
+            }
+        }
+    }
+
+    private sealed class XunitLoggerProvider
+        : ILoggerProvider
+    {
+        private readonly ITestOutputHelper _output;
+        private readonly IExternalScopeProvider? _scopeProvider;
+        private readonly ConsoleFormatter _formatter;
+        private readonly Lock _lock = new();
+
+        public XunitLoggerProvider(ITestOutputHelper output, IExternalScopeProvider? scopeProvider, ConsoleFormatter formatter)
+        {
+            _output = output;
+            _scopeProvider = scopeProvider;
+            _formatter = formatter;
+        }
+
+        public ILogger CreateLogger(string categoryName)
+            => new Logger(categoryName, this);
+
+        public void Dispose()
+        {
+        }
+
+        private sealed class Logger
+            : ILogger
+        {
+            private readonly XunitLoggerProvider _provider;
+            private readonly string _categoryName;
+
+            public Logger(string categoryName, XunitLoggerProvider provider)
+            {
+                _provider = provider;
+                _categoryName = categoryName;
+            }
+
+            public IDisposable? BeginScope<TState>(TState state)
+                where TState : notnull
+                => _provider._scopeProvider?.Push(state) ?? NullScope.Instance;
+
+            public bool IsEnabled(LogLevel logLevel)
+                => logLevel != LogLevel.None;
+
+            [ThreadStatic]
+            private static StringWriter? _tStaticStringWriter;
+
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+            {
+                if (!IsEnabled(logLevel))
+                {
+                    return;
+                }
+
+                Guard.IsNotNull(formatter);
+
+                _tStaticStringWriter ??= new StringWriter();
+                LogEntry<TState> logEntry = new(logLevel, _categoryName, eventId, state, exception, formatter);
+                _provider._formatter.Write(in logEntry, _provider._scopeProvider, _tStaticStringWriter);
+
+                var sb = _tStaticStringWriter.GetStringBuilder();
+                if (sb.Length == 0)
+                {
+                    return;
+                }
+
+                string logString = sb.ToString();
+                sb.Clear();
+                if (sb.Capacity > 1024)
+                {
+                    sb.Capacity = 1024;
+                }
+
+                lock (_provider._lock)
+                {
+                    _provider._output.WriteLine(logString);
+                }
+            }
+        }
+
+        private sealed class NullScope
+            : IDisposable
+        {
+            public static NullScope Instance { get; } = new NullScope();
+
+            private NullScope()
+            {
+            }
+
+            /// <inheritdoc />
+            public void Dispose()
+            {
             }
         }
     }
