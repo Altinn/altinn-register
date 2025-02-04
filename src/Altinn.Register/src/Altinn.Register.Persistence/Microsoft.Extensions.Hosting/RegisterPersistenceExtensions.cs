@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Authorization.ServiceDefaults.Npgsql.TestSeed;
 using Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql;
+using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Leases;
 using Altinn.Register.Core.Parties;
@@ -52,6 +53,11 @@ public static class RegisterPersistenceExtensions
         builder.Services.AddUnitOfWorkService<PostgreSqlPartyPersistence>();
         builder.Services.AddUnitOfWorkService<IPartyPersistence>(static s => s.GetRequiredService<PostgreSqlPartyPersistence>());
         builder.Services.AddUnitOfWorkService<IPartyRolePersistence>(static s => s.GetRequiredService<PostgreSqlPartyPersistence>());
+
+        // Not part of unit of work
+        builder.Services.AddSingleton<PostgreSqlExternalRoleDefinitionPersistence.Cache>();
+        builder.Services.AddScoped<PostgreSqlExternalRoleDefinitionPersistence>();
+        builder.Services.AddScoped<IExternalRoleDefinitionPersistence>(static s => s.GetRequiredService<PostgreSqlExternalRoleDefinitionPersistence>());
 
         return builder;
     }
