@@ -3,10 +3,10 @@
 namespace Altinn.Register.Core.Parties;
 
 /// <summary>
-/// Fields to include when fetching <see cref="PartyRoleRecord"/>.
+/// Fields to include when fetching <see cref="PartyExternalRoleAssignmentRecord"/>.
 /// </summary>
 [Flags]
-public enum PartyRoleFieldIncludes
+public enum PartyExternalRoleAssignmentFieldIncludes
 {
     /// <summary>
     /// No extra information (default).
@@ -36,7 +36,7 @@ public enum PartyRoleFieldIncludes
     /// <summary>
     /// All role fields.
     /// </summary>
-    Role = RoleSource | RoleIdentifier | RoleFromParty | RoleToParty,
+    RoleAssignment = RoleSource | RoleIdentifier | RoleFromParty | RoleToParty,
 
     /// <summary>
     /// The role definition name.

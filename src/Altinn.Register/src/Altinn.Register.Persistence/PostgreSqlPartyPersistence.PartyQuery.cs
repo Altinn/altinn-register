@@ -496,7 +496,7 @@ internal partial class PostgreSqlPartyPersistence
                     AddJoinField("co.business_address", includes.HasFlag(PartyFieldIncludes.OrganizationBusinessAddress), ref first);
 
                     AddJoinField("r.to_party parent_uuid", true, ref first);
-                    _builder.AppendLine().Append(/*strpsql*/"    FROM register.external_role r");
+                    _builder.AppendLine().Append(/*strpsql*/"    FROM register.external_role_assignment r");
                     _builder.AppendLine().Append(/*strpsql*/"    FULL JOIN register.party cp ON cp.uuid = r.from_party");
 
                     if (includes.HasAnyFlags(PartyFieldIncludes.Organization))

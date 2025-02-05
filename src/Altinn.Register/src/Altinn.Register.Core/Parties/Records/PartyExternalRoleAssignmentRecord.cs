@@ -5,7 +5,7 @@ namespace Altinn.Register.Core.Parties.Records;
 /// <summary>
 /// A database record for a role assignment.
 /// </summary>
-public class PartyRoleRecord
+public class PartyExternalRoleAssignmentRecord
 {
     /// <summary>
     /// Gets the role source.

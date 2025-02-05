@@ -17,10 +17,10 @@ public static class UnitOfWorkExtensions
         => uow.GetRequiredService<IPartyPersistence>();
 
     /// <summary>
-    /// Gets a <see cref="IPartyRolePersistence"/> registered with the unit of work.
+    /// Gets a <see cref="IPartyExternalRolePersistence"/> registered with the unit of work.
     /// </summary>
     /// <param name="uow">The unit of work.</param>
-    /// <returns>A <see cref="IPartyRolePersistence"/>.</returns>
-    public static IPartyRolePersistence GetRolePersistence(this IUnitOfWork uow)
-        => uow.GetRequiredService<IPartyRolePersistence>();
+    /// <returns>A <see cref="IPartyExternalRolePersistence"/>.</returns>
+    public static IPartyExternalRolePersistence GetPartyExternalRolePersistence(this IUnitOfWork uow)
+        => uow.GetRequiredService<IPartyExternalRolePersistence>();
 }
