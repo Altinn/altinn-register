@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.Linq.Expressions;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
@@ -9,12 +10,15 @@ using Altinn.Register.TestUtils;
 using FluentAssertions.Execution;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using Xunit.Abstractions;
 
 namespace Altinn.Register.Persistence.Tests;
 
-public class PostgreSqlPartyPersistenceTests
+public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     : DatabaseTestBase
 {
+    protected override ITestOutputHelper? TestOutputHelper => output;
+
     private readonly static Guid OrganizationWithChildrenUuid = Guid.Parse("b6368d0a-bce4-4798-8460-f4f86fc354c2");
     private readonly static int OrganizationWithChildrenId = 50056131;
     private readonly static OrganizationIdentifier OrganizationWithChildrenIdentifier = OrganizationIdentifier.Parse("910114166");
@@ -68,7 +72,7 @@ public class PostgreSqlPartyPersistenceTests
     [Fact]
     public void CanGet_IPartyRolePersistence()
     {
-        var persistence = _unitOfWork!.GetRolePersistence();
+        var persistence = _unitOfWork!.GetPartyExternalRolePersistence();
         persistence.Should().BeSameAs(Persistence);
     }
 
@@ -401,7 +405,7 @@ public class PostgreSqlPartyPersistenceTests
     {
         var partyUuid = Guid.Empty;
 
-        var roles = await Persistence.GetRolesFromParty(partyUuid).ToListAsync();
+        var roles = await Persistence.GetExternalRoleAssignmentsFromParty(partyUuid).ToListAsync();
 
         roles.Should().BeEmpty();
     }
@@ -411,7 +415,7 @@ public class PostgreSqlPartyPersistenceTests
     {
         var partyUuid = Guid.Empty;
 
-        var roles = await Persistence.GetRolesToParty(partyUuid).ToListAsync();
+        var roles = await Persistence.GetExternalRoleAssignmentsToParty(partyUuid).ToListAsync();
 
         roles.Should().BeEmpty();
     }
@@ -419,7 +423,7 @@ public class PostgreSqlPartyPersistenceTests
     [Fact]
     public async Task GetRolesFromParty_ReturnsRoles()
     {
-        var roles = await Persistence.GetRolesFromParty(ChildOrganizationUuid).ToListAsync();
+        var roles = await Persistence.GetExternalRoleAssignmentsFromParty(ChildOrganizationUuid).ToListAsync();
 
         var role = roles.Should().ContainSingle().Which;
 
@@ -436,7 +440,7 @@ public class PostgreSqlPartyPersistenceTests
     [Fact]
     public async Task GetRoles_CanInclude_RoleDefinitions()
     {
-        var roles = await Persistence.GetRolesFromParty(ChildOrganizationUuid, PartyRoleFieldIncludes.Role | PartyRoleFieldIncludes.RoleDefinition).ToListAsync();
+        var roles = await Persistence.GetExternalRoleAssignmentsFromParty(ChildOrganizationUuid, PartyExternalRoleAssignmentFieldIncludes.RoleAssignment | PartyExternalRoleAssignmentFieldIncludes.RoleDefinition).ToListAsync();
 
         var role = roles.Should().ContainSingle().Which;
 
@@ -462,7 +466,7 @@ public class PostgreSqlPartyPersistenceTests
     public async Task GetRolesToParty_ReturnsRoles()
     {
         var party = Guid.Parse("e2081abd-a16f-4302-93b0-05aaa42023e8");
-        var roles = await Persistence.GetRolesToParty(party).ToListAsync();
+        var roles = await Persistence.GetExternalRoleAssignmentsToParty(party).ToListAsync();
 
         roles.Should().HaveCount(3);
 
@@ -1016,6 +1020,249 @@ public class PostgreSqlPartyPersistenceTests
         var fromDb = await Persistence.GetPartyById(uuid2, PartyFieldIncludes.Party | PartyFieldIncludes.Person).ToListAsync();
         fromDb.Should().BeEmpty();
     }
+
+    #endregion
+
+    #region Upsert Role-Assigments
+
+    [Fact]
+    public async Task UpsertExternalRolesFromPartyBySource()
+    {
+        var added = ExternalRoleAssignmentEvent.EventType.Added;
+        var removed = ExternalRoleAssignmentEvent.EventType.Removed;
+        var source = PartySource.CentralCoordinatingRegister;
+
+        await UoW.CreateFakeRoleDefinitions();
+
+        var party1 = (await UoW.CreateOrg(uuid: Guid.Parse("00000000-0000-0000-0000-000000000001"))).PartyUuid.Value;
+        var party2 = (await UoW.CreateOrg(uuid: Guid.Parse("00000000-0000-0000-0000-000000000002"))).PartyUuid.Value;
+        var party3 = (await UoW.CreateOrg(uuid: Guid.Parse("00000000-0000-0000-0000-000000000003"))).PartyUuid.Value;
+        var party4 = (await UoW.CreateOrg(uuid: Guid.Parse("00000000-0000-0000-0000-000000000004"))).PartyUuid.Value;
+
+        // assign empty to already empty
+        await CheckUpsertExternalRolesFromPartyBySource(
+            party1,
+            source,
+            [],
+            []);
+
+        // assign new roles
+        await CheckUpsertExternalRolesFromPartyBySource(
+            party1,
+            source,
+            [
+                new("bedr", party2),
+                new("aafy", party2),
+                new("medl", party2),
+            ],
+            [
+                new(added, "bedr", party2),
+                new(added, "aafy", party2),
+                new(added, "medl", party2),
+            ]);
+
+        // remove 1 role
+        await CheckUpsertExternalRolesFromPartyBySource(
+            party1,
+            source,
+            [
+                new("bedr", party2),
+                new("medl", party2),
+            ],
+            [
+                new(removed, "aafy", party2),
+            ]);
+
+        // replace 1 role
+        await CheckUpsertExternalRolesFromPartyBySource(
+            party1,
+            source,
+            [
+                new("bedr", party2),
+                new("aafy", party2),
+            ],
+            [
+                new(added, "aafy", party2),
+                new(removed, "medl", party2),
+            ]);
+
+        // replace all roles
+        await CheckUpsertExternalRolesFromPartyBySource(
+            party1,
+            source,
+            [
+                new("medl", party2),
+            ],
+            [
+                new(added, "medl", party2),
+                new(removed, "bedr", party2),
+                new(removed, "aafy", party2),
+            ]);
+
+        // remove all roles
+        await CheckUpsertExternalRolesFromPartyBySource(
+            party1,
+            source,
+            [],
+            [
+                new(removed, "medl", party2),
+            ]);
+
+        // add roles from ccr
+        await CheckUpsertExternalRolesFromPartyBySource(
+            party1,
+            PartySource.CentralCoordinatingRegister,
+            [
+                new("fake_01", party2),
+                new("fake_02", party2),
+                new("fake_03", party2),
+                new("fake_04", party2),
+            ],
+            [
+                new(added, "fake_01", party2),
+                new(added, "fake_02", party2),
+                new(added, "fake_03", party2),
+                new(added, "fake_04", party2),
+            ]);
+
+        // add roles from npr
+        await CheckUpsertExternalRolesFromPartyBySource(
+            party1,
+            PartySource.NationalPopulationRegister,
+            [
+                new("fake_01", party2),
+                new("fake_02", party2),
+                new("fake_03", party2),
+                new("fake_04", party2),
+            ],
+            [
+                new(added, "fake_01", party2),
+                new(added, "fake_02", party2),
+                new(added, "fake_03", party2),
+                new(added, "fake_04", party2),
+            ]);
+
+        // replace roles from ccr
+        await CheckUpsertExternalRolesFromPartyBySource(
+            party1,
+            PartySource.CentralCoordinatingRegister,
+            [
+                new("fake_03", party2),
+                new("fake_04", party2),
+                new("fake_05", party2),
+                new("fake_06", party2),
+            ],
+            [
+                new(removed, "fake_01", party2),
+                new(removed, "fake_02", party2),
+                new(added, "fake_05", party2),
+                new(added, "fake_06", party2),
+            ]);
+
+        // replace roles from npr
+        await CheckUpsertExternalRolesFromPartyBySource(
+            party1,
+            PartySource.NationalPopulationRegister,
+            [
+                new("fake_03", party2),
+                new("fake_04", party2),
+                new("fake_05", party2),
+                new("fake_06", party2),
+            ],
+            [
+                new(removed, "fake_01", party2),
+                new(removed, "fake_02", party2),
+                new(added, "fake_05", party2),
+                new(added, "fake_06", party2),
+            ]);
+
+        // add same role to multiple parties
+        await CheckUpsertExternalRolesFromPartyBySource(
+            party1,
+            PartySource.CentralCoordinatingRegister,
+            [
+                new("fake_01", party3),
+                new("fake_01", party4),
+                new("fake_02", party3),
+                new("fake_02", party4),
+            ],
+            [
+                new(added, "fake_01", party3),
+                new(added, "fake_01", party4),
+                new(added, "fake_02", party3),
+                new(added, "fake_02", party4),
+                new(removed, "fake_03", party2),
+                new(removed, "fake_04", party2),
+                new(removed, "fake_05", party2),
+                new(removed, "fake_06", party2),
+            ]);
+
+        // check final roles
+        var roles = await Persistence.GetExternalRoleAssignmentsFromParty(party1).ToListAsync();
+        roles.Should().HaveCount(8);
+
+        roles.Should().ContainSingle(Matches(PartySource.NationalPopulationRegister, "fake_03", party2));
+        roles.Should().ContainSingle(Matches(PartySource.NationalPopulationRegister, "fake_04", party2));
+        roles.Should().ContainSingle(Matches(PartySource.NationalPopulationRegister, "fake_05", party2));
+        roles.Should().ContainSingle(Matches(PartySource.NationalPopulationRegister, "fake_06", party2));
+
+        roles.Should().ContainSingle(Matches(PartySource.CentralCoordinatingRegister, "fake_01", party3));
+        roles.Should().ContainSingle(Matches(PartySource.CentralCoordinatingRegister, "fake_01", party4));
+        roles.Should().ContainSingle(Matches(PartySource.CentralCoordinatingRegister, "fake_02", party3));
+        roles.Should().ContainSingle(Matches(PartySource.CentralCoordinatingRegister, "fake_02", party4));
+
+        static Expression<Func<PartyExternalRoleAssignmentRecord, bool>> Matches(PartySource source, string identifier, Guid toParty)
+            => r => r.Source == source && r.Identifier == identifier && r.ToParty == toParty;
+    }
+
+    private async Task CheckUpsertExternalRolesFromPartyBySource(
+        Guid fromParty,
+        PartySource source,
+        IReadOnlyList<IPartyExternalRolePersistence.UpsertExternalRoleAssignment> assignments,
+        IReadOnlyList<CheckUpsertExternalRolesFromPartyBySourceExpectedEvent> expectedEvents)
+    {
+        var cmdId = Guid.CreateVersion7();
+        var firstTryEvents = await Persistence
+            .UpsertExternalRolesFromPartyBySource(
+                cmdId,
+                fromParty,
+                source,
+                assignments)
+            .Select(static e => new CheckUpsertExternalRolesFromPartyBySourceExpectedEvent(e.Type, e.RoleIdentifier, e.ToParty))
+            .ToListAsync();
+
+        firstTryEvents.Should().HaveCount(expectedEvents.Count);
+        foreach (var expected in expectedEvents)
+        {
+            firstTryEvents.Should().Contain(expected);
+        }
+
+        // idempotency check
+        var secondTryEvents = await Persistence
+            .UpsertExternalRolesFromPartyBySource(
+                cmdId,
+                fromParty,
+                source,
+                assignments)
+            .Select(static e => new CheckUpsertExternalRolesFromPartyBySourceExpectedEvent(e.Type, e.RoleIdentifier, e.ToParty))
+            .ToListAsync();
+
+        secondTryEvents.Should().HaveCount(expectedEvents.Count);
+        foreach (var expected in expectedEvents)
+        {
+            secondTryEvents.Should().Contain(expected);
+        }
+
+        // check that the roles are actually assigned
+        var roles = await Persistence.GetExternalRoleAssignmentsFromParty(fromParty).Where(r => r.Source == source).ToListAsync();
+        roles.Should().HaveCount(assignments.Count);
+        foreach (var assignment in assignments)
+        {
+            roles.Should().ContainSingle(r => r.Identifier == assignment.RoleIdentifier && r.ToParty == assignment.ToParty);
+        }
+    }
+
+    private record CheckUpsertExternalRolesFromPartyBySourceExpectedEvent(ExternalRoleAssignmentEvent.EventType Type, string Identifier, Guid ToParty);
 
     #endregion
 
