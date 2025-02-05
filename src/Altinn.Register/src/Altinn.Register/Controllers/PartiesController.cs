@@ -2,18 +2,15 @@
 
 using System.Diagnostics;
 using System.Security.Claims;
-
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Extensions;
 using Altinn.Register.Models;
 using Altinn.Register.Services.Interfaces;
-
 using AltinnCore.Authentication.Constants;
-
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
 using V1Models = Altinn.Platform.Register.Models;
 
 namespace Altinn.Register.Controllers
@@ -22,8 +19,9 @@ namespace Altinn.Register.Controllers
     /// The parties controller provides access to party information in the SBL Register component.
     /// </summary>
     [ApiController]
+    [ApiVersion(1.0)]
     [Authorize(Policy = "InternalOrPlatformAccess")]
-    [Route("register/api/v1/parties")]
+    [Route("register/api/v{version:apiVersion}/parties")]
     public class PartiesController : ControllerBase
     {
         private readonly IV1PartyService _partyClient;

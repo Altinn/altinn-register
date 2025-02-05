@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,9 +8,10 @@ namespace Altinn.Register.Controllers
     /// Handles the presentation of unhandled exceptions during the execution of a request.
     /// </summary>
     [ApiController]
+    [ApiVersion(1.0)]
     [ApiExplorerSettings(IgnoreApi = true)]
     [AllowAnonymous]
-    [Route("register/api/v1")]
+    [Route("register/api/v{version:apiVersion}/error")]
     public class ErrorController : ControllerBase
     {
         /// <summary>
@@ -20,7 +22,7 @@ namespace Altinn.Register.Controllers
         /// if there has been an unhandled exception.
         /// </remarks>
         /// <returns>A new <see cref="ObjectResult"/> instance.</returns>
-        [Route("error")]
+        [Route("")]
         public IActionResult Error() => Problem();
     }
 }
