@@ -8,6 +8,7 @@ using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.ModelBinding;
 using Altinn.Register.Models;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,8 +18,9 @@ namespace Altinn.Register.Controllers.V2;
 /// Provides access to parties in the register.
 /// </summary>
 [ApiController]
+[ApiVersion(2.0)]
 [Authorize(Policy = "InternalOrPlatformAccess")]
-[Route("register/api/v2/parties")]
+[Route("register/api/v{version:apiVersion}/internal/parties")]
 public class PartyController
     : ControllerBase
 {

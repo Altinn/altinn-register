@@ -1,5 +1,6 @@
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Clients.Interfaces;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,8 +10,9 @@ namespace Altinn.Register.Controllers
     /// The organizations controller provides access to organization information in the SBL Register component.
     /// </summary>
     [ApiController]
+    [ApiVersion(1.0)]
     [Authorize(Policy = "PlatformAccess")]
-    [Route("register/api/v1/organizations")]
+    [Route("register/api/v{version:apiVersion}/organizations")]
     public class OrganizationsController : ControllerBase
     {
         private readonly IOrganizationClient _organizationsClient;
