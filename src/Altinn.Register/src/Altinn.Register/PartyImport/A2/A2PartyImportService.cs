@@ -265,7 +265,7 @@ internal sealed class A2PartyImportService
             }
             else if (firstName is null && lastName is null && name is not null)
             {
-                if (IsERImportName(name))
+                if (IsSyntheticImportName(name))
                 {
                     firstName = "Mangler";
                     lastName = "Navn";
@@ -380,9 +380,10 @@ internal sealed class A2PartyImportService
             return OrganizationIdentifier.Parse(source);
         }
 
-        static bool IsERImportName(string name)
+        static bool IsSyntheticImportName(string name)
             => string.Equals(name, "Inserted By ER Import", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(name, "Ikke i Altinn register", StringComparison.OrdinalIgnoreCase);
+            || string.Equals(name, "Ikke i Altinn register", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "Inserted By FReg Import", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
