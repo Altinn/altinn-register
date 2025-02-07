@@ -26,12 +26,12 @@
     <PackageVersion Include="FluentAssertions.Analyzers" Version="0.34.1" />
     <PackageVersion Include="FluentAssertions" Version="7.1.0" />
     <PackageVersion Include="JWTCookieAuthentication" Version="4.0.1" />
-    <PackageVersion Include="MassTransit" Version="8.3.4" />
-    <PackageVersion Include="MassTransit.Abstractions" Version="8.3.4" />
-    <PackageVersion Include="MassTransit.Analyzers" Version="8.3.4" />
-    <PackageVersion Include="MassTransit.Azure.ServiceBus.Core" Version="8.3.4" />
-    <PackageVersion Include="MassTransit.Quartz" Version="8.3.4" />
-    <PackageVersion Include="MassTransit.RabbitMQ" Version="8.3.4" />
+    <PackageVersion Include="MassTransit" Version="8.3.6" />
+    <PackageVersion Include="MassTransit.Abstractions" Version="8.3.6" />
+    <PackageVersion Include="MassTransit.Analyzers" Version="8.3.6" />
+    <PackageVersion Include="MassTransit.Azure.ServiceBus.Core" Version="8.3.6" />
+    <PackageVersion Include="MassTransit.Quartz" Version="8.3.6" />
+    <PackageVersion Include="MassTransit.RabbitMQ" Version="8.3.6" />
     <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.1" />
     <PackageVersion Include="Microsoft.Build.Artifacts" Version="6.1.48" />
