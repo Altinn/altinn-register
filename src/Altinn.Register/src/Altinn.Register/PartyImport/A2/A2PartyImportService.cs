@@ -261,7 +261,7 @@ internal sealed class A2PartyImportService
             {
                 firstName = "Mangler";
                 lastName = "Navn";
-                name = "Mangler Navn";
+                name = "Navn Mangler";
             }
             else if (firstName is null && lastName is null && name is not null)
             {
