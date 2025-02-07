@@ -240,25 +240,42 @@ internal sealed class A2PartyImportService
             DateOnly dateOfBirth = CalculateDateOfBirth(personIdentifier);
             DateOnly? dateOfDeath = person.DateOfDeath is null ? null : DateOnly.FromDateTime(person.DateOfDeath.Value);
 
-            if (string.IsNullOrEmpty(name))
+            if (name is null && lastName is not null)
             {
-                var components = new List<string>(3);
-                if (!string.IsNullOrEmpty(person.FirstName))
+                if (firstName is null)
                 {
-                    components.Add(person.FirstName);
+                    name = lastName;
+                    firstName = "Mangler";
+                }
+                else
+                {
+                    name = $"{lastName} {firstName}";
                 }
 
-                if (!string.IsNullOrEmpty(person.MiddleName))
+                if (middleName is not null)
                 {
-                    components.Add(person.MiddleName);
+                    name += $" {middleName}";
                 }
-
-                if (!string.IsNullOrEmpty(person.LastName))
+            }
+            else if (firstName is null && lastName is null && middleName is null && name is null)
+            {
+                firstName = "Mangler";
+                lastName = "Navn";
+                name = "Navn Mangler";
+            }
+            else if (firstName is null && lastName is null && name is not null)
+            {
+                if (IsSyntheticImportName(name))
                 {
-                    components.Add(person.LastName);
+                    firstName = "Mangler";
+                    lastName = "Navn";
                 }
-
-                name = string.Join(' ', components);
+                else
+                {
+                    var components = name.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    lastName = components.Length > 0 ? components[0] : "Navn";
+                    firstName = components.Length > 1 ? components[1] : "Mangler";
+                }
             }
 
             return new PersonRecord
@@ -362,6 +379,11 @@ internal sealed class A2PartyImportService
 
             return OrganizationIdentifier.Parse(source);
         }
+
+        static bool IsSyntheticImportName(string name)
+            => string.Equals(name, "Inserted By ER Import", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "Ikke i Altinn register", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "Inserted By FReg Import", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
