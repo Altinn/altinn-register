@@ -54,7 +54,7 @@ public class PartyImportFlowTests(ITestOutputHelper output)
 
         var published = await Harness.Published.SelectAsync<PartyUpdatedEvent>(m => m.Context.ConversationId == conversationId).FirstAsync();
 
-        published.Context.Message.PartyUuid.Should().Be(partyUuid);
+        published.Context.Message.Party.PartyUuid.Should().Be(partyUuid);
 
         {
             await using var uow = await UOW.CreateAsync();
@@ -88,7 +88,7 @@ public class PartyImportFlowTests(ITestOutputHelper output)
         published = await Harness.Published.SelectAsync<PartyUpdatedEvent>(m => m.Context.ConversationId == conversationId).FirstAsync();
         Assert.NotNull(published);
 
-        published.Context.Message.PartyUuid.Should().Be(partyUuid);
+        published.Context.Message.Party.PartyUuid.Should().Be(partyUuid);
 
         {
             await using var uow = await UOW.CreateAsync();

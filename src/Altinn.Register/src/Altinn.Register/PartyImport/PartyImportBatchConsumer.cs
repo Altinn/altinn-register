@@ -1,18 +1,12 @@
 ﻿#nullable enable
 
 using System.Buffers;
-using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
-using Altinn.Register.Contracts;
-using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core;
 using Altinn.Register.Core.ImportJobs;
-using Altinn.Register.Core.Parties;
-using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
-using CommunityToolkit.Diagnostics;
 using MassTransit;
 
 namespace Altinn.Register.PartyImport;
@@ -87,7 +81,7 @@ public sealed class PartyImportBatchConsumer
                     UpdateTracking(ref tracking, upsert.Message.Tracking);
                     evts[index++] = new PartyUpdatedEvent
                     {
-                        PartyUuid = result.Value.PartyUuid.Value,
+                        Party = new() { PartyUuid = result.Value.PartyUuid.Value },
                     };
                 }
 

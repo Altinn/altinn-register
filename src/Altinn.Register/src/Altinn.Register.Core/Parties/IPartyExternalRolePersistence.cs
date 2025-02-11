@@ -56,7 +56,7 @@ public interface IPartyExternalRolePersistence
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Argument used in <see cref="UpsertExternalRolesFromPartyBySource(Guid, Guid, PartySource, IEnumerable{UpsertExternalRoleAssignment}, CancellationToken)"/>.
+    /// Argument used in <see cref="UpsertExternalRolesFromPartyBySource(Guid, Guid, ExternalRoleSource, IEnumerable{UpsertExternalRoleAssignment}, CancellationToken)"/>.
     /// </summary>
     public readonly record struct UpsertExternalRoleAssignment
     {
