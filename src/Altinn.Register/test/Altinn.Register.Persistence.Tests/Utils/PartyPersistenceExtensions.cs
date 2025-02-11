@@ -331,7 +331,7 @@ public static class PartyPersistenceExtensions
     {
         for (var i = 0; i < 40; i++)
         {
-            await CreateFakeRoleDefinition(uow, source, $"fake_{i:D2}");
+            await CreateFakeRoleDefinition(uow, source, $"fake-{i:D2}");
         }
     }
 
