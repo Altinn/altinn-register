@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using System.Linq.Expressions;
+using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
@@ -373,8 +374,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var parent1 = await UoW.CreateOrg(unitType: "AS");
         var parent2 = await UoW.CreateOrg(unitType: "AS");
 
-        await UoW.AddRole(PartySource.CentralCoordinatingRegister, "bedr", from: child.PartyUuid.Value, to: parent1.PartyUuid.Value);
-        await UoW.AddRole(PartySource.CentralCoordinatingRegister, "bedr", from: child.PartyUuid.Value, to: parent2.PartyUuid.Value);
+        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "bedr", from: child.PartyUuid.Value, to: parent1.PartyUuid.Value);
+        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "bedr", from: child.PartyUuid.Value, to: parent2.PartyUuid.Value);
 
         var result = await Persistence.LookupParties(
             partyUuids: [parent1.PartyUuid.Value, parent2.PartyUuid.Value],
@@ -428,7 +429,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var role = roles.Should().ContainSingle().Which;
 
         using var scope = new AssertionScope();
-        role.Source.Should().Be(PartySource.CentralCoordinatingRegister);
+        role.Source.Should().Be(ExternalRoleSource.CentralCoordinatingRegister);
         role.Identifier.Should().Be("bedr");
         role.FromParty.Should().Be(ChildOrganizationUuid);
         role.ToParty.Should().Be(OrganizationWithChildrenUuid);
@@ -445,7 +446,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var role = roles.Should().ContainSingle().Which;
 
         using var scope = new AssertionScope();
-        role.Source.Should().Be(PartySource.CentralCoordinatingRegister);
+        role.Source.Should().Be(ExternalRoleSource.CentralCoordinatingRegister);
         role.Identifier.Should().Be("bedr");
         role.FromParty.Should().Be(ChildOrganizationUuid);
         role.ToParty.Should().Be(OrganizationWithChildrenUuid);
@@ -473,7 +474,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         roles.Should().AllSatisfy(role =>
         {
             using var scope = new AssertionScope();
-            role.Source.Should().Be(PartySource.CentralCoordinatingRegister);
+            role.Source.Should().Be(ExternalRoleSource.CentralCoordinatingRegister);
             role.Identifier.Should().Be("bedr");
             role.FromParty.Should().HaveValue();
             role.ToParty.Should().Be(party);
@@ -1030,7 +1031,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var added = ExternalRoleAssignmentEvent.EventType.Added;
         var removed = ExternalRoleAssignmentEvent.EventType.Removed;
-        var source = PartySource.CentralCoordinatingRegister;
+        var source = ExternalRoleSource.CentralCoordinatingRegister;
 
         await UoW.CreateFakeRoleDefinitions();
 
@@ -1111,7 +1112,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         // add roles from ccr
         await CheckUpsertExternalRolesFromPartyBySource(
             party1,
-            PartySource.CentralCoordinatingRegister,
+            ExternalRoleSource.CentralCoordinatingRegister,
             [
                 new("fake_01", party2),
                 new("fake_02", party2),
@@ -1128,7 +1129,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         // add roles from npr
         await CheckUpsertExternalRolesFromPartyBySource(
             party1,
-            PartySource.NationalPopulationRegister,
+            ExternalRoleSource.NationalPopulationRegister,
             [
                 new("fake_01", party2),
                 new("fake_02", party2),
@@ -1145,7 +1146,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         // replace roles from ccr
         await CheckUpsertExternalRolesFromPartyBySource(
             party1,
-            PartySource.CentralCoordinatingRegister,
+            ExternalRoleSource.CentralCoordinatingRegister,
             [
                 new("fake_03", party2),
                 new("fake_04", party2),
@@ -1162,7 +1163,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         // replace roles from npr
         await CheckUpsertExternalRolesFromPartyBySource(
             party1,
-            PartySource.NationalPopulationRegister,
+            ExternalRoleSource.NationalPopulationRegister,
             [
                 new("fake_03", party2),
                 new("fake_04", party2),
@@ -1179,7 +1180,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         // add same role to multiple parties
         await CheckUpsertExternalRolesFromPartyBySource(
             party1,
-            PartySource.CentralCoordinatingRegister,
+            ExternalRoleSource.CentralCoordinatingRegister,
             [
                 new("fake_01", party3),
                 new("fake_01", party4),
@@ -1201,23 +1202,23 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var roles = await Persistence.GetExternalRoleAssignmentsFromParty(party1).ToListAsync();
         roles.Should().HaveCount(8);
 
-        roles.Should().ContainSingle(Matches(PartySource.NationalPopulationRegister, "fake_03", party2));
-        roles.Should().ContainSingle(Matches(PartySource.NationalPopulationRegister, "fake_04", party2));
-        roles.Should().ContainSingle(Matches(PartySource.NationalPopulationRegister, "fake_05", party2));
-        roles.Should().ContainSingle(Matches(PartySource.NationalPopulationRegister, "fake_06", party2));
+        roles.Should().ContainSingle(Matches(ExternalRoleSource.NationalPopulationRegister, "fake_03", party2));
+        roles.Should().ContainSingle(Matches(ExternalRoleSource.NationalPopulationRegister, "fake_04", party2));
+        roles.Should().ContainSingle(Matches(ExternalRoleSource.NationalPopulationRegister, "fake_05", party2));
+        roles.Should().ContainSingle(Matches(ExternalRoleSource.NationalPopulationRegister, "fake_06", party2));
 
-        roles.Should().ContainSingle(Matches(PartySource.CentralCoordinatingRegister, "fake_01", party3));
-        roles.Should().ContainSingle(Matches(PartySource.CentralCoordinatingRegister, "fake_01", party4));
-        roles.Should().ContainSingle(Matches(PartySource.CentralCoordinatingRegister, "fake_02", party3));
-        roles.Should().ContainSingle(Matches(PartySource.CentralCoordinatingRegister, "fake_02", party4));
+        roles.Should().ContainSingle(Matches(ExternalRoleSource.CentralCoordinatingRegister, "fake_01", party3));
+        roles.Should().ContainSingle(Matches(ExternalRoleSource.CentralCoordinatingRegister, "fake_01", party4));
+        roles.Should().ContainSingle(Matches(ExternalRoleSource.CentralCoordinatingRegister, "fake_02", party3));
+        roles.Should().ContainSingle(Matches(ExternalRoleSource.CentralCoordinatingRegister, "fake_02", party4));
 
-        static Expression<Func<PartyExternalRoleAssignmentRecord, bool>> Matches(PartySource source, string identifier, Guid toParty)
+        static Expression<Func<PartyExternalRoleAssignmentRecord, bool>> Matches(ExternalRoleSource source, string identifier, Guid toParty)
             => r => r.Source == source && r.Identifier == identifier && r.ToParty == toParty;
     }
 
     private async Task CheckUpsertExternalRolesFromPartyBySource(
         Guid fromParty,
-        PartySource source,
+        ExternalRoleSource source,
         IReadOnlyList<IPartyExternalRolePersistence.UpsertExternalRoleAssignment> assignments,
         IReadOnlyList<CheckUpsertExternalRolesFromPartyBySourceExpectedEvent> expectedEvents)
     {

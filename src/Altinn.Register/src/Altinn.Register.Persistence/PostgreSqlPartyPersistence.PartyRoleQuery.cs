@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.Utils;
@@ -68,7 +69,7 @@ internal partial class PostgreSqlPartyPersistence
         {
             return new PartyExternalRoleAssignmentRecord
             {
-                Source = await reader.GetConditionalFieldValueAsync<PartySource>(fields.RoleSource, cancellationToken),
+                Source = await reader.GetConditionalFieldValueAsync<ExternalRoleSource>(fields.RoleSource, cancellationToken),
                 Identifier = await reader.GetConditionalFieldValueAsync<string>(fields.RoleIdentifier, cancellationToken),
                 FromParty = await reader.GetConditionalFieldValueAsync<Guid>(fields.RoleFromParty, cancellationToken),
                 ToParty = await reader.GetConditionalFieldValueAsync<Guid>(fields.RoleToParty, cancellationToken),

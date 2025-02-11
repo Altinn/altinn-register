@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Altinn.Authorization.ProblemDetails;
+using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
@@ -735,7 +736,7 @@ internal partial class PostgreSqlPartyPersistence
     public IAsyncEnumerable<ExternalRoleAssignmentEvent> UpsertExternalRolesFromPartyBySource(
         Guid commandId,
         Guid partyUuid,
-        PartySource roleSource,
+        ExternalRoleSource roleSource,
         IEnumerable<IPartyExternalRolePersistence.UpsertExternalRoleAssignment> assignments,
         CancellationToken cancellationToken = default)
     {
@@ -746,7 +747,7 @@ internal partial class PostgreSqlPartyPersistence
     private async IAsyncEnumerable<ExternalRoleAssignmentEvent> UpsertExternalRolesFromPartyBySourceCore(
         Guid commandId,
         Guid partyUuid,
-        PartySource roleSource,
+        ExternalRoleSource roleSource,
         IEnumerable<IPartyExternalRolePersistence.UpsertExternalRoleAssignment> assignments,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -778,7 +779,7 @@ internal partial class PostgreSqlPartyPersistence
         cmd.CommandText = QUERY;
 
         cmd.Parameters.Add<Guid>("from_party", NpgsqlDbType.Uuid).TypedValue = partyUuid;
-        cmd.Parameters.Add<PartySource>("source").TypedValue = roleSource;
+        cmd.Parameters.Add<ExternalRoleSource>("source").TypedValue = roleSource;
         cmd.Parameters.Add<Guid>("cmd_id", NpgsqlDbType.Uuid).TypedValue = commandId;
         cmd.Parameters.Add<List<ArgUpsertExternalRoleAssignment>>("assignments").TypedValue = assignmentList;
 
@@ -824,7 +825,7 @@ internal partial class PostgreSqlPartyPersistence
     private static partial class Log
     {
         [LoggerMessage(0, LogLevel.Debug, "Upserting {Count} external role-assignments from {Source}")]
-        public static partial void UpsertExternalRolesFromPartyBySource(ILogger logger, int count, PartySource source);
+        public static partial void UpsertExternalRolesFromPartyBySource(ILogger logger, int count, ExternalRoleSource source);
     }
 
     private sealed class UpsertExternalRolesFromPartyBySourceException
@@ -834,12 +835,12 @@ internal partial class PostgreSqlPartyPersistence
 
         public Guid FromParty { get; }
 
-        public PartySource RoleSource { get; }
+        public ExternalRoleSource RoleSource { get; }
 
         public UpsertExternalRolesFromPartyBySourceException(
             Guid commandId,
             Guid fromParty,
-            PartySource source,
+            ExternalRoleSource source,
             IEnumerable<IPartyExternalRolePersistence.UpsertExternalRoleAssignment> assignments,
             Exception innerException)
             : base(CreateMessage(commandId, fromParty, source, assignments), innerException)
@@ -852,7 +853,7 @@ internal partial class PostgreSqlPartyPersistence
         private static string CreateMessage(
             Guid commandId,
             Guid fromParty,
-            PartySource source,
+            ExternalRoleSource source,
             IEnumerable<IPartyExternalRolePersistence.UpsertExternalRoleAssignment> assignments)
         {
             var sb = new StringBuilder();

@@ -2,6 +2,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Microsoft.Extensions.Hosting;
@@ -51,7 +52,7 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
         /// <param name="identifier">The role definition identifier.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
         /// <returns>A <see cref="ExternalRoleDefinition"/>, if found.</returns>
-        public ValueTask<ExternalRoleDefinition?> TryGetRoleDefinition(PartySource source, string identifier, CancellationToken cancellationToken)
+        public ValueTask<ExternalRoleDefinition?> TryGetRoleDefinition(ExternalRoleSource source, string identifier, CancellationToken cancellationToken)
         {
             var key = new RoleKey(source, identifier);
 
@@ -193,7 +194,7 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
 
             while (await reader.ReadAsync(cancellationToken))
             {
-                var source = await reader.GetFieldValueAsync<PartySource>(sourceOrdinal, cancellationToken);
+                var source = await reader.GetFieldValueAsync<ExternalRoleSource>(sourceOrdinal, cancellationToken);
                 var identifier = await reader.GetFieldValueAsync<string>(identifierOrdinal, cancellationToken);
                 var name = await reader.GetConvertibleFieldValueAsync<Dictionary<string, string>, TranslatedText>(nameOrdinal, cancellationToken);
                 var description = await reader.GetConvertibleFieldValueAsync<Dictionary<string, string>, TranslatedText>(descriptionOrdinal, cancellationToken);
@@ -220,7 +221,7 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
             return new State(byRoleKey, byRoleCode);
         }
 
-        private readonly record struct RoleKey(PartySource Source, string Identifier);
+        private readonly record struct RoleKey(ExternalRoleSource Source, string Identifier);
 
         private sealed class State
         {

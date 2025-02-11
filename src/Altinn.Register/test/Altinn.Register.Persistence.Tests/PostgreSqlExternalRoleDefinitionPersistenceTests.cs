@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Core.Parties;
+﻿using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.TestUtils;
 using Xunit.Abstractions;
@@ -24,9 +24,9 @@ public class PostgreSqlExternalRoleDefinitionPersistenceTests(ITestOutputHelper 
     }
 
     [Theory]
-    [InlineData(PartySource.CentralCoordinatingRegister, "bedr")]
-    [InlineData(PartySource.CentralCoordinatingRegister, "aafy")]
-    public async Task GetsRoleDefinition(PartySource source, string identifier)
+    [InlineData(ExternalRoleSource.CentralCoordinatingRegister, "bedr")]
+    [InlineData(ExternalRoleSource.CentralCoordinatingRegister, "aafy")]
+    public async Task GetsRoleDefinition(ExternalRoleSource source, string identifier)
     {
         // cold
         var def = await Persistence.TryGetRoleDefinition(source, identifier);
@@ -42,9 +42,9 @@ public class PostgreSqlExternalRoleDefinitionPersistenceTests(ITestOutputHelper 
     }
 
     [Theory]
-    [InlineData("BEDR", PartySource.CentralCoordinatingRegister, "bedr")]
-    [InlineData("AAFY", PartySource.CentralCoordinatingRegister, "aafy")]
-    public async Task GetsRoleDefinition_ByRoleCode(string roleCode, PartySource source, string identifier)
+    [InlineData("BEDR", ExternalRoleSource.CentralCoordinatingRegister, "bedr")]
+    [InlineData("AAFY", ExternalRoleSource.CentralCoordinatingRegister, "aafy")]
+    public async Task GetsRoleDefinition_ByRoleCode(string roleCode, ExternalRoleSource source, string identifier)
     {
         // cold
         var def = await Persistence.TryGetRoleDefinitionByRoleCode(roleCode);
@@ -73,7 +73,7 @@ public class PostgreSqlExternalRoleDefinitionPersistenceTests(ITestOutputHelper 
                     try
                     {
                         evt.Wait();
-                        var vtask = Persistence.TryGetRoleDefinition(PartySource.CentralCoordinatingRegister, "bedr");
+                        var vtask = Persistence.TryGetRoleDefinition(ExternalRoleSource.CentralCoordinatingRegister, "bedr");
                         CompleteVTask(tcs, vtask);
                     }
                     catch (Exception ex)
@@ -111,7 +111,7 @@ public class PostgreSqlExternalRoleDefinitionPersistenceTests(ITestOutputHelper 
             {
                 var result = vtask.GetAwaiter().GetResult();
                 Assert.NotNull(result);
-                Assert.Equal(PartySource.CentralCoordinatingRegister, result.Source);
+                Assert.Equal(ExternalRoleSource.CentralCoordinatingRegister, result.Source);
                 Assert.Equal("bedr", result.Identifier);
             }
             catch (Exception ex)

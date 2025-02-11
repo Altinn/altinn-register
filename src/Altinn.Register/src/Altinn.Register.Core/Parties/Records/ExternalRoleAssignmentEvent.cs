@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text.Json.Serialization;
+using Altinn.Register.Contracts.ExternalRoles;
 
 namespace Altinn.Register.Core.Parties.Records;
 
@@ -22,7 +23,7 @@ public sealed record ExternalRoleAssignmentEvent
     /// <summary>
     /// Gets the role source of the event.
     /// </summary>
-    public required PartySource RoleSource { get; init; }
+    public required ExternalRoleSource RoleSource { get; init; }
 
     /// <summary>
     /// Gets the role identifier of the event.

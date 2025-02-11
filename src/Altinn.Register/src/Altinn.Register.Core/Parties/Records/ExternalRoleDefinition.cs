@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Altinn.Register.Contracts.ExternalRoles;
 
 namespace Altinn.Register.Core.Parties.Records;
 
@@ -11,7 +12,7 @@ public sealed record ExternalRoleDefinition
     /// <summary>
     /// Gets the source of the external role.
     /// </summary>
-    public required PartySource Source { get; init; }
+    public required ExternalRoleSource Source { get; init; }
 
     /// <summary>
     /// Gets the identifier of the external role.

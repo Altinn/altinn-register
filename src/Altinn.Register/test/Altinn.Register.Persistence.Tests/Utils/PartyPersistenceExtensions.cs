@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
@@ -295,7 +296,7 @@ public static class PartyPersistenceExtensions
 
     public static async Task AddRole(
         this IUnitOfWork uow,
-        PartySource roleSource,
+        ExternalRoleSource roleSource,
         string roleIdentifier,
         Guid from,
         Guid to)
@@ -308,7 +309,7 @@ public static class PartyPersistenceExtensions
             VALUES (@source, @identifier, @from, @to)
             """;
 
-        cmd.Parameters.Add<PartySource>("source").TypedValue = roleSource;
+        cmd.Parameters.Add<ExternalRoleSource>("source").TypedValue = roleSource;
         cmd.Parameters.Add<string>("identifier", NpgsqlDbType.Text).TypedValue = roleIdentifier;
         cmd.Parameters.Add<Guid>("from", NpgsqlDbType.Uuid).TypedValue = from;
         cmd.Parameters.Add<Guid>("to", NpgsqlDbType.Uuid).TypedValue = to;
@@ -320,13 +321,13 @@ public static class PartyPersistenceExtensions
     public static async Task CreateFakeRoleDefinitions(
         this IUnitOfWork uow)
     {
-        await CreateFakeRoleDefinitions(uow, PartySource.CentralCoordinatingRegister);
-        await CreateFakeRoleDefinitions(uow, PartySource.NationalPopulationRegister);
+        await CreateFakeRoleDefinitions(uow, ExternalRoleSource.CentralCoordinatingRegister);
+        await CreateFakeRoleDefinitions(uow, ExternalRoleSource.NationalPopulationRegister);
     }
 
     public static async Task CreateFakeRoleDefinitions(
         this IUnitOfWork uow,
-        PartySource source)
+        ExternalRoleSource source)
     {
         for (var i = 0; i < 40; i++)
         {
@@ -336,7 +337,7 @@ public static class PartyPersistenceExtensions
 
     public static async Task CreateFakeRoleDefinition(
         this IUnitOfWork uow,
-        PartySource source,
+        ExternalRoleSource source,
         string identifier)
     {
         const string QUERY =
@@ -356,7 +357,7 @@ public static class PartyPersistenceExtensions
         var cmd = conn.CreateCommand();
         cmd.CommandText = QUERY;
 
-        cmd.Parameters.Add<PartySource>("source").TypedValue = source;
+        cmd.Parameters.Add<ExternalRoleSource>("source").TypedValue = source;
         cmd.Parameters.Add<string>("identifier", NpgsqlDbType.Text).TypedValue = identifier;
         cmd.Parameters.Add<Dictionary<string, string>>("name", NpgsqlDbType.Hstore).TypedValue = name;
 

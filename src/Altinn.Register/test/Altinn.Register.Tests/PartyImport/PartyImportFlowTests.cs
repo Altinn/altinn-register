@@ -1,6 +1,6 @@
 ﻿#nullable enable
 
-using Altinn.Register.Contracts.Events;
+using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;

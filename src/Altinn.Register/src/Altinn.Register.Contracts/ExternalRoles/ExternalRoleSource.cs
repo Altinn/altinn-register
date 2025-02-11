@@ -1,12 +1,12 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Altinn.Register.Contracts.Events;
+namespace Altinn.Register.Contracts.ExternalRoles;
 
 /// <summary>
 /// The source of an external role.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<PartyExternalRoleSource>))]
-public enum PartyExternalRoleSource
+[JsonConverter(typeof(JsonStringEnumConverter<ExternalRoleSource>))]
+public enum ExternalRoleSource
 {
     /// <summary>
     /// The Norwegian Central Coordinating Register for Legal Entities.
