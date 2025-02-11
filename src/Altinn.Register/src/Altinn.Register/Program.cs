@@ -12,7 +12,16 @@ if (app.Environment.IsDevelopment())
 
     // Enable Swagger
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(opt =>
+    {
+        // build a swagger endpoint for each discovered API version
+        foreach (var desc in app.DescribeApiVersions())
+        {
+            var url = $"/swagger/{desc.GroupName}/swagger.json";
+            var name = desc.GroupName.ToUpperInvariant();
+            opt.SwaggerEndpoint(url, name);
+        }
+    });
 }
 
 app.UseAuthentication();

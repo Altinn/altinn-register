@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Text;
+using System.Text.Json.Serialization;
 using Altinn.Authorization.ServiceDefaults;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Common.AccessToken;
@@ -22,14 +23,17 @@ using Altinn.Register.Services;
 using Altinn.Register.Services.Implementation;
 using Altinn.Register.Services.Interfaces;
 using AltinnCore.Authentication.JwtCookie;
+using Asp.Versioning.ApiExplorer;
 using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace Altinn.Register;
 
@@ -50,21 +54,41 @@ internal static class RegisterHost
 
         services.AddMemoryCache();
 
-        services.AddControllers().AddMvcOptions(opt =>
-        {
-            opt.ModelBinderProviders.InsertSingleton<PartyComponentOptionModelBinder>(0);
-            opt.ModelBinderProviders.InsertSingleton<PartyFieldIncludesModelBinder>(0);
-        }).AddJsonOptions(options =>
-        {
-            options.JsonSerializerOptions.WriteIndented = true;
-            options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-        });
+        services
+            .AddControllers()
+            .AddMvcOptions(opt =>
+            {
+                opt.ModelBinderProviders.InsertSingleton<PartyComponentOptionModelBinder>(0);
+                opt.ModelBinderProviders.InsertSingleton<PartyFieldIncludesModelBinder>(0);
+            })
+            .AddJsonOptions(opt =>
+            {
+                opt.JsonSerializerOptions.WriteIndented = true;
+                opt.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+            });
 
         services.AddSingleton<ConditionalControllerConvention>();
         services.AddOptions<MvcOptions>()
             .Configure((MvcOptions opts, IServiceProvider services) =>
             {
                 opts.Conventions.Add(services.GetRequiredService<ConditionalControllerConvention>());
+            });
+
+        services
+            .AddApiVersioning(opt =>
+            {
+                opt.ReportApiVersions = true;
+            })
+            .AddMvc()
+            .AddApiExplorer(opt =>
+            {
+                // add the versioned api explorer, which also adds IApiVersionDescriptionProvider service
+                // note: the specified format code will format the version as "'v'major[.minor][-status]"
+                opt.GroupNameFormat = "'v'VVV";
+
+                // note: this option is only necessary when versioning by url segment. the SubstitutionFormat
+                // can also be used to control the format of the API version in route templates
+                opt.SubstituteApiVersionInUrl = true;
             });
 
         services.Configure<GeneralSettings>(config.GetSection("GeneralSettings"));
@@ -168,10 +192,18 @@ internal static class RegisterHost
 
         services.AddOpenApiExampleProvider();
         services.AddSwaggerFilterAttributeSupport();
+        services.AddOptions<SwaggerGenOptions>()
+            .Configure((SwaggerGenOptions opt, IApiVersionDescriptionProvider provider) =>
+            {
+                // add a swagger document for each discovered API version
+                foreach (var desc in provider.ApiVersionDescriptions)
+                {
+                    opt.SwaggerDoc(desc.GroupName, new OpenApiInfo { Title = "Altinn Platform Register", Version = desc.ApiVersion.ToString() });
+                }
+            });
+
         services.AddSwaggerGen(c =>
         {
-            c.SwaggerDoc("v1", new OpenApiInfo { Title = "Altinn Platform Register", Version = "v1" });
-
             var assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
             var xmlFile = Path.ChangeExtension(assemblyPath, ".xml");
             if (File.Exists(xmlFile))

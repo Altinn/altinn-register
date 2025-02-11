@@ -1,11 +1,11 @@
 #nullable enable
+
 using System.Security.Claims;
 using Altinn.Platform.Register.Models;
 using Altinn.Register.Core;
 using Altinn.Register.Models;
-
 using AltinnCore.Authentication.Constants;
-
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,9 +15,10 @@ namespace Altinn.Register.Controllers
     /// The <see cref="PersonsController"/> provides the API endpoints related to persons.
     /// </summary>
     [ApiController]
+    [ApiVersion(1.0)]
     [Authorize(Policy = "PlatformAccess")]
     [Authorize(Policy = "AuthorizationLevel2")]
-    [Route("register/api/v1/persons")]
+    [Route("register/api/v{version:apiVersion}/persons")]
     public class PersonsController : ControllerBase
     {
         private readonly IPersonLookup _personLookup;

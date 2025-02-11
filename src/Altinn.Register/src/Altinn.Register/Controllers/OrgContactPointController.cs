@@ -1,5 +1,6 @@
 ﻿using Altinn.Register.Models;
 using Altinn.Register.Services.Interfaces;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Altinn.Register.Controllers;
@@ -8,7 +9,8 @@ namespace Altinn.Register.Controllers;
 /// Controller for organization contact point API endpoints for internal consumption (e.g. Notifications) requiring neither authenticated user token nor access token authorization.
 /// </summary>
 [ApiController]
-[Route("register/api/v1/organizations/contactpoint")]
+[ApiVersion(1.0)]
+[Route("register/api/v{version:apiVersion}/organizations/contactpoint")]
 [ApiExplorerSettings(IgnoreApi = true)]
 [Consumes("application/json")]
 [Produces("application/json")]

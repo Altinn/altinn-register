@@ -8,6 +8,7 @@ using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Configuration;
 using Altinn.Register.Conventions;
 using Altinn.Register.PartyImport.A2;
+using Asp.Versioning;
 using CommunityToolkit.Diagnostics;
 using MassTransit;
 using Microsoft.AspNetCore.Authorization;
@@ -21,9 +22,10 @@ namespace Altinn.Register.Controllers;
 /// Proxy to SBL bridge for test environments.
 /// </summary>
 [ApiController]
+[ApiVersion(0.0)]
 [DevTestCondition]
 [Authorize(Policy = "Debug")]
-[Route("register/api/v0/debug")]
+[Route("register/api/v{version:apiVersion}/debug")]
 [ApiExplorerSettings(IgnoreApi = true)]
 public class DebugController
     : ControllerBase
