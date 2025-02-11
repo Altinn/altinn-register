@@ -8,5 +8,5 @@ public sealed record PartyReference
     /// <summary>
     /// Gets the UUID of the party.
     /// </summary>
-    public Guid PartyUuid { get; init; }
+    public required Guid PartyUuid { get; init; }
 }

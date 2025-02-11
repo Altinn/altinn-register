@@ -13,5 +13,5 @@ public sealed record PartyUpdatedEvent
     /// <summary>
     /// Gets the party that was updated.
     /// </summary>
-    public PartyReference Party { get; init; }
+    public required PartyReference Party { get; init; }
 }
