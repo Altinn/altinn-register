@@ -1,6 +1,8 @@
-﻿using System.Data;
+﻿using System.Collections.Immutable;
+using System.Data;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Text;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
@@ -730,7 +732,18 @@ internal partial class PostgreSqlPartyPersistence
     }
 
     /// <inheritdoc/>
-    public async IAsyncEnumerable<ExternalRoleAssignmentEvent> UpsertExternalRolesFromPartyBySource(
+    public IAsyncEnumerable<ExternalRoleAssignmentEvent> UpsertExternalRolesFromPartyBySource(
+        Guid commandId,
+        Guid partyUuid,
+        PartySource roleSource,
+        IEnumerable<IPartyExternalRolePersistence.UpsertExternalRoleAssignment> assignments,
+        CancellationToken cancellationToken = default)
+    {
+        return UpsertExternalRolesFromPartyBySourceCore(commandId, partyUuid, roleSource, assignments, cancellationToken)
+            .WrapExceptions(ex => new UpsertExternalRolesFromPartyBySourceException(commandId, partyUuid, roleSource, assignments, ex), cancellationToken);
+    }
+
+    private async IAsyncEnumerable<ExternalRoleAssignmentEvent> UpsertExternalRolesFromPartyBySourceCore(
         Guid commandId,
         Guid partyUuid,
         PartySource roleSource,
@@ -812,5 +825,46 @@ internal partial class PostgreSqlPartyPersistence
     {
         [LoggerMessage(0, LogLevel.Debug, "Upserting {Count} external role-assignments from {Source}")]
         public static partial void UpsertExternalRolesFromPartyBySource(ILogger logger, int count, PartySource source);
+    }
+
+    private sealed class UpsertExternalRolesFromPartyBySourceException
+        : InvalidOperationException
+    {
+        public Guid CommandId { get; }
+
+        public Guid FromParty { get; }
+
+        public PartySource RoleSource { get; }
+
+        public UpsertExternalRolesFromPartyBySourceException(
+            Guid commandId,
+            Guid fromParty,
+            PartySource source,
+            IEnumerable<IPartyExternalRolePersistence.UpsertExternalRoleAssignment> assignments,
+            Exception innerException)
+            : base(CreateMessage(commandId, fromParty, source, assignments), innerException)
+        {
+            CommandId = commandId;
+            FromParty = fromParty;
+            RoleSource = source;
+        }
+
+        private static string CreateMessage(
+            Guid commandId,
+            Guid fromParty,
+            PartySource source,
+            IEnumerable<IPartyExternalRolePersistence.UpsertExternalRoleAssignment> assignments)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"Failed to upsert external role-assignments from party '{fromParty}' for source '{source}';");
+            sb.AppendLine($"CommandId = {{{commandId}}}");
+
+            foreach (var assignment in assignments)
+            {
+                sb.AppendLine($"  {assignment.RoleIdentifier} -> {assignment.ToParty}");
+            }
+
+            return sb.ToString();
+        }
     }
 }
