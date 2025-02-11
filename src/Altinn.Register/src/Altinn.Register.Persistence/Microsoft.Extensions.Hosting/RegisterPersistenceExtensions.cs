@@ -4,11 +4,14 @@ using System.Runtime.CompilerServices;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Authorization.ServiceDefaults.Npgsql.TestSeed;
 using Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql;
+using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Leases;
 using Altinn.Register.Core.Parties;
+using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Persistence;
+using Altinn.Register.Persistence.DbArgTypes;
 using Altinn.Register.Persistence.ImportJobs;
 using Altinn.Register.Persistence.Leases;
 using Altinn.Register.Persistence.UnitOfWork;
@@ -52,7 +55,7 @@ public static class RegisterPersistenceExtensions
         builder.Services.AddUnitOfWorkParticipant<NpgsqlUnitOfWorkParticipant.Factory>();
         builder.Services.AddUnitOfWorkService<PostgreSqlPartyPersistence>();
         builder.Services.AddUnitOfWorkService<IPartyPersistence>(static s => s.GetRequiredService<PostgreSqlPartyPersistence>());
-        builder.Services.AddUnitOfWorkService<IPartyRolePersistence>(static s => s.GetRequiredService<PostgreSqlPartyPersistence>());
+        builder.Services.AddUnitOfWorkService<IPartyExternalRolePersistence>(static s => s.GetRequiredService<PostgreSqlPartyPersistence>());
 
         // Not part of unit of work
         builder.Services.AddSingleton<PostgreSqlExternalRoleDefinitionPersistence.Cache>();
@@ -134,6 +137,21 @@ public static class RegisterPersistenceExtensions
             _ => null,
         }));
 
+        builder.MapEnum<ExternalRoleSource>("register.external_role_source", new EnumNameTranslator<ExternalRoleSource>(static value => value switch
+        {
+            ExternalRoleSource.CentralCoordinatingRegister => "ccr",
+            ExternalRoleSource.NationalPopulationRegister => "npr",
+            ExternalRoleSource.EmployersEmployeeRegister => "aar",
+            _ => null,
+        }));
+
+        builder.MapEnum<ExternalRoleAssignmentEvent.EventType>("register.external_role_assignment_event_type", new EnumNameTranslator<ExternalRoleAssignmentEvent.EventType>(static value => value switch
+        {
+            ExternalRoleAssignmentEvent.EventType.Added => "added",
+            ExternalRoleAssignmentEvent.EventType.Removed => "removed",
+            _ => null,
+        }));
+
         builder.MapComposite<MailingAddress>("register.co_mailing_address", new CompositeNameTranslator<MailingAddress>(static member => member.Name switch
         {
             nameof(MailingAddress.Address) => "address",
@@ -151,6 +169,13 @@ public static class RegisterPersistenceExtensions
             nameof(StreetAddress.HouseLetter) => "house_letter",
             nameof(StreetAddress.PostalCode) => "postal_code",
             nameof(StreetAddress.City) => "city",
+            _ => null,
+        }));
+
+        builder.MapComposite<ArgUpsertExternalRoleAssignment>("register.arg_upsert_external_role_assignment", new CompositeNameTranslator<ArgUpsertExternalRoleAssignment>(static member => member.Name switch 
+        {
+            nameof(ArgUpsertExternalRoleAssignment.ToParty) => "to_party",
+            nameof(ArgUpsertExternalRoleAssignment.Identifier) => "identifier",
             _ => null,
         }));
 

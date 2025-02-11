@@ -1,5 +1,5 @@
-﻿using Altinn.Register.Core.ExternalRoles;
-using Altinn.Register.Core.Parties;
+﻿using Altinn.Register.Contracts.ExternalRoles;
+using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.Parties.Records;
 
 namespace Altinn.Register.Persistence;
@@ -27,7 +27,7 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
     /// <param name="identifier">The role definition identifier.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="ExternalRoleDefinition"/>, if found.</returns>
-    public ValueTask<ExternalRoleDefinition?> TryGetRoleDefinition(PartySource source, string identifier, CancellationToken cancellationToken = default)
+    public ValueTask<ExternalRoleDefinition?> TryGetRoleDefinition(ExternalRoleSource source, string identifier, CancellationToken cancellationToken = default)
         => _cache.TryGetRoleDefinition(source, identifier, cancellationToken);
 
     /// <summary>

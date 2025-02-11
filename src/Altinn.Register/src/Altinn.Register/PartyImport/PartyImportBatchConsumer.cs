@@ -3,7 +3,7 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
-using Altinn.Register.Contracts.Events;
+using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.UnitOfWork;
@@ -81,7 +81,7 @@ public sealed class PartyImportBatchConsumer
                     UpdateTracking(ref tracking, upsert.Message.Tracking);
                     evts[index++] = new PartyUpdatedEvent
                     {
-                        PartyUuid = result.Value.PartyUuid.Value,
+                        Party = new() { PartyUuid = result.Value.PartyUuid.Value },
                     };
                 }
 

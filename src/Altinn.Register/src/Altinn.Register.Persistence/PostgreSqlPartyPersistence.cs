@@ -1,14 +1,19 @@
-﻿using System.Data;
+﻿using System.Collections.Immutable;
+using System.Data;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Text;
 using Altinn.Authorization.ProblemDetails;
+using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.Utils;
 using Altinn.Register.Persistence.AsyncEnumerables;
+using Altinn.Register.Persistence.DbArgTypes;
 using Altinn.Register.Persistence.UnitOfWork;
 using CommunityToolkit.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -19,20 +24,23 @@ namespace Altinn.Register.Persistence;
 /// </summary>
 internal partial class PostgreSqlPartyPersistence
     : IPartyPersistence
-    , IPartyRolePersistence
+    , IPartyExternalRolePersistence
 {
     private readonly NpgsqlConnection _connection;
     private readonly SavePointManager _savePointManager;
+    private readonly ILogger<PostgreSqlPartyPersistence> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PostgreSqlPartyPersistence"/> class.
     /// </summary>
     public PostgreSqlPartyPersistence(
         NpgsqlConnection connection,
-        SavePointManager savePointManager)
+        SavePointManager savePointManager,
+        ILogger<PostgreSqlPartyPersistence> logger)
     {
         _connection = connection;
         _savePointManager = savePointManager;
+        _logger = logger;
     }
 
     #region Party
@@ -659,9 +667,9 @@ internal partial class PostgreSqlPartyPersistence
     #region Roles
 
     /// <inheritdoc/>
-    public IAsyncEnumerable<PartyRoleRecord> GetRolesFromParty(
+    public IAsyncEnumerable<PartyExternalRoleAssignmentRecord> GetExternalRoleAssignmentsFromParty(
         Guid partyUuid,
-        PartyRoleFieldIncludes include = PartyRoleFieldIncludes.Role,
+        PartyExternalRoleAssignmentFieldIncludes include = PartyExternalRoleAssignmentFieldIncludes.RoleAssignment,
         CancellationToken cancellationToken = default)
     {
         var query = PartyRoleQuery.Get(include, PartyRoleFilter.FromParty);
@@ -677,14 +685,14 @@ internal partial class PostgreSqlPartyPersistence
         }
         catch (Exception e)
         {
-            return new ThrowingAsyncEnumerable<PartyRoleRecord>(e).Using(cmd);
+            return new ThrowingAsyncEnumerable<PartyExternalRoleAssignmentRecord>(e).Using(cmd);
         }
     }
 
     /// <inheritdoc/>
-    public IAsyncEnumerable<PartyRoleRecord> GetRolesToParty(
+    public IAsyncEnumerable<PartyExternalRoleAssignmentRecord> GetExternalRoleAssignmentsToParty(
         Guid partyUuid,
-        PartyRoleFieldIncludes include = PartyRoleFieldIncludes.Role,
+        PartyExternalRoleAssignmentFieldIncludes include = PartyExternalRoleAssignmentFieldIncludes.RoleAssignment,
         CancellationToken cancellationToken = default)
     {
         var query = PartyRoleQuery.Get(include, PartyRoleFilter.ToParty);
@@ -700,11 +708,11 @@ internal partial class PostgreSqlPartyPersistence
         }
         catch (Exception e)
         {
-            return new ThrowingAsyncEnumerable<PartyRoleRecord>(e).Using(cmd);
+            return new ThrowingAsyncEnumerable<PartyExternalRoleAssignmentRecord>(e).Using(cmd);
         }
     }
 
-    private async IAsyncEnumerable<PartyRoleRecord> PrepareAndReadPartyRolesAsync(
+    private async IAsyncEnumerable<PartyExternalRoleAssignmentRecord> PrepareAndReadPartyRolesAsync(
         NpgsqlCommand inCmd,
         PartyRoleQuery query,
         [EnumeratorCancellation] CancellationToken cancellationToken)
@@ -724,6 +732,87 @@ internal partial class PostgreSqlPartyPersistence
         }
     }
 
+    /// <inheritdoc/>
+    public IAsyncEnumerable<ExternalRoleAssignmentEvent> UpsertExternalRolesFromPartyBySource(
+        Guid commandId,
+        Guid partyUuid,
+        ExternalRoleSource roleSource,
+        IEnumerable<IPartyExternalRolePersistence.UpsertExternalRoleAssignment> assignments,
+        CancellationToken cancellationToken = default)
+    {
+        return UpsertExternalRolesFromPartyBySourceCore(commandId, partyUuid, roleSource, assignments, cancellationToken)
+            .WrapExceptions(ex => new UpsertExternalRolesFromPartyBySourceException(commandId, partyUuid, roleSource, assignments, ex), cancellationToken);
+    }
+
+    private async IAsyncEnumerable<ExternalRoleAssignmentEvent> UpsertExternalRolesFromPartyBySourceCore(
+        Guid commandId,
+        Guid partyUuid,
+        ExternalRoleSource roleSource,
+        IEnumerable<IPartyExternalRolePersistence.UpsertExternalRoleAssignment> assignments,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        const string QUERY =
+            /*strpsql*/"""
+            SELECT 
+                "version_id",
+                "type",
+                "identifier",
+                "to_party"
+            FROM register.upsert_external_role_assignments(
+                @from_party,
+                @source,
+                @cmd_id,
+                @assignments
+            )
+            """;
+
+        Guard.IsNotNull(assignments);
+        Guard.IsNotDefault(commandId);
+
+        var assignmentList = assignments.Select(static a => new ArgUpsertExternalRoleAssignment
+        {
+            ToParty = a.ToParty,
+            Identifier = a.RoleIdentifier,
+        }).ToList();
+
+        await using var cmd = _connection.CreateCommand();
+        cmd.CommandText = QUERY;
+
+        cmd.Parameters.Add<Guid>("from_party", NpgsqlDbType.Uuid).TypedValue = partyUuid;
+        cmd.Parameters.Add<ExternalRoleSource>("source").TypedValue = roleSource;
+        cmd.Parameters.Add<Guid>("cmd_id", NpgsqlDbType.Uuid).TypedValue = commandId;
+        cmd.Parameters.Add<List<ArgUpsertExternalRoleAssignment>>("assignments").TypedValue = assignmentList;
+
+        await cmd.PrepareAsync(cancellationToken);
+
+        Log.UpsertExternalRolesFromPartyBySource(_logger, assignmentList.Count, roleSource);
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        var versionIdOrdinal = reader.GetOrdinal("version_id");
+        var typeOrdinal = reader.GetOrdinal("type");
+        var identifierOrdinal = reader.GetOrdinal("identifier");
+        var toPartyOrdinal = reader.GetOrdinal("to_party");
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var versionId = (ulong)await reader.GetFieldValueAsync<long>(versionIdOrdinal, cancellationToken);
+            var type = await reader.GetFieldValueAsync<ExternalRoleAssignmentEvent.EventType>(typeOrdinal, cancellationToken);
+            var identifier = await reader.GetFieldValueAsync<string>(identifierOrdinal, cancellationToken);
+            var toParty = await reader.GetFieldValueAsync<Guid>(toPartyOrdinal, cancellationToken);
+
+            var evt = new ExternalRoleAssignmentEvent
+            {
+                VersionId = versionId,
+                Type = type,
+                RoleSource = roleSource,
+                RoleIdentifier = identifier,
+                ToParty = toParty,
+                FromParty = partyUuid,
+            };
+
+            yield return evt;
+        }
+    }
+
     private enum PartyRoleFilter
         : byte
     {
@@ -732,4 +821,51 @@ internal partial class PostgreSqlPartyPersistence
     }
 
     #endregion
+
+    private static partial class Log
+    {
+        [LoggerMessage(0, LogLevel.Debug, "Upserting {Count} external role-assignments from {Source}")]
+        public static partial void UpsertExternalRolesFromPartyBySource(ILogger logger, int count, ExternalRoleSource source);
+    }
+
+    private sealed class UpsertExternalRolesFromPartyBySourceException
+        : InvalidOperationException
+    {
+        public Guid CommandId { get; }
+
+        public Guid FromParty { get; }
+
+        public ExternalRoleSource RoleSource { get; }
+
+        public UpsertExternalRolesFromPartyBySourceException(
+            Guid commandId,
+            Guid fromParty,
+            ExternalRoleSource source,
+            IEnumerable<IPartyExternalRolePersistence.UpsertExternalRoleAssignment> assignments,
+            Exception innerException)
+            : base(CreateMessage(commandId, fromParty, source, assignments), innerException)
+        {
+            CommandId = commandId;
+            FromParty = fromParty;
+            RoleSource = source;
+        }
+
+        private static string CreateMessage(
+            Guid commandId,
+            Guid fromParty,
+            ExternalRoleSource source,
+            IEnumerable<IPartyExternalRolePersistence.UpsertExternalRoleAssignment> assignments)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"Failed to upsert external role-assignments from party '{fromParty}' for source '{source}';");
+            sb.AppendLine($"CommandId = {{{commandId}}}");
+
+            foreach (var assignment in assignments)
+            {
+                sb.AppendLine($"  {assignment.RoleIdentifier} -> {assignment.ToParty}");
+            }
+
+            return sb.ToString();
+        }
+    }
 }

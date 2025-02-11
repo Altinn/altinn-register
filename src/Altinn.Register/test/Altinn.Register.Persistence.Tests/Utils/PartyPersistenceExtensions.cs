@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
@@ -14,7 +15,7 @@ using NpgsqlTypes;
 namespace Altinn.Register.Persistence.Tests.Utils;
 
 /// <summary>
-/// Test helpers for <see cref="IPartyPersistence"/>, <see cref="IPartyRolePersistence"/>.
+/// Test helpers for <see cref="IPartyPersistence"/>, <see cref="IPartyExternalRolePersistence"/>.
 /// </summary>
 public static class PartyPersistenceExtensions
 {
@@ -295,7 +296,7 @@ public static class PartyPersistenceExtensions
 
     public static async Task AddRole(
         this IUnitOfWork uow,
-        PartySource roleSource,
+        ExternalRoleSource roleSource,
         string roleIdentifier,
         Guid from,
         Guid to)
@@ -304,14 +305,61 @@ public static class PartyPersistenceExtensions
         await using var cmd = connection.CreateCommand();
         cmd.CommandText =
             /*strpsql*/"""
-            INSERT INTO register.external_role (source, identifier, from_party, to_party)
+            INSERT INTO register.external_role_assignment (source, identifier, from_party, to_party)
             VALUES (@source, @identifier, @from, @to)
             """;
 
-        cmd.Parameters.Add<PartySource>("source").TypedValue = roleSource;
+        cmd.Parameters.Add<ExternalRoleSource>("source").TypedValue = roleSource;
         cmd.Parameters.Add<string>("identifier", NpgsqlDbType.Text).TypedValue = roleIdentifier;
         cmd.Parameters.Add<Guid>("from", NpgsqlDbType.Uuid).TypedValue = from;
         cmd.Parameters.Add<Guid>("to", NpgsqlDbType.Uuid).TypedValue = to;
+
+        await cmd.PrepareAsync();
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    public static async Task CreateFakeRoleDefinitions(
+        this IUnitOfWork uow)
+    {
+        await CreateFakeRoleDefinitions(uow, ExternalRoleSource.CentralCoordinatingRegister);
+        await CreateFakeRoleDefinitions(uow, ExternalRoleSource.NationalPopulationRegister);
+    }
+
+    public static async Task CreateFakeRoleDefinitions(
+        this IUnitOfWork uow,
+        ExternalRoleSource source)
+    {
+        for (var i = 0; i < 40; i++)
+        {
+            await CreateFakeRoleDefinition(uow, source, $"fake_{i:D2}");
+        }
+    }
+
+    public static async Task CreateFakeRoleDefinition(
+        this IUnitOfWork uow,
+        ExternalRoleSource source,
+        string identifier)
+    {
+        const string QUERY =
+            /*strpsql*/"""
+            INSERT INTO register.external_role_definition (source, identifier, name, description)
+            VALUES (@source, @identifier, @name, @name)
+            """;
+
+        var conn = uow.GetRequiredService<NpgsqlConnection>();
+        var name = new Dictionary<string, string>
+        {
+            ["en"] = $"Fake role {identifier}",
+            ["nb"] = $"Falsk rolle {identifier}",
+            ["nn"] = $"Falsk rolle {identifier}",
+        };
+
+        var cmd = conn.CreateCommand();
+        cmd.CommandText = QUERY;
+
+        cmd.Parameters.Add<ExternalRoleSource>("source").TypedValue = source;
+        cmd.Parameters.Add<string>("identifier", NpgsqlDbType.Text).TypedValue = identifier;
+        cmd.Parameters.Add<Dictionary<string, string>>("name", NpgsqlDbType.Hstore).TypedValue = name;
 
         await cmd.PrepareAsync();
         await cmd.ExecuteNonQueryAsync();

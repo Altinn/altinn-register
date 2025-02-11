@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.Utils;
@@ -18,10 +19,10 @@ internal partial class PostgreSqlPartyPersistence
     [SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1516:Elements should be separated by blank line", Justification = "This class is long enough already")]
     private sealed class PartyRoleQuery
     {
-        private static ImmutableDictionary<(PartyRoleFieldIncludes Includes, PartyRoleFilter FilterBy), PartyRoleQuery> _queries
-            = ImmutableDictionary<(PartyRoleFieldIncludes Includes, PartyRoleFilter FilterBy), PartyRoleQuery>.Empty;
+        private static ImmutableDictionary<(PartyExternalRoleAssignmentFieldIncludes Includes, PartyRoleFilter FilterBy), PartyRoleQuery> _queries
+            = ImmutableDictionary<(PartyExternalRoleAssignmentFieldIncludes Includes, PartyRoleFilter FilterBy), PartyRoleQuery>.Empty;
 
-        public static PartyRoleQuery Get(PartyRoleFieldIncludes includes, PartyRoleFilter filterBy)
+        public static PartyRoleQuery Get(PartyExternalRoleAssignmentFieldIncludes includes, PartyRoleFilter filterBy)
         {
             return ImmutableInterlocked.GetOrAdd(ref _queries, (Includes: includes, FilterBy: filterBy), static (key) => Builder.Create(key.Includes, key.FilterBy));
         }
@@ -61,14 +62,14 @@ internal partial class PostgreSqlPartyPersistence
             return param;
         }
 
-        public ValueTask<PartyRoleRecord> ReadRole(NpgsqlDataReader reader, CancellationToken cancellationToken)
+        public ValueTask<PartyExternalRoleAssignmentRecord> ReadRole(NpgsqlDataReader reader, CancellationToken cancellationToken)
             => ReadRole(reader, _fields, cancellationToken);
 
-        private async ValueTask<PartyRoleRecord> ReadRole(NpgsqlDataReader reader, PartyRoleFields fields, CancellationToken cancellationToken)
+        private async ValueTask<PartyExternalRoleAssignmentRecord> ReadRole(NpgsqlDataReader reader, PartyRoleFields fields, CancellationToken cancellationToken)
         {
-            return new PartyRoleRecord
+            return new PartyExternalRoleAssignmentRecord
             {
-                Source = await reader.GetConditionalFieldValueAsync<PartySource>(fields.RoleSource, cancellationToken),
+                Source = await reader.GetConditionalFieldValueAsync<ExternalRoleSource>(fields.RoleSource, cancellationToken),
                 Identifier = await reader.GetConditionalFieldValueAsync<string>(fields.RoleIdentifier, cancellationToken),
                 FromParty = await reader.GetConditionalFieldValueAsync<Guid>(fields.RoleFromParty, cancellationToken),
                 ToParty = await reader.GetConditionalFieldValueAsync<Guid>(fields.RoleToParty, cancellationToken),
@@ -79,7 +80,7 @@ internal partial class PostgreSqlPartyPersistence
 
         private sealed class Builder
         {
-            public static PartyRoleQuery Create(PartyRoleFieldIncludes includes, PartyRoleFilter filterBy)
+            public static PartyRoleQuery Create(PartyExternalRoleAssignmentFieldIncludes includes, PartyRoleFilter filterBy)
             {
                 Builder builder = new();
                 builder.Populate(includes, filterBy);
@@ -109,7 +110,7 @@ internal partial class PostgreSqlPartyPersistence
             // fields
             private sbyte _fieldIndex = 0;
 
-            // register.external_role
+            // register.external_role_assignment
             private sbyte _roleSource = -1;
             private sbyte _roleIdentifier = -1;
             private sbyte _roleFromParty = -1;
@@ -119,21 +120,21 @@ internal partial class PostgreSqlPartyPersistence
             private sbyte _roleDefinitionName = -1;
             private sbyte _roleDefinitionDescription = -1;
 
-            public void Populate(PartyRoleFieldIncludes includes, PartyRoleFilter filterBy)
+            public void Populate(PartyExternalRoleAssignmentFieldIncludes includes, PartyRoleFilter filterBy)
             {
                 _builder.Append(/*strpsql*/"SELECT");
 
-                _roleSource = AddField("r.source", "role_source", includes.HasFlag(PartyRoleFieldIncludes.RoleSource));
-                _roleIdentifier = AddField("r.identifier", "role_identifier", includes.HasFlag(PartyRoleFieldIncludes.RoleIdentifier));
-                _roleFromParty = AddField("r.from_party", "role_from_party", includes.HasFlag(PartyRoleFieldIncludes.RoleFromParty));
-                _roleToParty = AddField("r.to_party", "role_to_party", includes.HasFlag(PartyRoleFieldIncludes.RoleToParty));
+                _roleSource = AddField("r.source", "role_source", includes.HasFlag(PartyExternalRoleAssignmentFieldIncludes.RoleSource));
+                _roleIdentifier = AddField("r.identifier", "role_identifier", includes.HasFlag(PartyExternalRoleAssignmentFieldIncludes.RoleIdentifier));
+                _roleFromParty = AddField("r.from_party", "role_from_party", includes.HasFlag(PartyExternalRoleAssignmentFieldIncludes.RoleFromParty));
+                _roleToParty = AddField("r.to_party", "role_to_party", includes.HasFlag(PartyExternalRoleAssignmentFieldIncludes.RoleToParty));
 
-                _roleDefinitionName = AddField("d.name", "role_definition_name", includes.HasFlag(PartyRoleFieldIncludes.RoleDefinitionName));
-                _roleDefinitionDescription = AddField("d.description", "role_definition_description", includes.HasFlag(PartyRoleFieldIncludes.RoleDefinitionDescription));
+                _roleDefinitionName = AddField("d.name", "role_definition_name", includes.HasFlag(PartyExternalRoleAssignmentFieldIncludes.RoleDefinitionName));
+                _roleDefinitionDescription = AddField("d.description", "role_definition_description", includes.HasFlag(PartyExternalRoleAssignmentFieldIncludes.RoleDefinitionDescription));
 
-                _builder.AppendLine().Append(/*strpsql*/"FROM register.external_role r");
+                _builder.AppendLine().Append(/*strpsql*/"FROM register.external_role_assignment r");
 
-                if (includes.HasAnyFlags(PartyRoleFieldIncludes.RoleDefinition))
+                if (includes.HasAnyFlags(PartyExternalRoleAssignmentFieldIncludes.RoleDefinition))
                 {
                     _builder.AppendLine().Append(/*strpsql*/"FULL JOIN register.external_role_definition d USING (source, identifier)");
                 }
@@ -221,7 +222,7 @@ internal partial class PostgreSqlPartyPersistence
 
         [SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1515:Single-line comment should be preceded by blank line", Justification = "This rule makes no sense here")]
         private class PartyRoleFields(
-            // register.external_role
+            // register.external_role_assignment
             sbyte roleSource,
             sbyte roleIdentifier,
             sbyte roleFromParty,
@@ -231,7 +232,7 @@ internal partial class PostgreSqlPartyPersistence
             sbyte roleDefinitionName,
             sbyte roleDefinitionDescription)
         {
-            // register.external_role
+            // register.external_role_assignment
             public int RoleSource => roleSource;
             public int RoleIdentifier => roleIdentifier;
             public int RoleFromParty => roleFromParty;

@@ -1,16 +1,17 @@
-﻿using Altinn.Register.Core.Utils;
+﻿using Altinn.Register.Contracts.ExternalRoles;
+using Altinn.Register.Core.Utils;
 
 namespace Altinn.Register.Core.Parties.Records;
 
 /// <summary>
 /// A database record for a role assignment.
 /// </summary>
-public class PartyRoleRecord
+public class PartyExternalRoleAssignmentRecord
 {
     /// <summary>
     /// Gets the role source.
     /// </summary>
-    public required FieldValue<PartySource> Source { get; init; }
+    public required FieldValue<ExternalRoleSource> Source { get; init; }
 
     /// <summary>
     /// Gets the role identifier (unique within the source).
