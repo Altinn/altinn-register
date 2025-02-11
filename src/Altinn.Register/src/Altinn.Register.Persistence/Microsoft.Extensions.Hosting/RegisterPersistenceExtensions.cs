@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Authorization.ServiceDefaults.Npgsql.TestSeed;
 using Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql;
+using Altinn.Register.Contracts.Events;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Leases;
@@ -133,6 +134,14 @@ public static class RegisterPersistenceExtensions
         {
             PartySource.CentralCoordinatingRegister => "ccr",
             PartySource.NationalPopulationRegister => "npr",
+            _ => null,
+        }));
+
+        builder.MapEnum<PartyExternalRoleSource>("register.external_role_source", new EnumNameTranslator<PartyExternalRoleSource>(static value => value switch
+        {
+            PartyExternalRoleSource.CentralCoordinatingRegister => "ccr",
+            PartyExternalRoleSource.NationalPopulationRegister => "npr",
+            PartyExternalRoleSource.EmployersEmployeeRegister => "aar",
             _ => null,
         }));
 

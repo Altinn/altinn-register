@@ -1,13 +1,28 @@
--- CREATE TABLE register.external_role (
--- 	"source" register.party_source NOT NULL,
--- 	identifier register.identifier NOT NULL,
--- 	from_party uuid NOT NULL,
--- 	to_party uuid NOT NULL,
--- 	CONSTRAINT external_role_pkey PRIMARY KEY (source, identifier, from_party, to_party),
--- 	CONSTRAINT external_role_from_party_fkey FOREIGN KEY (from_party) REFERENCES register.party(uuid) ON DELETE CASCADE ON UPDATE CASCADE,
--- 	CONSTRAINT external_role_source_identifier_fkey FOREIGN KEY ("source",identifier) REFERENCES register.external_role_definition("source",identifier) ON DELETE CASCADE ON UPDATE CASCADE,
--- 	CONSTRAINT external_role_to_party_fkey FOREIGN KEY (to_party) REFERENCES register.party(uuid) ON DELETE CASCADE ON UPDATE CASCADE
--- );
+-- Rename external_role to external_role_assignment
 
 ALTER TABLE register.external_role
 RENAME TO external_role_assignment;
+
+-- Create new enum type for external role source
+CREATE TYPE register.external_role_source AS ENUM(
+  'npr', -- Folkeregisteret
+  'ccr', -- Enhetsregisteret
+  'aar' -- Arbeidsgiver- og arbeidstakerregisteret
+);
+
+-- Update external role tables to use new enum
+ALTER TABLE register.external_role_assignment
+  DROP CONSTRAINT external_role_source_identifier_fkey;
+
+ALTER TABLE register.external_role_definition
+  ALTER COLUMN "source"
+    SET DATA TYPE register.external_role_source
+    USING "source"::text::register.external_role_source;
+
+ALTER TABLE register.external_role_assignment
+  ALTER COLUMN "source"
+    SET DATA TYPE register.external_role_source
+    USING "source"::text::register.external_role_source;
+
+ALTER TABLE register.external_role
+  ADD CONSTRAINT external_role_assignment_source_identifier_fkey FOREIGN KEY ("source", identifier) REFERENCES register.external_role_definition("source", identifier) ON DELETE CASCADE ON UPDATE CASCADE;

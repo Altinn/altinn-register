@@ -5,7 +5,7 @@ CREATE TYPE register.external_role_assignment_event_type AS ENUM(
 
 CREATE TABLE register.external_role_assignment_command_history (
   cmd_id uuid NOT NULL, -- Command id of mass-transit command
-  "source" register.party_source NOT NULL,
+  "source" register.external_role_source NOT NULL,
   from_party uuid NOT NULL,
   PRIMARY KEY (cmd_id, "source", from_party),
   CONSTRAINT external_role_assignment_command_history_from_party_fkey FOREIGN KEY (from_party) REFERENCES register.party(uuid) ON DELETE CASCADE ON UPDATE CASCADE
@@ -17,7 +17,7 @@ CREATE TABLE register.external_role_assignment_event (
   id bigint NOT NULL PRIMARY KEY DEFAULT register.tx_nextval('register.external_role_assignment_event_id_seq'),
   "type" register.external_role_assignment_event_type NOT NULL,
   cmd_id uuid NOT NULL, -- The id of the command that created the event
-  "source" register.party_source NOT NULL,
+  "source" register.external_role_source NOT NULL,
 	identifier register.identifier NOT NULL,
   from_party uuid NOT NULL,
 	to_party uuid NOT NULL,
@@ -37,7 +37,7 @@ CREATE TYPE register.arg_upsert_external_role_assignment AS (
 
 CREATE FUNCTION register.upsert_external_role_assignments(
   p_from_party uuid,
-  p_source register.party_source,
+  p_source register.external_role_source,
   p_cmd_id uuid,
   p_assignments register.arg_upsert_external_role_assignment[]
 )
