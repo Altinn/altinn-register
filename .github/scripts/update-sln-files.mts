@@ -9,12 +9,16 @@ if (process.platform === "win32") {
 
 const c = new Chalk({ level: 3 });
 
-const allSlnFile = path.resolve("Altinn.Register.sln");
-const slnFiles = await globby("src/*/*.sln", { absolute: true });
-slnFiles.unshift(allSlnFile);
+const allSlnFile = path.resolve("Altinn.Register.slnx");
+const slnFiles = [
+  allSlnFile,
+  ...(await globby("src/*/*.sln", { absolute: true })),
+  ...(await globby("src/*/*.slnx", { absolute: true })),
+];
 
 for (const file of slnFiles) {
   await within(async () => {
+    const rootSln = file === allSlnFile;
     echo("");
     echo(`#############################################`);
     echo(`Updating ${c.yellow(file)}`);
@@ -24,8 +28,13 @@ for (const file of slnFiles) {
 
     const projects = await globby(`**/*.*proj`);
     for (const project of projects) {
+      let dirPath = path.dirname(path.dirname(project));
+      if (rootSln && dirPath.startsWith("src/")) {
+        dirPath = dirPath.substring(4);
+      }
+
       echo(` - Adding ${c.green(project)} to ${c.yellow(file)}`);
-      await $`dotnet sln "${fileName}" add "${project}"`;
+      await $`dotnet sln "${fileName}" add "${project}" --solution-folder "${dirPath}"`;
     }
   });
 }
