@@ -33,9 +33,9 @@ public record PartyRecord
     public FieldValue<PartyType> PartyType { get; private init; }
 
     /// <summary>
-    /// Gets the (display) name of the party.
+    /// Gets the display-name of the party.
     /// </summary>
-    public required FieldValue<string> Name { get; init; }
+    public required FieldValue<string> DisplayName { get; init; }
 
     /// <summary>
     /// Gets the person identifier of the party, or <see langword="null"/> if the party is not a person.

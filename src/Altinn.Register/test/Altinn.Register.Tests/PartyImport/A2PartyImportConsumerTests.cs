@@ -71,7 +71,7 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
         {
             person.PartyId.Should().Be(party.PartyId);
             person.PartyUuid.Should().Be(partyUuid);
-            person.Name.Should().Be(input.ExpectedName);
+            person.DisplayName.Should().Be(input.ExpectedName);
             person.FirstName.Should().Be(input.ExpectedFirstName);
             person.MiddleName.Should().Be(input.ExpectedMiddleName);
             person.LastName.Should().Be(input.ExpectedLastName);

@@ -21,9 +21,9 @@ public class PartyFieldIncludesModelBinderTests
 
     [Theory]
     [InlineData("fields=party", PartyFieldIncludes.Party)]
-    [InlineData("fields=party-name,party-uuid", PartyFieldIncludes.PartyName | PartyFieldIncludes.PartyUuid)]
-    [InlineData("fields=party-name&fields=party-uuid", PartyFieldIncludes.PartyName | PartyFieldIncludes.PartyUuid)]
-    [InlineData("fields=identifiers,party-version-id", PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyVersionId)]
+    [InlineData("fields=display-name,uuid", PartyFieldIncludes.PartyDisplayName | PartyFieldIncludes.PartyUuid)]
+    [InlineData("fields=display-name&fields=uuid", PartyFieldIncludes.PartyDisplayName | PartyFieldIncludes.PartyUuid)]
+    [InlineData("fields=identifiers,version", PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyVersionId)]
     public async Task ParseValid(string query, PartyFieldIncludes expected)
     {
         var client = _factory.CreateClient();
@@ -37,8 +37,8 @@ public class PartyFieldIncludesModelBinderTests
 
     [Theory]
     [InlineData(PartyFieldIncludes.Party, "party")]
-    [InlineData(PartyFieldIncludes.PartyName | PartyFieldIncludes.PartyUuid, "party-uuid,party-name")]
-    [InlineData(PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyVersionId, "identifiers,party-version-id")]
+    [InlineData(PartyFieldIncludes.PartyDisplayName | PartyFieldIncludes.PartyUuid, "uuid,display-name")]
+    [InlineData(PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyVersionId, "identifiers,version")]
     public async Task Format(PartyFieldIncludes value, string expected)
     {
         var client = _factory.CreateClient();

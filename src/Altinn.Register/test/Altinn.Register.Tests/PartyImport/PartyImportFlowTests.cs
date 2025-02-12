@@ -26,7 +26,7 @@ public class PartyImportFlowTests(ITestOutputHelper output)
         {
             PartyUuid = partyUuid,
             PartyId = partyId,
-            Name = "Test Mid Testson",
+            DisplayName = "Test Mid Testson",
             PersonIdentifier = PersonIdentifier.Parse("25871999336"),
             OrganizationIdentifier = null,
             CreatedAt = TimeProvider.GetUtcNow(),
@@ -37,6 +37,7 @@ public class PartyImportFlowTests(ITestOutputHelper output)
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
+            ShortName = "TESTSON Test Mid",
             Address = null,
             MailingAddress = null,
             DateOfBirth = new DateOnly(1919, 7, 25),

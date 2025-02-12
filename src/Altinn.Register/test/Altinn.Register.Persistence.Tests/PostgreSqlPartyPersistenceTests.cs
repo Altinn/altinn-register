@@ -108,7 +108,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         party.PartyUuid.Should().Be(OrganizationWithChildrenUuid);
         party.PartyId.Should().Be(OrganizationWithChildrenId);
         party.PartyType.Should().Be(PartyType.Organization);
-        party.Name.Should().Be("MOEN OG BJØRNEVATN");
+        party.DisplayName.Should().Be("MOEN OG BJØRNEVATN");
         party.PersonIdentifier.Should().BeNull();
         party.OrganizationIdentifier.Should().Be(OrganizationWithChildrenIdentifier);
 
@@ -136,7 +136,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         party.PartyUuid.Should().Be(OrganizationWithChildrenUuid);
         party.PartyId.Should().Be(OrganizationWithChildrenId);
         party.PartyType.Should().Be(PartyType.Organization);
-        party.Name.Should().Be("MOEN OG BJØRNEVATN");
+        party.DisplayName.Should().Be("MOEN OG BJØRNEVATN");
         party.PersonIdentifier.Should().BeNull();
         party.OrganizationIdentifier.Should().Be(OrganizationWithChildrenIdentifier);
 
@@ -164,7 +164,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         party.PartyUuid.Should().Be(OrganizationWithChildrenUuid);
         party.PartyId.Should().Be(OrganizationWithChildrenId);
         party.PartyType.Should().Be(PartyType.Organization);
-        party.Name.Should().Be("MOEN OG BJØRNEVATN");
+        party.DisplayName.Should().Be("MOEN OG BJØRNEVATN");
         party.PersonIdentifier.Should().BeNull();
         party.OrganizationIdentifier.Should().Be(OrganizationWithChildrenIdentifier);
 
@@ -190,7 +190,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         party.PartyUuid.Should().Be(PersonUuid);
         party.PartyId.Should().Be(50002129);
         party.PartyType.Should().Be(PartyType.Person);
-        party.Name.Should().Be("SANNE BJØRKUM");
+        party.DisplayName.Should().Be("SANNE BJØRKUM");
         party.PersonIdentifier.Should().Be(PersonIdentifier);
         party.OrganizationIdentifier.Should().BeNull();
 
@@ -214,7 +214,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         party.PartyUuid.Should().Be(PersonUuid);
         party.PartyId.Should().Be(50002129);
         party.PartyType.Should().Be(PartyType.Person);
-        party.Name.Should().Be("SANNE BJØRKUM");
+        party.DisplayName.Should().Be("SANNE BJØRKUM");
         party.PersonIdentifier.Should().Be(PersonIdentifier);
         party.OrganizationIdentifier.Should().BeNull();
 
@@ -245,7 +245,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             parent.PartyUuid.Should().Be(OrganizationWithChildrenUuid);
             parent.PartyId.Should().Be(OrganizationWithChildrenId);
             parent.PartyType.Should().Be(PartyType.Organization);
-            parent.Name.Should().Be("MOEN OG BJØRNEVATN");
+            parent.DisplayName.Should().Be("MOEN OG BJØRNEVATN");
             parent.PersonIdentifier.Should().BeNull();
             parent.OrganizationIdentifier.Should().Be(OrganizationWithChildrenIdentifier);
 
@@ -267,7 +267,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             child.PartyUuid.Should().Be(ChildOrganizationUuid);
             child.PartyId.Should().Be(50056655);
             child.PartyType.Should().Be(PartyType.Organization);
-            child.Name.Should().Be("NERLANDSØY OG DYRANUT");
+            child.DisplayName.Should().Be("NERLANDSØY OG DYRANUT");
             child.PersonIdentifier.Should().BeNull();
             child.OrganizationIdentifier.Should().HaveValue().Which.Should().Be("910056077");
 
@@ -302,7 +302,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         party.PartyUuid.Should().Be(OrganizationWithChildrenUuid);
         party.PartyId.Should().Be(OrganizationWithChildrenId);
         party.PartyType.Should().Be(PartyType.Organization);
-        party.Name.Should().Be("MOEN OG BJØRNEVATN");
+        party.DisplayName.Should().Be("MOEN OG BJØRNEVATN");
         party.PersonIdentifier.Should().BeNull();
         party.OrganizationIdentifier.Should().Be(OrganizationWithChildrenIdentifier);
 
@@ -508,7 +508,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
-            Name = "Test",
+            DisplayName = "Test",
             PersonIdentifier = null,
             OrganizationIdentifier = orgNo,
             CreatedAt = TimeProvider.GetUtcNow(),
@@ -545,7 +545,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
-            Name = "Test",
+            DisplayName = "Test",
             PersonIdentifier = null,
             OrganizationIdentifier = orgNo,
             CreatedAt = TimeProvider.GetUtcNow(),
@@ -570,7 +570,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         var toUpdate = toInsert with
         {
-            Name = "Test Updated",
+            DisplayName = "Test Updated",
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             UnitStatus = "U",
@@ -610,7 +610,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
-            Name = "Test",
+            DisplayName = "Test",
             PersonIdentifier = null,
             OrganizationIdentifier = orgNo,
             CreatedAt = TimeProvider.GetUtcNow(),
@@ -656,7 +656,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
-            Name = "Test",
+            DisplayName = "Test",
             PersonIdentifier = null,
             OrganizationIdentifier = orgNo,
             CreatedAt = TimeProvider.GetUtcNow(),
@@ -702,7 +702,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
-            Name = "Test",
+            DisplayName = "Test",
             PersonIdentifier = null,
             OrganizationIdentifier = orgNo,
             CreatedAt = TimeProvider.GetUtcNow(),
@@ -730,7 +730,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid2,
             PartyId = id,
-            Name = "Test",
+            DisplayName = "Test",
             PersonIdentifier = null,
             OrganizationIdentifier = await UoW.GetNewOrgNumber(),
             CreatedAt = TimeProvider.GetUtcNow(),
@@ -772,7 +772,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
-            Name = "Test Mid Testson",
+            DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
             CreatedAt = TimeProvider.GetUtcNow(),
@@ -782,6 +782,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
+            ShortName = "TESTSON Test Mid",
             Address = null,
             MailingAddress = null,
             DateOfBirth = birthDate,
@@ -809,7 +810,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
-            Name = "Test Mid Testson",
+            DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
             CreatedAt = TimeProvider.GetUtcNow(),
@@ -819,6 +820,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
+            ShortName = "TESTSON Test Mid",
             Address = null,
             MailingAddress = null,
             DateOfBirth = birthDate,
@@ -832,12 +834,13 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         var toUpdate = toInsert with
         {
-            Name = "Test Updated",
+            DisplayName = "Test Updated",
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             FirstName = "Test Updated",
             MiddleName = "Mid Updated",
             LastName = "Testson Updated",
+            ShortName = "TESTSON Updated Test Mid",
             Address = new StreetAddress
             {
                 MunicipalName = "mn",
@@ -881,7 +884,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
-            Name = "Test Mid Testson",
+            DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
             CreatedAt = TimeProvider.GetUtcNow(),
@@ -891,6 +894,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
+            ShortName = "TESTSON Test Mid",
             Address = null,
             MailingAddress = null,
             DateOfBirth = birthDate,
@@ -927,7 +931,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
-            Name = "Test Mid Testson",
+            DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
             CreatedAt = TimeProvider.GetUtcNow(),
@@ -937,6 +941,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
+            ShortName = "TESTSON Test Mid",
             Address = null,
             MailingAddress = null,
             DateOfBirth = birthDate,
@@ -973,7 +978,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
-            Name = "Test Mid Testson",
+            DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
             CreatedAt = TimeProvider.GetUtcNow(),
@@ -983,6 +988,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
+            ShortName = "TESTSON Test Mid",
             Address = null,
             MailingAddress = null,
             DateOfBirth = birthDate,
@@ -999,7 +1005,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid2,
             PartyId = id,
-            Name = "Test Mid Testson",
+            DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
             CreatedAt = TimeProvider.GetUtcNow(),
@@ -1009,6 +1015,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
+            ShortName = "TESTSON Test Mid",
             Address = null,
             MailingAddress = null,
             DateOfBirth = birthDate,

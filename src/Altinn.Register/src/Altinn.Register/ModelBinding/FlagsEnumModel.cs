@@ -3,7 +3,9 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Altinn.Register.Core.Utils;
 using CommunityToolkit.Diagnostics;
 
@@ -49,12 +51,19 @@ public sealed class FlagsEnumModel<TEnum>
         for (int i = 0; i < names.Length; i++)
         {
             var value = values[i];
-            var baseName = names[i];
+            var fieldName = names[i];
+            var baseName = fieldName;
+            var field = typeof(TEnum).GetField(fieldName, BindingFlags.Public | BindingFlags.Static);
+            if (field?.GetCustomAttribute<JsonStringEnumMemberNameAttribute>() is { } attr)
+            {
+                baseName = attr.Name;
+            }
+
             var name = namingPolicy.ConvertName(baseName);
 
             if (value.Equals(default(TEnum)))
             {
-                Debug.Assert(baseName == "None");
+                Debug.Assert(fieldName == "None");
                 noneFound = true;
                 continue;
             }

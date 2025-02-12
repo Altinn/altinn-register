@@ -21,7 +21,7 @@ public class PartyRecordTests
         {
             PartyUuid = FieldValue.Unset,
             PartyId = FieldValue.Unset,
-            Name = FieldValue.Unset,
+            DisplayName = FieldValue.Unset,
             PersonIdentifier = FieldValue.Unset,
             OrganizationIdentifier = FieldValue.Unset,
             CreatedAt = FieldValue.Unset,
@@ -45,7 +45,7 @@ public class PartyRecordTests
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
-            Name = "1",
+            DisplayName = "1",
             PersonIdentifier = FieldValue.Unset,
             OrganizationIdentifier = FieldValue.Unset,
             CreatedAt = TimeProvider.GetUtcNow(),
@@ -60,7 +60,7 @@ public class PartyRecordTests
             {
                 "partyUuid":"00000000-0000-0000-0000-000000000001",
                 "partyId":1,
-                "name":"1",
+                "displayName":"1",
                 "createdAt":"2000-01-01T00:00:00+00:00",
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":false,
@@ -80,7 +80,7 @@ public class PartyRecordTests
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
-            Name = "1",
+            DisplayName = "1",
             PersonIdentifier = PersonIdentifier.Parse("25871999336"),
             OrganizationIdentifier = FieldValue.Unset,
             CreatedAt = TimeProvider.GetUtcNow(),
@@ -96,7 +96,7 @@ public class PartyRecordTests
                 "partyType": "person",
                 "partyUuid":"00000000-0000-0000-0000-000000000001",
                 "partyId":1,
-                "name":"1",
+                "displayName":"1",
                 "personIdentifier":"25871999336",
                 "createdAt":"2000-01-01T00:00:00+00:00",
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
@@ -117,7 +117,7 @@ public class PartyRecordTests
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
-            Name = "1",
+            DisplayName = "1",
             PersonIdentifier = FieldValue.Unset,
             OrganizationIdentifier = OrganizationIdentifier.Parse("123456785"),
             CreatedAt = TimeProvider.GetUtcNow(),
@@ -133,7 +133,7 @@ public class PartyRecordTests
                 "partyType": "organization",
                 "partyUuid":"00000000-0000-0000-0000-000000000001",
                 "partyId":1,
-                "name":"1",
+                "displayName":"1",
                 "organizationIdentifier":"123456785",
                 "createdAt":"2000-01-01T00:00:00+00:00",
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
@@ -154,7 +154,7 @@ public class PartyRecordTests
         {
             PartyUuid = FieldValue.Unset,
             PartyId = FieldValue.Unset,
-            Name = FieldValue.Unset,
+            DisplayName = FieldValue.Unset,
             PersonIdentifier = FieldValue.Unset,
             OrganizationIdentifier = FieldValue.Unset,
             CreatedAt = FieldValue.Unset,
@@ -165,6 +165,7 @@ public class PartyRecordTests
             FirstName = FieldValue.Unset,
             MiddleName = FieldValue.Unset,
             LastName = FieldValue.Unset,
+            ShortName = FieldValue.Unset,
             Address = FieldValue.Unset,
             MailingAddress = FieldValue.Unset,
             DateOfBirth = FieldValue.Unset,
@@ -191,7 +192,7 @@ public class PartyRecordTests
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
-            Name = "1",
+            DisplayName = "1",
             PersonIdentifier = PersonIdentifier.Parse("25871999336"),
             OrganizationIdentifier = FieldValue.Unset,
             CreatedAt = TimeProvider.GetUtcNow(),
@@ -202,6 +203,7 @@ public class PartyRecordTests
             FirstName = FieldValue.Unset,
             MiddleName = FieldValue.Unset,
             LastName = FieldValue.Unset,
+            ShortName = FieldValue.Unset,
             Address = FieldValue.Unset,
             MailingAddress = FieldValue.Unset,
             DateOfBirth = FieldValue.Unset,
@@ -215,7 +217,7 @@ public class PartyRecordTests
                 "partyType": "person",
                 "partyUuid":"00000000-0000-0000-0000-000000000001",
                 "partyId":1,
-                "name":"1",
+                "displayName":"1",
                 "personIdentifier":"25871999336",
                 "createdAt":"2000-01-01T00:00:00+00:00",
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
@@ -236,7 +238,7 @@ public class PartyRecordTests
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
-            Name = "1",
+            DisplayName = "1",
             PersonIdentifier = PersonIdentifier.Parse("25871999336"),
             OrganizationIdentifier = FieldValue.Unset,
             CreatedAt = TimeProvider.GetUtcNow(),
@@ -247,6 +249,7 @@ public class PartyRecordTests
             FirstName = "First",
             MiddleName = null,
             LastName = "Last",
+            ShortName = "Short",
             Address = new StreetAddress
             {
                 MunicipalNumber = "1",
@@ -274,7 +277,7 @@ public class PartyRecordTests
                 "partyType": "person",
                 "partyUuid": "00000000-0000-0000-0000-000000000001",
                 "partyId": 1,
-                "name": "1",
+                "displayName": "1",
                 "personIdentifier": "25871999336",
                 "createdAt": "2000-01-01T00:00:00+00:00",
                 "modifiedAt": "2000-01-02T00:00:00+00:00",
@@ -283,6 +286,7 @@ public class PartyRecordTests
                 "firstName": "First",
                 "middleName": null,
                 "lastName": "Last",
+                "shortName": "Short",
                 "address": {
                     "municipalNumber": "1",
                     "municipalName": "2",
@@ -314,7 +318,7 @@ public class PartyRecordTests
         {
             PartyUuid = FieldValue.Unset,
             PartyId = FieldValue.Unset,
-            Name = FieldValue.Unset,
+            DisplayName = FieldValue.Unset,
             PersonIdentifier = FieldValue.Unset,
             OrganizationIdentifier = FieldValue.Unset,
             CreatedAt = FieldValue.Unset,
@@ -352,7 +356,7 @@ public class PartyRecordTests
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
-            Name = "1",
+            DisplayName = "1",
             PersonIdentifier = FieldValue.Unset,
             OrganizationIdentifier = OrganizationIdentifier.Parse("123456785"),
             CreatedAt = TimeProvider.GetUtcNow(),
@@ -388,7 +392,7 @@ public class PartyRecordTests
                 "partyType": "organization",
                 "partyUuid":"00000000-0000-0000-0000-000000000001",
                 "partyId":1,
-                "name":"1",
+                "displayName":"1",
                 "organizationIdentifier":"123456785",
                 "createdAt":"2000-01-01T00:00:00+00:00",
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
@@ -426,7 +430,7 @@ public class PartyRecordTests
         {
             PartyUuid = FieldValue.Unset,
             PartyId = FieldValue.Unset,
-            Name = FieldValue.Unset,
+            DisplayName = FieldValue.Unset,
             PersonIdentifier = FieldValue.Unset,
             OrganizationIdentifier = FieldValue.Unset,
             CreatedAt = FieldValue.Unset,
@@ -476,7 +480,7 @@ public class PartyRecordTests
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
-            Name = "1",
+            DisplayName = "1",
             PersonIdentifier = FieldValue.Unset,
             OrganizationIdentifier = OrganizationIdentifier.Parse("123456785"),
             CreatedAt = TimeProvider.GetUtcNow(),
@@ -512,7 +516,7 @@ public class PartyRecordTests
                 "PartyType": "organization",
                 "PartyUuid":"00000000-0000-0000-0000-000000000001",
                 "PartyId":1,
-                "Name":"1",
+                "DisplayName":"1",
                 "OrganizationIdentifier":"123456785",
                 "CreatedAt":"2000-01-01T00:00:00+00:00",
                 "ModifiedAt":"2000-01-01T00:00:00+00:00",
@@ -555,14 +559,14 @@ public class PartyRecordTests
             """
             {
                 "pARTYtYPE": "organization",
-                "NAME": "Test",
+                "DISPLAYNAME": "Test",
                 "UNITTYPE": "type"
             }
             """;
 
         var deserialized = JsonSerializer.Deserialize<PartyRecord>(json, options);
         var org = deserialized.Should().BeOfType<OrganizationRecord>().Which;
-        org.Name.Should().HaveValue().Which.Should().Be("Test");
+        org.DisplayName.Should().HaveValue().Which.Should().Be("Test");
         org.UnitType.Should().HaveValue().Which.Should().Be("type");
     }
 

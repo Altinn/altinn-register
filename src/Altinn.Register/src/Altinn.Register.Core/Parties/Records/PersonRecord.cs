@@ -34,6 +34,11 @@ public sealed record PersonRecord
     public required FieldValue<string> LastName { get; init; }
 
     /// <summary>
+    /// Gets the short name.
+    /// </summary>
+    public required FieldValue<string> ShortName { get; init; }
+
+    /// <summary>
     /// Gets the (optional) <see cref="StreetAddress"/> of the person.
     /// </summary>
     public required FieldValue<StreetAddress> Address { get; init; }

@@ -272,7 +272,7 @@ public static class PartyPersistenceExtensions
         {
             PartyUuid = uuid.HasValue ? uuid.Value : Guid.NewGuid(),
             PartyId = id,
-            Name = name.HasValue ? name.Value : "Test",
+            DisplayName = name.HasValue ? name.Value : "Test",
             PersonIdentifier = null,
             OrganizationIdentifier = identifier,
             CreatedAt = createdAt.HasValue ? createdAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
