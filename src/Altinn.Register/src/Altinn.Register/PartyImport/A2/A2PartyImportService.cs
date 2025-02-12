@@ -3,6 +3,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Altinn.Register.Core.Parties;
@@ -217,10 +218,14 @@ internal sealed class A2PartyImportService
             var partyUuid = party.PartyUuid!.Value;
             var partyId = party.PartyId;
             var personIdentifier = MapPersonIdentifier(person.SSN.AsSpan().Trim());
-            var name = Normalize(person.Name);
             var firstName = Normalize(person.FirstName);
             var middleName = Normalize(person.MiddleName);
             var lastName = Normalize(person.LastName);
+            var displayName = MapPersonName(
+                firstName: firstName,
+                middleName: middleName,
+                lastName: lastName,
+                shortName: Normalize(person.Name));
             var isDeleted = party.IsDeleted;
 
             var address = MapStreetAddress(
@@ -240,39 +245,39 @@ internal sealed class A2PartyImportService
             DateOnly dateOfBirth = CalculateDateOfBirth(personIdentifier);
             DateOnly? dateOfDeath = person.DateOfDeath is null ? null : DateOnly.FromDateTime(person.DateOfDeath.Value);
 
-            if (name is null && lastName is not null)
+            if (displayName is null && lastName is not null)
             {
                 if (firstName is null)
                 {
-                    name = lastName;
+                    displayName = lastName;
                     firstName = "Mangler";
                 }
                 else
                 {
-                    name = $"{lastName} {firstName}";
+                    displayName = $"{lastName} {firstName}";
                 }
 
                 if (middleName is not null)
                 {
-                    name += $" {middleName}";
+                    displayName += $" {middleName}";
                 }
             }
-            else if (firstName is null && lastName is null && middleName is null && name is null)
+            else if (firstName is null && lastName is null && middleName is null && displayName is null)
             {
                 firstName = "Mangler";
                 lastName = "Navn";
-                name = "Navn Mangler";
+                displayName = "Navn Mangler";
             }
-            else if (firstName is null && lastName is null && name is not null)
+            else if (firstName is null && lastName is null && displayName is not null)
             {
-                if (IsSyntheticImportName(name))
+                if (IsSyntheticImportName(displayName))
                 {
                     firstName = "Mangler";
                     lastName = "Navn";
                 }
                 else
                 {
-                    var components = name.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    var components = displayName.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                     lastName = components.Length > 0 ? components[0] : "Navn";
                     firstName = components.Length > 1 ? components[1] : "Mangler";
                 }
@@ -283,7 +288,7 @@ internal sealed class A2PartyImportService
                 // party fields
                 PartyUuid = partyUuid,
                 PartyId = partyId,
-                Name = name,
+                Name = displayName,
                 PersonIdentifier = personIdentifier,
                 OrganizationIdentifier = null,
                 CreatedAt = now,
@@ -300,6 +305,40 @@ internal sealed class A2PartyImportService
                 DateOfBirth = dateOfBirth,
                 DateOfDeath = FieldValue.From(dateOfDeath),
             };
+        }
+
+        static string? MapPersonName(
+            string? firstName,
+            string? middleName,
+            string? lastName,
+            string? shortName)
+        {
+            if (firstName is null && lastName is null)
+            {
+                return shortName;
+            }
+
+            var builder = new StringBuilder((firstName?.Length ?? 0) + (middleName?.Length ?? 0) + (lastName?.Length ?? 0) + 3);
+            if (lastName is not null)
+            {
+                builder.Append(lastName);
+                builder.Append(' ');
+            }
+
+            if (firstName is not null)
+            {
+                builder.Append(firstName);
+                builder.Append(' ');
+            }
+
+            if (middleName is not null)
+            {
+                builder.Append(middleName);
+                builder.Append(' ');
+            }
+
+            builder.Length--; // remove trailing space
+            return builder.ToString();
         }
 
         static PersonIdentifier MapPersonIdentifier(ReadOnlySpan<char> source)

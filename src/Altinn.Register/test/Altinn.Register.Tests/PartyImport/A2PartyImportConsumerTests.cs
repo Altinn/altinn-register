@@ -43,7 +43,7 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
 
     [Theory]
     [MemberData(nameof(PartyNameHandlingData))]
-    public async Task ImportA2PartyCommand_NameHandling(PartyNameInput input)
+    public async Task ImportA2PartyCommand_NameHandling(PersonNameInput input)
     {
         var party = await TestDataLoader.Load<V1Models.Party>("50012345");
         Assert.NotNull(party);
@@ -78,7 +78,7 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
         }
     }
 
-    public static TheoryData<PartyNameInput> PartyNameHandlingData => new()
+    public static TheoryData<PersonNameInput> PartyNameHandlingData => new()
     {
         new()
         {
@@ -149,6 +149,24 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
             LastName = "Gul-Brun",
             ExpectedName = "Gul-Brun Sint Tiger Jr.",
         },
+
+        // Test that Name is built up from FirstName, MiddleName and LastName
+        new()
+        {
+            Name = "Gul-Brun S. Tiger",
+            FirstName = "Sint Tiger",
+            LastName = "Gul-Brun",
+            ExpectedName = "Gul-Brun Sint Tiger",
+        },
+
+        new()
+        {
+            Name = "Gul-Grønn Sint T. R.",
+            FirstName = "Sint Tiger",
+            MiddleName = "Rød",
+            LastName = "Gul-Grønn",
+            ExpectedName = "Gul-Grønn Sint Tiger Rød",
+        }
     };
 
     private static async Task<SequenceHttpContent> TestDataParty(int id)
@@ -171,7 +189,7 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
         }
     }
 
-    public sealed record PartyNameInput
+    public sealed record PersonNameInput
         : IXunitSerializable
     {
         private string? _name;
@@ -186,92 +204,52 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
         public required string? Name
         {
             get => _name;
-            init
-            {
-                _name = value;
-                _expectedName ??= value;
-            }
+            init => _name = value;
         }
 
         public required string? FirstName
         {
-            get => _firstName;
-            init
-            {
-                _firstName = value;
-                _expectedFirstName ??= value;
-            }
+            get => _firstName; 
+            init => _firstName = value;
         }
 
         public string? MiddleName
         {
-            get => _middleName;
-            init
-            {
-                _middleName = value;
-                _expectedMiddleName ??= value;
-            }
+            get => _middleName; 
+            init => _middleName = value;
         }
 
         public required string? LastName
         {
-            get => _lastName;
-            init
-            {
-                _lastName = value;
-                _expectedLastName ??= value;
-            }
+            get => _lastName; 
+            init => _lastName = value;
         }
 
         public string? ExpectedName
         {
-            get => _expectedName;
-            init
-            {
-                if (value is not null && _expectedName is null) 
-                {
-                    _expectedName = value;
-                }
-            }
+            get => _expectedName ?? Name;
+            init => _expectedName = value;
         }
 
         public string? ExpectedFirstName
         {
-            get => _expectedFirstName;
-            init
-            {
-                if (value is not null && _expectedFirstName is null)
-                {
-                    _expectedFirstName = value;
-                }
-            }
+            get => _expectedFirstName ?? FirstName;
+            init => _expectedFirstName = value;
         }
 
         public string? ExpectedMiddleName
         {
-            get => _expectedMiddleName;
-            init
-            {
-                if (value is not null && _expectedMiddleName is null)
-                {
-                    _expectedMiddleName = value;
-                }
-            }
+            get => _expectedMiddleName ?? MiddleName;
+            init => _expectedMiddleName = value;
         }
 
         public string? ExpectedLastName
         {
-            get => _expectedLastName;
-            init
-            {
-                if (value is not null && _expectedLastName is null)
-                {
-                    _expectedLastName = value;
-                }
-            }
+            get => _expectedLastName ?? LastName;
+            init => _expectedLastName = value;
         }
 
-        public PartyNameInput()
+        public PersonNameInput()
         {
         }
 
