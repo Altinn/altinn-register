@@ -221,11 +221,12 @@ internal sealed class A2PartyImportService
             var firstName = Normalize(person.FirstName);
             var middleName = Normalize(person.MiddleName);
             var lastName = Normalize(person.LastName);
+            var shortName = Normalize(person.Name);
             var displayName = MapPersonName(
                 firstName: firstName,
                 middleName: middleName,
                 lastName: lastName,
-                shortName: Normalize(person.Name));
+                shortName: shortName);
             var isDeleted = party.IsDeleted;
 
             var address = MapStreetAddress(
@@ -288,7 +289,7 @@ internal sealed class A2PartyImportService
                 // party fields
                 PartyUuid = partyUuid,
                 PartyId = partyId,
-                Name = displayName,
+                DisplayName = displayName,
                 PersonIdentifier = personIdentifier,
                 OrganizationIdentifier = null,
                 CreatedAt = now,
@@ -300,6 +301,7 @@ internal sealed class A2PartyImportService
                 FirstName = firstName,
                 MiddleName = middleName,
                 LastName = lastName,
+                ShortName = shortName ?? displayName,
                 Address = address,
                 MailingAddress = mailingAddress,
                 DateOfBirth = dateOfBirth,
@@ -383,7 +385,7 @@ internal sealed class A2PartyImportService
                 // party fields
                 PartyUuid = partyUuid,
                 PartyId = partyId,
-                Name = name,
+                DisplayName = name,
                 PersonIdentifier = null,
                 OrganizationIdentifier = organizationNumber,
                 CreatedAt = now,

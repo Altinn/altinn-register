@@ -180,7 +180,7 @@ internal partial class PostgreSqlPartyPersistence
                 {
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>(fields.PartyUuid, cancellationToken),
                     PartyId = await reader.GetConditionalFieldValueAsync<int>(fields.PartyId, cancellationToken),
-                    Name = await reader.GetConditionalFieldValueAsync<string>(fields.PartyName, cancellationToken),
+                    DisplayName = await reader.GetConditionalFieldValueAsync<string>(fields.PartyDisplayName, cancellationToken),
                     PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>(fields.PartyPersonIdentifier, cancellationToken),
                     OrganizationIdentifier = await reader.GetConditionalParsableFieldValueAsync<OrganizationIdentifier>(fields.PartyOrganizationIdentifier, cancellationToken),
                     CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyCreated, cancellationToken),
@@ -196,7 +196,7 @@ internal partial class PostgreSqlPartyPersistence
                 {
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>(fields.PartyUuid, cancellationToken),
                     PartyId = await reader.GetConditionalFieldValueAsync<int>(fields.PartyId, cancellationToken),
-                    Name = await reader.GetConditionalFieldValueAsync<string>(fields.PartyName, cancellationToken),
+                    DisplayName = await reader.GetConditionalFieldValueAsync<string>(fields.PartyDisplayName, cancellationToken),
                     PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>(fields.PartyPersonIdentifier, cancellationToken),
                     OrganizationIdentifier = await reader.GetConditionalParsableFieldValueAsync<OrganizationIdentifier>(fields.PartyOrganizationIdentifier, cancellationToken),
                     CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyCreated, cancellationToken),
@@ -206,6 +206,7 @@ internal partial class PostgreSqlPartyPersistence
                     FirstName = await reader.GetConditionalFieldValueAsync<string>(fields.PersonFirstName, cancellationToken),
                     MiddleName = await reader.GetConditionalFieldValueAsync<string>(fields.PersonMiddleName, cancellationToken),
                     LastName = await reader.GetConditionalFieldValueAsync<string>(fields.PersonLastName, cancellationToken),
+                    ShortName = await reader.GetConditionalFieldValueAsync<string>(fields.PersonShortName, cancellationToken),
                     DateOfBirth = await reader.GetConditionalFieldValueAsync<DateOnly>(fields.PersonDateOfBirth, cancellationToken),
                     DateOfDeath = await reader.GetConditionalFieldValueAsync<DateOnly>(fields.PersonDateOfDeath, cancellationToken),
                     Address = await reader.GetConditionalFieldValueAsync<StreetAddress>(fields.PersonAddress, cancellationToken),
@@ -219,7 +220,7 @@ internal partial class PostgreSqlPartyPersistence
                 {
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>(fields.PartyUuid, cancellationToken),
                     PartyId = await reader.GetConditionalFieldValueAsync<int>(fields.PartyId, cancellationToken),
-                    Name = await reader.GetConditionalFieldValueAsync<string>(fields.PartyName, cancellationToken),
+                    DisplayName = await reader.GetConditionalFieldValueAsync<string>(fields.PartyDisplayName, cancellationToken),
                     PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>(fields.PartyPersonIdentifier, cancellationToken),
                     OrganizationIdentifier = await reader.GetConditionalParsableFieldValueAsync<OrganizationIdentifier>(fields.PartyOrganizationIdentifier, cancellationToken),
                     CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyCreated, cancellationToken),
@@ -254,7 +255,7 @@ internal partial class PostgreSqlPartyPersistence
                     partyUuid: builder._partyUuid,
                     partyId: builder._partyId,
                     partyType: builder._partyType,
-                    partyName: builder._partyName,
+                    partyDisplayName: builder._partyDisplayName,
                     partyPersonIdentifier: builder._partyPersonIdentifier,
                     partyOrganizationIdentifier: builder._partyOrganizationIdentifier,
                     partyCreated: builder._partyCreated,
@@ -264,6 +265,7 @@ internal partial class PostgreSqlPartyPersistence
                     personFirstName: builder._personFirstName,
                     personMiddleName: builder._personMiddleName,
                     personLastName: builder._personLastName,
+                    personShortName: builder._personShortName,
                     personDateOfBirth: builder._personDateOfBirth,
                     personDateOfDeath: builder._personDateOfDeath,
                     personAddress: builder._personAddress,
@@ -283,7 +285,7 @@ internal partial class PostgreSqlPartyPersistence
                         partyUuid: builder._childPartyUuid,
                         partyId: builder._childPartyId,
                         partyType: builder._childPartyType,
-                        partyName: builder._childPartyName,
+                        partyDisplayName: builder._childPartyDisplayName,
                         partyPersonIdentifier: builder._childPartyPersonIdentifier,
                         partyOrganizationIdentifier: builder._childPartyOrganizationIdentifier,
                         partyCreated: builder._childPartyCreated,
@@ -293,6 +295,7 @@ internal partial class PostgreSqlPartyPersistence
                         personFirstName: -1,
                         personMiddleName: -1,
                         personLastName: -1,
+                        personShortName: -1,
                         personDateOfBirth: -1,
                         personDateOfDeath: -1,
                         personAddress: -1,
@@ -346,7 +349,7 @@ internal partial class PostgreSqlPartyPersistence
             private sbyte _partyUuid = -1;
             private sbyte _partyId = -1;
             private sbyte _partyType = -1;
-            private sbyte _partyName = -1;
+            private sbyte _partyDisplayName = -1;
             private sbyte _partyPersonIdentifier = -1;
             private sbyte _partyOrganizationIdentifier = -1;
             private sbyte _partyCreated = -1;
@@ -358,6 +361,7 @@ internal partial class PostgreSqlPartyPersistence
             private sbyte _personFirstName = -1;
             private sbyte _personMiddleName = -1;
             private sbyte _personLastName = -1;
+            private sbyte _personShortName = -1;
             private sbyte _personDateOfBirth = -1;
             private sbyte _personDateOfDeath = -1;
             private sbyte _personAddress = -1;
@@ -378,7 +382,7 @@ internal partial class PostgreSqlPartyPersistence
             private sbyte _childPartyUuid = -1;
             private sbyte _childPartyId = -1;
             private sbyte _childPartyType = -1;
-            private sbyte _childPartyName = -1;
+            private sbyte _childPartyDisplayName = -1;
             private sbyte _childPartyPersonIdentifier = -1;
             private sbyte _childPartyOrganizationIdentifier = -1;
             private sbyte _childPartyCreated = -1;
@@ -404,7 +408,7 @@ internal partial class PostgreSqlPartyPersistence
                 _partyUuid = AddField("p.uuid", "p_uuid", includes.HasFlag(PartyFieldIncludes.PartyUuid));
                 _partyId = AddField("p.id", "p_id", includes.HasFlag(PartyFieldIncludes.PartyId));
                 _partyType = AddField("p.party_type", "p_party_type", includes.HasFlag(PartyFieldIncludes.PartyType));
-                _partyName = AddField("p.name", "p_name", includes.HasFlag(PartyFieldIncludes.PartyName));
+                _partyDisplayName = AddField("p.display_name", "p_display_name", includes.HasFlag(PartyFieldIncludes.PartyDisplayName));
                 _partyPersonIdentifier = AddField("p.person_identifier", "p_person_identifier", includes.HasFlag(PartyFieldIncludes.PartyPersonIdentifier));
                 _partyOrganizationIdentifier = AddField("p.organization_identifier", "p_organization_identifier", includes.HasFlag(PartyFieldIncludes.PartyOrganizationIdentifier));
                 _partyCreated = AddField("p.created", "p_created", includes.HasFlag(PartyFieldIncludes.PartyCreatedAt));
@@ -415,6 +419,7 @@ internal partial class PostgreSqlPartyPersistence
                 _personFirstName = AddField("f.first_name", "p_first_name", includes.HasFlag(PartyFieldIncludes.PersonFirstName));
                 _personMiddleName = AddField("f.middle_name", "p_middle_name", includes.HasFlag(PartyFieldIncludes.PersonMiddleName));
                 _personLastName = AddField("f.last_name", "p_last_name", includes.HasFlag(PartyFieldIncludes.PersonLastName));
+                _personShortName = AddField("f.short_name", "p_short_name", includes.HasFlag(PartyFieldIncludes.PersonShortName));
                 _personDateOfBirth = AddField("f.date_of_birth", "p_date_of_birth", includes.HasFlag(PartyFieldIncludes.PersonDateOfBirth));
                 _personDateOfDeath = AddField("f.date_of_death", "p_date_of_death", includes.HasFlag(PartyFieldIncludes.PersonDateOfDeath));
                 _personAddress = AddField("f.address", "p_address", includes.HasFlag(PartyFieldIncludes.PersonAddress));
@@ -435,7 +440,7 @@ internal partial class PostgreSqlPartyPersistence
                     _childPartyUuid = AddField("cp.uuid", "cp_uuid", includes.HasFlag(PartyFieldIncludes.PartyUuid));
                     _childPartyId = AddField("cp.id", "cp_id", includes.HasFlag(PartyFieldIncludes.PartyId));
                     _childPartyType = AddField("cp.party_type", "cp_party_type", includes.HasFlag(PartyFieldIncludes.PartyType));
-                    _childPartyName = AddField("cp.name", "cp_name", includes.HasFlag(PartyFieldIncludes.PartyName));
+                    _childPartyDisplayName = AddField("cp.display_name", "cp_display_name", includes.HasFlag(PartyFieldIncludes.PartyDisplayName));
                     _childPartyPersonIdentifier = AddField("cp.person_identifier", "cp_person_identifier", includes.HasFlag(PartyFieldIncludes.PartyPersonIdentifier));
                     _childPartyOrganizationIdentifier = AddField("cp.organization_identifier", "cp_organization_identifier", includes.HasFlag(PartyFieldIncludes.PartyOrganizationIdentifier));
                     _childPartyCreated = AddField("cp.created", "cp_created", includes.HasFlag(PartyFieldIncludes.PartyCreatedAt));
@@ -477,7 +482,7 @@ internal partial class PostgreSqlPartyPersistence
                     AddJoinField("cp.uuid", includes.HasFlag(PartyFieldIncludes.PartyUuid), ref first);
                     AddJoinField("cp.id", includes.HasFlag(PartyFieldIncludes.PartyId), ref first);
                     AddJoinField("cp.party_type", includes.HasFlag(PartyFieldIncludes.PartyType), ref first);
-                    AddJoinField("cp.name", includes.HasFlag(PartyFieldIncludes.PartyName), ref first);
+                    AddJoinField("cp.display_name", includes.HasFlag(PartyFieldIncludes.PartyDisplayName), ref first);
                     AddJoinField("cp.person_identifier", includes.HasFlag(PartyFieldIncludes.PartyPersonIdentifier), ref first);
                     AddJoinField("cp.organization_identifier", includes.HasFlag(PartyFieldIncludes.PartyOrganizationIdentifier), ref first);
                     AddJoinField("cp.created", includes.HasFlag(PartyFieldIncludes.PartyCreatedAt), ref first);
@@ -700,7 +705,7 @@ internal partial class PostgreSqlPartyPersistence
             sbyte partyUuid,
             sbyte partyId,
             sbyte partyType,
-            sbyte partyName,
+            sbyte partyDisplayName,
             sbyte partyPersonIdentifier,
             sbyte partyOrganizationIdentifier,
             sbyte partyCreated,
@@ -712,6 +717,7 @@ internal partial class PostgreSqlPartyPersistence
             sbyte personFirstName,
             sbyte personMiddleName,
             sbyte personLastName,
+            sbyte personShortName,
             sbyte personDateOfBirth,
             sbyte personDateOfDeath,
             sbyte personAddress,
@@ -732,7 +738,7 @@ internal partial class PostgreSqlPartyPersistence
             public int PartyUuid => partyUuid;
             public int PartyId => partyId;
             public int PartyType => partyType;
-            public int PartyName => partyName;
+            public int PartyDisplayName => partyDisplayName;
             public int PartyPersonIdentifier => partyPersonIdentifier;
             public int PartyOrganizationIdentifier => partyOrganizationIdentifier;
             public int PartyCreated => partyCreated;
@@ -744,6 +750,7 @@ internal partial class PostgreSqlPartyPersistence
             public int PersonFirstName => personFirstName;
             public int PersonMiddleName => personMiddleName;
             public int PersonLastName => personLastName;
+            public int PersonShortName => personShortName;
             public int PersonDateOfBirth => personDateOfBirth;
             public int PersonDateOfDeath => personDateOfDeath;
             public int PersonAddress => personAddress;

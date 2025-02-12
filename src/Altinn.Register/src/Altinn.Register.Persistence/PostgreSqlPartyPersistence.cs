@@ -303,9 +303,9 @@ internal partial class PostgreSqlPartyPersistence
             const string SAVEPOINT_NAME = "try_insert_party";
             const string QUERY =
                 /*strpsql*/"""
-                INSERT INTO register.party (uuid, id, party_type, name, person_identifier, organization_identifier, created, updated, is_deleted)
-                VALUES (@uuid, @id, @party_type, @name, @person_identifier, @organization_identifier, @created, @updated, @is_deleted)
-                RETURNING uuid, id, party_type, name, person_identifier, organization_identifier, created, updated, is_deleted, version_id
+                INSERT INTO register.party (uuid, id, party_type, display_name, person_identifier, organization_identifier, created, updated, is_deleted)
+                VALUES (@uuid, @id, @party_type, @display_name, @person_identifier, @organization_identifier, @created, @updated, @is_deleted)
+                RETURNING uuid, id, party_type, display_name, person_identifier, organization_identifier, created, updated, is_deleted, version_id
                 """;
 
             await using var cmd = _connection.CreateCommand();
@@ -314,7 +314,7 @@ internal partial class PostgreSqlPartyPersistence
             cmd.Parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = party.PartyUuid.Value;
             cmd.Parameters.Add<int>("id", NpgsqlDbType.Integer).TypedValue = party.PartyId.Value;
             cmd.Parameters.Add<PartyType>("party_type").TypedValue = party.PartyType.Value;
-            cmd.Parameters.Add<string>("name", NpgsqlDbType.Text).TypedValue = party.Name.Value;
+            cmd.Parameters.Add<string>("display_name", NpgsqlDbType.Text).TypedValue = party.DisplayName.Value;
             cmd.Parameters.Add<string>("person_identifier", NpgsqlDbType.Text).TypedValue = party.PersonIdentifier.Value?.ToString();
             cmd.Parameters.Add<string>("organization_identifier", NpgsqlDbType.Text).TypedValue = party.OrganizationIdentifier.Value?.ToString();
             cmd.Parameters.Add<DateTimeOffset>("created", NpgsqlDbType.TimestampTz).TypedValue = party.CreatedAt.Value;
@@ -336,7 +336,7 @@ internal partial class PostgreSqlPartyPersistence
                 {
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("uuid", cancellationToken),
                     PartyId = await reader.GetConditionalFieldValueAsync<int>("id", cancellationToken),
-                    Name = await reader.GetConditionalFieldValueAsync<string>("name", cancellationToken),
+                    DisplayName = await reader.GetConditionalFieldValueAsync<string>("display_name", cancellationToken),
                     PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>("person_identifier", cancellationToken),
                     OrganizationIdentifier = await reader.GetConditionalParsableFieldValueAsync<OrganizationIdentifier>("organization_identifier", cancellationToken),
                     CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("created", cancellationToken),
@@ -370,14 +370,14 @@ internal partial class PostgreSqlPartyPersistence
             const string QUERY =
                 /*strpsql*/"""
                 UPDATE register.party
-                SET name = @name, updated = @updated, is_deleted = @is_deleted
+                SET display_name = @display_name, updated = @updated, is_deleted = @is_deleted
                 WHERE 
                         uuid = @uuid
                     AND id = @id
                     AND party_type = @party_type
                     AND person_identifier IS NOT DISTINCT FROM @person_identifier
                     AND organization_identifier IS NOT DISTINCT FROM @organization_identifier
-                RETURNING uuid, id, party_type, name, person_identifier, organization_identifier, created, updated, is_deleted, version_id
+                RETURNING uuid, id, party_type, display_name, person_identifier, organization_identifier, created, updated, is_deleted, version_id
                 """;
 
             await using var cmd = _connection.CreateCommand();
@@ -386,7 +386,7 @@ internal partial class PostgreSqlPartyPersistence
             cmd.Parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = party.PartyUuid.Value;
             cmd.Parameters.Add<int>("id", NpgsqlDbType.Integer).TypedValue = party.PartyId.Value;
             cmd.Parameters.Add<PartyType>("party_type").TypedValue = party.PartyType.Value;
-            cmd.Parameters.Add<string>("name", NpgsqlDbType.Text).TypedValue = party.Name.Value;
+            cmd.Parameters.Add<string>("display_name", NpgsqlDbType.Text).TypedValue = party.DisplayName.Value;
             cmd.Parameters.Add<string>("person_identifier", NpgsqlDbType.Text).TypedValue = party.PersonIdentifier.Value?.ToString();
             cmd.Parameters.Add<string>("organization_identifier", NpgsqlDbType.Text).TypedValue = party.OrganizationIdentifier.Value?.ToString();
             cmd.Parameters.Add<DateTimeOffset>("updated", NpgsqlDbType.TimestampTz).TypedValue = party.ModifiedAt.Value;
@@ -409,7 +409,7 @@ internal partial class PostgreSqlPartyPersistence
             {
                 PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("uuid", cancellationToken),
                 PartyId = await reader.GetConditionalFieldValueAsync<int>("id", cancellationToken),
-                Name = await reader.GetConditionalFieldValueAsync<string>("name", cancellationToken),
+                DisplayName = await reader.GetConditionalFieldValueAsync<string>("display_name", cancellationToken),
                 PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>("person_identifier", cancellationToken),
                 OrganizationIdentifier = await reader.GetConditionalParsableFieldValueAsync<OrganizationIdentifier>("organization_identifier", cancellationToken),
                 CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("created", cancellationToken),
@@ -429,7 +429,7 @@ internal partial class PostgreSqlPartyPersistence
             Debug.Assert(party.PartyUuid.HasValue, "party must have PartyUuid set");
             Debug.Assert(party.PartyId.HasValue, "party must have PartyId set");
             Debug.Assert(party.PartyType.HasValue, "party must have PartyType set");
-            Debug.Assert(party.Name.HasValue, "party must have Name set");
+            Debug.Assert(party.DisplayName.HasValue, "party must have Name set");
             Debug.Assert(party.PersonIdentifier.IsSet, "party must have PersonIdentifier set");
             Debug.Assert(party.OrganizationIdentifier.IsSet, "party must have OrganizationIdentifier set");
             Debug.Assert(party.CreatedAt.HasValue, "party must have CreatedAt set");
@@ -452,22 +452,24 @@ internal partial class PostgreSqlPartyPersistence
         {
             const string QUERY =
                 /*strpsql*/"""
-                INSERT INTO register.person (uuid, first_name, middle_name, last_name, address, mailing_address, date_of_birth, date_of_death)
-                VALUES (@uuid, @first_name, @middle_name, @last_name, @address, @mailing_address, @date_of_birth, @date_of_death)
+                INSERT INTO register.person (uuid, first_name, middle_name, last_name, short_name, address, mailing_address, date_of_birth, date_of_death)
+                VALUES (@uuid, @first_name, @middle_name, @last_name, @short_name, @address, @mailing_address, @date_of_birth, @date_of_death)
                 ON CONFLICT (uuid) DO UPDATE SET 
                     first_name = EXCLUDED.first_name,
                     middle_name = EXCLUDED.middle_name,
                     last_name = EXCLUDED.last_name,
+                    short_name = EXCLUDED.short_name,
                     address = EXCLUDED.address,
                     mailing_address = EXCLUDED.mailing_address,
                     date_of_birth = EXCLUDED.date_of_birth,
                     date_of_death = EXCLUDED.date_of_death
-                RETURNING first_name, middle_name, last_name, address, mailing_address, date_of_birth, date_of_death
+                RETURNING first_name, middle_name, last_name, short_name, address, mailing_address, date_of_birth, date_of_death
                 """;
 
             Debug.Assert(record.FirstName.HasValue, "person must have FirstName set");
             Debug.Assert(record.MiddleName.IsSet, "person must have MiddleName set");
             Debug.Assert(record.LastName.HasValue, "person must have LastName set");
+            Debug.Assert(record.ShortName.HasValue, "person must have ShortName set");
             Debug.Assert(record.Address.IsSet, "person must have Address set");
             Debug.Assert(record.MailingAddress.IsSet, "person must have MailingAddress set");
             Debug.Assert(record.DateOfBirth.HasValue, "person must have DateOfBirth set");
@@ -489,6 +491,7 @@ internal partial class PostgreSqlPartyPersistence
             cmd.Parameters.Add<string>("first_name", NpgsqlDbType.Text).TypedValue = record.FirstName.Value;
             cmd.Parameters.Add<string>("middle_name", NpgsqlDbType.Text).TypedValue = record.MiddleName.Value;
             cmd.Parameters.Add<string>("last_name", NpgsqlDbType.Text).TypedValue = record.LastName.Value;
+            cmd.Parameters.Add<string>("short_name", NpgsqlDbType.Text).TypedValue = record.ShortName.Value;
             cmd.Parameters.Add<StreetAddress>("address").TypedValue = record.Address.Value;
             cmd.Parameters.Add<MailingAddress>("mailing_address").TypedValue = record.MailingAddress.Value;
             cmd.Parameters.Add<DateOnly>("date_of_birth", NpgsqlDbType.Date).TypedValue = record.DateOfBirth.Value;
@@ -504,7 +507,7 @@ internal partial class PostgreSqlPartyPersistence
             {
                 PartyUuid = partyData.PartyUuid,
                 PartyId = partyData.PartyId,
-                Name = partyData.Name,
+                DisplayName = partyData.DisplayName,
                 PersonIdentifier = partyData.PersonIdentifier,
                 OrganizationIdentifier = partyData.OrganizationIdentifier,
                 CreatedAt = partyData.CreatedAt,
@@ -514,6 +517,7 @@ internal partial class PostgreSqlPartyPersistence
                 FirstName = await reader.GetConditionalFieldValueAsync<string>("first_name", cancellationToken),
                 MiddleName = await reader.GetConditionalFieldValueAsync<string>("middle_name", cancellationToken),
                 LastName = await reader.GetConditionalFieldValueAsync<string>("last_name", cancellationToken),
+                ShortName = await reader.GetConditionalFieldValueAsync<string>("short_name", cancellationToken),
                 Address = await reader.GetConditionalFieldValueAsync<StreetAddress>("address", cancellationToken),
                 MailingAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>("mailing_address", cancellationToken),
                 DateOfBirth = await reader.GetConditionalFieldValueAsync<DateOnly>("date_of_birth", cancellationToken),
@@ -589,7 +593,7 @@ internal partial class PostgreSqlPartyPersistence
             {
                 PartyUuid = partyData.PartyUuid,
                 PartyId = partyData.PartyId,
-                Name = partyData.Name,
+                DisplayName = partyData.DisplayName,
                 PersonIdentifier = partyData.PersonIdentifier,
                 OrganizationIdentifier = partyData.OrganizationIdentifier,
                 CreatedAt = partyData.CreatedAt,

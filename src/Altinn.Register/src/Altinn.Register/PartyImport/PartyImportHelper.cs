@@ -23,7 +23,7 @@ public static class PartyImportHelper
         Check(ref builder, party.PartyUuid.HasValue, "/partyUuid");
         Check(ref builder, party.PartyId.HasValue, "/partyId");
         Check(ref builder, party.PartyType.HasValue, "/partyType");
-        Check(ref builder, party.Name.HasValue, "/name");
+        Check(ref builder, party.DisplayName.HasValue, "/name");
         Check(ref builder, party.PersonIdentifier.IsSet, "/personIdentifier");
         Check(ref builder, party.OrganizationIdentifier.IsSet, "/organizationIdentifier");
         Check(ref builder, party.CreatedAt.HasValue, "/createdAt");
@@ -35,6 +35,7 @@ public static class PartyImportHelper
             Check(ref builder, person.FirstName.HasValue, "/firstName");
             Check(ref builder, person.MiddleName.IsSet, "/middleName");
             Check(ref builder, person.LastName.HasValue, "/lastName");
+            Check(ref builder, person.ShortName.HasValue, "/shortName");
             Check(ref builder, person.Address.IsSet, "/address");
             Check(ref builder, person.MailingAddress.IsSet, "/mailingAddress");
             Check(ref builder, person.DateOfBirth.HasValue, "/dateOfBirth");

@@ -48,7 +48,7 @@ public class PartyController
     /// <returns>A stream of all party records.</returns>
     [HttpGet("stream", Name = ROUTE_GET_STREAM)]
     public async Task<ActionResult<ItemStream<PartyRecord>>> GetStream(
-        [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyName,
+        [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         [FromQuery(Name = "token")] Opaque<ulong>? token = null,
         CancellationToken cancellationToken = default)
     {

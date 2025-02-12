@@ -44,7 +44,7 @@ public class A2PartyImportServiceTests
 
             var orgRecord = partyRecord.Should().BeOfType<OrganizationRecord>().Which;
             orgRecord.OrganizationIdentifier.Should().HaveValue().Which.Should().Be("311654306");
-            orgRecord.Name.Should().HaveValue().Which.Should().Be("TYNSET OG OPPDAL");
+            orgRecord.DisplayName.Should().HaveValue().Which.Should().Be("TYNSET OG OPPDAL");
             orgRecord.UnitType.Should().HaveValue().Which.Should().Be("ANS");
             orgRecord.UnitStatus.Should().HaveValue().Which.Should().Be("N");
             orgRecord.TelephoneNumber.Should().HaveValue().Which.Should().Be("22077000");
@@ -93,7 +93,7 @@ public class A2PartyImportServiceTests
 
             var persRecord = partyRecord.Should().BeOfType<PersonRecord>().Which;
             persRecord.PersonIdentifier.Should().HaveValue().Which.Should().Be("25871999336");
-            persRecord.Name.Should().HaveValue().Which.Should().Be("Nordmann Ola Bla");
+            persRecord.DisplayName.Should().HaveValue().Which.Should().Be("Nordmann Ola Bla");
             persRecord.FirstName.Should().HaveValue().Which.Should().Be("Ola");
             persRecord.MiddleName.Should().HaveValue().Which.Should().Be("Bla");
             persRecord.LastName.Should().HaveValue().Which.Should().Be("Nordmann");
