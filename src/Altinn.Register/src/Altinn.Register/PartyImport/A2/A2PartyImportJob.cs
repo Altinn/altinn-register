@@ -66,7 +66,7 @@ public sealed partial class A2PartyImportJob
 
             var enqueuedMax = page[^1].ChangeId;
             var sourceMax = page.LastKnownChangeId;
-            (progress, _) = await _tracker.TrackQueueStatus(JobNames.A2PartyImportParty, new() { EnqueuedMax = enqueuedMax, SourceMax = sourceMax }, cancellationToken);
+            progress = await TrackQueueStatus(JobNames.A2PartyImportParty, progress, new() { EnqueuedMax = enqueuedMax, SourceMax = sourceMax }, cancellationToken);
             _meters.PartiesEnqueued.Add(page.Count);
 
             if (enqueuedMax - progress.ProcessedMax > 50_000)
@@ -75,6 +75,18 @@ public sealed partial class A2PartyImportJob
                 break;
             }
         }
+    }
+
+    private async Task<ImportJobStatus> TrackQueueStatus(string name, ImportJobStatus current, ImportJobQueueStatus newStatus, CancellationToken cancellationToken)
+    {
+        var (newProgress, _) = await _tracker.TrackQueueStatus(name, newStatus, cancellationToken);
+
+        // TODO: this is working around a bug that currently exists in the tracker where the status returned is for whatever reason lower than the current status.
+        // This should be removed once the bug is fixed.
+        var sourceMax = Math.Max(current.SourceMax, newProgress.SourceMax);
+        var enqueuedMax = Math.Max(current.EnqueuedMax, newProgress.EnqueuedMax);
+        var processedMax = Math.Max(current.ProcessedMax, newProgress.ProcessedMax);
+        return new() { SourceMax = sourceMax, EnqueuedMax = enqueuedMax, ProcessedMax = processedMax };
     }
 
     private static partial class Log
