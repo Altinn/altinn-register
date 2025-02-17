@@ -11,6 +11,17 @@ public interface IUnitOfWorkManager
     /// <summary>
     /// Creates a new unit of work.
     /// </summary>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <param name="activityName">The name of the activity, used in telemetry.</param>
+    /// <returns>A <see cref="IUnitOfWork"/>.</returns>
+    public ValueTask<IUnitOfWork> CreateAsync(
+        CancellationToken cancellationToken,
+        [CallerMemberName] string activityName = "")
+        => CreateAsync(tags: default, links: default, cancellationToken, activityName);
+
+    /// <summary>
+    /// Creates a new unit of work.
+    /// </summary>
     /// <param name="tags">A set of tags to be added to the activity.</param>
     /// <param name="links">A set of links to be added to the activity.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>

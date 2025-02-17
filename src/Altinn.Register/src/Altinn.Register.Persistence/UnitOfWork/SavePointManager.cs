@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Persistence.Utils;
 using CommunityToolkit.Diagnostics;
 using Npgsql;
@@ -11,15 +12,19 @@ namespace Altinn.Register.Persistence.UnitOfWork;
 internal sealed class SavePointManager
 {
     private readonly AsyncLock _lock = new();
+    private readonly IUnitOfWorkHandle _handle;
     private readonly NpgsqlTransaction _transaction;
     private readonly Stack<SavePointInfo> _savePoints = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SavePointManager"/> class.
     /// </summary>
-    public SavePointManager(NpgsqlTransaction transaction)
+    public SavePointManager(
+        NpgsqlTransaction transaction,
+        IUnitOfWorkHandle handle)
     {
         _transaction = transaction;
+        _handle = handle;
     }
 
     /// <summary>
@@ -30,6 +35,7 @@ internal sealed class SavePointManager
     /// <returns>A save point in the transaction.</returns>
     public Task<ISavePoint> CreateSavePoint(string name, CancellationToken cancellationToken = default)
     {
+        _handle.ThrowIfCompleted();
         cancellationToken.ThrowIfCancellationRequested();
 
         var info = SavePointInfo.Create(name, skipFrames: 1);
@@ -49,6 +55,7 @@ internal sealed class SavePointManager
 
     private async Task ReleaseAsync(SavePointInfo info, CancellationToken cancellationToken)
     {
+        _handle.ThrowIfCompleted();
         cancellationToken.ThrowIfCancellationRequested();
 
         // Note: lock is intentionally held until the save point is released in the db.
@@ -64,6 +71,7 @@ internal sealed class SavePointManager
 
     private async Task RollbackAsync(SavePointInfo info, CancellationToken cancellationToken)
     {
+        _handle.ThrowIfCompleted();
         cancellationToken.ThrowIfCancellationRequested();
 
         // Note: lock is intentionally held until the save point is rolled back in the db.
@@ -131,7 +139,7 @@ internal sealed class SavePointManager
             return state switch
             {
                 STATE_LIVE => _mgr.ReleaseAsync(_info, cancellationToken),
-                STATE_RELEASED => Task.CompletedTask,
+                STATE_RELEASED => ThrowHelper.ThrowInvalidOperationException<Task>("Save point has already been released."),
                 STATE_ROLLED_BACK => ThrowHelper.ThrowInvalidOperationException<Task>("Save point has already been rolled back."),
                 
                 // STATE_DISPOSED:
@@ -147,7 +155,7 @@ internal sealed class SavePointManager
             {
                 STATE_LIVE => _mgr.RollbackAsync(_info, cancellationToken),
                 STATE_RELEASED => ThrowHelper.ThrowInvalidOperationException<Task>("Save point has already been released."),
-                STATE_ROLLED_BACK => Task.CompletedTask,
+                STATE_ROLLED_BACK => ThrowHelper.ThrowInvalidOperationException<Task>("Save point has already been rolled back."),
                 
                 // STATE_DISPOSED:
                 _ => ThrowHelper.ThrowObjectDisposedException<Task>(nameof(SavePointHandle)),

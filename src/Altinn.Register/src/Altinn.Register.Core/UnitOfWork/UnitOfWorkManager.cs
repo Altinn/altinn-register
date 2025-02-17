@@ -115,11 +115,12 @@ internal class UnitOfWorkManager
         {
             List<Task<(IUnitOfWorkParticipant Participant, int Index)>>? pending = null;
             var builder = ImmutableArray.CreateBuilder<IUnitOfWorkParticipant?>(_participants.Length);
+            var handle = new Handle();
 
             for (var i = 0; i < _participants.Length; i++)
             {
                 var factory = _participants[i];
-                var participant = factory.Create(serviceProvider, cancellationToken);
+                var participant = factory.Create(handle, serviceProvider, cancellationToken);
                 if (participant.IsCompleted)
                 {
                     builder.Add(participant.Result);
@@ -134,27 +135,29 @@ internal class UnitOfWorkManager
 
             if (pending is not null)
             {
-                return WaitForPending(activity, pending, builder, this, serviceProvider, cancellationToken);
+                return WaitForPending(activity, pending, builder, handle, this, serviceProvider, cancellationToken);
             }
 
-            return new(Create(activity, builder, this, serviceProvider));
+            return new(Create(activity, builder, handle, this, serviceProvider));
 
             static IUnitOfWork Create(
                 Activity? activity,
                 ImmutableArray<IUnitOfWorkParticipant?>.Builder participants,
+                Handle handle,
                 Impl impl,
                 IServiceProvider serviceProvider)
             {
                 Debug.Assert(participants.Count == participants.Capacity);
                 Debug.Assert(participants.All(p => p is not null));
 
-                return new UnitOfWork(activity, serviceProvider, participants.MoveToImmutable()!, impl);
+                return new UnitOfWork(handle, activity, serviceProvider, participants.MoveToImmutable()!, impl);
             }
 
             static async ValueTask<IUnitOfWork> WaitForPending(
                 Activity? activity,
                 List<Task<(IUnitOfWorkParticipant Participant, int Index)>> pending,
                 ImmutableArray<IUnitOfWorkParticipant?>.Builder builder,
+                Handle handle,
                 Impl impl,
                 IServiceProvider serviceProvider,
                 CancellationToken cancellationToken)
@@ -167,7 +170,7 @@ internal class UnitOfWorkManager
                     builder[index] = participant;
                 }
 
-                return Create(activity, builder, impl, serviceProvider);
+                return Create(activity, builder, handle, impl, serviceProvider);
             }
 
             static async Task<(IUnitOfWorkParticipant Participant, int Index)> CreatePendingTask(
@@ -188,6 +191,11 @@ internal class UnitOfWorkManager
         /// <returns>A service of type <paramref name="serviceType"/>.</returns>
         private object? GetService(IServiceProvider serviceProvider, UnitOfWork unitOfWork, Type serviceType)
         {
+            if (serviceType == typeof(IUnitOfWorkHandle))
+            {
+                return unitOfWork.Handle;
+            }
+
             if (_services.TryGetValue(serviceType, out var activator))
             {
                 return activator(unitOfWork);
@@ -205,6 +213,11 @@ internal class UnitOfWorkManager
         /// <returns>A service of type <paramref name="serviceType"/>.</returns>
         private object GetRequiredService(IServiceProvider serviceProvider, UnitOfWork unitOfWork, Type serviceType)
         {
+            if (serviceType == typeof(IUnitOfWorkHandle))
+            {
+                return unitOfWork.Handle;
+            }
+
             if (_services.TryGetValue(serviceType, out var activator))
             {
                 return activator(unitOfWork);
@@ -250,6 +263,141 @@ internal class UnitOfWorkManager
             ArrayPool<object?>.Shared.Return(services);
         }
 
+        private sealed class Handle
+            : IUnitOfWorkHandle
+        {
+            private readonly Lock _lock = new();
+            private readonly CancellationTokenSource _cts = new();
+            private UnitOfWorkStatus _status = UnitOfWorkStatus.Active;
+
+#if DEBUG
+            private readonly StackTrace _createdStackTrace = new(skipFrames: 1);
+            private StackTrace? _closedStackTrace = null;
+
+            public void ThrowIfNotDisposed(string displayName)
+            {
+                lock (_lock)
+                {
+                    if (_status != UnitOfWorkStatus.Disposed)
+                    {
+                        Debug.Fail(
+                            $"""
+                            Unit of work was not disposed: {displayName}
+                            {_createdStackTrace}
+                            """);
+                    }
+                }
+            }
+#endif
+
+            public UnitOfWorkStatus Status
+            {
+                get
+                {
+                    lock (_lock)
+                    {
+                        return _status;
+                    }
+                }
+            }
+
+            public CancellationToken Token
+                => _cts.Token;
+
+            /// <summary>
+            /// Marks the unit of work as disposed.
+            /// </summary>
+            /// <returns>
+            /// <see langword="true"/> if the unit of work was disposed by this call; otherwise <see langword="false"/>.
+            /// </returns>
+            public bool MarkDisposed()
+            {
+                lock (_lock)
+                {
+                    if (_status == UnitOfWorkStatus.Disposed)
+                    {
+                        return false;
+                    }
+
+                    _status = UnitOfWorkStatus.Disposed;
+                    _cts.Dispose();
+                    return true;
+                }
+            }
+
+#if DEBUG
+            void IUnitOfWorkHandle.ThrowIfCompleted()
+            {
+                lock (_lock)
+                {
+                    if (_status == UnitOfWorkStatus.Disposed)
+                    {
+                        ThrowHelper.ThrowObjectDisposedException(nameof(IUnitOfWork), "The unit of work has been disposed.");
+                    }
+
+                    if (_status != UnitOfWorkStatus.Active)
+                    {
+                        ThrowHelper.ThrowInvalidOperationException(
+                            $"""
+                            The unit of work has been completed.
+                            
+                            ==================================================
+                            The unit of work was closed at: {_closedStackTrace}.
+
+                            ==================================================
+                            The unit of work was created at: {_createdStackTrace}.
+                            """);
+                    }
+                }
+            }
+#endif
+
+            public void BeginTransitionTo(UnitOfWorkStatus status)
+            {
+#if DEBUG
+                Debug.Assert(status is UnitOfWorkStatus.Committed or UnitOfWorkStatus.RolledBack);
+                var stackTrace = new StackTrace(skipFrames: 2);
+#endif
+
+                lock (_lock)
+                {
+                    if (_status == UnitOfWorkStatus.Disposed)
+                    {
+                        ThrowHelper.ThrowObjectDisposedException(nameof(UnitOfWork));
+                    }
+
+                    if (_status == UnitOfWorkStatus.Committed)
+                    {
+                        ThrowHelper.ThrowInvalidOperationException("Unit of work has already been committed");
+                    }
+
+                    if (_status == UnitOfWorkStatus.RolledBack)
+                    {
+                        ThrowHelper.ThrowInvalidOperationException("Unit of work has already been rolled back");
+                    }
+
+                    _status = status;
+
+#if DEBUG
+                    _closedStackTrace = stackTrace;
+#endif
+                }
+            }
+
+            public Task CompleteTransition()
+            {
+                lock (_lock)
+                {
+                    if (_status is not (UnitOfWorkStatus.Committed or UnitOfWorkStatus.RolledBack))
+                    {
+                        return Task.CompletedTask;
+                    }
+                }
+
+                return _cts.CancelAsync();
+            }
+        }
+
         private sealed class UnitOfWork
             : IUnitOfWork
         {
@@ -289,20 +437,21 @@ internal class UnitOfWorkManager
                 };
             }
 
+            private readonly Handle _handle;
             private readonly Activity? _activity;
             private readonly IServiceProvider _serviceProvider;
             private readonly ImmutableArray<IUnitOfWorkParticipant> _participants;
             private readonly Impl _impl;
             private object?[] _services;
 
-            private volatile UnitOfWorkStatus _status = UnitOfWorkStatus.Pending;
-
             public UnitOfWork(
+                Handle handle,
                 Activity? activity,
                 IServiceProvider serviceProvider,
                 ImmutableArray<IUnitOfWorkParticipant> participants,
                 Impl impl)
             {
+                _handle = handle;
                 _activity = activity;
                 _serviceProvider = serviceProvider;
                 _participants = participants;
@@ -311,65 +460,69 @@ internal class UnitOfWorkManager
                 _services = _impl.RentServices();
             }
 
-            public UnitOfWorkStatus Status => _status;
+            public Handle Handle
+                => _handle;
+
+            public UnitOfWorkStatus Status
+                => _handle.Status;
+
+            public CancellationToken Token
+                => _handle.Token;
 
 #if DEBUG
             ~UnitOfWork()
             {
-                if (_status != UnitOfWorkStatus.Disposed)
-                {
-                    Debug.Fail($"Unit of work was not disposed: {_activity?.DisplayName ?? "<no display name>"}");
-                }
+                _handle.ThrowIfNotDisposed(_activity?.DisplayName ?? "<no display name>");
             }
 #endif
 
-            public async ValueTask DisposeAsync()
+            public ValueTask DisposeAsync()
             {
 #if DEBUG
                 GC.SuppressFinalize(this);
 #endif
 
-                if (_status == UnitOfWorkStatus.Disposed)
+                if (!_handle.MarkDisposed())
                 {
-                    return;
-                }
-
-                _activity?.Dispose();
-                _status = UnitOfWorkStatus.Disposed;
-
-                foreach (var participant in _participants)
-                {
-                    await participant.DisposeAsync();
-                }
-
-                await _impl.DisposeServices(_services);
-                _services = null!;
-            }
-
-            object? IServiceProvider.GetService(Type serviceType)
-                => _impl.GetService(_serviceProvider, this, serviceType);
-
-            object ISupportRequiredService.GetRequiredService(Type serviceType)
-                => _impl.GetRequiredService(_serviceProvider, this, serviceType);
-
-            public ValueTask CommitAsync(CancellationToken cancellationToken = default)
-            {
-                var status = CheckDisposed();
-
-                if (status == UnitOfWorkStatus.Committed)
-                {
+                    // already disposed
                     return ValueTask.CompletedTask;
                 }
 
-                if (status != UnitOfWorkStatus.Pending)
+                _activity?.Dispose();
+                return DisposeCore();
+
+                async ValueTask DisposeCore()
                 {
-                    ThrowHelper.ThrowInvalidOperationException($"Cannot commit unit of work in state {_status}");
+                    foreach (var participant in _participants)
+                    {
+                        await participant.DisposeAsync();
+                    }
+
+                    await _impl.DisposeServices(_services);
+                    _services = null!;
                 }
+            }
 
-                _status = UnitOfWorkStatus.Committed;
-                return Inner(_activity, _participants, cancellationToken);
+            object? IServiceProvider.GetService(Type serviceType)
+            {
+                ((IUnitOfWorkHandle)_handle).ThrowIfCompleted();
 
-                static async ValueTask Inner(Activity? activity, ImmutableArray<IUnitOfWorkParticipant> participants, CancellationToken cancellationToken)
+                return _impl.GetService(_serviceProvider, this, serviceType);
+            }
+
+            object ISupportRequiredService.GetRequiredService(Type serviceType)
+            {
+                ((IUnitOfWorkHandle)_handle).ThrowIfCompleted();
+
+                return _impl.GetRequiredService(_serviceProvider, this, serviceType);
+            }
+
+            public ValueTask CommitAsync(CancellationToken cancellationToken = default)
+            {
+                _handle.BeginTransitionTo(UnitOfWorkStatus.Committed);
+                return Inner(_handle, _activity, _participants, cancellationToken);
+
+                static async ValueTask Inner(Handle handle, Activity? activity, ImmutableArray<IUnitOfWorkParticipant> participants, CancellationToken cancellationToken)
                 {
                     foreach (var participant in participants)
                     {
@@ -377,27 +530,16 @@ internal class UnitOfWorkManager
                     }
 
                     activity?.SetStatus(ActivityStatusCode.Ok, description: "Committed");
+                    await handle.CompleteTransition();
                 }
             }
 
             public ValueTask RollbackAsync(CancellationToken cancellationToken = default)
             {
-                var status = CheckDisposed();
+                _handle.BeginTransitionTo(UnitOfWorkStatus.RolledBack);
+                return Inner(_handle, _activity, _participants, cancellationToken);
 
-                if (status == UnitOfWorkStatus.RolledBack)
-                {
-                    return ValueTask.CompletedTask;
-                }
-
-                if (status != UnitOfWorkStatus.Pending)
-                {
-                    ThrowHelper.ThrowInvalidOperationException($"Cannot rollback unit of work in state {_status}");
-                }
-
-                _status = UnitOfWorkStatus.RolledBack;
-                return Inner(_activity, _participants, cancellationToken);
-
-                static async ValueTask Inner(Activity? activity, ImmutableArray<IUnitOfWorkParticipant> participants, CancellationToken cancellationToken)
+                static async ValueTask Inner(Handle handle, Activity? activity, ImmutableArray<IUnitOfWorkParticipant> participants, CancellationToken cancellationToken)
                 {
                     foreach (var participant in participants)
                     {
@@ -405,18 +547,8 @@ internal class UnitOfWorkManager
                     }
 
                     activity?.SetStatus(ActivityStatusCode.Ok, description: "Rolled back");
+                    await handle.CompleteTransition();
                 }
-            }
-
-            private UnitOfWorkStatus CheckDisposed()
-            {
-                var status = _status;
-                if (status == UnitOfWorkStatus.Disposed)
-                {
-                    ThrowHelper.ThrowObjectDisposedException(nameof(UnitOfWork));
-                }
-
-                return status;
             }
         }
     }

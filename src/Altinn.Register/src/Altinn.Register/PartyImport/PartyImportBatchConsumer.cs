@@ -62,7 +62,7 @@ public sealed class PartyImportBatchConsumer
             tracking = ArrayPool<UpsertPartyTracking>.Shared.Rent(BATCH_SIZE);
 
             {
-                await using var uow = await _uow.CreateAsync(cancellationToken: cancellationToken);
+                await using var uow = await _uow.CreateAsync(cancellationToken);
                 var persistence = uow.GetPartyPersistence();
 
                 foreach (var upsert in upserts)
@@ -81,7 +81,7 @@ public sealed class PartyImportBatchConsumer
                     UpdateTracking(ref tracking, upsert.Message.Tracking);
                     evts[index++] = new PartyUpdatedEvent
                     {
-                        Party = new() { PartyUuid = result.Value.PartyUuid.Value },
+                        Party = new(result.Value.PartyUuid.Value),
                     };
                 }
 

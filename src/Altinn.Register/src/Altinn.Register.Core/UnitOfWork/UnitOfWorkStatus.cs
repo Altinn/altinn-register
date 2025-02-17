@@ -6,9 +6,9 @@
 public enum UnitOfWorkStatus
 {
     /// <summary>
-    /// The unit of work is pending.
+    /// The unit of work is active.
     /// </summary>
-    Pending,
+    Active,
 
     /// <summary>
     /// The unit of work is committed.

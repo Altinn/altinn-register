@@ -21,14 +21,17 @@ internal class NpgsqlUnitOfWorkParticipant
     /// <summary>
     /// Initializes a new instance of the <see cref="NpgsqlUnitOfWorkParticipant"/> class.
     /// </summary>
-    public NpgsqlUnitOfWorkParticipant(NpgsqlConnection connection, NpgsqlTransaction transaction)
+    public NpgsqlUnitOfWorkParticipant(
+        NpgsqlConnection connection,
+        NpgsqlTransaction transaction,
+        IUnitOfWorkHandle handle)
     {
         Guard.IsNotNull(connection);
         Guard.IsNotNull(transaction);
 
         _connection = connection;
         _transaction = transaction;
-        _savePointManager = new SavePointManager(transaction);
+        _savePointManager = new SavePointManager(transaction, handle);
     }
 
     /// <inheritdoc/>
@@ -64,7 +67,7 @@ internal class NpgsqlUnitOfWorkParticipant
         public ImmutableArray<Type> ServiceTypes => _serviceTypes;
 
         /// <inheritdoc/>
-        public async ValueTask<IUnitOfWorkParticipant> Create(IServiceProvider serviceProvider, CancellationToken cancellationToken = default)
+        public async ValueTask<IUnitOfWorkParticipant> Create(IUnitOfWorkHandle handle, IServiceProvider serviceProvider, CancellationToken cancellationToken = default)
         {
             var dataSource = serviceProvider.GetRequiredService<NpgsqlDataSource>();
             NpgsqlConnection? connection = null;
@@ -74,7 +77,7 @@ internal class NpgsqlUnitOfWorkParticipant
             {
                 connection = await dataSource.OpenConnectionAsync(cancellationToken);
                 transaction = await connection.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
-                var participant = new NpgsqlUnitOfWorkParticipant(connection, transaction);
+                var participant = new NpgsqlUnitOfWorkParticipant(connection, transaction, handle);
 
                 connection = null;
                 transaction = null;

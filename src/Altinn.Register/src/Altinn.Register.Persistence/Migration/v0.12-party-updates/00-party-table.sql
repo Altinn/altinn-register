@@ -47,5 +47,5 @@ $BODY$
 LANGUAGE plpgsql;
 
 CREATE TRIGGER update_party_version_id
-BEFORE UPDATE on register.party
+BEFORE UPDATE ON register.party
 FOR EACH ROW EXECUTE PROCEDURE register.update_version_id();
