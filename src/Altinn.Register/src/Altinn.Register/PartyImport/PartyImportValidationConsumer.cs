@@ -1,9 +1,6 @@
 ﻿#nullable enable
 
 using Altinn.Authorization.ServiceDefaults.MassTransit;
-using Altinn.Register.Core;
-using Altinn.Register.Core.ImportJobs;
-using Altinn.Register.Core.UnitOfWork;
 using MassTransit;
 
 namespace Altinn.Register.PartyImport;

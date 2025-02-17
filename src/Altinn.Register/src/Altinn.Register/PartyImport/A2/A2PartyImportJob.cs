@@ -110,6 +110,9 @@ public sealed partial class A2PartyImportJob
         public Counter<int> PartiesEnqueued { get; }
             = telemetry.CreateCounter<int>("register.party-import.a2.parties.enqueued", "The number of parties enqueued to be imported from A2.");
 
+        public Counter<int> OrganizationCCRRolesEnqueued { get; }
+            = telemetry.CreateCounter<int>("register.party-import.a2.ccr.role-assignments.enqueued", "The number of parties enqueued to be imported ccr role-assignments from A2.");
+
         /// <inheritdoc/>
         public static ImportMeters Create(RegisterTelemetry telemetry)
             => new ImportMeters(telemetry);

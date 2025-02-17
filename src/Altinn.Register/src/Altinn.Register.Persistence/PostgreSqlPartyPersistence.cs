@@ -8,6 +8,7 @@ using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
+using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Core.Utils;
 using Altinn.Register.Persistence.AsyncEnumerables;
 using Altinn.Register.Persistence.DbArgTypes;
@@ -26,6 +27,7 @@ internal partial class PostgreSqlPartyPersistence
     : IPartyPersistence
     , IPartyExternalRolePersistence
 {
+    private readonly IUnitOfWorkHandle _handle;
     private readonly NpgsqlConnection _connection;
     private readonly SavePointManager _savePointManager;
     private readonly ILogger<PostgreSqlPartyPersistence> _logger;
@@ -34,10 +36,12 @@ internal partial class PostgreSqlPartyPersistence
     /// Initializes a new instance of the <see cref="PostgreSqlPartyPersistence"/> class.
     /// </summary>
     public PostgreSqlPartyPersistence(
+        IUnitOfWorkHandle handle,
         NpgsqlConnection connection,
         SavePointManager savePointManager,
         ILogger<PostgreSqlPartyPersistence> logger)
     {
+        _handle = handle;
         _connection = connection;
         _savePointManager = savePointManager;
         _logger = logger;
@@ -51,6 +55,8 @@ internal partial class PostgreSqlPartyPersistence
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default)
     {
+        _handle.ThrowIfCompleted();
+
         var query = PartyQuery.Get(include, PartyFilters.PartyUuid);
 
         NpgsqlCommand? cmd = null;
@@ -75,6 +81,8 @@ internal partial class PostgreSqlPartyPersistence
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default)
     {
+        _handle.ThrowIfCompleted();
+
         var query = PartyQuery.Get(include, PartyFilters.PartyId);
 
         NpgsqlCommand? cmd = null;
@@ -99,6 +107,8 @@ internal partial class PostgreSqlPartyPersistence
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default)
     {
+        _handle.ThrowIfCompleted();
+
         // filter out person fields as result is guaranteed to be an organization
         include &= ~PartyFieldIncludes.Person;
 
@@ -125,6 +135,8 @@ internal partial class PostgreSqlPartyPersistence
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default)
     {
+        _handle.ThrowIfCompleted();
+
         // filter out organization fields as result is guaranteed to be a person
         include &= ~(PartyFieldIncludes.Organization & PartyFieldIncludes.SubUnits);
 
@@ -154,6 +166,8 @@ internal partial class PostgreSqlPartyPersistence
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default)
     {
+        _handle.ThrowIfCompleted();
+
         bool any = false, orgs = false, persons = false;
         PartyFilters filters = PartyFilters.Multiple;
         
@@ -240,6 +254,7 @@ internal partial class PostgreSqlPartyPersistence
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default)
     {
+        _handle.ThrowIfCompleted();
         Guard.IsFalse(include.HasFlag(PartyFieldIncludes.SubUnits), nameof(include), $"{nameof(PartyFieldIncludes)}.{nameof(PartyFieldIncludes.SubUnits)} is not allowed");
 
         var query = PartyQuery.Get(include, PartyFilters.StreamPage);
@@ -267,6 +282,8 @@ internal partial class PostgreSqlPartyPersistence
             SELECT MAX(version_id) FROM register.party
             """;
 
+        _handle.ThrowIfCompleted();
+
         await using var cmd = _connection.CreateCommand();
         cmd.CommandText = QUERY;
 
@@ -289,6 +306,8 @@ internal partial class PostgreSqlPartyPersistence
         PartyRecord party,
         CancellationToken cancellationToken = default)
     {
+        _handle.ThrowIfCompleted();
+
         return party switch
         {
             PersonRecord person => UpsertPerson(person, cancellationToken),
@@ -676,6 +695,8 @@ internal partial class PostgreSqlPartyPersistence
         PartyExternalRoleAssignmentFieldIncludes include = PartyExternalRoleAssignmentFieldIncludes.RoleAssignment,
         CancellationToken cancellationToken = default)
     {
+        _handle.ThrowIfCompleted();
+
         var query = PartyRoleQuery.Get(include, PartyRoleFilter.FromParty);
         NpgsqlCommand? cmd = null;
         try
@@ -699,6 +720,8 @@ internal partial class PostgreSqlPartyPersistence
         PartyExternalRoleAssignmentFieldIncludes include = PartyExternalRoleAssignmentFieldIncludes.RoleAssignment,
         CancellationToken cancellationToken = default)
     {
+        _handle.ThrowIfCompleted();
+
         var query = PartyRoleQuery.Get(include, PartyRoleFilter.ToParty);
         NpgsqlCommand? cmd = null;
         try
@@ -744,6 +767,10 @@ internal partial class PostgreSqlPartyPersistence
         IEnumerable<IPartyExternalRolePersistence.UpsertExternalRoleAssignment> assignments,
         CancellationToken cancellationToken = default)
     {
+        _handle.ThrowIfCompleted();
+        Guard.IsNotNull(assignments);
+        Guard.IsNotDefault(commandId);
+
         return UpsertExternalRolesFromPartyBySourceCore(commandId, partyUuid, roleSource, assignments, cancellationToken)
             .WrapExceptions(ex => new UpsertExternalRolesFromPartyBySourceException(commandId, partyUuid, roleSource, assignments, ex), cancellationToken);
     }
@@ -769,9 +796,6 @@ internal partial class PostgreSqlPartyPersistence
                 @assignments
             )
             """;
-
-        Guard.IsNotNull(assignments);
-        Guard.IsNotDefault(commandId);
 
         var assignmentList = assignments.Select(static a => new ArgUpsertExternalRoleAssignment
         {

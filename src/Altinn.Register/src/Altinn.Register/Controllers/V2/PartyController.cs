@@ -65,7 +65,7 @@ public class PartyController
             return actionResult;
         }
 
-        await using var uow = await _uowManager.CreateAsync(cancellationToken: cancellationToken);
+        await using var uow = await _uowManager.CreateAsync(cancellationToken);
         var persistence = uow.GetPartyPersistence();
 
         var maxVersionId = await persistence.GetMaxPartyVersionId(cancellationToken);

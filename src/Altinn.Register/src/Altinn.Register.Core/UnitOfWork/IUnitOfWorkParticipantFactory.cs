@@ -15,8 +15,9 @@ public interface IUnitOfWorkParticipantFactory
     /// <summary>
     /// Factory method for creating a participant in a unit of work.
     /// </summary>
+    /// <param name="handle">A <see cref="IUnitOfWorkHandle"/>.</param>
     /// <param name="serviceProvider">A <see cref="IServiceProvider"/>.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="IUnitOfWorkParticipant"/>.</returns>
-    ValueTask<IUnitOfWorkParticipant> Create(IServiceProvider serviceProvider, CancellationToken cancellationToken = default);
+    ValueTask<IUnitOfWorkParticipant> Create(IUnitOfWorkHandle handle, IServiceProvider serviceProvider, CancellationToken cancellationToken = default);
 }
