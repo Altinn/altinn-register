@@ -19,6 +19,7 @@ public class IUnitOfWorkHandleTests
     public void ThrowIfCompleted_DoesNotThrow_WhenActive()
     {
         using var handle = new FakeUnitOfWorkHandle();
+        
         ((IUnitOfWorkHandle)handle).ThrowIfCompleted();
     }
 

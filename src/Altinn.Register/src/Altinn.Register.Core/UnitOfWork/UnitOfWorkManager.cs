@@ -267,11 +267,11 @@ internal class UnitOfWorkManager
             : IUnitOfWorkHandle
         {
             private readonly Lock _lock = new();
+            private readonly CancellationTokenSource _cts = new();
             private UnitOfWorkStatus _status = UnitOfWorkStatus.Active;
-            private CancellationTokenSource _cts = new();
 
 #if DEBUG
-            private StackTrace _createdStackTrace = new(skipFrames: 1);
+            private readonly StackTrace _createdStackTrace = new(skipFrames: 1);
             private StackTrace? _closedStackTrace = null;
 
             public void ThrowIfNotDisposed(string displayName)
@@ -310,7 +310,7 @@ internal class UnitOfWorkManager
             /// <returns>
             /// <see langword="true"/> if the unit of work was disposed by this call; otherwise <see langword="false"/>.
             /// </returns>
-            public bool Dispose()
+            public bool MarkDisposed()
             {
                 lock (_lock)
                 {
@@ -395,19 +395,6 @@ internal class UnitOfWorkManager
                 }
 
                 return _cts.CancelAsync();
-            }
-
-            public UnitOfWorkStatus CheckDisposed()
-            {
-                lock (_lock)
-                {
-                    if (_status == UnitOfWorkStatus.Disposed)
-                    {
-                        ThrowHelper.ThrowObjectDisposedException(nameof(UnitOfWork));
-                    }
-
-                    return _status;
-                }
             }
         }
 
@@ -495,7 +482,7 @@ internal class UnitOfWorkManager
                 GC.SuppressFinalize(this);
 #endif
 
-                if (!_handle.Dispose())
+                if (!_handle.MarkDisposed())
                 {
                     // already disposed
                     return ValueTask.CompletedTask;
@@ -518,14 +505,14 @@ internal class UnitOfWorkManager
 
             object? IServiceProvider.GetService(Type serviceType)
             {
-                _handle.CheckDisposed();
+                ((IUnitOfWorkHandle)_handle).ThrowIfCompleted();
 
                 return _impl.GetService(_serviceProvider, this, serviceType);
             }
 
             object ISupportRequiredService.GetRequiredService(Type serviceType)
             {
-                _handle.CheckDisposed();
+                ((IUnitOfWorkHandle)_handle).ThrowIfCompleted();
 
                 return _impl.GetRequiredService(_serviceProvider, this, serviceType);
             }
