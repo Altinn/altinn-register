@@ -117,6 +117,94 @@ public class A2PartyImportServiceTests
     }
 
     [Fact]
+    public async Task GetExternalRoleAssignmentsFrom_Calls_Correct_Endpoint_AndMapsData()
+    {
+        var partyId = 50012345;
+        var party = await TestDataLoader.Load<Altinn.Platform.Register.Models.Party>(partyId.ToString(CultureInfo.InvariantCulture));
+        Assert.NotNull(party);
+
+        var partyUuid = party.PartyUuid!.Value;
+
+        using var handler = new FakeHttpMessageHandler();
+        handler.Expect(HttpMethod.Get, "parties/partyroles/{fromPartyId}")
+            .WithRouteValue("fromPartyId", partyId.ToString())
+            .Respond(() => new StringContent(
+                """
+                [
+                    {"PartyId": "1", "PartyUuid": "00000000-0000-0000-0000-000000000001", "PartyRelation": "Role", "RoleCode": "DAGL"},
+                    {"PartyId": "2", "PartyUuid": "00000000-0000-0000-0000-000000000002", "PartyRelation": "Role", "RoleCode": "REVI"}
+                ]
+                """,
+                MediaTypeHeaderValue.Parse("application/json; encoding=utf-8")));
+
+        var client = new A2PartyImportService(handler.CreateClient(), TimeProvider);
+
+        var roleAssignments = await client.GetExternalRoleAssignmentsFrom(partyId, partyUuid).ToListAsync();
+        Assert.NotNull(roleAssignments);
+
+        roleAssignments.Should().HaveCount(2);
+
+        using (new AssertionScope())
+        {
+            var roleAssignment = roleAssignments[0];
+            roleAssignment.ToPartyUuid.Should().Be("00000000-0000-0000-0000-000000000001");
+            roleAssignment.RoleCode.Should().Be("DAGL");
+        }
+
+        using (new AssertionScope())
+        {
+            var roleAssignment = roleAssignments[1];
+            roleAssignment.ToPartyUuid.Should().Be("00000000-0000-0000-0000-000000000002");
+            roleAssignment.RoleCode.Should().Be("REVI");
+        }
+    }
+
+    [Fact]
+    public async Task GetExternalRoleAssignmentsFrom_Calls_Correct_Endpoint_AndMapsData_KONT_Roles()
+    {
+        var partyId = 50012345;
+        var party = await TestDataLoader.Load<Altinn.Platform.Register.Models.Party>(partyId.ToString(CultureInfo.InvariantCulture));
+        Assert.NotNull(party);
+
+        var partyUuid = party.PartyUuid!.Value;
+
+        using var handler = new FakeHttpMessageHandler();
+        handler.Expect(HttpMethod.Get, "parties/partyroles/{fromPartyId}")
+            .WithRouteValue("fromPartyId", partyId.ToString())
+            .Respond(() => new StringContent(
+                """
+                [
+                    {"PartyId": "1", "PartyUuid": "00000000-0000-0000-0000-000000000001", "PartyRelation": "Role", "RoleCode": "DAGL"},
+                    {"PartyId": "2", "PartyUuid": "00000000-0000-0000-0000-000000000002", "PartyRelation": "Role", "RoleCode": "REVI"},
+                    {"PartyId": "3", "PartyUuid": "00000000-0000-0000-0000-000000000003", "PartyRelation": "Role", "RoleCode": "KONT"},
+                    {"PartyId": "4", "PartyUuid": "00000000-0000-0000-0000-000000000004", "PartyRelation": "Role", "RoleCode": "KOMK"},
+                    {"PartyId": "5", "PartyUuid": "00000000-0000-0000-0000-000000000005", "PartyRelation": "Role", "RoleCode": "SREVA"},
+                    {"PartyId": "6", "PartyUuid": "00000000-0000-0000-0000-000000000006", "PartyRelation": "Role", "RoleCode": "KNUF"},
+                    {"PartyId": "7", "PartyUuid": "00000000-0000-0000-0000-000000000007", "PartyRelation": "Role", "RoleCode": "KEMN"}
+                ]
+                """,
+                MediaTypeHeaderValue.Parse("application/json; encoding=utf-8")));
+
+        var client = new A2PartyImportService(handler.CreateClient(), TimeProvider);
+
+        var roleAssignments = await client.GetExternalRoleAssignmentsFrom(partyId, partyUuid).ToListAsync();
+        Assert.NotNull(roleAssignments);
+
+        roleAssignments.Should().HaveCount(11);
+        roleAssignments.Where(ra => ra.ToPartyUuid == Guid.Parse("00000000-0000-0000-0000-000000000003")).Should().HaveCount(1)
+            .And.ContainSingle(ra => ra.RoleCode == "KONT");
+        roleAssignments.Where(ra => ra.ToPartyUuid == Guid.Parse("00000000-0000-0000-0000-000000000004")).Should().HaveCount(2)
+            .And.ContainSingle(ra => ra.RoleCode == "KOMK")
+            .And.ContainSingle(ra => ra.RoleCode == "KONT");
+        roleAssignments.Where(ra => ra.ToPartyUuid == Guid.Parse("00000000-0000-0000-0000-000000000005")).Should().HaveCount(2)
+            .And.ContainSingle(ra => ra.RoleCode == "SREVA")
+            .And.ContainSingle(ra => ra.RoleCode == "KONT");
+        roleAssignments.Where(ra => ra.ToPartyUuid == Guid.Parse("00000000-0000-0000-0000-000000000006")).Should().HaveCount(2)
+            .And.ContainSingle(ra => ra.RoleCode == "KNUF")
+            .And.ContainSingle(ra => ra.RoleCode == "KONT");
+    }
+
+    [Fact]
     public async Task GetChanges_NoChanges()
     {
         using var handler = new FakeHttpMessageHandler();

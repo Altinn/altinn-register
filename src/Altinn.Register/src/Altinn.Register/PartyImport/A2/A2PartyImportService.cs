@@ -68,6 +68,51 @@ internal sealed class A2PartyImportService
         return MapParty(response);
     }
 
+    /// <inheritdoc />
+    public async IAsyncEnumerable<A2PartyExternalRoleAssignment> GetExternalRoleAssignmentsFrom(
+        int fromPartyId,
+        Guid fromPartyUuid,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var url = $"parties/partyroles/{fromPartyId}";
+
+        using var response = await _httpClient.GetAsync(url, cancellationToken);
+
+        // TODO: remove once SBL bridge is fixed.
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            // SBL bridge return 404 if no role-assignments exist.
+            yield break;
+        }
+
+        await foreach (var item in response.Content.ReadFromJsonAsAsyncEnumerable<PartyRoleAssignmentItem>(_options, cancellationToken))
+        {
+            if (item is null)
+            {
+                ThrowHelper.ThrowInvalidOperationException("Failed to parse party role assignment.");
+            }
+
+            var assignment = new A2PartyExternalRoleAssignment
+            {
+                ToPartyUuid = item.ToPartyUuid,
+                RoleCode = item.RoleCode,
+            };
+
+            yield return assignment;
+
+            switch (item.RoleCode)
+            {
+                case "KOMK":
+                case "SREVA":
+                case "KNUF":
+                case "KEMN":
+                    assignment = assignment with { RoleCode = "KONT" };
+                    yield return assignment;
+                    break;
+            }
+        }
+    }
+
     private async Task<PartyChangesResponse> GetChangesPage(uint fromExclusive, CancellationToken cancellationToken)
     {
         var url = $"parties/partychanges/{fromExclusive}";
@@ -484,6 +529,36 @@ internal sealed class A2PartyImportService
         /// </summary>
         [JsonPropertyName("LastChangeInSegment")]
         public required uint LastChangeInSegment { get; init; }
+    }
+
+    /// <summary>
+    /// A2 party role assignment model.
+    /// </summary>
+    internal sealed class PartyRoleAssignmentItem
+    {
+        /// <summary>
+        /// Gets the party id of the party that the role is assigned to.
+        /// </summary>
+        [JsonPropertyName("PartyId")]
+        public required int ToPartyId { get; init; }
+
+        /// <summary>
+        /// Gets the party uuid of the party that the role is assigned to.
+        /// </summary>
+        [JsonPropertyName("PartyUuid")]
+        public required Guid ToPartyUuid { get; init; }
+
+        /// <summary>
+        /// Gets the kind of assignment.
+        /// </summary>
+        [JsonPropertyName("PartyRelation")]
+        public required string PartyRelation { get; init; }
+
+        /// <summary>
+        /// Gets the role code of the role that is assigned.
+        /// </summary>
+        [JsonPropertyName("RoleCode")]
+        public required string RoleCode { get; init; }
     }
 
     /// <summary>
