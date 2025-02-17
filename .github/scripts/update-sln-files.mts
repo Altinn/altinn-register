@@ -33,7 +33,7 @@ for (const file of slnFiles) {
 
     const stat = fs.statSync(file, { throwIfNoEntry: false });
     if (stat == null || !stat.isFile()) {
-      echo(`Creating ${p(file)}`);
+      echo(`${c.magenta('!')} ${p(file)}`);
       await $`dotnet new sln -n "${path.basename(file, ".sln")}"`;
     }
 
