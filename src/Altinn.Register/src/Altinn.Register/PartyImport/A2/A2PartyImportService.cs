@@ -380,6 +380,11 @@ internal sealed class A2PartyImportService
                 postalCode: organization.BusinessPostalCode,
                 city: organization.BusinessPostalCity);
 
+            if (string.IsNullOrEmpty(name))
+            {
+                name = "Organisasjon med manglende navn";
+            }
+
             return new OrganizationRecord
             {
                 // party fields
