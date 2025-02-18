@@ -1,12 +1,18 @@
 ﻿#nullable enable
 
 using System.Buffers;
+using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
+using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core;
 using Altinn.Register.Core.ImportJobs;
+using Altinn.Register.Core.Parties;
+using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
+using Altinn.Register.Utils;
+using CommunityToolkit.Diagnostics;
 using MassTransit;
 
 namespace Altinn.Register.PartyImport;
@@ -16,8 +22,9 @@ namespace Altinn.Register.PartyImport;
 /// </summary>
 public sealed class PartyImportBatchConsumer
     : IConsumer<Batch<UpsertValidatedPartyCommand>>
+    , IConsumer<Batch<UpsertExternalRoleAssignmentsCommand>>
 {
-    private const int BATCH_SIZE = 100;
+    private const int BATCH_SIZE = 10;
 
     private readonly IUnitOfWorkManager _uow;
     private readonly IImportJobTracker _tracker;
@@ -39,94 +46,200 @@ public sealed class PartyImportBatchConsumer
     /// <param name="context">The consume context.</param>
     public async Task Consume(ConsumeContext<Batch<UpsertValidatedPartyCommand>> context)
     {
-        await UpsertParties(context, context.Message, context.CancellationToken);
+        await UpsertParties(context.Message, context.CancellationToken);
+    }
+
+    /// <summary>
+    /// Consumes a batch of upsert external role assignments commands.
+    /// </summary>
+    /// <param name="context">The consume context.</param>
+    public async Task Consume(ConsumeContext<Batch<UpsertExternalRoleAssignmentsCommand>> context)
+    {
+        await UpsertExternalRoleAssignments(context.Message, context.CancellationToken);
     }
 
     /// <summary>
     /// Upserts a set of parties.
     /// </summary>
-    /// <param name="context">The <see cref="ConsumeContext"/>.</param>
     /// <param name="upserts">The parties to upsert.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     private async Task UpsertParties(
-        ConsumeContext context,
         Batch<UpsertValidatedPartyCommand> upserts,
         CancellationToken cancellationToken)
     {
-        PartyUpdatedEvent[]? evts = null;
-        UpsertPartyTracking[]? tracking = null;
-        try
+        using var tracking = TrackingHelper.Create(BATCH_SIZE);
         {
-            int index = 0;
-            evts = ArrayPool<PartyUpdatedEvent>.Shared.Rent(BATCH_SIZE);
-            tracking = ArrayPool<UpsertPartyTracking>.Shared.Rent(BATCH_SIZE);
+            await using var uow = await _uow.CreateAsync(cancellationToken);
+            var persistence = uow.GetPartyPersistence();
 
+            foreach (var context in upserts)
             {
-                await using var uow = await _uow.CreateAsync(cancellationToken);
-                var persistence = uow.GetPartyPersistence();
+                var party = context.Message.Party;
 
-                foreach (var upsert in upserts)
-                {
-                    var party = upsert.Message.Party;
+                // Note: even though the party has already been validated, we still run the validation logic here
+                // since it's cheap and gives much better error messages than the database layer. This is mostly
+                // to catch if anyone produces UpsertValidatedPartyCommand instances somewhere in the future without
+                // actually validating the party.
+                PartyImportHelper.ValidatePartyForUpset(party);
 
-                    // Note: even though the party has already been validated, we still run the validation logic here
-                    // since it's cheap and gives much better error messages than the database layer. This is mostly
-                    // to catch if anyone produces UpsertValidatedPartyCommand instances somewhere in the future without
-                    // actually validating the party.
-                    PartyImportHelper.ValidatePartyForUpset(party);
+                var result = await persistence.UpsertParty(party, cancellationToken);
+                result.EnsureSuccess();
 
-                    var result = await persistence.UpsertParty(party, cancellationToken);
-                    result.EnsureSuccess();
-
-                    UpdateTracking(ref tracking, upsert.Message.Tracking);
-                    evts[index++] = new PartyUpdatedEvent
+                tracking.Update(context.Message.Tracking);
+                await context.Publish(
+                    new PartyUpdatedEvent
                     {
-                        Party = new(result.Value.PartyUuid.Value),
-                    };
-                }
-
-                await uow.CommitAsync(cancellationToken);
+                        Party = result.Value.PartyUuid.Value.ToPartyReferenceContract(),
+                    },
+                    cancellationToken);
             }
 
-            await context.PublishBatch(evts.Take(index), cancellationToken);
-
-            foreach (var info in tracking)
-            {
-                if (info.JobName is null)
-                {
-                    break;
-                }
-
-                await _tracker.TrackProcessedStatus(info.JobName, new ImportJobProcessingStatus { ProcessedMax = info.Progress }, context.CancellationToken);
-            }
+            await uow.CommitAsync(cancellationToken);
         }
-        finally
-        {
-            if (tracking is not null)
-            {
-                ArrayPool<UpsertPartyTracking>.Shared.Return(tracking);
-            }
 
-            if (evts is not null)
-            {
-                ArrayPool<PartyUpdatedEvent>.Shared.Return(evts);
-            }
+        foreach (var info in tracking)
+        {
+            await _tracker.TrackProcessedStatus(info.JobName, new ImportJobProcessingStatus { ProcessedMax = info.Progress }, cancellationToken);
         }
 
         _meters.PartiesUpserted.Add(upserts.Length);
-        _meters.BatchesSucceeded.Add(1);
-        _meters.BatchSize.Record(upserts.Length);
+        _meters.PartyBatchesSucceeded.Add(1);
+        _meters.PartyBatchSize.Record(upserts.Length);
+    }
 
-        static void UpdateTracking(ref UpsertPartyTracking[] tracking, UpsertPartyTracking trackingInfo)
+    private async Task UpsertExternalRoleAssignments(
+        Batch<UpsertExternalRoleAssignmentsCommand> upserts,
+        CancellationToken cancellationToken)
+    {
+        using var tracking = TrackingHelper.Create(BATCH_SIZE);
         {
+            await using var uow = await _uow.CreateAsync(cancellationToken);
+            var persistence = uow.GetPartyExternalRolePersistence();
+
+            foreach (var context in upserts)
+            {
+                var fromParty = context.Message.FromPartyUuid;
+                var source = context.Message.Source;
+                var assignments = context.Message.Assignments.Select(static ra => new IPartyExternalRolePersistence.UpsertExternalRoleAssignment
+                {
+                    RoleIdentifier = ra.Identifier,
+                    ToParty = ra.ToPartyUuid,
+                });
+
+                tracking.Update(context.Message.Tracking);
+                var publishTasks = new List<Task>(context.Message.Assignments.Count);
+                var upsertEvts = persistence.UpsertExternalRolesFromPartyBySource(context.Message.CommandId, fromParty, source, assignments, cancellationToken);
+                await foreach (var upsertEvt in upsertEvts.WithCancellation(cancellationToken))
+                {
+                    var publishTask = upsertEvt.Type switch
+                    {
+                        ExternalRoleAssignmentEvent.EventType.Added => context.Publish(
+                            new ExternalRoleAssignmentAddedEvent
+                            {
+                                Role = upsertEvt.ToPartyExternalRoleReferenceContract(),
+                                From = upsertEvt.FromParty.ToPartyReferenceContract(),
+                                To = upsertEvt.ToParty.ToPartyReferenceContract(),
+                            },
+                            cancellationToken),
+
+                        ExternalRoleAssignmentEvent.EventType.Removed => context.Publish(
+                            new ExternalRoleAssignmentRemovedEvent
+                            {
+                                Role = upsertEvt.ToPartyExternalRoleReferenceContract(),
+                                From = upsertEvt.FromParty.ToPartyReferenceContract(),
+                                To = upsertEvt.ToParty.ToPartyReferenceContract(),
+                            },
+                            cancellationToken),
+
+                        _ => ThrowHelper.ThrowInvalidOperationException<Task>($"The event type '{upsertEvt.Type}' is not supported."),
+                    };
+
+                    publishTasks.Add(publishTask);
+                }
+
+                await Task.WhenAll(publishTasks);
+            }
+
+            await uow.CommitAsync(cancellationToken);
+        }
+
+        foreach (var info in tracking)
+        {
+            await _tracker.TrackProcessedStatus(info.JobName, new ImportJobProcessingStatus { ProcessedMax = info.Progress }, cancellationToken);
+        }
+
+        foreach (var group in upserts.GroupBy(static c => c.Message.Source))
+        {
+            int count = 0;
+            TagList tags = default;
+            tags.Add("external-role.source", ToTagString(group.Key));
+            
+            foreach (var context in group)
+            {
+                count++;
+                _meters.RoleAssignmentUpsertSize.Record(context.Message.Assignments.Count, in tags);
+            }
+
+            _meters.RoleAssignmentUpsertsSucceeded.Add(count, in tags);
+        }
+
+        _meters.RoleAssignmentBatchesSucceeded.Add(1);
+        _meters.RoleAssignmentBatchSize.Record(upserts.Length);
+    }
+
+    private static string ToTagString(ExternalRoleSource source)
+        => source switch
+        {
+            ExternalRoleSource.CentralCoordinatingRegister => "ccr",
+            ExternalRoleSource.NationalPopulationRegister => "npr",
+            ExternalRoleSource.EmployersEmployeeRegister => "aar",
+            _ => ThrowHelper.ThrowArgumentOutOfRangeException<string>(nameof(source), $"Invalid {nameof(PartySource)}: {source}"),
+        };
+
+    private sealed class TrackingHelper
+        : IEnumerable<UpsertPartyTracking>
+        , IDisposable
+    {
+        public static TrackingHelper Create(int size)
+            => new(ArrayPool<UpsertPartyTracking>.Shared, size);
+
+        private readonly ArrayPool<UpsertPartyTracking> _pool;
+        private UpsertPartyTracking[]? _tracking;
+
+        private TrackingHelper(ArrayPool<UpsertPartyTracking> pool, int size)
+        {
+            _pool = pool;
+            _tracking = pool.Rent(size);
+        }
+
+        public IEnumerator<UpsertPartyTracking> GetEnumerator()
+        {
+            if (_tracking is null)
+            {
+                ThrowHelper.ThrowObjectDisposedException(nameof(TrackingHelper));
+            }
+
+            return _tracking.TakeWhile(static t => t.JobName is not null).GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+            => GetEnumerator();
+
+        public void Update(UpsertPartyTracking trackingInfo)
+        {
+            if (_tracking is null)
+            {
+                ThrowHelper.ThrowObjectDisposedException(nameof(TrackingHelper));
+            }
+
             if (trackingInfo.JobName is null)
             {
                 return;
             }
 
-            for (var i = 0; i < tracking.Length; i++)
+            for (var i = 0; i < _tracking.Length; i++)
             {
-                ref var existing = ref tracking[i];
+                ref var existing = ref _tracking[i];
                 if (existing.JobName is null)
                 {
                     existing = trackingInfo;
@@ -146,6 +259,15 @@ public sealed class PartyImportBatchConsumer
 
             Debug.Fail("Tracking array is full.");
         }
+
+        public void Dispose()
+        {
+            if (_tracking is not null)
+            {
+                _pool.Return(_tracking);
+                _tracking = null;
+            }
+        }
     }
 
     /// <summary>
@@ -154,6 +276,16 @@ public sealed class PartyImportBatchConsumer
     public sealed class Definition
         : ConsumerDefinition<PartyImportBatchConsumer>
     {
+        private readonly bool _isTest;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Definition"/> class.
+        /// </summary>
+        public Definition(IHostEnvironment host)
+        {
+            _isTest = host.ApplicationName == "test";
+        }
+
         /// <inheritdoc/>
         protected override void ConfigureConsumer(
             IReceiveEndpointConfigurator endpointConfigurator,
@@ -168,9 +300,9 @@ public sealed class PartyImportBatchConsumer
             {
                 options
                     .SetMessageLimit(BATCH_SIZE)
-                    .SetTimeLimit(TimeSpan.FromSeconds(5))
+                    .SetTimeLimit(_isTest ? TimeSpan.FromSeconds(0.1) : TimeSpan.FromSeconds(15))
                     .SetTimeLimitStart(BatchTimeLimitStart.FromFirst)
-                    .SetConcurrencyLimit(3);
+                    .SetConcurrencyLimit(1);
             });
         }
     }
@@ -190,14 +322,26 @@ public sealed class PartyImportBatchConsumer
         /// <summary>
         /// Gets a counter for the number of party-batches upserted.
         /// </summary>
-        public Counter<int> BatchesSucceeded { get; }
+        public Counter<int> PartyBatchesSucceeded { get; }
             = telemetry.CreateCounter<int>("register.party-import.party.batch.succeeded.total", description: "The number of party-batches upserted.");
 
         /// <summary>
         /// Gets a histogram for the size of party batches upserted.
         /// </summary>
-        public Histogram<int> BatchSize { get; }
+        public Histogram<int> PartyBatchSize { get; }
             = telemetry.CreateHistogram<int>("register.party-import.party.batch.size", description: "The size of party batches upserted.");
+
+        public Counter<int> RoleAssignmentUpsertsSucceeded { get; }
+            = telemetry.CreateCounter<int>("register.party-import.role-assignment.upsert.succeeded.total", description: "The number of role assignment-upsert that has succeeded.");
+
+        public Counter<int> RoleAssignmentBatchesSucceeded { get; }
+            = telemetry.CreateCounter<int>("register.party-import.role-assignment.batch.succeeded.total", description: "The number of role assignment-batches that has succeeded.");
+
+        public Histogram<int> RoleAssignmentBatchSize { get; }
+            = telemetry.CreateHistogram<int>("register.party-import.role-assignment.batch.size", description: "The size of role assignment-batches upserted.");
+
+        public Histogram<int> RoleAssignmentUpsertSize { get; }
+            = telemetry.CreateHistogram<int>("register.party-import.role-assignment.count", description: "The number of role assignments in a single upsert.");
 
         /// <inheritdoc/>
         public static ImportMeters Create(RegisterTelemetry telemetry)

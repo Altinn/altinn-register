@@ -23,4 +23,8 @@
     <EmbeddedResource Include="TestData/**/*.sql" />
   </ItemGroup>
 
+  <ItemGroup>
+		<InternalsVisibleTo Include="Altinn.Register.TestUtils"/>
+	</ItemGroup>
+
 </Project>
