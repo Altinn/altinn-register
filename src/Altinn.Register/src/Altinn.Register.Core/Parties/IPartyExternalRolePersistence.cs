@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Parties.Records;
+using Altinn.Register.Core.Utils;
 
 namespace Altinn.Register.Core.Parties;
 
@@ -48,7 +49,7 @@ public interface IPartyExternalRolePersistence
     /// <param name="assignments">The new role-assignments.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns></returns>
-    public IAsyncEnumerable<ExternalRoleAssignmentEvent> UpsertExternalRolesFromPartyBySource(
+    public IAsyncSideEffectEnumerable<ExternalRoleAssignmentEvent> UpsertExternalRolesFromPartyBySource(
         Guid commandId,
         Guid partyUuid,
         ExternalRoleSource roleSource,

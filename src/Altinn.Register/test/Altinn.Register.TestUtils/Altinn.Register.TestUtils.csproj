@@ -13,6 +13,7 @@
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <PackageReference Include="Nerdbank.Streams" />
     <PackageReference Include="Npgsql" />
+    <PackageReference Include="System.Linq.Async" />
     <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="xunit" />
   </ItemGroup>

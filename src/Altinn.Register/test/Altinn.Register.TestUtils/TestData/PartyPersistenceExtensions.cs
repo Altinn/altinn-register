@@ -8,11 +8,13 @@ using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Core.Utils;
+using Altinn.Register.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using NpgsqlTypes;
+using Xunit;
 
-namespace Altinn.Register.Persistence.Tests.Utils;
+namespace Altinn.Register.TestUtils.TestData;
 
 /// <summary>
 /// Test helpers for <see cref="IPartyPersistence"/>, <see cref="IPartyExternalRolePersistence"/>.
@@ -231,7 +233,7 @@ public static class PartyPersistenceExtensions
         await using var cmd = connection.CreateCommand();
         cmd.CommandText =
             /*strpsql*/"""
-            SELECT MAX(id) FROM register.party
+            SELECT COALESCE(MAX(id), 0) FROM register.party
             """;
 
         return Convert.ToInt32(await cmd.ExecuteScalarAsync()) + 1;
@@ -260,12 +262,12 @@ public static class PartyPersistenceExtensions
 
         if (!id.HasValue)
         {
-            id = await GetNextPartyId(uow);
+            id = await uow.GetNextPartyId();
         }
 
         if (!identifier.HasValue)
         {
-            identifier = await GetNewOrgNumber(uow);
+            identifier = await uow.GetNewOrgNumber();
         }
 
         var result = await uow.GetRequiredService<IPartyPersistence>().UpsertParty(new OrganizationRecord
@@ -292,6 +294,95 @@ public static class PartyPersistenceExtensions
 
         Assert.True(result.IsSuccess);
         return (OrganizationRecord)result.Value;
+    }
+
+    public static async Task<PersonRecord> CreatePerson(
+        this IUnitOfWork uow,
+        FieldValue<Guid> uuid = default,
+        FieldValue<int> id = default,
+        FieldValue<PersonIdentifier> identifier = default,
+        FieldValue<DateTimeOffset> createdAt = default,
+        FieldValue<DateTimeOffset> modifiedAt = default,
+        FieldValue<PersonName> name = default,
+        FieldValue<StreetAddress> address = default,
+        FieldValue<MailingAddress> mailingAddress = default,
+        FieldValue<DateOnly> dateOfBirth = default,
+        FieldValue<DateOnly> dateOfDeath = default)
+    {
+        var connection = uow.GetRequiredService<NpgsqlConnection>();
+
+        if (!id.HasValue)
+        {
+            id = await uow.GetNextPartyId();
+        }
+
+        if (!dateOfBirth.HasValue)
+        {
+            dateOfBirth = uow.GetRandomBirthDate();
+        }
+
+        if (!identifier.HasValue)
+        {
+            identifier = await uow.GetNewPersonIdentifier(dateOfBirth.Value, isDNumber: false);
+        }
+
+        if (!address.HasValue)
+        {
+            address = new StreetAddress
+            {
+                MunicipalNumber = "0001",
+                MunicipalName = "Test",
+                StreetName = "Testveien",
+                HouseNumber = "1",
+                HouseLetter = null,
+                PostalCode = "0001",
+                City = "Testby",
+            };
+        }
+
+        if (!mailingAddress.HasValue)
+        {
+            mailingAddress = new MailingAddress
+            {
+                Address = $"{address.Value!.StreetName} {address.Value.HouseNumber}",
+                PostalCode = address.Value.PostalCode,
+                City = address.Value.City,
+            };
+        }
+
+        if (!name.HasValue)
+        {
+            name = PersonName.Create("Test", "Mid", "Testson");
+        }
+
+        if (dateOfDeath.IsUnset)
+        {
+            dateOfDeath = FieldValue.Null;
+        }
+
+        var result = await uow.GetRequiredService<IPartyPersistence>().UpsertParty(new PersonRecord
+        {
+            PartyUuid = uuid.HasValue ? uuid.Value : Guid.NewGuid(),
+            PartyId = id,
+            DisplayName = name.Value!.DisplayName,
+            PersonIdentifier = identifier,
+            OrganizationIdentifier = null,
+            CreatedAt = createdAt.HasValue ? createdAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
+            ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
+            IsDeleted = dateOfDeath.HasValue,
+            VersionId = FieldValue.Unset,
+            FirstName = name.Value.FirstName,
+            MiddleName = name.Value.MiddleName,
+            LastName = name.Value.LastName,
+            ShortName = name.Value.ShortName,
+            Address = address,
+            MailingAddress = mailingAddress,
+            DateOfBirth = dateOfBirth,
+            DateOfDeath = dateOfDeath,
+        });
+
+        Assert.True(result.IsSuccess);
+        return (PersonRecord)result.Value;
     }
 
     public static async Task AddRole(
@@ -321,8 +412,8 @@ public static class PartyPersistenceExtensions
     public static async Task CreateFakeRoleDefinitions(
         this IUnitOfWork uow)
     {
-        await CreateFakeRoleDefinitions(uow, ExternalRoleSource.CentralCoordinatingRegister);
-        await CreateFakeRoleDefinitions(uow, ExternalRoleSource.NationalPopulationRegister);
+        await uow.CreateFakeRoleDefinitions(ExternalRoleSource.CentralCoordinatingRegister);
+        await uow.CreateFakeRoleDefinitions(ExternalRoleSource.NationalPopulationRegister);
     }
 
     public static async Task CreateFakeRoleDefinitions(
@@ -331,7 +422,7 @@ public static class PartyPersistenceExtensions
     {
         for (var i = 0; i < 40; i++)
         {
-            await CreateFakeRoleDefinition(uow, source, $"fake-{i:D2}");
+            await uow.CreateFakeRoleDefinition(source, $"fake-{i:D2}");
         }
     }
 

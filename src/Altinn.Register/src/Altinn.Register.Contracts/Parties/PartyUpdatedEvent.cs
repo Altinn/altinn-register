@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ServiceDefaults.MassTransit;
+using Altinn.Authorization.ServiceDefaults.MassTransit;
 using MassTransit;
 
 namespace Altinn.Register.Contracts.Parties;

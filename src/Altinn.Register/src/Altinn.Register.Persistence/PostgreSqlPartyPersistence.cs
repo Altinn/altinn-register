@@ -14,6 +14,7 @@ using Altinn.Register.Persistence.AsyncEnumerables;
 using Altinn.Register.Persistence.DbArgTypes;
 using Altinn.Register.Persistence.UnitOfWork;
 using CommunityToolkit.Diagnostics;
+using MassTransit;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using NpgsqlTypes;
@@ -760,7 +761,7 @@ internal partial class PostgreSqlPartyPersistence
     }
 
     /// <inheritdoc/>
-    public IAsyncEnumerable<ExternalRoleAssignmentEvent> UpsertExternalRolesFromPartyBySource(
+    public IAsyncSideEffectEnumerable<ExternalRoleAssignmentEvent> UpsertExternalRolesFromPartyBySource(
         Guid commandId,
         Guid partyUuid,
         ExternalRoleSource roleSource,
@@ -771,73 +772,79 @@ internal partial class PostgreSqlPartyPersistence
         Guard.IsNotNull(assignments);
         Guard.IsNotDefault(commandId);
 
-        return UpsertExternalRolesFromPartyBySourceCore(commandId, partyUuid, roleSource, assignments, cancellationToken)
-            .WrapExceptions(ex => new UpsertExternalRolesFromPartyBySourceException(commandId, partyUuid, roleSource, assignments, ex), cancellationToken);
-    }
-
-    private async IAsyncEnumerable<ExternalRoleAssignmentEvent> UpsertExternalRolesFromPartyBySourceCore(
-        Guid commandId,
-        Guid partyUuid,
-        ExternalRoleSource roleSource,
-        IEnumerable<IPartyExternalRolePersistence.UpsertExternalRoleAssignment> assignments,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        const string QUERY =
-            /*strpsql*/"""
-            SELECT 
-                "version_id",
-                "type",
-                "identifier",
-                "to_party"
-            FROM register.upsert_external_role_assignments(
-                @from_party,
-                @source,
-                @cmd_id,
-                @assignments
-            )
-            """;
-
         var assignmentList = assignments.Select(static a => new ArgUpsertExternalRoleAssignment
         {
             ToParty = a.ToParty,
             Identifier = a.RoleIdentifier,
         }).ToList();
 
-        await using var cmd = _connection.CreateCommand();
-        cmd.CommandText = QUERY;
-
-        cmd.Parameters.Add<Guid>("from_party", NpgsqlDbType.Uuid).TypedValue = partyUuid;
-        cmd.Parameters.Add<ExternalRoleSource>("source").TypedValue = roleSource;
-        cmd.Parameters.Add<Guid>("cmd_id", NpgsqlDbType.Uuid).TypedValue = commandId;
-        cmd.Parameters.Add<List<ArgUpsertExternalRoleAssignment>>("assignments").TypedValue = assignmentList;
-
-        await cmd.PrepareAsync(cancellationToken);
-
         Log.UpsertExternalRolesFromPartyBySource(_logger, assignmentList.Count, roleSource);
-        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-        var versionIdOrdinal = reader.GetOrdinal("version_id");
-        var typeOrdinal = reader.GetOrdinal("type");
-        var identifierOrdinal = reader.GetOrdinal("identifier");
-        var toPartyOrdinal = reader.GetOrdinal("to_party");
+        var enumerable = new UpsertExternalRolesFromPartyBySourceAsyncSideEffectEnumerable(_connection, commandId, partyUuid, roleSource, assignmentList, cancellationToken);
+        return enumerable.WrapExceptions(ex => new UpsertExternalRolesFromPartyBySourceException(commandId, partyUuid, roleSource, assignments, ex), cancellationToken);
+    }
 
-        while (await reader.ReadAsync(cancellationToken))
+    private sealed class UpsertExternalRolesFromPartyBySourceAsyncSideEffectEnumerable(
+        NpgsqlConnection connection,
+        Guid commandId,
+        Guid partyUuid,
+        ExternalRoleSource roleSource,
+        List<ArgUpsertExternalRoleAssignment> assignments,
+        CancellationToken cancellationToken = default)
+        : NpgsqlAsyncSideEffectEnumerable<ExternalRoleAssignmentEvent>(connection, QUERY, cancellationToken)
+    {
+        private const string QUERY =
+            /*strpsql*/"""
+                SELECT 
+                    "version_id",
+                    "type",
+                    "identifier",
+                    "to_party"
+                FROM register.upsert_external_role_assignments(
+                    @from_party,
+                    @source,
+                    @cmd_id,
+                    @assignments
+                )
+                """;
+
+        /// <inheritdoc/>
+        protected override void PrepareParameters(NpgsqlParameterCollection parameters)
         {
-            var versionId = (ulong)await reader.GetFieldValueAsync<long>(versionIdOrdinal, cancellationToken);
-            var type = await reader.GetFieldValueAsync<ExternalRoleAssignmentEvent.EventType>(typeOrdinal, cancellationToken);
-            var identifier = await reader.GetFieldValueAsync<string>(identifierOrdinal, cancellationToken);
-            var toParty = await reader.GetFieldValueAsync<Guid>(toPartyOrdinal, cancellationToken);
+            parameters.Add<Guid>("from_party", NpgsqlDbType.Uuid).TypedValue = partyUuid;
+            parameters.Add<ExternalRoleSource>("source").TypedValue = roleSource;
+            parameters.Add<Guid>("cmd_id", NpgsqlDbType.Uuid).TypedValue = commandId;
+            parameters.Add<List<ArgUpsertExternalRoleAssignment>>("assignments").TypedValue = assignments;
+        }
 
-            var evt = new ExternalRoleAssignmentEvent
+        /// <inheritdoc/>
+        protected override async IAsyncEnumerator<ExternalRoleAssignmentEvent> Enumerate(
+            NpgsqlDataReader reader,
+            CancellationToken cancellationToken)
+        {
+            var versionIdOrdinal = reader.GetOrdinal("version_id");
+            var typeOrdinal = reader.GetOrdinal("type");
+            var identifierOrdinal = reader.GetOrdinal("identifier");
+            var toPartyOrdinal = reader.GetOrdinal("to_party");
+
+            while (await reader.ReadAsync(cancellationToken))
             {
-                VersionId = versionId,
-                Type = type,
-                RoleSource = roleSource,
-                RoleIdentifier = identifier,
-                ToParty = toParty,
-                FromParty = partyUuid,
-            };
+                var versionId = (ulong)await reader.GetFieldValueAsync<long>(versionIdOrdinal, cancellationToken);
+                var type = await reader.GetFieldValueAsync<ExternalRoleAssignmentEvent.EventType>(typeOrdinal, cancellationToken);
+                var identifier = await reader.GetFieldValueAsync<string>(identifierOrdinal, cancellationToken);
+                var toParty = await reader.GetFieldValueAsync<Guid>(toPartyOrdinal, cancellationToken);
 
-            yield return evt;
+                var evt = new ExternalRoleAssignmentEvent
+                {
+                    VersionId = versionId,
+                    Type = type,
+                    RoleSource = roleSource,
+                    RoleIdentifier = identifier,
+                    ToParty = toParty,
+                    FromParty = partyUuid,
+                };
+
+                yield return evt;
+            }
         }
     }
 
