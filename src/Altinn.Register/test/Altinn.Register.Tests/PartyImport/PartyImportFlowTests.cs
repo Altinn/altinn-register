@@ -7,6 +7,7 @@ using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Core.Utils;
 using Altinn.Register.PartyImport;
 using Altinn.Register.TestUtils;
+using Altinn.Register.TestUtils.MassTransit;
 using Xunit.Abstractions;
 
 namespace Altinn.Register.Tests.PartyImport;
@@ -50,12 +51,11 @@ public class PartyImportFlowTests(ITestOutputHelper output)
         };
 
         await CommandSender.Send(cmd1);
-        var conversationId = await Harness.Consumed.SelectAsync<UpsertPartyCommand>(m => m.Context.CorrelationId == cmd1.CommandId).Select(m => m.Context.ConversationId).FirstAsync();
-        var consumed = await Harness.Consumed.SelectAsync<UpsertValidatedPartyCommand>(m => m.Context.ConversationId == conversationId).FirstAsync();
-
-        var published = await Harness.Published.SelectAsync<PartyUpdatedEvent>(m => m.Context.ConversationId == conversationId).FirstAsync();
-
-        published.Context.Message.Party.PartyUuid.Should().Be(partyUuid);
+        var conversation = await Harness.Conversation(cmd1);
+        var updateEvent = await conversation.Events.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync();
+        
+        Assert.NotNull(updateEvent);
+        Assert.Equal(partyUuid, updateEvent.Party.PartyUuid);
 
         {
             await using var uow = await UOW.CreateAsync();
@@ -83,13 +83,11 @@ public class PartyImportFlowTests(ITestOutputHelper output)
         };
 
         await CommandSender.Send(cmd2);
-        conversationId = await Harness.Consumed.SelectAsync<UpsertPartyCommand>(m => m.Context.CorrelationId == cmd2.CommandId).Select(m => m.Context.ConversationId).FirstAsync();
-        consumed = await Harness.Consumed.SelectAsync<UpsertValidatedPartyCommand>(m => m.Context.ConversationId == conversationId).FirstAsync();
+        conversation = await Harness.Conversation(cmd2);
+        updateEvent = await conversation.Events.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync();
 
-        published = await Harness.Published.SelectAsync<PartyUpdatedEvent>(m => m.Context.ConversationId == conversationId).FirstAsync();
-        Assert.NotNull(published);
-
-        published.Context.Message.Party.PartyUuid.Should().Be(partyUuid);
+        Assert.NotNull(updateEvent);
+        Assert.Equal(partyUuid, updateEvent.Party.PartyUuid);
 
         {
             await using var uow = await UOW.CreateAsync();
