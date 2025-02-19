@@ -8,11 +8,6 @@ UPDATE register.external_role_definition erd
 SET identifier = 'ikke-naeringsdrivende-hovedenhet'
 WHERE erd.source = 'ccr' AND erd.identifier = 'aafy';
 
--- Revisor registrert i revisorregisteret
-UPDATE register.external_role_definition erd
-SET identifier = 'kontaktperson-revisor'
-WHERE erd.source = 'ccr' AND erd.identifier = 'sreva';
-
 -- Inngår i foretaksgruppe med
 UPDATE register.external_role_definition erd
 SET identifier = 'foretaksgruppe-med'
@@ -65,7 +60,7 @@ WHERE erd.source = 'ccr' AND erd.identifier = 'kont';
 
 -- Inngår i kontorfellesskap
 UPDATE register.external_role_definition erd
-SET identifier = 'kontorfelleskap'
+SET identifier = 'kontorfelleskapmedlem'
 WHERE erd.source = 'ccr' AND erd.identifier = 'ktrf';
 
 -- Styrets leder
@@ -207,6 +202,11 @@ WHERE erd.source = 'ccr' AND erd.identifier = 'knuf';
 UPDATE register.external_role_definition erd
 SET identifier = 'kontaktperson-ados'
 WHERE erd.source = 'ccr' AND erd.identifier = 'kemn';
+
+-- Revisor registrert i revisorregisteret
+UPDATE register.external_role_definition erd
+SET identifier = 'kontaktperson-revisor'
+WHERE erd.source = 'ccr' AND erd.identifier = 'sreva';
 
 -- Bestyrende reder
 UPDATE register.external_role_definition erd
