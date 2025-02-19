@@ -85,12 +85,12 @@ WHERE erd.source = 'ccr' AND erd.identifier = 'obs';
 
 -- Er særskilt oppdelt enhet til
 UPDATE register.external_role_definition erd
-SET identifier = 'saerskilt-oppdelt-enhet-til'
+SET identifier = 'saerskilt-oppdelt-enhet'
 WHERE erd.source = 'ccr' AND erd.identifier = 'opmv';
 
 -- Organisasjonsledd i offentlig sektor
 UPDATE register.external_role_definition erd
-SET identifier = 'organisasjonsledd-offentlig-sektor-hos'
+SET identifier = 'organisasjonsledd-offentlig-sektor'
 WHERE erd.source = 'ccr' AND erd.identifier = 'orgl';
 
 -- Prokura i fellesskap
@@ -110,7 +110,7 @@ WHERE erd.source = 'ccr' AND erd.identifier = 'prok';
 
 -- Er revisoradresse for
 UPDATE register.external_role_definition erd
-SET identifier = 'revisoraddresse-for'
+SET identifier = 'revisoradressat'
 WHERE erd.source = 'ccr' AND erd.identifier = 'read';
 
 -- Forestår avvikling
@@ -140,12 +140,12 @@ WHERE erd.source = 'ccr' AND erd.identifier = 'femv';
 
 -- Er regnskapsforeradresse for
 UPDATE register.external_role_definition erd
-SET identifier = 'regnskapsforeradresse-for'
+SET identifier = 'regnskapsforeradressat'
 WHERE erd.source = 'ccr' AND erd.identifier = 'rfad';
 
 -- Sameiere
 UPDATE register.external_role_definition erd
-SET identifier = 'sameiere'
+SET identifier = 'sameier'
 WHERE erd.source = 'ccr' AND erd.identifier = 'sam';
 
 -- Signatur i fellesskap
@@ -175,7 +175,7 @@ WHERE erd.source = 'ccr' AND erd.identifier = 'vara';
 
 -- Er virksomhet drevet i fellesskap av
 UPDATE register.external_role_definition erd
-SET identifier = 'virksomhet-drevet-i-fellesskap-av'
+SET identifier = 'virksomhet-fellesskap-drifter'
 WHERE erd.source = 'ccr' AND erd.identifier = 'vife';
 
 -- Utfyller MVA-oppgaver
@@ -245,7 +245,7 @@ WHERE erd.source = 'ccr' AND erd.identifier = 'stft';
 
 -- Den personlige konkursen angår
 UPDATE register.external_role_definition erd
-SET identifier = 'personlige-konkurs-angaar'
+SET identifier = 'personlige-konkurs'
 WHERE erd.source = 'ccr' AND erd.identifier = 'kenk';
 
 -- Konkursdebitor
@@ -255,22 +255,22 @@ WHERE erd.source = 'ccr' AND erd.identifier = 'kdeb';
 
 -- Varamedlem i partiets utovende organ
 UPDATE register.external_role_definition erd
-SET identifier = 'varamedlem-parti'
+SET identifier = 'parti-organ-varamedlem'
 WHERE erd.source = 'ccr' AND erd.identifier = 'hvar';
 
 -- Nestleder i partiets utovende organ
 UPDATE register.external_role_definition erd
-SET identifier = 'nestleder-parti'
+SET identifier = 'parti-organ-nestleder'
 WHERE erd.source = 'ccr' AND erd.identifier = 'hnst';
 
 -- Styremedlem i partiets utovende organ
 UPDATE register.external_role_definition erd
-SET identifier = 'styremedlem-parti'
+SET identifier = 'parti-organ-styremedlem'
 WHERE erd.source = 'ccr' AND erd.identifier = 'hmdl';
 
 -- Leder i partiets utovende organ
 UPDATE register.external_role_definition erd
-SET identifier = 'leder-parti'
+SET identifier = 'parti-organ-leder'
 WHERE erd.source = 'ccr' AND erd.identifier = 'hled';
 
 -- Elektronisk signeringsrett
