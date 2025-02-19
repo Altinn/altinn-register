@@ -100,17 +100,17 @@ WHERE erd.source = 'ccr' AND erd.identifier = 'orgl';
 
 -- Prokura i fellesskap
 UPDATE register.external_role_definition erd
-SET identifier = 'prokura-fellesskap'
+SET identifier = 'prokurist-fellesskap'
 WHERE erd.source = 'ccr' AND erd.identifier = 'pofe';
 
 -- Prokura hver for seg
 UPDATE register.external_role_definition erd
-SET identifier = 'prokura-hver-for-seg'
+SET identifier = 'prokurist-hver-for-seg'
 WHERE erd.source = 'ccr' AND erd.identifier = 'pohv';
 
 -- Prokura
 UPDATE register.external_role_definition erd
-SET identifier = 'prokura'
+SET identifier = 'prokurist'
 WHERE erd.source = 'ccr' AND erd.identifier = 'prok';
 
 -- Er revisoradresse for
