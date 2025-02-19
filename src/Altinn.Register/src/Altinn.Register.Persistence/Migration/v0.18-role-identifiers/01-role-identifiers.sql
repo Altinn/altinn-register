@@ -280,12 +280,12 @@ WHERE erd.source = 'ccr' AND erd.identifier = 'esgr';
 
 -- Skal fusjoneres med
 UPDATE register.external_role_definition erd
-SET identifier = 'fusjoneres-med'
+SET identifier = 'fusjonsovertaker'
 WHERE erd.source = 'ccr' AND erd.identifier = 'fusj';
 
 -- Skal fisjoneres med
 UPDATE register.external_role_definition erd
-SET identifier = 'fisjoneres-fra'
+SET identifier = 'fisjonsovertaker'
 WHERE erd.source = 'ccr' AND erd.identifier = 'fisj';
 
 -- Tildeler av elektronisk signeringsrett
