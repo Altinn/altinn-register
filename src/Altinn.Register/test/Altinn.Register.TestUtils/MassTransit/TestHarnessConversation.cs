@@ -27,4 +27,10 @@ public sealed class TestHarnessConversation
     /// </summary>
     public AsyncUnwrappedEnumerable<EventBase, IPublishedMessage<EventBase>> Events
         => new(_harness.Published.SelectAsync<EventBase>(m => m.Context.ConversationId == _conversationId), static m => m.Context.Message);
+
+    /// <summary>
+    /// Gets the commands in the conversation.
+    /// </summary>
+    public AsyncUnwrappedEnumerable<CommandBase, ISentMessage<CommandBase>> Commands
+        => new(_harness.Sent.SelectAsync<CommandBase>(m => m.Context.ConversationId == _conversationId), static m => m.Context.Message);
 }

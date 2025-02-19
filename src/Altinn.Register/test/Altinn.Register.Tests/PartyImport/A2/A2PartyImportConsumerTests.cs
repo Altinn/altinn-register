@@ -16,7 +16,7 @@ using Xunit.Abstractions;
 
 using V1Models = Altinn.Platform.Register.Models;
 
-namespace Altinn.Register.Tests.PartyImport;
+namespace Altinn.Register.Tests.PartyImport.A2;
 
 public class A2PartyImportConsumerTests(ITestOutputHelper output)
     : BusTestBase(output)
