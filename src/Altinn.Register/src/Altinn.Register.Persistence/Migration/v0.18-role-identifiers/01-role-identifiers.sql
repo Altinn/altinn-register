@@ -155,17 +155,17 @@ WHERE erd.source = 'ccr' AND erd.identifier = 'sam';
 
 -- Signatur i fellesskap
 UPDATE register.external_role_definition erd
-SET identifier = 'signatur-fellesskap'
+SET identifier = 'signerer-fellesskap'
 WHERE erd.source = 'ccr' AND erd.identifier = 'sife';
 
 -- Signatur
 UPDATE register.external_role_definition erd
-SET identifier = 'signatur'
+SET identifier = 'signerer'
 WHERE erd.source = 'ccr' AND erd.identifier = 'sign';
 
 -- Signatur hver for seg
 UPDATE register.external_role_definition erd
-SET identifier = 'signatur-hver-for-seg'
+SET identifier = 'signerer-hver-for-seg'
 WHERE erd.source = 'ccr' AND erd.identifier = 'sihv';
 
 -- Er frivillig registrert utleiebygg for
