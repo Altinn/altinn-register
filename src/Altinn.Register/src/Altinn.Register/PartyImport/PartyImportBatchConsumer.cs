@@ -300,7 +300,7 @@ public sealed class PartyImportBatchConsumer
             {
                 options
                     .SetMessageLimit(BATCH_SIZE)
-                    .SetTimeLimit(_isTest ? TimeSpan.FromSeconds(0.1) : TimeSpan.FromSeconds(15))
+                    .SetTimeLimit(_isTest ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(15))
                     .SetTimeLimitStart(BatchTimeLimitStart.FromFirst)
                     .SetConcurrencyLimit(1);
             });
