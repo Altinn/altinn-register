@@ -285,7 +285,7 @@ WHERE erd.source = 'ccr' AND erd.identifier = 'fusj';
 
 -- Skal fisjoneres med
 UPDATE register.external_role_definition erd
-SET identifier = 'fisjoneres-med'
+SET identifier = 'fisjoneres-fra'
 WHERE erd.source = 'ccr' AND erd.identifier = 'fisj';
 
 -- Tildeler av elektronisk signeringsrett
