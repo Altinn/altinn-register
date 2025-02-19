@@ -15,6 +15,8 @@ namespace Altinn.Register.Tests.PartyImport;
 public class PartyImportFlowTests(ITestOutputHelper output)
     : BusTestBase(output)
 {
+    protected override ITestOutputHelper? TestOutputHelper => output;
+
     private IUnitOfWorkManager UOW => GetRequiredService<IUnitOfWorkManager>();
 
     [Fact]

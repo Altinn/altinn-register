@@ -78,10 +78,14 @@ public abstract class BusTestBase(ITestOutputHelper output)
         {
             _harness.ForceInactive();
             _harness.Cancel();
-            await _harness.OutputTimeline(new StringWriter(_harnessLogger));
+            await _harness.OutputTimeline(new StringWriter(_harnessLogger), c => c.IncludeAddress());
             output.WriteLine(_harnessLogger.ToString());
 
-            await foreach (var consumeException in _harness.Consumed.SelectAsync(static m => m.Exception is not null).Select(static m => m.Exception))
+            var allExceptions = _harness.Consumed.SelectAsync(static m => m.Exception is not null).Select(static m => m.Exception)
+                .Concat(_harness.Sent.SelectAsync(static m => m.Exception is not null).Select(static m => m.Exception))
+                .Concat(_harness.Published.SelectAsync(static m => m.Exception is not null).Select(static m => m.Exception));
+
+            await foreach (var consumeException in allExceptions)
             {
                 output.WriteLine(consumeException.ToString());
             }
