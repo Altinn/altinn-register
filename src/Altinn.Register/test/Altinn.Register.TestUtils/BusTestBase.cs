@@ -48,6 +48,7 @@ public abstract class BusTestBase(ITestOutputHelper output)
     protected override ValueTask ConfigureServices(IServiceCollection services)
     {
         services.AddHttpClient<IA2PartyImportService, A2PartyImportService>();
+        services.AddTelemetryListener(new StringWriter(_harnessLogger), includeDetails: true);
         AltinnServiceDefaultsMassTransitTestingExtensions.AddAltinnMassTransitTestHarness(
             services,
             output: new StringWriter(_harnessLogger),
@@ -78,8 +79,6 @@ public abstract class BusTestBase(ITestOutputHelper output)
         {
             _harness.ForceInactive();
             _harness.Cancel();
-            await _harness.OutputTimeline(new StringWriter(_harnessLogger), c => c.IncludeAddress());
-            output.WriteLine(_harnessLogger.ToString());
 
             var allExceptions = _harness.Consumed.SelectAsync(static m => m.Exception is not null).Select(static m => m.Exception)
                 .Concat(_harness.Sent.SelectAsync(static m => m.Exception is not null).Select(static m => m.Exception))
@@ -92,5 +91,7 @@ public abstract class BusTestBase(ITestOutputHelper output)
         }
 
         await base.DisposeAsync();
+
+        output.WriteLine(_harnessLogger.ToString());
     }
 }
