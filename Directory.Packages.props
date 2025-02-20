@@ -13,7 +13,7 @@
     <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql" Version="2.9.0" />
     <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Telemetry" Version="2.9.0" />
     <PackageVersion Include="Altinn.Authorization.ServiceDefaults" Version="2.9.0" />
-    <PackageVersion Include="Altinn.Common.AccessToken" Version="4.5.5" />
+    <PackageVersion Include="Altinn.Common.AccessToken" Version="5.0.1" />
     <PackageVersion Include="Altinn.Common.PEP" Version="4.1.2" />
     <PackageVersion Include="Altinn.Swashbuckle" Version="2.2.0" />
     <PackageVersion Include="Altinn.Swashbuckle.Abstractions" Version="2.2.0" />
