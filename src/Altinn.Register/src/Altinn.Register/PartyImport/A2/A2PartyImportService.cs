@@ -19,21 +19,26 @@ namespace Altinn.Register.PartyImport.A2;
 /// <summary>
 /// Implementation of <see cref="IA2PartyImportService"/>.
 /// </summary>
-internal sealed class A2PartyImportService
+internal sealed partial class A2PartyImportService
     : IA2PartyImportService
 {
     private static readonly JsonSerializerOptions _options = new(JsonSerializerDefaults.Web);
 
     private readonly HttpClient _httpClient;
     private readonly TimeProvider _timeProvider;
+    private readonly ILogger<A2PartyImportService> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="A2PartyImportService"/> class.
     /// </summary>
-    public A2PartyImportService(HttpClient httpClient, TimeProvider timeProvider)
+    public A2PartyImportService(
+        HttpClient httpClient,
+        TimeProvider timeProvider,
+        ILogger<A2PartyImportService> logger)
     {
         _httpClient = httpClient;
         _timeProvider = timeProvider;
+        _logger = logger;
     }
 
     /// <inheritdoc />
@@ -42,14 +47,19 @@ internal sealed class A2PartyImportService
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         PartyChangesResponse response;
-        do
+        while (true)
         {
             response = await GetChangesPage(fromExclusive, cancellationToken);
             yield return MapChangePage(response);
 
+            if (response.PartyChangeList.Count == 0)
+            {
+                break;
+            }
+
+            Debug.Assert(response.LastChangeInSegment > fromExclusive);
             fromExclusive = response.LastChangeInSegment;
         }
-        while (response.LastAvailableChange != response.LastChangeInSegment);
     }
 
     /// <inheritdoc />
@@ -117,6 +127,7 @@ internal sealed class A2PartyImportService
     {
         var url = $"parties/partychanges/{fromExclusive}";
 
+        Log.FetchingPartyChangesPage(_logger, fromExclusive);
         var response = await _httpClient.GetFromJsonAsync<PartyChangesResponse>(url, _options, cancellationToken);
         if (response is null)
         {
@@ -571,5 +582,11 @@ internal sealed class A2PartyImportService
         /// Gets the UUID of the party that was not found.
         /// </summary>
         public Guid PartyUuid => partyUuid;
+    }
+
+    private static partial class Log
+    {
+        [LoggerMessage(LogLevel.Debug, "Fetching party changes from {FromExclusive}.", EventName = "FetchingPartyChangesPage")]
+        public static partial void FetchingPartyChangesPage(ILogger logger, uint fromExclusive);
     }
 }
