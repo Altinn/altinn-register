@@ -10,6 +10,7 @@ using Altinn.Register.Tests.Utils;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Http;
 using FluentAssertions.Execution;
+using Microsoft.Extensions.Logging;
 using Nerdbank.Streams;
 
 namespace Altinn.Register.Tests.PartyImport.A2;
@@ -32,7 +33,8 @@ public class A2PartyImportServiceTests
             .WithQuery("partyuuid", partyUuid.ToString())
             .Respond(() => TestDataParty(partyId));
 
-        var client = new A2PartyImportService(handler.CreateClient(), TimeProvider);
+        var logger = GetRequiredService<ILogger<A2PartyImportService>>();
+        var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
 
         var partyRecord = await client.GetParty(partyUuid);
 
@@ -81,7 +83,8 @@ public class A2PartyImportServiceTests
             .WithQuery("partyuuid", partyUuid.ToString())
             .Respond(() => TestDataParty(partyId));
 
-        var client = new A2PartyImportService(handler.CreateClient(), TimeProvider);
+        var logger = GetRequiredService<ILogger<A2PartyImportService>>();
+        var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
 
         var partyRecord = await client.GetParty(partyUuid);
 
@@ -137,7 +140,8 @@ public class A2PartyImportServiceTests
                 """,
                 MediaTypeHeaderValue.Parse("application/json; encoding=utf-8")));
 
-        var client = new A2PartyImportService(handler.CreateClient(), TimeProvider);
+        var logger = GetRequiredService<ILogger<A2PartyImportService>>();
+        var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
 
         var roleAssignments = await client.GetExternalRoleAssignmentsFrom(partyId, partyUuid).ToListAsync();
         Assert.NotNull(roleAssignments);
@@ -185,7 +189,8 @@ public class A2PartyImportServiceTests
                 """,
                 MediaTypeHeaderValue.Parse("application/json; encoding=utf-8")));
 
-        var client = new A2PartyImportService(handler.CreateClient(), TimeProvider);
+        var logger = GetRequiredService<ILogger<A2PartyImportService>>();
+        var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
 
         var roleAssignments = await client.GetExternalRoleAssignmentsFrom(partyId, partyUuid).ToListAsync();
         Assert.NotNull(roleAssignments);
@@ -219,12 +224,11 @@ public class A2PartyImportServiceTests
                 }
                 """);
 
-        var client = new A2PartyImportService(handler.CreateClient(), TimeProvider);
+        var logger = GetRequiredService<ILogger<A2PartyImportService>>();
+        var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
         var changes = await client.GetChanges().ToListAsync();
 
-        var page = changes.Should().ContainSingle().Which;
-        page.LastKnownChangeId.Should().Be(0);
-        page.Should().BeEmpty();
+        changes.Should().BeEmpty();
     }
 
     [Fact]
@@ -255,7 +259,20 @@ public class A2PartyImportServiceTests
                 }
                 """);
 
-        var client = new A2PartyImportService(handler.CreateClient(), TimeProvider);
+        handler.Expect(HttpMethod.Get, "/parties/partychanges/2")
+            .Respond(
+                contentType: "application/json",
+                """
+                {
+                    "PartyChangeList": [
+                    ],
+                    "LastAvailableChange": 2,
+                    "LastChangeInSegment": 0
+                }
+                """);
+
+        var logger = GetRequiredService<ILogger<A2PartyImportService>>();
+        var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
         var changes = await client.GetChanges().ToListAsync();
 
         var page = changes.Should().ContainSingle().Which;
@@ -343,7 +360,20 @@ public class A2PartyImportServiceTests
                 }
                 """);
 
-        var client = new A2PartyImportService(handler.CreateClient(), TimeProvider);
+        handler.Expect(HttpMethod.Get, "/parties/partychanges/5")
+            .Respond(
+                contentType: "application/json",
+                """
+                {
+                    "PartyChangeList": [
+                    ],
+                    "LastAvailableChange": 5,
+                    "LastChangeInSegment": 0
+                }
+                """);
+
+        var logger = GetRequiredService<ILogger<A2PartyImportService>>();
+        var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
         var changes = await client.GetChanges().ToListAsync();
 
         changes.Should().HaveCount(3);

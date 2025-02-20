@@ -162,7 +162,7 @@ public class FakeHttpMessageHandler
             = static (context, cancellationToken) =>
             {
                 // TODO: Throw match summary exception.
-                throw new NotImplementedException();
+                throw new InvalidOperationException("Request did not match any configured handlers");
             };
 
         public FallbackFakeRequestHandler()
