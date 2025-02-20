@@ -228,9 +228,7 @@ public class A2PartyImportServiceTests
         var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
         var changes = await client.GetChanges().ToListAsync();
 
-        var page = changes.Should().ContainSingle().Which;
-        page.LastKnownChangeId.Should().Be(0);
-        page.Should().BeEmpty();
+        changes.Should().BeEmpty();
     }
 
     [Fact]
@@ -258,6 +256,18 @@ public class A2PartyImportServiceTests
                     ],
                     "LastAvailableChange": 2,
                     "LastChangeInSegment": 2
+                }
+                """);
+
+        handler.Expect(HttpMethod.Get, "/parties/partychanges/2")
+            .Respond(
+                contentType: "application/json",
+                """
+                {
+                    "PartyChangeList": [
+                    ],
+                    "LastAvailableChange": 2,
+                    "LastChangeInSegment": 0
                 }
                 """);
 
@@ -347,6 +357,18 @@ public class A2PartyImportServiceTests
                     ],
                     "LastAvailableChange": 5,
                     "LastChangeInSegment": 5
+                }
+                """);
+
+        handler.Expect(HttpMethod.Get, "/parties/partychanges/5")
+            .Respond(
+                contentType: "application/json",
+                """
+                {
+                    "PartyChangeList": [
+                    ],
+                    "LastAvailableChange": 5,
+                    "LastChangeInSegment": 0
                 }
                 """);
 

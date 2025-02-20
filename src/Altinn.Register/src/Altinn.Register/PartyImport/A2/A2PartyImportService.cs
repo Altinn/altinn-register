@@ -50,12 +50,13 @@ internal sealed partial class A2PartyImportService
         while (true)
         {
             response = await GetChangesPage(fromExclusive, cancellationToken);
-            yield return MapChangePage(response);
 
             if (response.PartyChangeList.Count == 0)
             {
                 break;
             }
+
+            yield return MapChangePage(response);
 
             Debug.Assert(response.LastChangeInSegment > fromExclusive);
             fromExclusive = response.LastChangeInSegment;
