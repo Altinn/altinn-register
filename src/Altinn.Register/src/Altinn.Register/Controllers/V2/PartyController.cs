@@ -1,6 +1,5 @@
 ﻿#nullable enable
 
-using System.Diagnostics;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
@@ -71,16 +70,14 @@ public class PartyController
         var maxVersionId = await persistence.GetMaxPartyVersionId(cancellationToken);
         var parties = await persistence.GetPartyStream(
             from: token?.Value ?? 0,
-            limit: PAGE_SIZE + 1,
+            limit: PAGE_SIZE,
             fields | PartyFieldIncludes.PartyVersionId,
             cancellationToken)
             .ToListAsync(cancellationToken);
 
         string? nextLink = null;
-        if (parties.Count > PAGE_SIZE)
+        if (parties.Count > 0)
         {
-            Debug.Assert(parties.Count == PAGE_SIZE + 1);
-            parties.RemoveAt(parties.Count - 1);
             nextLink = Url.Link(ROUTE_GET_STREAM, new
             {
                 token = Opaque.Create(parties[^1].VersionId.Value),
