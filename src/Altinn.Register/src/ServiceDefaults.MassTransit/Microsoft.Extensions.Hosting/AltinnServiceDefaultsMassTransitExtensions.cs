@@ -171,19 +171,17 @@ public static class AltinnServiceDefaultsMassTransitExtensions
 
             configurator.AddConfigureEndpointsCallback((ctx, name, cfg) =>
             {
-                cfg.UseInMemoryOutbox(ctx, x => x.ConcurrentMessageDelivery = true);
-
                 // redeliver if all retries fail
                 if (redeliveryIntervals is not null)
                 {
                     cfg.UseScheduledRedelivery(r => r.Intervals(redeliveryIntervals));
                 }
 
-                // retry messages 3 times, in short order, before failing back to the broker
+                // retry messages 1 times, in short order, before failing back to the broker
                 cfg.UseMessageRetry(r => r.Intervals(
-                    TimeSpan.Zero,
-                    TimeSpan.FromMilliseconds(10),
-                    TimeSpan.FromMilliseconds(100)));
+                    TimeSpan.FromSeconds(1)));
+
+                cfg.UseInMemoryOutbox(ctx, x => x.ConcurrentMessageDelivery = true);
             });
 
             configurator.AddSendObserver<DiagnosticHeadersSendObserver>();

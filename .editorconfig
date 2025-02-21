@@ -156,7 +156,6 @@ dotnet_diagnostic.SA1114.severity = error
 dotnet_diagnostic.SA1115.severity = error
 dotnet_diagnostic.SA1116.severity = error
 dotnet_diagnostic.SA1117.severity = error
-dotnet_diagnostic.SA1118.severity = error
 dotnet_diagnostic.SA1119.severity = error
 dotnet_diagnostic.SA1120.severity = error
 dotnet_diagnostic.SA1121.severity = error
@@ -286,3 +285,6 @@ dotnet_diagnostic.SA1509.severity = none
 
 # VSTHRD200: Use "Async" suffix for async methods
 dotnet_diagnostic.VSTHRD200.severity = none
+
+# SA1118: Parameter should not span multiple lines
+dotnet_diagnostic.SA1118.severity = none

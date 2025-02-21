@@ -13,6 +13,7 @@ namespace Altinn.Register.PartyImport.A2;
 /// </summary>
 public sealed class A2PartyImportConsumer
     : IConsumer<ImportA2PartyCommand>
+    , IConsumer<ImportA2CCRRolesCommand>
 {
     private readonly IA2PartyImportService _importService;
     private readonly ICommandSender _sender;
@@ -39,6 +40,27 @@ public sealed class A2PartyImportConsumer
         _meters.PartiesFetched.Add(1);
     }
 
+    /// <inheritdoc />
+    public async Task Consume(ConsumeContext<ImportA2CCRRolesCommand> context)
+    {
+        var partyId = context.Message.PartyId;
+        var partyUuid = context.Message.PartyUuid;
+
+        var externalRoleAssignments = await _importService.GetExternalRoleAssignmentsFrom(partyId, partyUuid, context.CancellationToken)
+            .ToListAsync(context.CancellationToken);
+
+        var cmd = new ResolveAndUpsertA2CCRRoleAssignmentsCommand
+        {
+            FromPartyUuid = partyUuid,
+            RoleAssignments = externalRoleAssignments,
+            Tracking = new(JobNames.A2PartyImportCCRRoleAssignments, context.Message.ChangeId),
+        };
+
+        await _sender.Send(cmd, context.CancellationToken);
+        _meters.RoleAssignmentsFetched.Add(externalRoleAssignments.Count);
+        _meters.RoleAssignmentsPerParty.Record(externalRoleAssignments.Count);
+    }
+
     /// <summary>
     /// Meters for <see cref="A2PartyImportConsumer"/>.
     /// </summary>
@@ -50,6 +72,18 @@ public sealed class A2PartyImportConsumer
         /// </summary>
         public Counter<int> PartiesFetched { get; }
             = telemetry.CreateCounter<int>("register.party-import.a2.parties.fetched", "The number of parties fetched from A2.");
+
+        /// <summary>
+        /// Gets a counter for the number of role assignments fetched from A2.
+        /// </summary>
+        public Counter<int> RoleAssignmentsFetched { get; }
+            = telemetry.CreateCounter<int>("register.party-import.a2.role-assignments.fetched", "The number of role assignments fetched from A2.");
+
+        /// <summary>
+        /// Gets a histogram for the number of role assignments fetched from A2 per party.
+        /// </summary>
+        public Histogram<int> RoleAssignmentsPerParty { get; }
+            = telemetry.CreateHistogram<int>("register.party-import.a2.role-assignments-per-party", "The number of role assignments fetched from A2 per party.");
 
         /// <inheritdoc/>
         public static ImportMeters Create(RegisterTelemetry telemetry)

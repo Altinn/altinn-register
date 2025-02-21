@@ -872,13 +872,14 @@ internal partial class PostgreSqlPartyPersistence
 
         public ExternalRoleSource RoleSource { get; }
 
+        // Note: We're explicitly not keeping the inner exception here, because the resulting exception is too long and causes issues in logging
         public UpsertExternalRolesFromPartyBySourceException(
             Guid commandId,
             Guid fromParty,
             ExternalRoleSource source,
             IEnumerable<IPartyExternalRolePersistence.UpsertExternalRoleAssignment> assignments,
             Exception innerException)
-            : base(CreateMessage(commandId, fromParty, source, assignments), innerException)
+            : base(CreateMessage(commandId, fromParty, source, assignments, innerException))
         {
             CommandId = commandId;
             FromParty = fromParty;
@@ -889,11 +890,13 @@ internal partial class PostgreSqlPartyPersistence
             Guid commandId,
             Guid fromParty,
             ExternalRoleSource source,
-            IEnumerable<IPartyExternalRolePersistence.UpsertExternalRoleAssignment> assignments)
+            IEnumerable<IPartyExternalRolePersistence.UpsertExternalRoleAssignment> assignments,
+            Exception innerException)
         {
             var sb = new StringBuilder();
             sb.AppendLine($"Failed to upsert external role-assignments from party '{fromParty}' for source '{source}';");
-            sb.AppendLine($"CommandId = {{{commandId}}}");
+            sb.AppendLine($"Cause By: {innerException.Message}");
+            sb.AppendLine($"CommandId: {{{commandId}}}");
 
             foreach (var assignment in assignments)
             {

@@ -3,14 +3,20 @@
 using System.Globalization;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Altinn.Register.Contracts.ExternalRoles;
+using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
+using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.PartyImport;
 using Altinn.Register.PartyImport.A2;
 using Altinn.Register.Tests.Utils;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Http;
+using Altinn.Register.TestUtils.MassTransit;
+using Altinn.Register.TestUtils.TestData;
 using FluentAssertions.Execution;
+using MassTransit.Testing;
 using Nerdbank.Streams;
 using Xunit.Abstractions;
 
@@ -39,6 +45,73 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
         sent.Context.Message.Party.PartyId.Should().Be(partyId);
         sent.Context.Message.Party.PartyUuid.Should().Be(partyUuid);
         sent.Context.DestinationAddress.Should().Be(CommandQueueResolver.GetQueueUriForCommandType<UpsertPartyCommand>());
+    }
+
+    [Fact]
+    public async Task ImportA2CCRRolesCommand_FetchesRoles_AndSendsUpsertCommand()
+    {
+        await GetRequiredService<IImportJobTracker>().TrackQueueStatus(JobNames.A2PartyImportCCRRoleAssignments, new()
+        {
+            SourceMax = 10,
+            EnqueuedMax = 1,
+        });
+        var (org, person1, person2) = await Setup(async uow =>
+        {
+            var org = await uow.CreateOrg();
+            var person1 = await uow.CreatePerson();
+            var person2 = await uow.CreatePerson();
+
+            var roles = uow.GetPartyExternalRolePersistence();
+            await roles.UpsertExternalRolesFromPartyBySource(
+                commandId: Guid.CreateVersion7(),
+                partyUuid: org.PartyUuid.Value,
+                roleSource: ExternalRoleSource.CentralCoordinatingRegister,
+                assignments: [
+                    new("styreleder", person2.PartyUuid.Value),
+                ]);
+
+            return (org, person1, person2);
+        });
+
+        HttpHandlers.For<IA2PartyImportService>().Expect(HttpMethod.Get, "/parties/partyroles/{fromPartyId}")
+            .WithRouteValue("fromPartyId", org.PartyId.Value.ToString())
+            .Respond(
+                "application/json",
+                $$"""
+                [
+                    {"PartyId": "{{person1.PartyId.Value}}", "PartyUuid": "{{person1.PartyUuid.Value}}", "PartyRelation": "Role", "RoleCode": "DAGL"},
+                    {"PartyId": "{{person2.PartyId.Value}}", "PartyUuid": "{{person2.PartyUuid.Value}}", "PartyRelation": "Role", "RoleCode": "MEDL"}
+                ]
+                """);
+
+        var cmd = new ImportA2CCRRolesCommand
+        {
+            ChangeId = 1,
+            ChangedTime = TimeProvider.GetUtcNow(),
+            PartyId = org.PartyId.Value,
+            PartyUuid = org.PartyUuid.Value,
+        };
+
+        await CommandSender.Send(cmd);
+        var conversation = await Harness.Conversation(cmd);
+
+        var resolveCommand = await conversation.Commands.OfType<ResolveAndUpsertA2CCRRoleAssignmentsCommand>().FirstOrDefaultAsync();
+        Assert.NotNull(resolveCommand);
+
+        Assert.Equal(resolveCommand.FromPartyUuid, cmd.PartyUuid);
+        Assert.Equal(resolveCommand.Tracking, new(JobNames.A2PartyImportCCRRoleAssignments, 1));
+        Assert.Collection(
+            resolveCommand.RoleAssignments,
+            a =>
+            {
+                Assert.Equal(person1.PartyUuid.Value, a.ToPartyUuid);
+                Assert.Equal("DAGL", a.RoleCode);
+            },
+            a =>
+            {
+                Assert.Equal(person2.PartyUuid.Value, a.ToPartyUuid);
+                Assert.Equal("MEDL", a.RoleCode);
+            });
     }
 
     [Theory]
@@ -187,6 +260,15 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
         {
             content?.Dispose();
         }
+    }
+
+    private async Task<T> Setup<T>(Func<IUnitOfWork, Task<T>> setup)
+    {
+        await using var uow = await GetRequiredService<IUnitOfWorkManager>().CreateAsync(activityName: $"{nameof(PartyImportBatchConsumerTests)}.{nameof(Setup)}");
+        var result = await setup(uow);
+        await uow.CommitAsync();
+
+        return result;
     }
 
     public sealed record PersonNameInput
