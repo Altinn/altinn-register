@@ -509,7 +509,7 @@ internal partial class PostgreSqlPartyPersistence
                         _builder.AppendLine().Append(/*strpsql*/"    FULL JOIN register.organization co USING (uuid)");
                     }
 
-                    _builder.AppendLine().Append(/*strpsql*/"    WHERE r.source = 'ccr' AND (r.identifier = 'aafy' OR r.identifier = 'bedr')");
+                    _builder.AppendLine().Append(/*strpsql*/"    WHERE r.source = 'ccr' AND (r.identifier = 'ikke-naeringsdrivende-hovedenhet' OR r.identifier = 'hovedenhet')");
                     _builder.AppendLine().Append(/*strpsql*/") cp ON cp.parent_uuid = p.uuid");
                 }
 

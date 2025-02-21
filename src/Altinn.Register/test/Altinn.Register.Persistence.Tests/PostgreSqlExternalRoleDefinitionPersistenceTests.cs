@@ -24,8 +24,8 @@ public class PostgreSqlExternalRoleDefinitionPersistenceTests(ITestOutputHelper 
     }
 
     [Theory]
-    [InlineData(ExternalRoleSource.CentralCoordinatingRegister, "bedr")]
-    [InlineData(ExternalRoleSource.CentralCoordinatingRegister, "aafy")]
+    [InlineData(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet")]
+    [InlineData(ExternalRoleSource.CentralCoordinatingRegister, "ikke-naeringsdrivende-hovedenhet")]
     public async Task GetsRoleDefinition(ExternalRoleSource source, string identifier)
     {
         // cold
@@ -42,8 +42,8 @@ public class PostgreSqlExternalRoleDefinitionPersistenceTests(ITestOutputHelper 
     }
 
     [Theory]
-    [InlineData("BEDR", ExternalRoleSource.CentralCoordinatingRegister, "bedr")]
-    [InlineData("AAFY", ExternalRoleSource.CentralCoordinatingRegister, "aafy")]
+    [InlineData("BEDR", ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet")]
+    [InlineData("AAFY", ExternalRoleSource.CentralCoordinatingRegister, "ikke-naeringsdrivende-hovedenhet")]
     public async Task GetsRoleDefinition_ByRoleCode(string roleCode, ExternalRoleSource source, string identifier)
     {
         // cold
@@ -73,7 +73,7 @@ public class PostgreSqlExternalRoleDefinitionPersistenceTests(ITestOutputHelper 
                     try
                     {
                         evt.Wait();
-                        var vtask = Persistence.TryGetRoleDefinition(ExternalRoleSource.CentralCoordinatingRegister, "bedr");
+                        var vtask = Persistence.TryGetRoleDefinition(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet");
                         CompleteVTask(tcs, vtask);
                     }
                     catch (Exception ex)
@@ -112,7 +112,7 @@ public class PostgreSqlExternalRoleDefinitionPersistenceTests(ITestOutputHelper 
                 var result = vtask.GetAwaiter().GetResult();
                 Assert.NotNull(result);
                 Assert.Equal(ExternalRoleSource.CentralCoordinatingRegister, result.Source);
-                Assert.Equal("bedr", result.Identifier);
+                Assert.Equal("hovedenhet", result.Identifier);
             }
             catch (Exception ex)
             {

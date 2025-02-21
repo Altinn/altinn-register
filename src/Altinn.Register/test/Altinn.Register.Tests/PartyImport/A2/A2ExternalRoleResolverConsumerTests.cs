@@ -39,7 +39,7 @@ public class A2ExternalRoleResolverConsumerTests(ITestOutputHelper output)
                 partyUuid: org.PartyUuid.Value,
                 roleSource: ExternalRoleSource.CentralCoordinatingRegister,
                 assignments: [
-                    new("lede", person2.PartyUuid.Value),
+                    new("styreleder", person2.PartyUuid.Value),
                 ]);
 
             return (org, person1, person2);
@@ -71,17 +71,17 @@ public class A2ExternalRoleResolverConsumerTests(ITestOutputHelper output)
             a =>
             {
                 Assert.Equal(person1.PartyUuid.Value, a.ToPartyUuid);
-                Assert.Equal("dagl", a.Identifier);
+                Assert.Equal("daglig-leder", a.Identifier);
             },
             a =>
             {
                 Assert.Equal(person1.PartyUuid.Value, a.ToPartyUuid);
-                Assert.Equal("medl", a.Identifier);
+                Assert.Equal("styremedlem", a.Identifier);
             },
             a =>
             {
                 Assert.Equal(person2.PartyUuid.Value, a.ToPartyUuid);
-                Assert.Equal("medl", a.Identifier);
+                Assert.Equal("styremedlem", a.Identifier);
             });
     }
 
