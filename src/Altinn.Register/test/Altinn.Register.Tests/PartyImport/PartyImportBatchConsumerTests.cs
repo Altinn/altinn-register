@@ -39,7 +39,7 @@ public class PartyImportBatchConsumerTests(ITestOutputHelper output)
                 partyUuid: org.PartyUuid.Value,
                 roleSource: ExternalRoleSource.CentralCoordinatingRegister,
                 assignments: [
-                    new("lede", person2.PartyUuid.Value),
+                    new("styreleder", person2.PartyUuid.Value),
                 ]);
 
             return (org, person1, person2);
@@ -51,9 +51,9 @@ public class PartyImportBatchConsumerTests(ITestOutputHelper output)
             Source = ExternalRoleSource.CentralCoordinatingRegister,
             Tracking = new("test", 1),
             Assignments = [
-                new() { ToPartyUuid = person1.PartyUuid.Value, Identifier = "dagl" },
-                new() { ToPartyUuid = person1.PartyUuid.Value, Identifier = "medl" },
-                new() { ToPartyUuid = person2.PartyUuid.Value, Identifier = "medl" },
+                new() { ToPartyUuid = person1.PartyUuid.Value, Identifier = "daglig-leder" },
+                new() { ToPartyUuid = person1.PartyUuid.Value, Identifier = "styremedlem" },
+                new() { ToPartyUuid = person2.PartyUuid.Value, Identifier = "styremedlem" },
             ],
         };
 
@@ -61,10 +61,10 @@ public class PartyImportBatchConsumerTests(ITestOutputHelper output)
         var consumed = await Harness.Consumed.SelectAsync<UpsertExternalRoleAssignmentsCommand>(m => m.Context.CorrelationId == cmd.CommandId).FirstAsync();
         var conversation = Harness.Conversation(consumed.Context.ConversationId!.Value);
 
-        Assert.True(await conversation.Events.OfType<ExternalRoleAssignmentAddedEvent>().AnyAsync(MatchAddedRole(org, person1, ExternalRoleSource.CentralCoordinatingRegister, "dagl")));
-        Assert.True(await conversation.Events.OfType<ExternalRoleAssignmentAddedEvent>().AnyAsync(MatchAddedRole(org, person1, ExternalRoleSource.CentralCoordinatingRegister, "medl")));
-        Assert.True(await conversation.Events.OfType<ExternalRoleAssignmentAddedEvent>().AnyAsync(MatchAddedRole(org, person2, ExternalRoleSource.CentralCoordinatingRegister, "medl")));
-        Assert.True(await conversation.Events.OfType<ExternalRoleAssignmentRemovedEvent>().AnyAsync(MatchRemovedRole(org, person2, ExternalRoleSource.CentralCoordinatingRegister, "lede")));
+        Assert.True(await conversation.Events.OfType<ExternalRoleAssignmentAddedEvent>().AnyAsync(MatchAddedRole(org, person1, ExternalRoleSource.CentralCoordinatingRegister, "daglig-leder")));
+        Assert.True(await conversation.Events.OfType<ExternalRoleAssignmentAddedEvent>().AnyAsync(MatchAddedRole(org, person1, ExternalRoleSource.CentralCoordinatingRegister, "styremedlem")));
+        Assert.True(await conversation.Events.OfType<ExternalRoleAssignmentAddedEvent>().AnyAsync(MatchAddedRole(org, person2, ExternalRoleSource.CentralCoordinatingRegister, "styremedlem")));
+        Assert.True(await conversation.Events.OfType<ExternalRoleAssignmentRemovedEvent>().AnyAsync(MatchRemovedRole(org, person2, ExternalRoleSource.CentralCoordinatingRegister, "styreleder")));
 
         // idempotency check
         await CommandSender.Send(cmd);
@@ -72,10 +72,10 @@ public class PartyImportBatchConsumerTests(ITestOutputHelper output)
 
         conversation = Harness.Conversation(consumed2.Context.ConversationId!.Value);
 
-        Assert.True(await conversation.Events.OfType<ExternalRoleAssignmentAddedEvent>().AnyAsync(MatchAddedRole(org, person1, ExternalRoleSource.CentralCoordinatingRegister, "dagl")));
-        Assert.True(await conversation.Events.OfType<ExternalRoleAssignmentAddedEvent>().AnyAsync(MatchAddedRole(org, person1, ExternalRoleSource.CentralCoordinatingRegister, "medl")));
-        Assert.True(await conversation.Events.OfType<ExternalRoleAssignmentAddedEvent>().AnyAsync(MatchAddedRole(org, person2, ExternalRoleSource.CentralCoordinatingRegister, "medl")));
-        Assert.True(await conversation.Events.OfType<ExternalRoleAssignmentRemovedEvent>().AnyAsync(MatchRemovedRole(org, person2, ExternalRoleSource.CentralCoordinatingRegister, "lede")));
+        Assert.True(await conversation.Events.OfType<ExternalRoleAssignmentAddedEvent>().AnyAsync(MatchAddedRole(org, person1, ExternalRoleSource.CentralCoordinatingRegister, "daglig-leder")));
+        Assert.True(await conversation.Events.OfType<ExternalRoleAssignmentAddedEvent>().AnyAsync(MatchAddedRole(org, person1, ExternalRoleSource.CentralCoordinatingRegister, "styremedlem")));
+        Assert.True(await conversation.Events.OfType<ExternalRoleAssignmentAddedEvent>().AnyAsync(MatchAddedRole(org, person2, ExternalRoleSource.CentralCoordinatingRegister, "styremedlem")));
+        Assert.True(await conversation.Events.OfType<ExternalRoleAssignmentRemovedEvent>().AnyAsync(MatchRemovedRole(org, person2, ExternalRoleSource.CentralCoordinatingRegister, "styreleder")));
     }
 
     private async Task<T> Setup<T>(Func<IUnitOfWork, Task<T>> setup)

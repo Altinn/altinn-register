@@ -370,12 +370,12 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [Fact]
     public async Task LookupParties_Shared_SubUnit()
     {
-        var child = await UoW.CreateOrg(unitType: "BEDR");
+        var child = await UoW.CreateOrg(unitType: "hovedenhet");
         var parent1 = await UoW.CreateOrg(unitType: "AS");
         var parent2 = await UoW.CreateOrg(unitType: "AS");
 
-        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "bedr", from: child.PartyUuid.Value, to: parent1.PartyUuid.Value);
-        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "bedr", from: child.PartyUuid.Value, to: parent2.PartyUuid.Value);
+        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet", from: child.PartyUuid.Value, to: parent1.PartyUuid.Value);
+        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet", from: child.PartyUuid.Value, to: parent2.PartyUuid.Value);
 
         var result = await Persistence.LookupParties(
             partyUuids: [parent1.PartyUuid.Value, parent2.PartyUuid.Value],
@@ -430,7 +430,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         using var scope = new AssertionScope();
         role.Source.Should().Be(ExternalRoleSource.CentralCoordinatingRegister);
-        role.Identifier.Should().Be("bedr");
+        role.Identifier.Should().Be("hovedenhet");
         role.FromParty.Should().Be(ChildOrganizationUuid);
         role.ToParty.Should().Be(OrganizationWithChildrenUuid);
 
@@ -447,7 +447,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         using var scope = new AssertionScope();
         role.Source.Should().Be(ExternalRoleSource.CentralCoordinatingRegister);
-        role.Identifier.Should().Be("bedr");
+        role.Identifier.Should().Be("hovedenhet");
         role.FromParty.Should().Be(ChildOrganizationUuid);
         role.ToParty.Should().Be(OrganizationWithChildrenUuid);
 
@@ -475,7 +475,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             using var scope = new AssertionScope();
             role.Source.Should().Be(ExternalRoleSource.CentralCoordinatingRegister);
-            role.Identifier.Should().Be("bedr");
+            role.Identifier.Should().Be("hovedenhet");
             role.FromParty.Should().HaveValue();
             role.ToParty.Should().Be(party);
 
@@ -574,7 +574,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             UnitStatus = "U",
-            UnitType = "BEDR",
+            UnitType = "hovedenhet",
             TelephoneNumber = "tel",
             MobileNumber = "mob",
             FaxNumber = "fax",
@@ -1059,14 +1059,14 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             party1,
             source,
             [
-                new("bedr", party2),
-                new("aafy", party2),
-                new("medl", party2),
+                new("hovedenhet", party2),
+                new("ikke-naeringsdrivende-hovedenhet", party2),
+                new("styremedlem", party2),
             ],
             [
-                new(added, "bedr", party2),
-                new(added, "aafy", party2),
-                new(added, "medl", party2),
+                new(added, "hovedenhet", party2),
+                new(added, "ikke-naeringsdrivende-hovedenhet", party2),
+                new(added, "styremedlem", party2),
             ]);
 
         // remove 1 role
@@ -1074,11 +1074,11 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             party1,
             source,
             [
-                new("bedr", party2),
-                new("medl", party2),
+                new("hovedenhet", party2),
+                new("styremedlem", party2),
             ],
             [
-                new(removed, "aafy", party2),
+                new(removed, "ikke-naeringsdrivende-hovedenhet", party2),
             ]);
 
         // replace 1 role
@@ -1086,12 +1086,12 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             party1,
             source,
             [
-                new("bedr", party2),
-                new("aafy", party2),
+                new("hovedenhet", party2),
+                new("ikke-naeringsdrivende-hovedenhet", party2),
             ],
             [
-                new(added, "aafy", party2),
-                new(removed, "medl", party2),
+                new(added, "ikke-naeringsdrivende-hovedenhet", party2),
+                new(removed, "styremedlem", party2),
             ]);
 
         // replace all roles
@@ -1099,12 +1099,12 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             party1,
             source,
             [
-                new("medl", party2),
+                new("styremedlem", party2),
             ],
             [
-                new(added, "medl", party2),
-                new(removed, "bedr", party2),
-                new(removed, "aafy", party2),
+                new(added, "styremedlem", party2),
+                new(removed, "hovedenhet", party2),
+                new(removed, "ikke-naeringsdrivende-hovedenhet", party2),
             ]);
 
         // remove all roles
@@ -1113,7 +1113,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             source,
             [],
             [
-                new(removed, "medl", party2),
+                new(removed, "styremedlem", party2),
             ]);
 
         // add roles from ccr
