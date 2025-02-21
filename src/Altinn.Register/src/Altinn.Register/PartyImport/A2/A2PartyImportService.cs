@@ -587,7 +587,7 @@ internal sealed partial class A2PartyImportService
 
     private static partial class Log
     {
-        [LoggerMessage(LogLevel.Debug, "Fetching party changes from {FromExclusive}.", EventName = "FetchingPartyChangesPage")]
+        [LoggerMessage(1, LogLevel.Debug, "Fetching party changes from {FromExclusive}.")]
         public static partial void FetchingPartyChangesPage(ILogger logger, uint fromExclusive);
     }
 }

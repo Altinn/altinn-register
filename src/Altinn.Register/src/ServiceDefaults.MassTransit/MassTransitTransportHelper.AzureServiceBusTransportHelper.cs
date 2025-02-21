@@ -19,6 +19,7 @@ internal abstract partial class MassTransitTransportHelper
             configurator.UsingAzureServiceBus((ctx, cfg) =>
             {
                 cfg.Host(Settings.ConnectionString);
+                cfg.SetNamespaceSeparatorToUnderscore();
                 cfg.UseServiceBusMessageScheduler();
 
                 configureBus(ctx, cfg);
