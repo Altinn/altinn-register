@@ -5,7 +5,9 @@ using System.Diagnostics.Metrics;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Core;
 using Altinn.Register.Core.ImportJobs;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.PartyImport.A2;
+using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Jobs;
 
 namespace Altinn.Register.PartyImport.A2;
@@ -20,6 +22,8 @@ public sealed partial class A2PartyImportJob
     private readonly IImportJobTracker _tracker;
     private readonly ICommandSender _sender;
     private readonly IA2PartyImportService _importService;
+    private readonly IUnitOfWorkManager _unitOfWorkManager;
+    private readonly TimeProvider _timeProvider;
     private readonly ImportMeters _meters;
 
     /// <summary>
@@ -30,18 +34,36 @@ public sealed partial class A2PartyImportJob
         IImportJobTracker tracker,
         ICommandSender sender,
         IA2PartyImportService importService,
+        IUnitOfWorkManager unitOfWorkManager,
+        TimeProvider timeProvider,
         RegisterTelemetry telemetry)
     {
         _logger = logger;
         _tracker = tracker;
         _sender = sender;
         _importService = importService;
+        _unitOfWorkManager = unitOfWorkManager;
+        _timeProvider = timeProvider;
         _meters = telemetry.GetServiceMeters<ImportMeters>();
     }
 
     /// <inheritdoc/>
     public async Task RunAsync(CancellationToken cancellationToken)
     {
+        var partyImportStatus = await RunPartyImport(cancellationToken);
+
+        if (partyImportStatus.SourceMax - partyImportStatus.ProcessedMax < 100)
+        {
+            // Less than 1 page of changes left to process, so we can start importing roles.
+            await RunCCRRoleImport(partyImportStatus.ProcessedMax, cancellationToken);
+        }
+    }
+
+    private async Task<ImportJobStatus> RunPartyImport(CancellationToken cancellationToken)
+    {
+        var start = _timeProvider.GetTimestamp();
+        Log.StartingPartyImport(_logger);
+
         using var activity = RegisterTelemetry.StartActivity("import a2-parties", ActivityKind.Internal);
         var progress = await _tracker.GetStatus(JobNames.A2PartyImportParty, cancellationToken);
 
@@ -62,7 +84,7 @@ public sealed partial class A2PartyImportJob
             });
 
             await _sender.Send(cmds, cancellationToken);
-            Log.EnqueuedParties(_logger, page.Count);
+            Log.EnqueuedPartiesForImport(_logger, page.Count);
 
             var enqueuedMax = page[^1].ChangeId;
             var sourceMax = page.LastKnownChangeId;
@@ -71,10 +93,75 @@ public sealed partial class A2PartyImportJob
 
             if (enqueuedMax - progress.ProcessedMax > 50_000)
             {
-                Log.PausingEnqueueing(_logger);
+                Log.PausingEnqueueingParties(_logger, enqueuedMax, progress.ProcessedMax);
                 break;
             }
         }
+
+        var duration = _timeProvider.GetElapsedTime(start);
+        Log.FinishedPartyImport(_logger, duration);
+
+        return progress;
+    }
+
+    private async Task<ImportJobStatus> RunCCRRoleImport(ulong maxChangeId, CancellationToken cancellationToken)
+    {
+        var start = _timeProvider.GetTimestamp();
+        Log.StartingCCRRoleImport(_logger);
+
+        using var activity = RegisterTelemetry.StartActivity("import a2-ccr-roles", ActivityKind.Internal);
+        var progress = await _tracker.GetStatus(JobNames.A2PartyImportCCRRoleAssignments, cancellationToken);
+
+        var enqueued = 0UL;
+        var changes = _importService.GetChanges(checked((uint)progress.EnqueuedMax), cancellationToken);
+        await foreach (var page in changes.WithCancellation(cancellationToken))
+        {
+            if (page.Count == 0)
+            {
+                // Skip empty pages.
+                continue;
+            }
+
+            if (page[^1].ChangeId > maxChangeId)
+            {
+                // We've progressed passed imported parties, return and let the full job run anew.
+                break;
+            }
+
+            var orgsOnly = await FilterPartyTypes(page, PartyType.Organization, cancellationToken);
+
+            var cmds = orgsOnly
+                .Select(static update => new ImportA2CCRRolesCommand
+                {
+                    PartyId = update.PartyId,
+                    PartyUuid = update.PartyUuid,
+                    ChangedTime = update.ChangeTime,
+                    ChangeId = update.ChangeId,
+                })
+                .ToList();
+
+            await _sender.Send(cmds, cancellationToken);
+            Log.EnqueuedPartiesForCCRRoleImport(_logger, cmds.Count);
+
+            var enqueuedMax = page[^1].ChangeId;
+            var sourceMax = page.LastKnownChangeId;
+            progress = await TrackQueueStatus(JobNames.A2PartyImportCCRRoleAssignments, progress, new() { EnqueuedMax = enqueuedMax, SourceMax = sourceMax }, cancellationToken);
+            _meters.OrganizationCCRRolesEnqueued.Add(cmds.Count);
+            enqueued += (ulong)cmds.Count;
+
+            if (enqueued > 50_000)
+            {
+                Log.PausingEnqueueingCCRRoles(_logger, enqueued);
+                break;
+            }
+
+            // Note: since ccr roles are only from organizations, we don't check for queue size, as there are expected to be large holes in ProcessedMax.
+        }
+
+        var duration = _timeProvider.GetElapsedTime(start);
+        Log.FinishedCCRRoleImport(_logger, duration);
+
+        return progress;
     }
 
     private async Task<ImportJobStatus> TrackQueueStatus(string name, ImportJobStatus current, ImportJobQueueStatus newStatus, CancellationToken cancellationToken)
@@ -89,13 +176,44 @@ public sealed partial class A2PartyImportJob
         return new() { SourceMax = sourceMax, EnqueuedMax = enqueuedMax, ProcessedMax = processedMax };
     }
 
+    private async Task<IEnumerable<A2PartyChange>> FilterPartyTypes(IEnumerable<A2PartyChange> changes, PartyType type, CancellationToken cancellationToken)
+    {
+        await using var uow = await _unitOfWorkManager.CreateAsync(cancellationToken);
+        var partyLookup = await uow.GetPartyPersistence()
+            .LookupParties(
+                partyUuids: [.. changes.Select(static update => update.PartyUuid)],
+                include: PartyFieldIncludes.PartyUuid | PartyFieldIncludes.PartyType,
+                cancellationToken: cancellationToken)
+            .ToDictionaryAsync(static party => party.PartyUuid.Value, cancellationToken);
+
+        return changes.Where(update => partyLookup.TryGetValue(update.PartyUuid, out var party) && party.PartyType.Value == type);
+    }
+
     private static partial class Log
     {
         [LoggerMessage(0, LogLevel.Information, "Enqueued {Count} parties for import.")]
-        public static partial void EnqueuedParties(ILogger logger, int count);
+        public static partial void EnqueuedPartiesForImport(ILogger logger, int count);
 
-        [LoggerMessage(1, LogLevel.Information, "More than 10'000 parties in queue since last measurement. Pausing enqueueing.")]
-        public static partial void PausingEnqueueing(ILogger logger);
+        [LoggerMessage(1, LogLevel.Information, "More than 50'000 parties in queue since last measurement. Pausing enqueueing. EnqueuedMax = {EnqueuedMax}, ProcessedMax = {ProcessedMax}.")]
+        public static partial void PausingEnqueueingParties(ILogger logger, ulong enqueuedMax, ulong processedMax);
+
+        [LoggerMessage(2, LogLevel.Information, "Enqueued {Count} parties for CCR role import.")]
+        public static partial void EnqueuedPartiesForCCRRoleImport(ILogger logger, int count);
+
+        [LoggerMessage(3, LogLevel.Information, "Starting party import.")]
+        public static partial void StartingPartyImport(ILogger logger);
+
+        [LoggerMessage(4, LogLevel.Information, "Finished party import in {Duration}.")]
+        public static partial void FinishedPartyImport(ILogger logger, TimeSpan duration);
+
+        [LoggerMessage(5, LogLevel.Information, "Starting CCR role import.")]
+        public static partial void StartingCCRRoleImport(ILogger logger);
+
+        [LoggerMessage(6, LogLevel.Information, "Finished CCR role import in {Duration}.")]
+        public static partial void FinishedCCRRoleImport(ILogger logger, TimeSpan duration);
+
+        [LoggerMessage(7, LogLevel.Information, "More than 50'000 parties enqueued for CCR role import in a single job run. Pausing enqueueing. Total enqueued this job run = {Enqueued}")]
+        public static partial void PausingEnqueueingCCRRoles(ILogger logger, ulong enqueued);
     }
 
     /// <summary>
