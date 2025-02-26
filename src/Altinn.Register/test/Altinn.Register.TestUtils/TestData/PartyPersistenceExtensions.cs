@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -12,7 +13,6 @@ using Altinn.Register.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using NpgsqlTypes;
-using Xunit;
 
 namespace Altinn.Register.TestUtils.TestData;
 
@@ -409,32 +409,44 @@ public static class PartyPersistenceExtensions
         await cmd.ExecuteNonQueryAsync();
     }
 
-    public static async Task CreateFakeRoleDefinitions(
-        this IUnitOfWork uow)
-    {
-        await uow.CreateFakeRoleDefinitions(ExternalRoleSource.CentralCoordinatingRegister);
-        await uow.CreateFakeRoleDefinitions(ExternalRoleSource.NationalPopulationRegister);
-    }
-
-    public static async Task CreateFakeRoleDefinitions(
+    public static async Task<ImmutableDictionary<ExternalRoleSource, ImmutableArray<ExternalRoleDefinition>>> CreateFakeRoleDefinitions(
         this IUnitOfWork uow,
-        ExternalRoleSource source)
+        CancellationToken cancellationToken = default)
     {
-        for (var i = 0; i < 40; i++)
-        {
-            await uow.CreateFakeRoleDefinition(source, $"fake-{i:D2}");
-        }
+        var builder = ImmutableDictionary.CreateBuilder<ExternalRoleSource, ImmutableArray<ExternalRoleDefinition>>();
+        builder.Add(ExternalRoleSource.CentralCoordinatingRegister, await uow.CreateFakeRoleDefinitions(ExternalRoleSource.CentralCoordinatingRegister, cancellationToken));
+        builder.Add(ExternalRoleSource.NationalPopulationRegister, await uow.CreateFakeRoleDefinitions(ExternalRoleSource.NationalPopulationRegister, cancellationToken));
+
+        return builder.ToImmutable();
     }
 
-    public static async Task CreateFakeRoleDefinition(
+    public static async Task<ImmutableArray<ExternalRoleDefinition>> CreateFakeRoleDefinitions(
         this IUnitOfWork uow,
         ExternalRoleSource source,
-        string identifier)
+        CancellationToken cancellationToken)
+    {
+        const int COUNT = 40;
+
+        var builder = ImmutableArray.CreateBuilder<ExternalRoleDefinition>(COUNT);
+        for (var i = 0; i < 40; i++)
+        {
+            builder.Add(await uow.CreateFakeRoleDefinition(source, $"fake-{i:D2}", cancellationToken));
+        }
+
+        return builder.MoveToImmutable();
+    }
+
+    public static async Task<ExternalRoleDefinition> CreateFakeRoleDefinition(
+        this IUnitOfWork uow,
+        ExternalRoleSource source,
+        string identifier,
+        CancellationToken cancellationToken = default)
     {
         const string QUERY =
             /*strpsql*/"""
             INSERT INTO register.external_role_definition (source, identifier, name, description)
             VALUES (@source, @identifier, @name, @name)
+            RETURNING *
             """;
 
         var conn = uow.GetRequiredService<NpgsqlConnection>();
@@ -452,7 +464,16 @@ public static class PartyPersistenceExtensions
         cmd.Parameters.Add<string>("identifier", NpgsqlDbType.Text).TypedValue = identifier;
         cmd.Parameters.Add<Dictionary<string, string>>("name", NpgsqlDbType.Hstore).TypedValue = name;
 
-        await cmd.PrepareAsync();
-        await cmd.ExecuteNonQueryAsync();
+        await cmd.PrepareAsync(cancellationToken);
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+
+        var def = await PostgreSqlExternalRoleDefinitionPersistence.Cache.ReadExternalRoleDefinitions(reader, cancellationToken).FirstOrDefaultAsync(cancellationToken);
+
+        if (def is null)
+        {
+            throw new InvalidOperationException("Failed to create fake role definition");
+        }
+
+        return def;
     }
 }

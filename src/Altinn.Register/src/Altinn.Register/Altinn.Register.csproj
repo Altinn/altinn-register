@@ -34,7 +34,8 @@
   </ItemGroup>
 
   <ItemGroup>
-		<InternalsVisibleTo Include="Altinn.Register.TestUtils" />
+		<InternalsVisibleTo Include="Altinn.Register.TestUtils.V2" />
+		<InternalsVisibleTo Include="Altinn.Register.TestUtils.V3" />
   </ItemGroup>
 
 </Project>

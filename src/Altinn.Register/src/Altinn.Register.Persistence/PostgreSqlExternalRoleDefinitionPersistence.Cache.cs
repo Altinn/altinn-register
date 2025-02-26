@@ -186,6 +186,29 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
             var byRoleKey = new Dictionary<RoleKey, ExternalRoleDefinition>();
             var byRoleCode = new Dictionary<string, ExternalRoleDefinition>();
 
+            await foreach (var roleDefinition in ReadExternalRoleDefinitions(reader, cancellationToken))
+            {
+                var key = new RoleKey(roleDefinition.Source, roleDefinition.Identifier);
+                byRoleKey.Add(key, roleDefinition);
+
+                if (roleDefinition.Code is not null)
+                {
+                    byRoleCode.Add(roleDefinition.Code, roleDefinition);
+                }
+            }
+
+            return new State(byRoleKey, byRoleCode);
+        }
+
+        /// <summary>
+        /// Reads external role definitions from the specified <see cref="NpgsqlDataReader"/>.
+        /// </summary>
+        /// <param name="reader">The <see cref="NpgsqlDataReader"/>.</param>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+        /// <returns>An async enumerable of <see cref="ExternalRoleDefinition"/>s.</returns>
+        /// <remarks>Used by tests.</remarks>
+        internal static async IAsyncEnumerable<ExternalRoleDefinition> ReadExternalRoleDefinitions(NpgsqlDataReader reader, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
             var sourceOrdinal = reader.GetOrdinal("source");
             var identifierOrdinal = reader.GetOrdinal("identifier");
             var nameOrdinal = reader.GetOrdinal("name");
@@ -209,16 +232,8 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
                     Code = code,
                 };
 
-                var key = new RoleKey(source, identifier);
-                byRoleKey.Add(key, roleDefinition);
-
-                if (code is not null)
-                {
-                    byRoleCode.Add(code, roleDefinition);
-                }
+                yield return roleDefinition;
             }
-
-            return new State(byRoleKey, byRoleCode);
         }
 
         private readonly record struct RoleKey(ExternalRoleSource Source, string Identifier);
