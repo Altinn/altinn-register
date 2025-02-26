@@ -324,7 +324,8 @@ public static class PartyPersistenceExtensions
         FieldValue<StreetAddress> address = default,
         FieldValue<MailingAddress> mailingAddress = default,
         FieldValue<DateOnly> dateOfBirth = default,
-        FieldValue<DateOnly> dateOfDeath = default)
+        FieldValue<DateOnly> dateOfDeath = default,
+        CancellationToken cancellationToken = default)
     {
         var connection = uow.GetRequiredService<NpgsqlConnection>();
 
