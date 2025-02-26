@@ -1,6 +1,5 @@
 ﻿#nullable enable
 
-using System.Diagnostics;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
@@ -24,6 +23,11 @@ namespace Altinn.Register.Controllers.V2;
 public class PartyController
     : ControllerBase
 {
+    /// <summary>
+    /// Gets the page-size for party streams.
+    /// </summary>
+    public const int PARTY_STREAM_PAGE_SIZE = 100;
+
     /// <summary>
     /// Route name for <see cref="GetStream(PartyFieldIncludes, Opaque{ulong}?, CancellationToken)"/>.
     /// </summary>
@@ -52,7 +56,7 @@ public class PartyController
         [FromQuery(Name = "token")] Opaque<ulong>? token = null,
         CancellationToken cancellationToken = default)
     {
-        const int PAGE_SIZE = 100;
+        const int PAGE_SIZE = PARTY_STREAM_PAGE_SIZE;
 
         ValidationErrorBuilder errors = default;
         if (fields.HasFlag(PartyFieldIncludes.SubUnits))
@@ -70,17 +74,15 @@ public class PartyController
 
         var maxVersionId = await persistence.GetMaxPartyVersionId(cancellationToken);
         var parties = await persistence.GetPartyStream(
-            from: token?.Value ?? 0,
-            limit: PAGE_SIZE + 1,
+            fromExclusive: token?.Value ?? 0,
+            limit: PAGE_SIZE,
             fields | PartyFieldIncludes.PartyVersionId,
             cancellationToken)
             .ToListAsync(cancellationToken);
 
         string? nextLink = null;
-        if (parties.Count > PAGE_SIZE)
+        if (parties.Count > 0)
         {
-            Debug.Assert(parties.Count == PAGE_SIZE + 1);
-            parties.RemoveAt(parties.Count - 1);
             nextLink = Url.Link(ROUTE_GET_STREAM, new
             {
                 token = Opaque.Create(parties[^1].VersionId.Value),

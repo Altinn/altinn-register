@@ -97,7 +97,10 @@ internal class PartyRecordJsonConverter
                 else
                 {
                     reader.Read();
-                    reader.Skip();
+                    if (!reader.TrySkip())
+                    {
+                        throw new JsonException($"Partial JSON");
+                    }
                 }
             }
 

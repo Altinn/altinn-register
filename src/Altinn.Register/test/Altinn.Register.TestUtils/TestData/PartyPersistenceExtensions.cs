@@ -21,7 +21,7 @@ namespace Altinn.Register.TestUtils.TestData;
 /// </summary>
 public static class PartyPersistenceExtensions
 {
-    public static async Task<OrganizationIdentifier> GetNewOrgNumber(this IUnitOfWork uow)
+    public static async Task<OrganizationIdentifier> GetNewOrgNumber(this IUnitOfWork uow, CancellationToken cancellationToken = default)
     {
         var connection = uow.GetRequiredService<NpgsqlConnection>();
         await using var cmd = connection.CreateCommand();
@@ -33,23 +33,23 @@ public static class PartyPersistenceExtensions
             """;
 
         var param = cmd.Parameters.Add<string>("id", NpgsqlDbType.Text);
-        await cmd.PrepareAsync();
+        await cmd.PrepareAsync(cancellationToken);
 
         OrganizationIdentifier id;
         do
         {
             id = GenerateOrganizationIdentifier();
         }
-        while (await InUse(id));
+        while (await InUse(id, cancellationToken));
 
         return id;
 
-        async Task<bool> InUse(OrganizationIdentifier id)
+        async Task<bool> InUse(OrganizationIdentifier id, CancellationToken cancellationToken)
         {
             param.TypedValue = id.ToString();
 
-            await using var reader = await cmd.ExecuteReaderAsync();
-            var exists = await reader.ReadAsync();
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            var exists = await reader.ReadAsync(cancellationToken);
             return exists;
         }
 
@@ -227,7 +227,7 @@ public static class PartyPersistenceExtensions
         return DateOnly.FromDayNumber(value);
     }
 
-    public static async Task<int> GetNextPartyId(this IUnitOfWork uow)
+    public static async Task<int> GetNextPartyId(this IUnitOfWork uow, CancellationToken cancellationToken = default)
     {
         var connection = uow.GetRequiredService<NpgsqlConnection>();
         await using var cmd = connection.CreateCommand();
@@ -236,7 +236,7 @@ public static class PartyPersistenceExtensions
             SELECT COALESCE(MAX(id), 0) FROM register.party
             """;
 
-        return Convert.ToInt32(await cmd.ExecuteScalarAsync()) + 1;
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken)) + 1;
     }
 
     public static async Task<OrganizationRecord> CreateOrg(
@@ -256,44 +256,61 @@ public static class PartyPersistenceExtensions
         FieldValue<string> emailAddress = default,
         FieldValue<string> internetAddress = default,
         FieldValue<MailingAddress> mailingAddress = default,
-        FieldValue<MailingAddress> businessAddress = default)
+        FieldValue<MailingAddress> businessAddress = default,
+        CancellationToken cancellationToken = default)
     {
         var connection = uow.GetRequiredService<NpgsqlConnection>();
 
         if (!id.HasValue)
         {
-            id = await uow.GetNextPartyId();
+            id = await uow.GetNextPartyId(cancellationToken);
         }
 
         if (!identifier.HasValue)
         {
-            identifier = await uow.GetNewOrgNumber();
+            identifier = await uow.GetNewOrgNumber(cancellationToken);
         }
 
-        var result = await uow.GetRequiredService<IPartyPersistence>().UpsertParty(new OrganizationRecord
-        {
-            PartyUuid = uuid.HasValue ? uuid.Value : Guid.NewGuid(),
-            PartyId = id,
-            DisplayName = name.HasValue ? name.Value : "Test",
-            PersonIdentifier = null,
-            OrganizationIdentifier = identifier,
-            CreatedAt = createdAt.HasValue ? createdAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
-            ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
-            IsDeleted = isDeleted.HasValue ? isDeleted.Value : false,
-            VersionId = FieldValue.Unset,
-            UnitStatus = unitStatus.HasValue ? unitStatus.Value : "N",
-            UnitType = unitType.HasValue ? unitType.Value : "AS",
-            TelephoneNumber = telephoneNumber.HasValue ? telephoneNumber.Value : null,
-            MobileNumber = mobileNumber.HasValue ? mobileNumber.Value : null,
-            FaxNumber = faxNumber.HasValue ? faxNumber.Value : null,
-            EmailAddress = emailAddress.HasValue ? emailAddress.Value : null,
-            InternetAddress = internetAddress.HasValue ? internetAddress.Value : null,
-            MailingAddress = mailingAddress.HasValue ? mailingAddress.Value : null,
-            BusinessAddress = businessAddress.HasValue ? businessAddress.Value : null,
-        });
+        var result = await uow.GetRequiredService<IPartyPersistence>().UpsertParty(
+            new OrganizationRecord
+            {
+                PartyUuid = uuid.HasValue ? uuid.Value : Guid.NewGuid(),
+                PartyId = id,
+                DisplayName = name.HasValue ? name.Value : "Test",
+                PersonIdentifier = null,
+                OrganizationIdentifier = identifier,
+                CreatedAt = createdAt.HasValue ? createdAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
+                ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
+                IsDeleted = isDeleted.HasValue ? isDeleted.Value : false,
+                VersionId = FieldValue.Unset,
+                UnitStatus = unitStatus.HasValue ? unitStatus.Value : "N",
+                UnitType = unitType.HasValue ? unitType.Value : "AS",
+                TelephoneNumber = telephoneNumber.HasValue ? telephoneNumber.Value : null,
+                MobileNumber = mobileNumber.HasValue ? mobileNumber.Value : null,
+                FaxNumber = faxNumber.HasValue ? faxNumber.Value : null,
+                EmailAddress = emailAddress.HasValue ? emailAddress.Value : null,
+                InternetAddress = internetAddress.HasValue ? internetAddress.Value : null,
+                MailingAddress = mailingAddress.HasValue ? mailingAddress.Value : null,
+                BusinessAddress = businessAddress.HasValue ? businessAddress.Value : null,
+            },
+            cancellationToken);
 
         Assert.True(result.IsSuccess);
         return (OrganizationRecord)result.Value;
+    }
+
+    public static async Task<ImmutableArray<OrganizationRecord>> CreateOrgs(
+        this IUnitOfWork uow,
+        int count,
+        CancellationToken cancellationToken = default)
+    {
+        var builder = ImmutableArray.CreateBuilder<OrganizationRecord>(count);
+        for (var i = 0; i < count; i++)
+        {
+            builder.Add(await uow.CreateOrg(cancellationToken: cancellationToken));
+        }
+
+        return builder.MoveToImmutable();
     }
 
     public static async Task<PersonRecord> CreatePerson(
