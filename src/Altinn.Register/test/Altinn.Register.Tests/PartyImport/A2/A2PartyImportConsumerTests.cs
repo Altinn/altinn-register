@@ -158,7 +158,7 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
             Name = null,
             FirstName = null,
             LastName = null,
-            ExpectedName = "Navn Mangler",
+            ExpectedName = "Mangler Navn",
             ExpectedFirstName = "Mangler",
             ExpectedLastName = "Navn",
         },
@@ -168,6 +168,7 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
             Name = "Gul-Brun Sint Tiger",
             FirstName = "Sint Tiger",
             LastName = "Gul-Brun",
+            ExpectedName = "Sint Tiger Gul-Brun",
         },
 
         new()
@@ -177,6 +178,7 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
             LastName = null,
             ExpectedFirstName = "Mangler",
             ExpectedLastName = "Navn",
+            ExpectedName = "Mangler Navn",
         },
 
         new()
@@ -186,6 +188,7 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
             LastName = null,
             ExpectedFirstName = "Mangler",
             ExpectedLastName = "Navn",
+            ExpectedName = "Mangler Navn",
         },
 
         new()
@@ -195,6 +198,7 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
             LastName = null,
             ExpectedFirstName = "Mangler",
             ExpectedLastName = "Navn",
+            ExpectedName = "Mangler Navn",
         },
 
         new()
@@ -204,6 +208,7 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
             LastName = null,
             ExpectedFirstName = "Sint Tiger",
             ExpectedLastName = "Gul-Brun",
+            ExpectedName = "Sint Tiger Gul-Brun",
         },
 
         new()
@@ -211,7 +216,7 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
             Name = null,
             FirstName = "Sint Tiger",
             LastName = "Gul-Brun",
-            ExpectedName = "Gul-Brun Sint Tiger",
+            ExpectedName = "Sint Tiger Gul-Brun",
         },
 
         new()
@@ -220,7 +225,7 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
             FirstName = "Sint Tiger",
             MiddleName = "Jr.",
             LastName = "Gul-Brun",
-            ExpectedName = "Gul-Brun Sint Tiger Jr.",
+            ExpectedName = "Sint Tiger Jr. Gul-Brun",
         },
 
         // Test that Name is built up from FirstName, MiddleName and LastName
@@ -229,7 +234,7 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
             Name = "Gul-Brun S. Tiger",
             FirstName = "Sint Tiger",
             LastName = "Gul-Brun",
-            ExpectedName = "Gul-Brun Sint Tiger",
+            ExpectedName = "Sint Tiger Gul-Brun",
         },
 
         new()
@@ -237,8 +242,8 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
             Name = "Gul-Grønn Sint T. R.",
             FirstName = "Sint Tiger",
             MiddleName = "Rød",
-            LastName = "Gul-Grønn",
-            ExpectedName = "Gul-Grønn Sint Tiger Rød",
+            LastName = "von Gul-Grønn",
+            ExpectedName = "Sint Tiger Rød von Gul-Grønn",
         }
     };
 

@@ -312,7 +312,7 @@ internal sealed partial class A2PartyImportService
                 }
                 else
                 {
-                    displayName = $"{lastName} {firstName}";
+                    displayName = $"{firstName} {lastName}";
                 }
 
                 if (middleName is not null)
@@ -324,7 +324,7 @@ internal sealed partial class A2PartyImportService
             {
                 firstName = "Mangler";
                 lastName = "Navn";
-                displayName = "Navn Mangler";
+                displayName = "Mangler Navn";
             }
             else if (firstName is null && lastName is null && displayName is not null)
             {
@@ -332,12 +332,14 @@ internal sealed partial class A2PartyImportService
                 {
                     firstName = "Mangler";
                     lastName = "Navn";
+                    displayName = "Mangler Navn";
                 }
                 else
                 {
                     var components = displayName.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                     lastName = components.Length > 0 ? components[0] : "Navn";
                     firstName = components.Length > 1 ? components[1] : "Mangler";
+                    displayName = $"{firstName} {lastName}";
                 }
             }
 
@@ -378,12 +380,6 @@ internal sealed partial class A2PartyImportService
             }
 
             var builder = new StringBuilder((firstName?.Length ?? 0) + (middleName?.Length ?? 0) + (lastName?.Length ?? 0) + 3);
-            if (lastName is not null)
-            {
-                builder.Append(lastName);
-                builder.Append(' ');
-            }
-
             if (firstName is not null)
             {
                 builder.Append(firstName);
@@ -393,6 +389,12 @@ internal sealed partial class A2PartyImportService
             if (middleName is not null)
             {
                 builder.Append(middleName);
+                builder.Append(' ');
+            }
+
+            if (lastName is not null)
+            {
+                builder.Append(lastName);
                 builder.Append(' ');
             }
 
