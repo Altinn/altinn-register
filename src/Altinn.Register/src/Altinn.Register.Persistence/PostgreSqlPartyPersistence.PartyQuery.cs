@@ -55,7 +55,7 @@ internal partial class PostgreSqlPartyPersistence
             _paramPartyIdList = paramPartyIdList;
             _paramPersonIdentifierList = paramPersonIdentifierList;
             _paramOrganizationIdentifierList = paramOrganizationIdentifierList;
-            _paramStreamFrom = paramStreamFrom;
+            _paramStreamFromExlusive = paramStreamFrom;
             _paramStreamLimit = paramStreamLimit;
 
             HasSubUnits = childField is not null;
@@ -71,7 +71,7 @@ internal partial class PostgreSqlPartyPersistence
         private readonly FilterParameter _paramPartyIdList;
         private readonly FilterParameter _paramPersonIdentifierList;
         private readonly FilterParameter _paramOrganizationIdentifierList;
-        private readonly FilterParameter _paramStreamFrom;
+        private readonly FilterParameter _paramStreamFromExlusive;
         private readonly FilterParameter _paramStreamLimit;
 
         public string CommandText { get; }
@@ -103,9 +103,9 @@ internal partial class PostgreSqlPartyPersistence
         public NpgsqlParameter<IList<string>> AddOrganizationIdentifierListParameter(NpgsqlCommand cmd, IList<string> value)
             => AddParameter(cmd, in _paramOrganizationIdentifierList, value);
 
-        public (NpgsqlParameter<long> From, NpgsqlParameter<int> Limit) AddStreamPageParameters(NpgsqlCommand cmd, ulong from, ushort limit)
+        public (NpgsqlParameter<long> From, NpgsqlParameter<int> Limit) AddStreamPageParameters(NpgsqlCommand cmd, ulong fromExclusive, ushort limit)
         {
-            var fromParam = AddParameter(cmd, in _paramStreamFrom, (long)from);
+            var fromParam = AddParameter(cmd, in _paramStreamFromExlusive, (long)fromExclusive);
             var limitParam = AddParameter(cmd, in _paramStreamLimit, (int)limit);
 
             return (fromParam, limitParam);
@@ -323,7 +323,7 @@ internal partial class PostgreSqlPartyPersistence
                     paramPartyIdList: builder._paramPartyIdList,
                     paramPersonIdentifierList: builder._paramPersonIdentifierList,
                     paramOrganizationIdentifierList: builder._paramOrganizationIdentifierList,
-                    paramStreamFrom: builder._paramStreamFrom,
+                    paramStreamFrom: builder._paramStreamFromExclusive,
                     paramStreamLimit: builder._paramStreamLimit);
             }
 
@@ -338,7 +338,7 @@ internal partial class PostgreSqlPartyPersistence
             private FilterParameter _paramPartyIdList;
             private FilterParameter _paramPersonIdentifierList;
             private FilterParameter _paramOrganizationIdentifierList;
-            private FilterParameter _paramStreamFrom;
+            private FilterParameter _paramStreamFromExclusive;
             private FilterParameter _paramStreamLimit;
 
             // fields
@@ -582,7 +582,7 @@ internal partial class PostgreSqlPartyPersistence
                 {
                     Debug.Assert(!_hasSubUnits, "A query cannot get both a stream page and subunits");
 
-                    _paramStreamFrom = new(typeof(long), "streamFrom", NpgsqlDbType.Bigint);
+                    _paramStreamFromExclusive = new(typeof(long), "streamFromExlusive", NpgsqlDbType.Bigint);
                     _paramStreamLimit = new(typeof(int), "streamLimit", NpgsqlDbType.Integer);
 
                     if (firstFilter)
@@ -595,7 +595,7 @@ internal partial class PostgreSqlPartyPersistence
                         _builder.AppendLine().Append(/*strpsql*/"    AND ");
                     }
 
-                    _builder.Append(/*strpsql*/"p.version_id >= @streamFrom");
+                    _builder.Append(/*strpsql*/"p.version_id > @streamFromExlusive");
                     _builder.AppendLine().Append(/*strpsql*/"    AND p.version_id <= register.tx_max_safeval('register.party_version_id_seq')");
                     _builder.AppendLine().Append(/*strpsql*/"ORDER BY p.version_id ASC");
                     _builder.AppendLine().Append(/*strpsql*/"LIMIT @streamLimit");

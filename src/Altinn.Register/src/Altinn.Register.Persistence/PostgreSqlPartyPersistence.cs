@@ -250,7 +250,7 @@ internal partial class PostgreSqlPartyPersistence
 
     /// <inheritdoc/>
     public IAsyncEnumerable<PartyRecord> GetPartyStream(
-        ulong from,
+        ulong fromExclusive,
         ushort limit,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default)
@@ -265,7 +265,7 @@ internal partial class PostgreSqlPartyPersistence
             cmd = _connection.CreateCommand();
             cmd.CommandText = query.CommandText;
 
-            query.AddStreamPageParameters(cmd, from, limit);
+            query.AddStreamPageParameters(cmd, fromExclusive, limit);
 
             return PrepareAndReadPartiesAsync(cmd, query, cancellationToken);
         }

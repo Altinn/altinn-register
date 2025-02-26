@@ -59,7 +59,7 @@ public sealed class TestWebApplication
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var activityVerb = request.Method.ToString().ToLowerInvariant();
-            var relPath = request.RequestUri?.AbsolutePath;
+            var relPath = request.RequestUri?.PathAndQuery;
 
             using var activity = IntegrationTestsActivities.Source.StartActivity(ActivityKind.Client, name: $"{activityVerb} {relPath}");
             return await base.SendAsync(request, cancellationToken);

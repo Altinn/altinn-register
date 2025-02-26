@@ -63,8 +63,10 @@ internal static class RegisterHost
             })
             .AddJsonOptions(opt =>
             {
-                opt.JsonSerializerOptions.WriteIndented = true;
-                opt.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+                if (builder.Environment.IsDevelopment())
+                {
+                    opt.JsonSerializerOptions.WriteIndented = true;
+                }
             });
 
         services.AddSingleton<ConditionalControllerConvention>();

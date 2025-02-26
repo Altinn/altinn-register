@@ -18,6 +18,9 @@ public abstract class IntegrationTestBase
     protected HttpClient HttpClient
         => _client!;
 
+    protected Uri BaseUrl
+        => _client!.BaseAddress!;
+
     protected T GetRequiredService<T>()
         where T : notnull
         => Services.GetRequiredService<T>();

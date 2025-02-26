@@ -114,7 +114,7 @@ public interface IPartyPersistence
     /// <summary>
     /// Gets a page of the parties-stream.
     /// </summary>
-    /// <param name="from">From where to start the page.</param>
+    /// <param name="fromExclusive">From where (exclusive) to start the page.</param>
     /// <param name="limit">The maximum number of parties to return.</param>
     /// <param name="include">What fields to include.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
@@ -125,7 +125,7 @@ public interface IPartyPersistence
     /// <paramref name="include"/> is not allowed to specify <see cref="PartyFieldIncludes.SubUnits"/>.
     /// </remarks>
     public IAsyncEnumerable<PartyRecord> GetPartyStream(
-        ulong from,
+        ulong fromExclusive,
         ushort limit,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default);
