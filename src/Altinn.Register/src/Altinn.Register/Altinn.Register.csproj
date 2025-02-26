@@ -13,6 +13,8 @@
     <PackageReference Include="Altinn.Common.AccessToken" />
     <PackageReference Include="Altinn.Common.PEP" />
     <PackageReference Include="Altinn.Swashbuckle" />
+    <PackageReference Include="Altinn.Urn" />
+    <PackageReference Include="Altinn.Urn.Swashbuckle" />
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" />
     <PackageReference Include="Azure.Identity" />
     <PackageReference Include="JWTCookieAuthentication" />
@@ -36,6 +38,7 @@
   <ItemGroup>
 		<InternalsVisibleTo Include="Altinn.Register.TestUtils.V2" />
 		<InternalsVisibleTo Include="Altinn.Register.TestUtils.V3" />
+		<InternalsVisibleTo Include="Altinn.Register.IntegrationTests" />
   </ItemGroup>
 
 </Project>

@@ -301,12 +301,8 @@ public class PartiesClient : IV1PartyService
         Func<TIn, PartyComponentOptions, CancellationToken, Task<TResult>> func,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var tasks = input.Select(i => func(i, partyComponentOption, cancellationToken)).ToList();
-
-        while (tasks.Count > 0)
+        await foreach (var finishedTask in Task.WhenEach(input.Select(i => func(i, partyComponentOption, cancellationToken))))
         {
-            Task<TResult> finishedTask = await Task.WhenAny(tasks);
-            tasks.SwapRemove(finishedTask);
             yield return await finishedTask;
         }
     }

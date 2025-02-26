@@ -1,4 +1,5 @@
-﻿using Altinn.Register.Core.UnitOfWork;
+﻿using System.Text.Json;
+using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.IntegrationTests.Fixtures;
 using Altinn.Register.TestUtils;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,9 +9,14 @@ namespace Altinn.Register.IntegrationTests;
 public abstract class IntegrationTestBase
     : TestBase
 {
+    private static readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
+
     private TestWebApplication? _webApp;
     private AsyncServiceScope? _scope;
     private HttpClient? _client;
+
+    protected JsonSerializerOptions JsonOptions
+        => _jsonOptions;
 
     protected IServiceProvider Services
         => _scope!.Value.ServiceProvider;

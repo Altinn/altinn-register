@@ -2,7 +2,6 @@
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Models;
 using Altinn.Register.TestUtils.TestData;
-using Xunit.Sdk;
 
 namespace Altinn.Register.IntegrationTests.Party;
 

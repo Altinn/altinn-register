@@ -28,6 +28,16 @@ public static class HttpResponseShouldExtensions
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
+    public static async Task ShouldHaveStatusCode(this HttpResponseMessage response, HttpStatusCode expected, string? customMessage = null)
+    {
+        if (response.StatusCode != expected)
+        {
+            var responseData = await ResponseData.Read(response, TestContext.Current.CancellationToken);
+            throw new ShouldAssertException(new HttpResponseActualShouldlyMessage(responseData, response.StatusCode, expected, customMessage).ToString());
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static async Task<T> ShouldHaveJsonContent<T>(this HttpResponseMessage response, string? customMessage = null)
     {
         var content = await BufferContent(response, TestContext.Current.CancellationToken);
@@ -133,21 +143,36 @@ public static class HttpResponseShouldExtensions
             }
         }
 
+        public HttpResponseActualShouldlyMessage(ResponseData response, object? actual, object? expected, string? customMessage = null, [CallerMemberName] string shouldlyMethod = null!)
+            : this(response, actual, customMessage, shouldlyMethod)
+        {
+            ShouldlyAssertionContext.Expected = expected;
+        }
+
         public override string ToString()
         {
             var context = ShouldlyAssertionContext;
             var codePart = context.CodePart;
             var actual = context.Actual;
+            var expected = context.Expected;
+            
             var actualString = 
                 $"""
 
                 {actual}
                 """;
 
+            var expectedString = expected is null
+                ? string.Empty
+                : $"""
+
+                   {StringHelpers.ToStringAwesomely(expected)}
+                """;
+
             var message =
                 $"""
                  {codePart}
-                     {StringHelpers.PascalToSpaced(context.ShouldMethod)}
+                     {StringHelpers.PascalToSpaced(context.ShouldMethod)}{expectedString}
                      but was{actualString}
                  """;
 
