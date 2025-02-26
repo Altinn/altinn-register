@@ -2,12 +2,14 @@
 
   <PropertyGroup>
     <Nullable>enable</Nullable>
-		<IsTestProject>false</IsTestProject>
+    <RootNamespace>Altinn.Register.TestUtils</RootNamespace>
+    <IsTestProject>false</IsTestProject>
+    <IsTestLibrary>true</IsTestLibrary>
+    <XUnitVersion>v2</XUnitVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Diagnostics" />
-    <PackageReference Include="FluentAssertions" />
     <PackageReference Include="MassTransit" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
@@ -15,7 +17,6 @@
     <PackageReference Include="Npgsql" />
     <PackageReference Include="System.Linq.Async" />
     <PackageReference Include="Testcontainers.PostgreSql" />
-    <PackageReference Include="xunit" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,6 +25,10 @@
     <ProjectReference Include="..\..\src\Altinn.Register\Altinn.Register.csproj" />
     <ProjectReference Include="..\..\src\ServiceDefaults.MassTransit.Abstractions\Altinn.Authorization.ServiceDefaults.MassTransit.Abstractions.csproj" />
     <ProjectReference Include="..\..\src\ServiceDefaults.MassTransit\Altinn.Authorization.ServiceDefaults.MassTransit.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Altinn.Register.TestUtils\**\*.cs" />
   </ItemGroup>
 
 </Project>

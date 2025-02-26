@@ -6,6 +6,7 @@
       <PropertyGroup>
         <GenerateDocumentationFile>false</GenerateDocumentationFile>
         <NoWarn>$(NoWarn);SA0001</NoWarn>
+        <XUnitVersion Condition=" '$(XUnitVersion)' == '' ">v2</XUnitVersion>
       </PropertyGroup>
 
       <ItemGroup>
@@ -17,13 +18,16 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="FluentAssertions" />
-        <PackageReference Include="FluentAssertions.Analyzers">
+        <PackageReference Include="FluentAssertions" Condition=" '$(XUnitVersion)' == 'v2' " />
+        <PackageReference Include="FluentAssertions.Analyzers"
+          Condition=" '$(XUnitVersion)' == 'v2' ">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>
+        <PackageReference Include="Shouldly" Condition=" '$(XUnitVersion)' == 'v3' " />
         <PackageReference Include="Microsoft.NET.Test.Sdk" />
-        <PackageReference Include="xunit" />
+        <PackageReference Include="xunit" Condition=" '$(XUnitVersion)' == 'v2' " />
+        <PackageReference Include="xunit.v3" Condition=" '$(XUnitVersion)' == 'v3' " />
         <PackageReference Include="xunit.runner.visualstudio">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -31,7 +35,37 @@
       </ItemGroup>
 
       <ItemGroup>
-        <Using Include="FluentAssertions" />
+        <Using Include="FluentAssertions" Condition=" '$(XUnitVersion)' == 'v2' " />
+        <Using Include="Shouldly" Condition=" '$(XUnitVersion)' == 'v3' " />
+        <Using Include="Xunit" />
+      </ItemGroup>
+
+    </When>
+
+    <When Condition=" '$(IsTestLibrary)' == 'true' ">
+
+      <PropertyGroup>
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);SA0001</NoWarn>
+      </PropertyGroup>
+
+      <ItemGroup>
+        <DocFileItem Remove="@(DocFileItem)" />
+      </ItemGroup>
+
+      <ItemGroup>
+        <PackageReference Include="FluentAssertions" Condition=" '$(XUnitVersion)' == 'v2' " />
+        <PackageReference Include="Shouldly" Condition=" '$(XUnitVersion)' == 'v3' " />
+        <PackageReference Include="xunit.assert" Condition=" '$(XUnitVersion)' == 'v2' " />
+        <PackageReference Include="xunit.extensibility.core" Condition=" '$(XUnitVersion)' == 'v2' " />
+        <PackageReference Include="xunit.v3.assert" Condition=" '$(XUnitVersion)' == 'v3' " />
+        <PackageReference Include="xunit.v3.extensibility.core"
+          Condition=" '$(XUnitVersion)' == 'v3' " />
+      </ItemGroup>
+
+      <ItemGroup>
+        <Using Include="FluentAssertions" Condition=" '$(XUnitVersion)' == 'v2' " />
+        <Using Include="Shouldly" Condition=" '$(XUnitVersion)' == 'v3' " />
         <Using Include="Xunit" />
       </ItemGroup>
 

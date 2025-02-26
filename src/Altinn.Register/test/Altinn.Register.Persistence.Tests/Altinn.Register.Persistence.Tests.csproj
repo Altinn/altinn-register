@@ -8,8 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
-    <ProjectReference Include="..\Altinn.Register.TestUtils\Altinn.Register.TestUtils.csproj" />
+    <ProjectReference
+      Include="..\..\src\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
+    <ProjectReference Include="..\Altinn.Register.TestUtils.V2\Altinn.Register.TestUtils.V2.csproj" />
   </ItemGroup>
 
   <ItemGroup>

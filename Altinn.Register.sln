@@ -39,7 +39,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.Persistence
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.Tests", "src\Altinn.Register\test\Altinn.Register.Tests\Altinn.Register.Tests.csproj", "{39E53FA5-D9A4-4ED0-B677-BB6E14EA0ADB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.TestUtils", "src\Altinn.Register\test\Altinn.Register.TestUtils\Altinn.Register.TestUtils.csproj", "{F4CB5014-3F6B-4B55-A5A3-F9971B831439}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.TestUtils.V2", "src\Altinn.Register\test\Altinn.Register.TestUtils.V2\Altinn.Register.TestUtils.V2.csproj", "{F4CB5014-3F6B-4B55-A5A3-F9971B831439}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.TestUtils.V3", "src\Altinn.Register\test\Altinn.Register.TestUtils.V3\Altinn.Register.TestUtils.V3.csproj", "{BEAFCA11-7B1C-48AD-BAEB-9C336F92DF58}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.IntegrationTests", "src\Altinn.Register\test\Altinn.Register.IntegrationTests\Altinn.Register.IntegrationTests.csproj", "{480779C5-ED32-4AF6-ACCD-2C22F8A9516E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -207,6 +211,30 @@ Global
 		{F4CB5014-3F6B-4B55-A5A3-F9971B831439}.Release|x64.Build.0 = Release|Any CPU
 		{F4CB5014-3F6B-4B55-A5A3-F9971B831439}.Release|x86.ActiveCfg = Release|Any CPU
 		{F4CB5014-3F6B-4B55-A5A3-F9971B831439}.Release|x86.Build.0 = Release|Any CPU
+		{BEAFCA11-7B1C-48AD-BAEB-9C336F92DF58}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BEAFCA11-7B1C-48AD-BAEB-9C336F92DF58}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BEAFCA11-7B1C-48AD-BAEB-9C336F92DF58}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{BEAFCA11-7B1C-48AD-BAEB-9C336F92DF58}.Debug|x64.Build.0 = Debug|Any CPU
+		{BEAFCA11-7B1C-48AD-BAEB-9C336F92DF58}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{BEAFCA11-7B1C-48AD-BAEB-9C336F92DF58}.Debug|x86.Build.0 = Debug|Any CPU
+		{BEAFCA11-7B1C-48AD-BAEB-9C336F92DF58}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BEAFCA11-7B1C-48AD-BAEB-9C336F92DF58}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BEAFCA11-7B1C-48AD-BAEB-9C336F92DF58}.Release|x64.ActiveCfg = Release|Any CPU
+		{BEAFCA11-7B1C-48AD-BAEB-9C336F92DF58}.Release|x64.Build.0 = Release|Any CPU
+		{BEAFCA11-7B1C-48AD-BAEB-9C336F92DF58}.Release|x86.ActiveCfg = Release|Any CPU
+		{BEAFCA11-7B1C-48AD-BAEB-9C336F92DF58}.Release|x86.Build.0 = Release|Any CPU
+		{480779C5-ED32-4AF6-ACCD-2C22F8A9516E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{480779C5-ED32-4AF6-ACCD-2C22F8A9516E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{480779C5-ED32-4AF6-ACCD-2C22F8A9516E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{480779C5-ED32-4AF6-ACCD-2C22F8A9516E}.Debug|x64.Build.0 = Debug|Any CPU
+		{480779C5-ED32-4AF6-ACCD-2C22F8A9516E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{480779C5-ED32-4AF6-ACCD-2C22F8A9516E}.Debug|x86.Build.0 = Debug|Any CPU
+		{480779C5-ED32-4AF6-ACCD-2C22F8A9516E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{480779C5-ED32-4AF6-ACCD-2C22F8A9516E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{480779C5-ED32-4AF6-ACCD-2C22F8A9516E}.Release|x64.ActiveCfg = Release|Any CPU
+		{480779C5-ED32-4AF6-ACCD-2C22F8A9516E}.Release|x64.Build.0 = Release|Any CPU
+		{480779C5-ED32-4AF6-ACCD-2C22F8A9516E}.Release|x86.ActiveCfg = Release|Any CPU
+		{480779C5-ED32-4AF6-ACCD-2C22F8A9516E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -229,5 +257,14 @@ Global
 		{0D0B0E81-8103-4B8F-8408-279658A73E37} = {0CC5D8ED-4A86-9DEE-3027-A4DF4242798D}
 		{39E53FA5-D9A4-4ED0-B677-BB6E14EA0ADB} = {0CC5D8ED-4A86-9DEE-3027-A4DF4242798D}
 		{F4CB5014-3F6B-4B55-A5A3-F9971B831439} = {0CC5D8ED-4A86-9DEE-3027-A4DF4242798D}
+		{BEAFCA11-7B1C-48AD-BAEB-9C336F92DF58} = {0CC5D8ED-4A86-9DEE-3027-A4DF4242798D}
+		{480779C5-ED32-4AF6-ACCD-2C22F8A9516E} = {0CC5D8ED-4A86-9DEE-3027-A4DF4242798D}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4F1C2763-D8AF-4204-9218-A6C2B94BEDD0}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		src\Altinn.Register\test\Altinn.Register.TestUtils\Altinn.Register.TestUtils.projitems*{beafca11-7b1c-48ad-baeb-9c336f92df58}*SharedItemsImports = 5
+		src\Altinn.Register\test\Altinn.Register.TestUtils\Altinn.Register.TestUtils.projitems*{f4cb5014-3f6b-4b55-a5a3-f9971b831439}*SharedItemsImports = 5
 	EndGlobalSection
 EndGlobal

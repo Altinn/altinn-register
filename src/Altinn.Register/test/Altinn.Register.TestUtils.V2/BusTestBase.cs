@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Text;
+﻿using System.Text;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Authorization.ServiceDefaults.MassTransit.Commands;
 using Altinn.Authorization.ServiceDefaults.MassTransit.Testing;
@@ -84,14 +83,51 @@ public abstract class BusTestBase(ITestOutputHelper output)
                 .Concat(_harness.Sent.SelectAsync(static m => m.Exception is not null).Select(static m => m.Exception))
                 .Concat(_harness.Published.SelectAsync(static m => m.Exception is not null).Select(static m => m.Exception));
 
+            var allFaults = _harness.Published.SelectAsync<Fault>().SelectMany(static f => f.Context.Message.Exceptions.ToAsyncEnumerable());
+
             await foreach (var consumeException in allExceptions)
             {
                 output.WriteLine(consumeException.ToString());
+            }
+
+            var sb = new StringBuilder();
+            await foreach (var fault in allFaults)
+            {
+                sb.Clear();
+                WriteFaultString(fault, sb);
+                output.WriteLine(sb.ToString());
             }
         }
 
         await base.DisposeAsync();
 
         output.WriteLine(_harnessLogger.ToString());
+    }
+
+    private static void WriteFaultString(ExceptionInfo exceptionInfo, StringBuilder sb)
+    {
+        var message = exceptionInfo.Message;
+
+        if (string.IsNullOrEmpty(message))
+        {
+            sb.Append(exceptionInfo.ExceptionType);
+        }
+        else
+        {
+            sb.Append($"{exceptionInfo.ExceptionType}: {message}");
+        }
+
+        if (exceptionInfo.InnerException != null)
+        {
+            sb.Append(" ---> ");
+            WriteFaultString(exceptionInfo.InnerException, sb);
+            sb.AppendLine();
+        }
+
+        var stackTrace = exceptionInfo.StackTrace;
+        if (stackTrace != null)
+        {
+            sb.AppendLine(stackTrace);
+        }
     }
 }

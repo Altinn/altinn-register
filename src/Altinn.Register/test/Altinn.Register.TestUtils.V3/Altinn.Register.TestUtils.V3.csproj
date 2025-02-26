@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Altinn.Register.TestUtils</RootNamespace>
+    <IsTestProject>false</IsTestProject>
+    <IsTestLibrary>true</IsTestLibrary>
+    <XUnitVersion>v3</XUnitVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Diagnostics" />
+    <PackageReference Include="Nerdbank.Streams" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="System.Linq.Async" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Altinn.Register\Altinn.Register.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Altinn.Register.TestUtils\**\*.cs" />
+  </ItemGroup>
+
+</Project>

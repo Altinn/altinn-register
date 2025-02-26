@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 namespace Altinn.Register.Tests.Mocks.Authentication
 {
     /// <summary>
-    /// Represents a stub for the <see cref="JwtCookiePostConfigureOptions"/> class to be used in integration tests.
+    /// Represents a stub for the <see cref="JwtCookieConfigureOptions"/> class to be used in integration tests.
     /// </summary>
     public class JwtCookiePostConfigureOptionsStub : IPostConfigureOptions<JwtCookieOptions>
     {
