@@ -91,7 +91,7 @@ public static class PartyPersistenceExtensions
         }
     }
 
-    public static async Task<PersonIdentifier> GetNewPersonIdentifier(this IUnitOfWork uow, DateOnly birthDate, bool isDNumber)
+    public static async Task<PersonIdentifier> GetNewPersonIdentifier(this IUnitOfWork uow, DateOnly birthDate, bool isDNumber, CancellationToken cancellationToken = default)
     {
         var connection = uow.GetRequiredService<NpgsqlConnection>();
         await using var cmd = connection.CreateCommand();
@@ -103,23 +103,23 @@ public static class PartyPersistenceExtensions
             """;
 
         var param = cmd.Parameters.Add<string>("id", NpgsqlDbType.Text);
-        await cmd.PrepareAsync();
+        await cmd.PrepareAsync(cancellationToken);
 
         PersonIdentifier id;
         do
         {
             id = GeneratePersonIdentifier(birthDate, isDNumber);
         }
-        while (await InUse(id));
+        while (await InUse(id, cancellationToken));
 
         return id;
 
-        async Task<bool> InUse(PersonIdentifier id)
+        async Task<bool> InUse(PersonIdentifier id, CancellationToken cancellationToken)
         {
             param.TypedValue = id.ToString();
 
-            await using var reader = await cmd.ExecuteReaderAsync();
-            var exists = await reader.ReadAsync();
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            var exists = await reader.ReadAsync(cancellationToken);
             return exists;
         }
 
@@ -331,7 +331,7 @@ public static class PartyPersistenceExtensions
 
         if (!id.HasValue)
         {
-            id = await uow.GetNextPartyId();
+            id = await uow.GetNextPartyId(cancellationToken);
         }
 
         if (!dateOfBirth.HasValue)
@@ -341,7 +341,7 @@ public static class PartyPersistenceExtensions
 
         if (!identifier.HasValue)
         {
-            identifier = await uow.GetNewPersonIdentifier(dateOfBirth.Value, isDNumber: false);
+            identifier = await uow.GetNewPersonIdentifier(dateOfBirth.Value, isDNumber: false, cancellationToken);
         }
 
         if (!address.HasValue)
@@ -378,26 +378,28 @@ public static class PartyPersistenceExtensions
             dateOfDeath = FieldValue.Null;
         }
 
-        var result = await uow.GetRequiredService<IPartyPersistence>().UpsertParty(new PersonRecord
-        {
-            PartyUuid = uuid.HasValue ? uuid.Value : Guid.NewGuid(),
-            PartyId = id,
-            DisplayName = name.Value!.DisplayName,
-            PersonIdentifier = identifier,
-            OrganizationIdentifier = null,
-            CreatedAt = createdAt.HasValue ? createdAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
-            ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
-            IsDeleted = dateOfDeath.HasValue,
-            VersionId = FieldValue.Unset,
-            FirstName = name.Value.FirstName,
-            MiddleName = name.Value.MiddleName,
-            LastName = name.Value.LastName,
-            ShortName = name.Value.ShortName,
-            Address = address,
-            MailingAddress = mailingAddress,
-            DateOfBirth = dateOfBirth,
-            DateOfDeath = dateOfDeath,
-        });
+        var result = await uow.GetRequiredService<IPartyPersistence>().UpsertParty(
+            new PersonRecord
+            {
+                PartyUuid = uuid.HasValue ? uuid.Value : Guid.NewGuid(),
+                PartyId = id,
+                DisplayName = name.Value!.DisplayName,
+                PersonIdentifier = identifier,
+                OrganizationIdentifier = null,
+                CreatedAt = createdAt.HasValue ? createdAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
+                ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
+                IsDeleted = dateOfDeath.HasValue,
+                VersionId = FieldValue.Unset,
+                FirstName = name.Value.FirstName,
+                MiddleName = name.Value.MiddleName,
+                LastName = name.Value.LastName,
+                ShortName = name.Value.ShortName,
+                Address = address,
+                MailingAddress = mailingAddress,
+                DateOfBirth = dateOfBirth,
+                DateOfDeath = dateOfDeath,
+            },
+            cancellationToken);
 
         Assert.True(result.IsSuccess);
         return (PersonRecord)result.Value;
