@@ -96,10 +96,11 @@ public class A2PartyImportServiceTests
 
             var persRecord = partyRecord.Should().BeOfType<PersonRecord>().Which;
             persRecord.PersonIdentifier.Should().HaveValue().Which.Should().Be("25871999336");
-            persRecord.DisplayName.Should().HaveValue().Which.Should().Be("Nordmann Ola Bla");
+            persRecord.DisplayName.Should().HaveValue().Which.Should().Be("Ola Bla Nordmann");
             persRecord.FirstName.Should().HaveValue().Which.Should().Be("Ola");
             persRecord.MiddleName.Should().HaveValue().Which.Should().Be("Bla");
             persRecord.LastName.Should().HaveValue().Which.Should().Be("Nordmann");
+            persRecord.ShortName.Should().HaveValue().Which.Should().Be("Ola Bla Nordmann");
             persRecord.MailingAddress.Should().HaveValue().Which.Should().Be(new MailingAddress
             {
                 Address = "Blåbæreveien 7 8450 Stokmarknes",
