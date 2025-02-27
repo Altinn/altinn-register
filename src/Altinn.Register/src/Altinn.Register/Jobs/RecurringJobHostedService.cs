@@ -381,11 +381,8 @@ internal sealed partial class RecurringJobHostedService
             yield break;
         }
 
-        while (pending.Count > 0)
+        await foreach (var complete in Task.WhenEach(pending))
         {
-            var complete = await Task.WhenAny(pending);
-            pending.SwapRemove(complete);
-
             yield return await complete;
         }
 
