@@ -33,6 +33,14 @@ public class PartyController
     internal const int PARTY_STREAM_PAGE_SIZE = 100;
 
     /// <summary>
+    /// The page-size for role-assignments streams.
+    /// </summary>
+    /// <remarks>
+    /// Changing this number is *not* a breaking change.
+    /// </remarks>
+    internal const int ROLEASSIGNMENTS_STREAM_PAGE_SIZE = 100;
+
+    /// <summary>
     /// The maximum number of items that can be queried at once.
     /// </summary>
     /// <remarks>
@@ -45,6 +53,11 @@ public class PartyController
     /// Route name for <see cref="GetStream(PartyFieldIncludes, Opaque{ulong}?, CancellationToken)"/>.
     /// </summary>
     public const string ROUTE_GET_STREAM = "parties/stream";
+
+    /// <summary>
+    /// Route name for <see cref="GetExternalRoleAssignmentsStream(Opaque{ulong}?, CancellationToken)"/>.
+    /// </summary>
+    public const string ROUTE_GET_EXTERNALROLE_ASSIGNMENTS_STREAM = "external-roles/assignments/stream";
 
     private readonly IUnitOfWorkManager _uowManager;
 
@@ -111,6 +124,45 @@ public class PartyController
             next: nextLink,
             sequenceMax: maxVersionId,
             sequenceNumberFactory: static p => p.VersionId.Value);
+    }
+
+    /// <summary>
+    /// Gets a stream of external-role assignments.
+    /// </summary>
+    /// <param name="token">An optional continuation token.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>A stream of all external-role assignment events.</returns>
+    [HttpGet("external-roles/assignments/events/stream", Name = ROUTE_GET_EXTERNALROLE_ASSIGNMENTS_STREAM)]
+    public async Task<ActionResult<ItemStream<ExternalRoleAssignmentEvent>>> GetExternalRoleAssignmentsStream(
+        [FromQuery(Name = "token")] Opaque<ulong>? token = null,
+        CancellationToken cancellationToken = default)
+    {
+        const int PAGE_SIZE = ROLEASSIGNMENTS_STREAM_PAGE_SIZE;
+
+        await using var uow = await _uowManager.CreateAsync(cancellationToken);
+        var persistence = uow.GetPartyPersistence();
+
+        var maxVersionId = await persistence.GetMaxExternalRoleAssignmentVersionId(cancellationToken);
+        var events = await persistence.GetExternalRoleAssignmentStream(
+            fromExclusive: token?.Value ?? 0,
+            limit: PAGE_SIZE,
+            cancellationToken)
+            .ToListAsync(cancellationToken);
+
+        string? nextLink = null;
+        if (events.Count > 0)
+        {
+            nextLink = Url.Link(ROUTE_GET_EXTERNALROLE_ASSIGNMENTS_STREAM, new
+            {
+                token = Opaque.Create(events[^1].VersionId),
+            });
+        }
+
+        return ItemStream.Create(
+            events,
+            next: nextLink,
+            sequenceMax: maxVersionId,
+            sequenceNumberFactory: static e => e.VersionId);
     }
 
     /// <summary>

@@ -1,5 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.Data;
+﻿using System.Data;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -14,7 +13,6 @@ using Altinn.Register.Persistence.AsyncEnumerables;
 using Altinn.Register.Persistence.DbArgTypes;
 using Altinn.Register.Persistence.UnitOfWork;
 using CommunityToolkit.Diagnostics;
-using MassTransit;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using NpgsqlTypes;
@@ -288,13 +286,14 @@ internal partial class PostgreSqlPartyPersistence
         await using var cmd = _connection.CreateCommand();
         cmd.CommandText = QUERY;
 
+        await cmd.PrepareAsync(cancellationToken);
         await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleResult | CommandBehavior.SingleRow, cancellationToken);
         if (!await reader.ReadAsync(cancellationToken))
         {
             ThrowHelper.ThrowInvalidOperationException("No rows returned from MAX(version_id) query");
         }
 
-        if (reader.IsDBNull(0))
+        if (await reader.IsDBNullAsync(0, cancellationToken))
         {
             return 0;
         }
@@ -738,6 +737,95 @@ internal partial class PostgreSqlPartyPersistence
         {
             return new ThrowingAsyncEnumerable<PartyExternalRoleAssignmentRecord>(e).Using(cmd);
         }
+    }
+
+    /// <inheritdoc/>
+    public async IAsyncEnumerable<ExternalRoleAssignmentEvent> GetExternalRoleAssignmentStream(
+        ulong fromExclusive,
+        ushort limit,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        const string QUERY =
+            /*strpsql*/"""
+            SELECT 
+                "id",
+                "type",
+                "source",
+                "identifier",
+                "from_party",
+                "to_party"
+            FROM register.external_role_assignment_event
+            WHERE "id" > @from
+              AND "id" <= register.tx_max_safeval('register.external_role_assignment_event_id_seq')
+            ORDER BY "id"
+            LIMIT @limit
+            """;
+
+        _handle.ThrowIfCompleted();
+
+        await using var cmd = _connection.CreateCommand();
+        cmd.CommandText = QUERY;
+
+        cmd.Parameters.Add<long>("from", NpgsqlDbType.Bigint).TypedValue = checked((long)fromExclusive);
+        cmd.Parameters.Add<short>("limit", NpgsqlDbType.Smallint).TypedValue = checked((short)limit);
+
+        await cmd.PrepareAsync(cancellationToken);
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+
+        var idOrdinal = reader.GetOrdinal("id");
+        var typeOrdinal = reader.GetOrdinal("type");
+        var sourceOrdinal = reader.GetOrdinal("source");
+        var identifierOrdinal = reader.GetOrdinal("identifier");
+        var fromPartyOrdinal = reader.GetOrdinal("from_party");
+        var toPartyOrdinal = reader.GetOrdinal("to_party");
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var id = (ulong)await reader.GetFieldValueAsync<long>(idOrdinal, cancellationToken);
+            var type = await reader.GetFieldValueAsync<ExternalRoleAssignmentEvent.EventType>(typeOrdinal, cancellationToken);
+            var roleSource = await reader.GetFieldValueAsync<ExternalRoleSource>(sourceOrdinal, cancellationToken);
+            var identifier = await reader.GetFieldValueAsync<string>(identifierOrdinal, cancellationToken);
+            var toParty = await reader.GetFieldValueAsync<Guid>(toPartyOrdinal, cancellationToken);
+            var fromParty = await reader.GetFieldValueAsync<Guid>(fromPartyOrdinal, cancellationToken);
+
+            yield return new ExternalRoleAssignmentEvent
+            {
+                VersionId = id,
+                Type = type,
+                RoleSource = roleSource,
+                RoleIdentifier = identifier,
+                ToParty = toParty,
+                FromParty = fromParty,
+            };
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<ulong> GetMaxExternalRoleAssignmentVersionId(CancellationToken cancellationToken)
+    {
+        const string QUERY =
+            /*strpsql*/"""
+            SELECT MAX(id) FROM register.external_role_assignment_event
+            """;
+
+        _handle.ThrowIfCompleted();
+
+        await using var cmd = _connection.CreateCommand();
+        cmd.CommandText = QUERY;
+
+        await cmd.PrepareAsync(cancellationToken);
+        await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleResult | CommandBehavior.SingleRow, cancellationToken);
+        if (!await reader.ReadAsync(cancellationToken))
+        {
+            ThrowHelper.ThrowInvalidOperationException("No rows returned from MAX(id) query");
+        }
+
+        if (await reader.IsDBNullAsync(0, cancellationToken))
+        {
+            return 0;
+        }
+
+        return (ulong)await reader.GetFieldValueAsync<long>(0, cancellationToken);
     }
 
     private async IAsyncEnumerable<PartyExternalRoleAssignmentRecord> PrepareAndReadPartyRolesAsync(

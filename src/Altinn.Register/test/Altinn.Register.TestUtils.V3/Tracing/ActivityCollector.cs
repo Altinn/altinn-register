@@ -51,10 +51,12 @@ internal sealed class ActivityCollector
         Assert.NotNull(_activity);
         Assert.Null(_activity.Parent);
 
+        _tree = new SpanTree(_activity);
+
+        Thread.MemoryBarrier();
+
         _listener.ActivityStarted = ActivityStarted;
         _listener.ActivityStopped = ActivityStopped;
-
-        _tree = new SpanTree(_activity);
     }
 
     private void ActivityStarted(Activity activity)
@@ -78,6 +80,12 @@ internal sealed class ActivityCollector
 
         if (IsNoise(in options))
         {
+            return ActivitySamplingResult.None;
+        }
+
+        if (_activity is null)
+        {
+            // test-activity not yet created, definitely not a child
             return ActivitySamplingResult.None;
         }
 
