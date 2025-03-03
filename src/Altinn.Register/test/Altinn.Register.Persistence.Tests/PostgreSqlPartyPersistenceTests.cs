@@ -1031,6 +1031,89 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
     #endregion
 
+    #region Upsert Self-Identified User
+
+    [Fact]
+    public async Task UpsertParty_SelfIdentifiedUser_Inserts_New_SelfIdentifiedUser()
+    {
+        var id = await UoW.GetNextPartyId();
+        var birthDate = UoW.GetRandomBirthDate();
+        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new SelfIdentifiedUserRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            DisplayName = "Test Mid Testson",
+            PersonIdentifier = personId,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = FieldValue.Unset,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        var inserted = result.Should().HaveValue().Which.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
+        inserted.Should().BeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party).SingleAsync();
+        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
+    }
+
+    [Fact]
+    public async Task UpsertParty_SelfIdentifiedUser_Updates_Name_And_Updated()
+    {
+        var id = await UoW.GetNextPartyId();
+        var birthDate = UoW.GetRandomBirthDate();
+        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new SelfIdentifiedUserRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            DisplayName = "Test Mid Testson",
+            PersonIdentifier = personId,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = FieldValue.Unset,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue();
+
+        TimeProvider.Advance(TimeSpan.FromDays(30));
+
+        var toUpdate = toInsert with
+        {
+            DisplayName = "Test Updated",
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+        };
+
+        result = await Persistence.UpsertParty(toUpdate);
+        result.Should().HaveValue();
+
+        var expected = toUpdate with
+        {
+            CreatedAt = toInsert.CreatedAt, // created at should not change
+        };
+
+        var updated = result.Value.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
+        updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
+
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party).SingleAsync();
+        fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+    }
+
+    #endregion
+
     #region Upsert Role-Assigments
 
     [Fact]

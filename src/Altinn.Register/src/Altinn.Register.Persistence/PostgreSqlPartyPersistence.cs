@@ -312,6 +312,7 @@ internal partial class PostgreSqlPartyPersistence
         {
             PersonRecord person => UpsertPerson(person, cancellationToken),
             OrganizationRecord org => UpsertOrg(org, cancellationToken),
+            SelfIdentifiedUserRecord siu => UpsertSelfIdentifiedUser(siu, cancellationToken),
             _ => ThrowHelper.ThrowArgumentException<Task<Result<PartyRecord>>>("Unsupported party type"),
         };
 
@@ -630,6 +631,30 @@ internal partial class PostgreSqlPartyPersistence
                 BusinessAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>("business_address", cancellationToken),
 
                 ParentOrganizationUuid = FieldValue.Unset,
+            };
+        }
+
+        async Task<Result<PartyRecord>> UpsertSelfIdentifiedUser(SelfIdentifiedUserRecord record, CancellationToken cancellationToken)
+        {
+            var partyResult = await DoUpsertParty(record, cancellationToken);
+
+            if (partyResult.IsProblem)
+            {
+                return partyResult;
+            }
+
+            var partyData = partyResult.Value;
+            return new SelfIdentifiedUserRecord
+            {
+                PartyUuid = partyData.PartyUuid,
+                PartyId = partyData.PartyId,
+                DisplayName = partyData.DisplayName,
+                PersonIdentifier = partyData.PersonIdentifier,
+                OrganizationIdentifier = partyData.OrganizationIdentifier,
+                CreatedAt = partyData.CreatedAt,
+                ModifiedAt = partyData.ModifiedAt,
+                IsDeleted = partyData.IsDeleted,
+                VersionId = partyData.VersionId,
             };
         }
     }
