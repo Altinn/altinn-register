@@ -131,9 +131,30 @@ public interface IPartyPersistence
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets a page of the external-role-assignment-stream.
+    /// </summary>
+    /// <param name="fromExclusive">From where (exclusive) to start the page.</param>
+    /// <param name="limit">The maximum number of parties to return.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>
+    /// A <see cref="IAsyncEnumerable{T}"/> containing a page of external-role-assignment events.
+    /// </returns>
+    public IAsyncEnumerable<ExternalRoleAssignmentEvent> GetExternalRoleAssignmentStream(
+        ulong fromExclusive,
+        ushort limit,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets the maximum version ID of a party.
     /// </summary>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>The highest version ID of a party.</returns>
     public Task<ulong> GetMaxPartyVersionId(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets the maximum version ID of an external-role-assignment event.
+    /// </summary>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>The highest version ID of an external-role-assignment event.</returns>
+    public Task<ulong> GetMaxExternalRoleAssignmentVersionId(CancellationToken cancellationToken);
 }
