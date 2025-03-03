@@ -740,7 +740,10 @@ internal partial class PostgreSqlPartyPersistence
     }
 
     /// <inheritdoc/>
-    public async IAsyncEnumerable<ExternalRoleAssignmentEvent> GetExternalRoleAssignmentStream(ulong fromExclusive, ushort limit, [EnumeratorCancellation] CancellationToken cancellationToken)
+    public async IAsyncEnumerable<ExternalRoleAssignmentEvent> GetExternalRoleAssignmentStream(
+        ulong fromExclusive,
+        ushort limit,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         const string QUERY =
             /*strpsql*/"""
