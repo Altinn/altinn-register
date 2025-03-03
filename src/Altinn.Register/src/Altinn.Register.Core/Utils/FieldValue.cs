@@ -25,6 +25,24 @@ public static class FieldValue
     public static readonly NullSentinel Null = default;
 
     /// <summary>
+    /// Determines whether the specified type is a <see cref="FieldValue{T}"/>.
+    /// </summary>
+    /// <param name="type">The type to check.</param>
+    /// <param name="innerType">The inner field-value, if <paramref name="type"/> was a <see cref="FieldValue{T}"/>.</param>
+    /// <returns><see langword="true"/> if <paramref name="type"/> is a <see cref="FieldValue{T}"/>, otherwise <see langword="false"/>.</returns>
+    public static bool IsFieldValueType(Type type, [NotNullWhen(true)] out Type? innerType)
+    {
+        if (type.IsConstructedGenericType && type.GetGenericTypeDefinition() == typeof(FieldValue<>))
+        {
+            innerType = type.GetGenericArguments()[0];
+            return true;
+        }
+
+        innerType = null;
+        return false;
+    }
+
+    /// <summary>
     /// Creates a <see cref="FieldValue{T}"/> from a nullable struct.
     /// </summary>
     /// <typeparam name="T">The field type.</typeparam>
