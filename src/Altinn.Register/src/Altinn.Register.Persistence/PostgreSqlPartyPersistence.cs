@@ -293,7 +293,7 @@ internal partial class PostgreSqlPartyPersistence
             ThrowHelper.ThrowInvalidOperationException("No rows returned from MAX(version_id) query");
         }
 
-        if (reader.IsDBNull(0))
+        if (await reader.IsDBNullAsync(0, cancellationToken))
         {
             return 0;
         }
@@ -817,7 +817,7 @@ internal partial class PostgreSqlPartyPersistence
             ThrowHelper.ThrowInvalidOperationException("No rows returned from MAX(id) query");
         }
 
-        if (reader.IsDBNull(0))
+        if (await reader.IsDBNullAsync(0, cancellationToken))
         {
             return 0;
         }
