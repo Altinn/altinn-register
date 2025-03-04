@@ -1039,15 +1039,14 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
         var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
         var toInsert = new SelfIdentifiedUserRecord
         {
             PartyUuid = uuid,
             PartyId = id,
-            DisplayName = "Test Mid Testson",
-            PersonIdentifier = personId,
+            DisplayName = "Test SI User",
+            PersonIdentifier = null,
             OrganizationIdentifier = null,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
@@ -1076,8 +1075,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
-            DisplayName = "Test Mid Testson",
-            PersonIdentifier = personId,
+            DisplayName = "Test SI User",
+            PersonIdentifier = null,
             OrganizationIdentifier = null,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
