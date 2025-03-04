@@ -2,6 +2,7 @@
 
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts.ExternalRoles;
+using Altinn.Register.Core;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
@@ -213,24 +214,36 @@ public class PartyController
         var partyPersistence = uow.GetPartyPersistence();
         var rolePersistence = uow.GetPartyExternalRolePersistence();
 
-        var customerPartyUuids = await rolePersistence.GetExternalRoleAssignmentsToParty(
-            partyUuid,
-            role,
-            PartyExternalRoleAssignmentFieldIncludes.RoleFromParty,
-            cancellationToken)
-            .Select(static r => r.FromParty.Value)
-            .ToListAsync(cancellationToken);
+        List<Guid> customerPartyUuids;
+
+        {
+            using var activity = RegisterTelemetry.StartActivity("GetExternalRoleAssignmentsToParty");
+
+            customerPartyUuids = await rolePersistence.GetExternalRoleAssignmentsToParty(
+                partyUuid,
+                role,
+                PartyExternalRoleAssignmentFieldIncludes.RoleFromParty,
+                cancellationToken)
+                .Select(static r => r.FromParty.Value)
+                .ToListAsync(cancellationToken);
+        }
 
         if (customerPartyUuids.Count == 0)
         {
             return StatusCode(StatusCodes.Status204NoContent, ListObject.Create<PartyRecord>([]));
         }
 
-        var customers = await partyPersistence.LookupParties(
-            partyUuids: customerPartyUuids,
-            include: fields,
-            cancellationToken: cancellationToken)
-            .ToListAsync(cancellationToken);
+        List<PartyRecord> customers;
+
+        {
+            using var activity = RegisterTelemetry.StartActivity("LookupParties");
+
+            customers = await partyPersistence.LookupParties(
+                partyUuids: customerPartyUuids,
+                include: fields,
+                cancellationToken: cancellationToken)
+                .ToListAsync(cancellationToken);
+        }
 
         if (customers.Count == 0)
         {
