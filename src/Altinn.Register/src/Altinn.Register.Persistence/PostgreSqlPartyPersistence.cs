@@ -697,7 +697,7 @@ internal partial class PostgreSqlPartyPersistence
     {
         _handle.ThrowIfCompleted();
 
-        var query = PartyRoleQuery.Get(include, PartyRoleFilter.FromParty);
+        var query = PartyRoleQuery.Get(include, PartyRoleFilters.FromParty);
         NpgsqlCommand? cmd = null;
         try
         {
@@ -715,14 +715,36 @@ internal partial class PostgreSqlPartyPersistence
     }
 
     /// <inheritdoc/>
+    IAsyncEnumerable<PartyExternalRoleAssignmentRecord> IPartyExternalRolePersistence.GetExternalRoleAssignmentsToParty(
+        Guid partyUuid,
+        PartyExternalRoleAssignmentFieldIncludes include,
+        CancellationToken cancellationToken)
+        => GetExternalRoleAssignmentsToParty(partyUuid, null, include, cancellationToken);
+
+    /// <inheritdoc/>
+    IAsyncEnumerable<PartyExternalRoleAssignmentRecord> IPartyExternalRolePersistence.GetExternalRoleAssignmentsToParty(
+        Guid partyUuid,
+        ExternalRoleReference role,
+        PartyExternalRoleAssignmentFieldIncludes include,
+        CancellationToken cancellationToken)
+        => GetExternalRoleAssignmentsToParty(partyUuid, role, include, cancellationToken);
+
+    /// <inheritdoc cref="IPartyExternalRolePersistence.GetExternalRoleAssignmentsToParty(Guid, ExternalRoleReference, PartyExternalRoleAssignmentFieldIncludes, CancellationToken)"/>
     public IAsyncEnumerable<PartyExternalRoleAssignmentRecord> GetExternalRoleAssignmentsToParty(
         Guid partyUuid,
+        ExternalRoleReference? role = null,
         PartyExternalRoleAssignmentFieldIncludes include = PartyExternalRoleAssignmentFieldIncludes.RoleAssignment,
         CancellationToken cancellationToken = default)
     {
         _handle.ThrowIfCompleted();
 
-        var query = PartyRoleQuery.Get(include, PartyRoleFilter.ToParty);
+        var filter = PartyRoleFilters.ToParty;
+        if (role is not null)
+        {
+            filter |= PartyRoleFilters.Role;
+        }
+
+        var query = PartyRoleQuery.Get(include, filter);
         NpgsqlCommand? cmd = null;
         try
         {
@@ -730,6 +752,12 @@ internal partial class PostgreSqlPartyPersistence
             cmd.CommandText = query.CommandText;
 
             query.AddToPartyParameter(cmd, partyUuid);
+
+            if (role is not null)
+            {
+                query.AddRoleSourceParameter(cmd, role.Source);
+                query.AddRoleIdentifierParameter(cmd, role.Identifier);
+            }
 
             return PrepareAndReadPartyRolesAsync(cmd, query, cancellationToken);
         }
@@ -935,12 +963,17 @@ internal partial class PostgreSqlPartyPersistence
             }
         }
     }
-
-    private enum PartyRoleFilter
+    
+    [Flags]
+    private enum PartyRoleFilters
         : byte
     {
-        FromParty,
-        ToParty,
+        None = 0,
+        FromParty = 1 << 0,
+        ToParty = 1 << 1,
+
+        RoleSource = 1 << 2,
+        Role = RoleSource | (1 << 3),
     }
 
     #endregion
