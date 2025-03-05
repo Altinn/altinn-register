@@ -62,6 +62,11 @@ public sealed class TestWebApplication
             var relPath = request.RequestUri?.PathAndQuery;
 
             using var activity = IntegrationTestsActivities.Source.StartActivity(ActivityKind.Client, name: $"{activityVerb} {relPath}");
+            if (activity is not null)
+            {
+                request.Headers.Add("traceparent", activity.Id);
+            }
+
             return await base.SendAsync(request, cancellationToken);
         }
     }

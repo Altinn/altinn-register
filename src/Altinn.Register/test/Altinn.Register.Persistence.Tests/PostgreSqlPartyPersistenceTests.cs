@@ -484,6 +484,53 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         });
     }
 
+    [Fact]
+    public async Task GetRolesToParty_FilterByRole()
+    {
+        var role1 = await UoW.CreateFakeRoleDefinition(ExternalRoleSource.CentralCoordinatingRegister, "fake");
+        var role2 = await UoW.CreateFakeRoleDefinition(ExternalRoleSource.CentralCoordinatingRegister, "fake-other");
+
+        var org1 = await UoW.CreateOrg();
+        var org2 = await UoW.CreateOrg();
+        var org3 = await UoW.CreateOrg();
+        var org4 = await UoW.CreateOrg();
+
+        await Persistence.UpsertExternalRolesFromPartyBySource(
+            commandId: Guid.CreateVersion7(),
+            partyUuid: org2.PartyUuid.Value,
+            roleSource: ExternalRoleSource.CentralCoordinatingRegister,
+            assignments: [
+                new(role1.Identifier, org1.PartyUuid.Value),
+                new(role2.Identifier, org1.PartyUuid.Value),
+            ]);
+
+        await Persistence.UpsertExternalRolesFromPartyBySource(
+            commandId: Guid.CreateVersion7(),
+            partyUuid: org3.PartyUuid.Value,
+            roleSource: ExternalRoleSource.CentralCoordinatingRegister,
+            assignments: [
+                new(role1.Identifier, org1.PartyUuid.Value),
+            ]);
+
+        await Persistence.UpsertExternalRolesFromPartyBySource(
+            commandId: Guid.CreateVersion7(),
+            partyUuid: org4.PartyUuid.Value,
+            roleSource: ExternalRoleSource.CentralCoordinatingRegister,
+            assignments: [
+                new(role2.Identifier, org1.PartyUuid.Value),
+            ]);
+
+        var roles = await Persistence.GetExternalRoleAssignmentsToParty(
+            partyUuid: org1.PartyUuid.Value,
+            role: new(role1.Source, role1.Identifier))
+            .ToListAsync();
+
+        roles.Should().HaveCount(2);
+        roles.Should().ContainSingle(r => r.FromParty.Value == org2.PartyUuid.Value);
+        roles.Should().ContainSingle(r => r.FromParty.Value == org3.PartyUuid.Value);
+        roles.Should().AllSatisfy(r => r.ToParty.Should().Be(org1.PartyUuid.Value));
+    }
+
     [Theory]
     [InlineData(PartyFieldIncludes.Party)]
     [InlineData(PartyFieldIncludes.Identifiers)]

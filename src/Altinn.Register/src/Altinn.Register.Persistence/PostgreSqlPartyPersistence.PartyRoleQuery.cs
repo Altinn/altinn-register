@@ -6,8 +6,10 @@ using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.Utils;
+using CommunityToolkit.Diagnostics;
 using Npgsql;
 using NpgsqlTypes;
+using Polly.CircuitBreaker;
 
 namespace Altinn.Register.Persistence;
 
@@ -19,10 +21,10 @@ internal partial class PostgreSqlPartyPersistence
     [SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1516:Elements should be separated by blank line", Justification = "This class is long enough already")]
     private sealed class PartyRoleQuery
     {
-        private static ImmutableDictionary<(PartyExternalRoleAssignmentFieldIncludes Includes, PartyRoleFilter FilterBy), PartyRoleQuery> _queries
-            = ImmutableDictionary<(PartyExternalRoleAssignmentFieldIncludes Includes, PartyRoleFilter FilterBy), PartyRoleQuery>.Empty;
+        private static ImmutableDictionary<(PartyExternalRoleAssignmentFieldIncludes Includes, PartyRoleFilters FilterBy), PartyRoleQuery> _queries
+            = ImmutableDictionary<(PartyExternalRoleAssignmentFieldIncludes Includes, PartyRoleFilters FilterBy), PartyRoleQuery>.Empty;
 
-        public static PartyRoleQuery Get(PartyExternalRoleAssignmentFieldIncludes includes, PartyRoleFilter filterBy)
+        public static PartyRoleQuery Get(PartyExternalRoleAssignmentFieldIncludes includes, PartyRoleFilters filterBy)
         {
             return ImmutableInterlocked.GetOrAdd(ref _queries, (Includes: includes, FilterBy: filterBy), static (key) => Builder.Create(key.Includes, key.FilterBy));
         }
@@ -31,17 +33,23 @@ internal partial class PostgreSqlPartyPersistence
             string commandText,
             PartyRoleFields fields,
             FilterParameter paramFromParty,
-            FilterParameter paramToParty)
+            FilterParameter paramToParty,
+            FilterParameter paramRoleSource,
+            FilterParameter paramRoleIdentifier)
         {
             CommandText = commandText;
             _fields = fields;
             _paramFromParty = paramFromParty;
             _paramToParty = paramToParty;
+            _paramRoleSource = paramRoleSource;
+            _paramRoleIdentifier = paramRoleIdentifier;
         }
 
         private readonly PartyRoleFields _fields;
         private readonly FilterParameter _paramFromParty;
         private readonly FilterParameter _paramToParty;
+        private readonly FilterParameter _paramRoleSource;
+        private readonly FilterParameter _paramRoleIdentifier;
 
         public string CommandText { get; }
 
@@ -51,12 +59,21 @@ internal partial class PostgreSqlPartyPersistence
         public NpgsqlParameter<Guid> AddToPartyParameter(NpgsqlCommand cmd, Guid value)
             => AddParameter(cmd, in _paramToParty, value);
 
+        public NpgsqlParameter<ExternalRoleSource> AddRoleSourceParameter(NpgsqlCommand cmd, ExternalRoleSource value)
+            => AddParameter(cmd, in _paramRoleSource, value);
+
+        public NpgsqlParameter<string> AddRoleIdentifierParameter(NpgsqlCommand cmd, string value)
+            => AddParameter(cmd, in _paramRoleIdentifier, value);
+
         private NpgsqlParameter<T> AddParameter<T>(NpgsqlCommand cmd, in FilterParameter config, T value)
         {
             Debug.Assert(config.HasValue, "Parameter must be configured");
             Debug.Assert(config.Type == typeof(T), "Parameter type mismatch");
 
-            var param = cmd.Parameters.Add<T>(config.Name, config.DbType);
+            var param = config.DbType.HasValue
+                ? cmd.Parameters.Add<T>(config.Name, config.DbType.Value)
+                : cmd.Parameters.Add<T>(config.Name);
+            
             param.TypedValue = value;
 
             return param;
@@ -80,8 +97,18 @@ internal partial class PostgreSqlPartyPersistence
 
         private sealed class Builder
         {
-            public static PartyRoleQuery Create(PartyExternalRoleAssignmentFieldIncludes includes, PartyRoleFilter filterBy)
+            public static PartyRoleQuery Create(PartyExternalRoleAssignmentFieldIncludes includes, PartyRoleFilters filterBy)
             {
+                if (includes == PartyExternalRoleAssignmentFieldIncludes.None) 
+                {
+                    ThrowHelper.ThrowArgumentException(nameof(includes), "No fields specified");
+                }
+
+                if (filterBy == PartyRoleFilters.None)
+                {
+                    ThrowHelper.ThrowArgumentException(nameof(filterBy), "No filter specified");
+                }
+
                 Builder builder = new();
                 builder.Populate(includes, filterBy);
 
@@ -98,7 +125,9 @@ internal partial class PostgreSqlPartyPersistence
                     commandText,
                     fields,
                     paramFromParty: builder._paramFromParty,
-                    paramToParty: builder._paramToParty);
+                    paramToParty: builder._paramToParty,
+                    paramRoleSource: builder._paramRoleSource,
+                    paramRoleIdentifier: builder._paramRoleIdentifier);
             }
 
             private readonly StringBuilder _builder = new();
@@ -106,6 +135,8 @@ internal partial class PostgreSqlPartyPersistence
             // parameters
             private FilterParameter _paramFromParty;
             private FilterParameter _paramToParty;
+            private FilterParameter _paramRoleSource;
+            private FilterParameter _paramRoleIdentifier;
 
             // fields
             private sbyte _fieldIndex = 0;
@@ -120,7 +151,7 @@ internal partial class PostgreSqlPartyPersistence
             private sbyte _roleDefinitionName = -1;
             private sbyte _roleDefinitionDescription = -1;
 
-            public void Populate(PartyExternalRoleAssignmentFieldIncludes includes, PartyRoleFilter filterBy)
+            public void Populate(PartyExternalRoleAssignmentFieldIncludes includes, PartyRoleFilters filterBy)
             {
                 _builder.Append(/*strpsql*/"SELECT");
 
@@ -140,15 +171,25 @@ internal partial class PostgreSqlPartyPersistence
                 }
 
                 var first = true;
-                switch (filterBy)
+                if (filterBy.HasFlag(PartyRoleFilters.FromParty))
                 {
-                    case PartyRoleFilter.FromParty:
-                        _paramFromParty = AddFilter(typeof(Guid), "fromParty", "r.from_party =", NpgsqlDbType.Uuid, ref first);
-                        break;
+                    _paramFromParty = AddAndFilter(typeof(Guid), "fromParty", "r.from_party =", NpgsqlDbType.Uuid, ref first);
+                }
 
-                    case PartyRoleFilter.ToParty:
-                        _paramToParty = AddFilter(typeof(Guid), "toParty", "r.to_party =", NpgsqlDbType.Uuid, ref first);
-                        break;
+                if (filterBy.HasFlag(PartyRoleFilters.ToParty))
+                {
+                    _paramToParty = AddAndFilter(typeof(Guid), "toParty", "r.to_party =", NpgsqlDbType.Uuid, ref first);
+                }
+
+                if (filterBy.HasFlag(PartyRoleFilters.RoleSource))
+                {
+                    _paramRoleSource = AddAndFilter(typeof(ExternalRoleSource), "roleSource", "r.source =", null, ref first);
+                }
+
+                if (filterBy.HasFlag(PartyRoleFilters.Role))
+                {
+                    // Note: PartyRoleFilters.Role includes PartyRoleFilters.RoleSource (which have already been added by the previous if-statement)
+                    _paramRoleIdentifier = AddAndFilter(typeof(string), "roleIdentifier", "r.identifier =", NpgsqlDbType.Text, ref first);
                 }
             }
 
@@ -170,7 +211,7 @@ internal partial class PostgreSqlPartyPersistence
                 return _fieldIndex++;
             }
 
-            private FilterParameter AddFilter(Type type, string name, string sourceSql, NpgsqlDbType dbType, ref bool first)
+            private FilterParameter AddAndFilter(Type type, string name, string sourceSql, NpgsqlDbType? dbType, ref bool first)
             {
                 if (first)
                 {
@@ -179,12 +220,12 @@ internal partial class PostgreSqlPartyPersistence
                 }
                 else
                 {
-                    _builder.AppendLine().Append(/*strpsql*/"    OR ");
+                    _builder.AppendLine().Append(/*strpsql*/"    AND ");
                 }
 
                 _builder.Append(sourceSql);
 
-                if (dbType.HasFlag(NpgsqlDbType.Array))
+                if (dbType.HasValue && dbType.Value.HasFlag(NpgsqlDbType.Array))
                 {
                     _builder.Append('(');
                 }
@@ -195,7 +236,7 @@ internal partial class PostgreSqlPartyPersistence
 
                 _builder.Append('@').Append(name);
 
-                if (dbType.HasFlag(NpgsqlDbType.Array))
+                if (dbType.HasValue && dbType.Value.HasFlag(NpgsqlDbType.Array))
                 {
                     _builder.Append(')');
                 }
@@ -207,7 +248,7 @@ internal partial class PostgreSqlPartyPersistence
         private readonly struct FilterParameter(
             Type type,
             string name,
-            NpgsqlDbType dbType)
+            NpgsqlDbType? dbType)
         {
             [MemberNotNullWhen(true, nameof(Type))]
             [MemberNotNullWhen(true, nameof(Name))]
@@ -217,7 +258,7 @@ internal partial class PostgreSqlPartyPersistence
 
             public string? Name => name;
 
-            public NpgsqlDbType DbType => dbType;
+            public NpgsqlDbType? DbType => dbType;
         }
 
         [SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1515:Single-line comment should be preceded by blank line", Justification = "This rule makes no sense here")]

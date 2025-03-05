@@ -1,6 +1,8 @@
 ﻿#nullable enable
 
 using Altinn.Authorization.ProblemDetails;
+using Altinn.Register.Contracts.ExternalRoles;
+using Altinn.Register.Core;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
@@ -165,6 +167,92 @@ public class PartyController
             sequenceNumberFactory: static e => e.VersionId);
     }
 
+    private static readonly ExternalRoleReference _revisorRole = new(ExternalRoleSource.CentralCoordinatingRegister, "revisor");
+
+    /// <summary>
+    /// Gets all parties that have assigned the "revisor" ccr role to <paramref name="partyUuid"/>.
+    /// </summary>
+    /// <param name="partyUuid">The revisor party uuid.</param>
+    /// <param name="fields">The party fields to include.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>A set of parties that have assigned the "revisor" ccr role to <paramref name="partyUuid"/>.</returns>
+    [HttpGet("{partyUuid:guid}/customers/ccr/revisor")]
+    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status204NoContent)]
+    public Task<ActionResult<ListObject<PartyRecord>>> GetRevisorCustomers(
+        [FromRoute] Guid partyUuid,
+        [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
+        CancellationToken cancellationToken = default)
+        => GetCustomers(partyUuid, _revisorRole, fields, cancellationToken);
+
+    private static readonly ExternalRoleReference _regnskapsforerRole = new(ExternalRoleSource.CentralCoordinatingRegister, "regnskapsforer");
+
+    /// <summary>
+    /// Gets all parties that have assigned the "regnskapsforer" ccr role to <paramref name="partyUuid"/>.
+    /// </summary>
+    /// <param name="partyUuid">The revisor party uuid.</param>
+    /// <param name="fields">The party fields to include.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>A set of parties that have assigned the "regnskapsforer" ccr role to <paramref name="partyUuid"/>.</returns>
+    [HttpGet("{partyUuid:guid}/customers/ccr/regnskapsforer")]
+    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status204NoContent)]
+    public Task<ActionResult<ListObject<PartyRecord>>> GetRegnskapsforerCustomers(
+        [FromRoute] Guid partyUuid, 
+        [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
+        CancellationToken cancellationToken = default)
+        => GetCustomers(partyUuid, _regnskapsforerRole, fields, cancellationToken);
+
+    [NonAction]
+    private async Task<ActionResult<ListObject<PartyRecord>>> GetCustomers(
+        Guid partyUuid,
+        ExternalRoleReference role,
+        PartyFieldIncludes fields,
+        CancellationToken cancellationToken)
+    {
+        await using var uow = await _uowManager.CreateAsync(cancellationToken);
+        var partyPersistence = uow.GetPartyPersistence();
+        var rolePersistence = uow.GetPartyExternalRolePersistence();
+
+        List<Guid> customerPartyUuids;
+
+        {
+            using var activity = RegisterTelemetry.StartActivity("GetExternalRoleAssignmentsToParty");
+
+            customerPartyUuids = await rolePersistence.GetExternalRoleAssignmentsToParty(
+                partyUuid,
+                role,
+                PartyExternalRoleAssignmentFieldIncludes.RoleFromParty,
+                cancellationToken)
+                .Select(static r => r.FromParty.Value)
+                .ToListAsync(cancellationToken);
+        }
+
+        if (customerPartyUuids.Count == 0)
+        {
+            return StatusCode(StatusCodes.Status204NoContent, ListObject.Create<PartyRecord>([]));
+        }
+
+        List<PartyRecord> customers;
+
+        {
+            using var activity = RegisterTelemetry.StartActivity("LookupParties");
+
+            customers = await partyPersistence.LookupParties(
+                partyUuids: customerPartyUuids,
+                include: fields,
+                cancellationToken: cancellationToken)
+                .ToListAsync(cancellationToken);
+        }
+
+        if (customers.Count == 0)
+        {
+            return StatusCode(StatusCodes.Status204NoContent, ListObject.Create<PartyRecord>([]));
+        }
+
+        return ListObject.Create(customers);
+    }
+
     /// <summary>
     /// Looks up parties based on the provided identifiers.
     /// </summary>
@@ -182,9 +270,9 @@ public class PartyController
     /// </list>
     /// </remarks>
     [HttpPost("query")]
-    [ProducesResponseType<ListObject<PartyRecord>>(200)]
-    [ProducesResponseType<ListObject<PartyRecord>>(204)]
-    [ProducesResponseType<ListObject<PartyRecord>>(206)]
+    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status206PartialContent)]
     public async Task<ActionResult<ListObject<PartyRecord>>> Query(
         [FromBody] ListObject<PartyUrn> parties,
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
