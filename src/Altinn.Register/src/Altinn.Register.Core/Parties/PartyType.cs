@@ -19,4 +19,10 @@ public enum PartyType
     /// </summary>
     [JsonStringEnumMemberName("organization")]
     Organization,
+
+    /// <summary>
+    /// Self-identified user party type.
+    /// </summary>
+    [JsonStringEnumMemberName("self-identified-user")]
+    SelfIdentifiedUser,
 }

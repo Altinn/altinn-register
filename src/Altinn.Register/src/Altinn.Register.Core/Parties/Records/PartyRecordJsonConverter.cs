@@ -265,6 +265,7 @@ internal class PartyRecordJsonConverter
                     {
                         PartyType.Person => (IPartyRecordJsonConverter<T>)options.GetConverter(typeof(PersonRecord)),
                         PartyType.Organization => (IPartyRecordJsonConverter<T>)options.GetConverter(typeof(OrganizationRecord)),
+                        PartyType.SelfIdentifiedUser => (IPartyRecordJsonConverter<T>)options.GetConverter(typeof(SelfIdentifiedUserRecord)),
                         _ => ThrowHelper.ThrowInvalidOperationException<IPartyRecordJsonConverter<T>>($"Invalid party type: {partyType.Value}"),
                     };
                 };

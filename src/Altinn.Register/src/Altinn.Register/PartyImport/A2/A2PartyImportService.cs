@@ -157,6 +157,7 @@ internal sealed partial class A2PartyImportService
         {
             V1PartyType.Person => MapPerson(party, _timeProvider.GetUtcNow()),
             V1PartyType.Organisation => MapOrganization(party, _timeProvider.GetUtcNow()),
+            V1PartyType.SelfIdentified => MapSelfIdentifiedUser(party, _timeProvider.GetUtcNow()),
             _ => ThrowHelper.ThrowNotSupportedException<PartyRecord>($"Party type {party.PartyTypeName} is not supported."),
         };
 
@@ -266,6 +267,32 @@ internal sealed partial class A2PartyImportService
             };
 
             return new DateOnly(year, monthComponent, dayComponent);
+        }
+
+        static SelfIdentifiedUserRecord MapSelfIdentifiedUser(V1Models.Party party, DateTimeOffset now)
+        {
+            var partyUuid = party.PartyUuid!.Value;
+            var partyId = party.PartyId;
+            var displayName = Normalize(party.Name);
+
+            if (displayName is null)
+            {
+                displayName = "Selvidentifisert bruker uten navn";
+            }
+
+            return new SelfIdentifiedUserRecord
+            {
+                // party fields
+                PartyUuid = partyUuid,
+                PartyId = partyId,
+                DisplayName = displayName,
+                PersonIdentifier = null,
+                OrganizationIdentifier = null,
+                CreatedAt = now,
+                ModifiedAt = now,
+                IsDeleted = party.IsDeleted,
+                VersionId = FieldValue.Unset,
+            };
         }
 
         static PersonRecord MapPerson(V1Models.Party party, DateTimeOffset now)

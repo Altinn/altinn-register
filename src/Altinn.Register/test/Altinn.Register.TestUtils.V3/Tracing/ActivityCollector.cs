@@ -89,6 +89,12 @@ internal sealed class ActivityCollector
             return ActivitySamplingResult.None;
         }
 
+        if (_activity is null)
+        {
+            // test-activity not yet created, definitely not a child
+            return ActivitySamplingResult.None;
+        }
+
         if (options.TraceId == _activity.TraceId)
         {
             // activity created by the test

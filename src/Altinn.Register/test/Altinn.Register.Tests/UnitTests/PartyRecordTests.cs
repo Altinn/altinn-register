@@ -148,6 +148,43 @@ public class PartyRecordTests
     }
 
     [Fact]
+    public void Serialize_PartyRecord_SIType()
+    {
+        PartyRecord record = new PartyRecord(PartyType.SelfIdentifiedUser)
+        {
+            PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+            PartyId = 1,
+            DisplayName = "1",
+            PersonIdentifier = PersonIdentifier.Parse("25871999336"),
+            OrganizationIdentifier = FieldValue.Unset,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = true,
+            VersionId = 42,
+        };
+
+        var json = JsonSerializer.SerializeToElement(record, _options);
+        json.Should().BeEquivalentTo(
+            """
+            {
+                "partyType": "self-identified-user",
+                "partyUuid":"00000000-0000-0000-0000-000000000001",
+                "partyId":1,
+                "displayName":"1",
+                "personIdentifier":"25871999336",
+                "createdAt":"2000-01-01T00:00:00+00:00",
+                "modifiedAt":"2000-01-01T00:00:00+00:00",
+                "isDeleted":true,
+                "versionId":42
+            }
+            """);
+
+        var deserialized = JsonSerializer.Deserialize<PartyRecord>(json, _options);
+        deserialized.Should().BeOfType<SelfIdentifiedUserRecord>();
+        deserialized.Should().BeEquivalentTo(record);
+    }
+
+    [Fact]
     public void Serialize_PersonRecord_Empty()
     {
         PartyRecord record = new PersonRecord
@@ -469,6 +506,43 @@ public class PartyRecordTests
         var deserialized = JsonSerializer.Deserialize<PartyRecord>(json2, _options);
         var org = deserialized.Should().BeOfType<OrganizationRecord>().Which;
         org.ParentOrganizationUuid.Should().BeUnset();
+    }
+
+    [Fact]
+    public void Serialize_SIRecord()
+    {
+        SelfIdentifiedUserRecord record = new SelfIdentifiedUserRecord
+        {
+            PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+            PartyId = 1,
+            DisplayName = "1",
+            PersonIdentifier = PersonIdentifier.Parse("25871999336"),
+            OrganizationIdentifier = FieldValue.Unset,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = 42,
+        };
+
+        var json = JsonSerializer.SerializeToElement(record, _options);
+        json.Should().BeEquivalentTo(
+            """
+            {
+                "partyType": "self-identified-user",
+                "partyUuid":"00000000-0000-0000-0000-000000000001",
+                "partyId":1,
+                "displayName":"1",
+                "personIdentifier":"25871999336",
+                "createdAt":"2000-01-01T00:00:00+00:00",
+                "modifiedAt":"2000-01-01T00:00:00+00:00",
+                "isDeleted":false,
+                "versionId":42
+            }
+            """);
+
+        var deserialized = JsonSerializer.Deserialize<SelfIdentifiedUserRecord>(json, _options);
+        deserialized.Should().BeOfType<SelfIdentifiedUserRecord>();
+        deserialized.Should().BeEquivalentTo(record);
     }
 
     [Fact]

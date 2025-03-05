@@ -169,6 +169,7 @@ internal partial class PostgreSqlPartyPersistence
                 {
                     { HasValue: false } => ReadBaseParty(reader, fields, partyType, cancellationToken),
                     { Value: PartyType.Person } => ReadPersonParty(reader, fields, cancellationToken),
+                    { Value: PartyType.SelfIdentifiedUser } => ReadSelfIdentifiedUserParty(reader, fields, cancellationToken),
                     { Value: PartyType.Organization } => ReadOrganizationParty(reader, fields, parentPartyUuid, cancellationToken),
                     _ => Unreachable(),
                 };
@@ -211,6 +212,22 @@ internal partial class PostgreSqlPartyPersistence
                     DateOfDeath = await reader.GetConditionalFieldValueAsync<DateOnly>(fields.PersonDateOfDeath, cancellationToken),
                     Address = await reader.GetConditionalFieldValueAsync<StreetAddress>(fields.PersonAddress, cancellationToken),
                     MailingAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>(fields.PersonMailingAddress, cancellationToken),
+                };
+            }
+
+            static async ValueTask<PartyRecord> ReadSelfIdentifiedUserParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
+            {
+                return new SelfIdentifiedUserRecord
+                {
+                    PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>(fields.PartyUuid, cancellationToken),
+                    PartyId = await reader.GetConditionalFieldValueAsync<int>(fields.PartyId, cancellationToken),
+                    DisplayName = await reader.GetConditionalFieldValueAsync<string>(fields.PartyDisplayName, cancellationToken),
+                    PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>(fields.PartyPersonIdentifier, cancellationToken),
+                    OrganizationIdentifier = await reader.GetConditionalParsableFieldValueAsync<OrganizationIdentifier>(fields.PartyOrganizationIdentifier, cancellationToken),
+                    CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyCreated, cancellationToken),
+                    ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyUpdated, cancellationToken),
+                    IsDeleted = await reader.GetConditionalFieldValueAsync<bool>(fields.PartyIsDeleted, cancellationToken),
+                    VersionId = await reader.GetConditionalFieldValueAsync<long>(fields.PartyVersionId, cancellationToken).Select(static v => (ulong)v),
                 };
             }
 

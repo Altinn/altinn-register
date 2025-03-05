@@ -5,6 +5,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.ImportJobs;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.Core.UnitOfWork;
@@ -16,7 +17,6 @@ using Altinn.Register.TestUtils.Http;
 using Altinn.Register.TestUtils.MassTransit;
 using Altinn.Register.TestUtils.TestData;
 using FluentAssertions.Execution;
-using MassTransit.Testing;
 using Nerdbank.Streams;
 using Xunit.Abstractions;
 
@@ -44,6 +44,27 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
 
         sent.Context.Message.Party.PartyId.Should().Be(partyId);
         sent.Context.Message.Party.PartyUuid.Should().Be(partyUuid);
+        sent.Context.DestinationAddress.Should().Be(CommandQueueResolver.GetQueueUriForCommandType<UpsertPartyCommand>());
+    }
+
+    [Fact]
+    public async Task ImportA2PartyCommand_FetchesParty_AndSendsUpsertCommand_SIUser()
+    {
+        var partyId = 50006237;
+        var partyUuid = Guid.Parse("4fe860c4-bc65-4d2f-a288-f825b460f26b");
+        HttpHandlers.For<IA2PartyImportService>().Expect(HttpMethod.Get, "/parties")
+            .WithQuery("partyuuid", partyUuid.ToString())
+            .Respond(() => TestDataParty(partyId));
+
+        await CommandSender.Send(new ImportA2PartyCommand { PartyUuid = partyUuid, ChangeId = 1, ChangedTime = TimeProvider.GetUtcNow() });
+
+        Assert.True(await Harness.Consumed.Any<ImportA2PartyCommand>());
+        var sent = await Harness.Sent.SelectAsync<UpsertPartyCommand>().FirstOrDefaultAsync();
+        Assert.NotNull(sent);
+
+        sent.Context.Message.Party.PartyId.Should().Be(partyId);
+        sent.Context.Message.Party.PartyUuid.Should().Be(partyUuid);
+        sent.Context.Message.Party.PartyType.Should().Be(PartyType.SelfIdentifiedUser);
         sent.Context.DestinationAddress.Should().Be(CommandQueueResolver.GetQueueUriForCommandType<UpsertPartyCommand>());
     }
 
