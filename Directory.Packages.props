@@ -8,11 +8,11 @@
   <ItemGroup>
     <PackageVersion Include="Altinn.Authorization.ProblemDetails.Abstractions" Version="3.2.1" />
     <PackageVersion Include="Altinn.Authorization.ProblemDetails" Version="3.2.1" />
-    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql.TestSeed" Version="2.10.0" />
-    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql" Version="2.10.0" />
-    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql" Version="2.10.0" />
-    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Telemetry" Version="2.10.0" />
-    <PackageVersion Include="Altinn.Authorization.ServiceDefaults" Version="2.10.0" />
+    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql.TestSeed" Version="2.11.0" />
+    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql" Version="2.11.0" />
+    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql" Version="2.11.0" />
+    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Telemetry" Version="2.11.0" />
+    <PackageVersion Include="Altinn.Authorization.ServiceDefaults" Version="2.11.0" />
     <PackageVersion Include="Altinn.Common.AccessToken" Version="5.0.1" />
     <PackageVersion Include="Altinn.Common.PEP" Version="4.1.2" />
     <PackageVersion Include="Altinn.Swashbuckle.Abstractions" Version="2.2.0" />
@@ -35,7 +35,7 @@
     <PackageVersion Include="MassTransit.Quartz" Version="8.3.6" />
     <PackageVersion Include="MassTransit.RabbitMQ" Version="8.3.6" />
     <PackageVersion Include="MassTransit" Version="8.3.6" />
-    <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
+    <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.23.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.2" />
     <PackageVersion Include="Microsoft.Build.Artifacts" Version="6.1.48" />
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Embedded" Version="9.0.2" />
