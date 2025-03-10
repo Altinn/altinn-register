@@ -2,5 +2,22 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "local>Altinn/renovate-config"
+  ],
+  "labels": [
+    "dependencies"
+  ],
+  "packageRules": [
+    {
+      "matchPackageNames": [
+        "xunit.v3.extensibility.core",
+        "xunit.v3",
+        "xunit.v3.assert"
+      ],
+      "groupName": "XUnit v3",
+      "groupSlug": "xunit-v3",
+      "matchUpdateTypes": [
+        "major"
+      ]
+    }
   ]
 }
