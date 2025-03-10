@@ -1,4 +1,8 @@
-﻿using MassTransit;
+﻿using Azure.Core;
+using Azure.Identity;
+using MassTransit;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Altinn.Authorization.ServiceDefaults.MassTransit;
 
@@ -18,7 +22,46 @@ internal abstract partial class MassTransitTransportHelper
 
             configurator.UsingAzureServiceBus((ctx, cfg) =>
             {
-                cfg.Host(Settings.ConnectionString);
+                if (!string.IsNullOrEmpty(Settings.ConnectionString))
+                {
+                    cfg.Host(Settings.ConnectionString);
+                }
+                else
+                {
+                    cfg.Host(Settings.Endpoint, hostCfg =>
+                    {
+                        var logger = ctx.GetRequiredService<ILogger<AzureServiceBusTransportHelper>>();
+                        List<TokenCredential> credentialList = [];
+
+                        if (Settings.Credentials.Environment)
+                        {
+                            logger.LogInformation("adding environment credentials to asb token");
+                            credentialList.Add(new EnvironmentCredential());
+                        }
+
+                        if (Settings.Credentials.WorkloadIdentity)
+                        {
+                            logger.LogInformation("adding workload identity credentials to asb token");
+                            credentialList.Add(new WorkloadIdentityCredential());
+                        }
+
+                        if (Settings.Credentials.ManagedIdentity)
+                        {
+                            logger.LogInformation("adding managed identity credentials to asb token");
+                            credentialList.Add(new ManagedIdentityCredential());
+                        }
+
+                        if (credentialList.Count == 0)
+                        {
+                            logger.LogError("No credentials configured for asb token");
+                            throw new InvalidOperationException("No credentials configured for asb token");
+                        }
+
+                        var credential = new ChainedTokenCredential([.. credentialList]);
+                        hostCfg.TokenCredential = credential;
+                    });
+                }
+
                 cfg.SetNamespaceSeparatorToUnderscore();
                 cfg.UseServiceBusMessageScheduler();
 
