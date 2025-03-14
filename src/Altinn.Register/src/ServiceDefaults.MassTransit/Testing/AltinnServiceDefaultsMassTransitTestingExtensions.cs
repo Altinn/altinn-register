@@ -36,8 +36,8 @@ public static class AltinnServiceDefaultsMassTransitTestingExtensions
                 if (!Debugger.IsAttached)
                 {
                     cfg.SetTestTimeouts(
-                        testTimeout: TimeSpan.FromMinutes(10),
-                        testInactivityTimeout: TimeSpan.FromMinutes(2));
+                        testTimeout: TimeSpan.FromMinutes(3),
+                        testInactivityTimeout: TimeSpan.FromMinutes(1));
                 }
 
                 c(cfg);
