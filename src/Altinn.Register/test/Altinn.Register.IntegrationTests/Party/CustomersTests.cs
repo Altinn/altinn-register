@@ -12,14 +12,14 @@ public class CustomersTests
 {
     [Theory]
     [MemberData(nameof(CustomerRoleIdentifiers))]
-    public async Task Empty(string roleIdentifier)
+    public async Task Empty(string roleIdentifier, string apiVersion)
     {
         var org = await Setup(async (uow, ct) =>
         {
             return await uow.CreateOrg(cancellationToken: ct);
         });
 
-        var response = await HttpClient.GetAsync($"register/api/v2/internal/parties/{org.PartyUuid.Value}/customers/ccr/{roleIdentifier}", TestContext.Current.CancellationToken);
+        var response = await HttpClient.GetAsync($"register/api/{apiVersion}/internal/parties/{org.PartyUuid.Value}/customers/ccr/{roleIdentifier}", TestContext.Current.CancellationToken);
         await response.ShouldHaveStatusCode(HttpStatusCode.NoContent);
 
         var content = await response.ShouldHaveJsonContent<ListObject<PartyRecord>>();
@@ -28,7 +28,7 @@ public class CustomersTests
 
     [Theory]
     [MemberData(nameof(CustomerRoleIdentifiers))]
-    public async Task Roles(string roleIdentifier)
+    public async Task Roles(string roleIdentifier, string apiVersion)
     {
         var (org1, org2, org3, org4) = await Setup(async (uow, ct) =>
         {
@@ -72,7 +72,7 @@ public class CustomersTests
             return (org1, org2, org3, org4);
         });
 
-        var response = await HttpClient.GetAsync($"register/api/v2/internal/parties/{org1.PartyUuid.Value}/customers/ccr/{roleIdentifier}", TestContext.Current.CancellationToken);
+        var response = await HttpClient.GetAsync($"register/api/{apiVersion}/internal/parties/{org1.PartyUuid.Value}/customers/ccr/{roleIdentifier}", TestContext.Current.CancellationToken);
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
 
         var content = await response.ShouldHaveJsonContent<ListObject<PartyRecord>>();
@@ -82,8 +82,7 @@ public class CustomersTests
         items.ShouldContain(p => p.PartyUuid == org3.PartyUuid);
     }
 
-    public static TheoryData<string> CustomerRoleIdentifiers => new TheoryData<string>([
-        "revisor",
-        "regnskapsforer",
-    ]);
+    public static TheoryData<string, string> CustomerRoleIdentifiers => new MatrixTheoryData<string, string>(
+        ["revisor", "regnskapsforer", "forretningsforer"], 
+        ["v1", "v2"]);
 }
