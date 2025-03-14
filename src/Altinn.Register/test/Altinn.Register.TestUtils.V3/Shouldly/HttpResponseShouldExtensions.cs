@@ -96,6 +96,10 @@ public static class HttpResponseShouldExtensions
 
     private sealed class ResponseData
     {
+        public HttpMethod? RequestMethod { get; }
+
+        public Uri? RequestUri { get; }
+
         public Version Version { get; }
 
         public HttpStatusCode StatusCode { get; }
@@ -104,8 +108,16 @@ public static class HttpResponseShouldExtensions
 
         public string Content { get; }
 
-        public ResponseData(Version version, HttpStatusCode statusCode, IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers, string content)
+        public ResponseData(
+            HttpMethod? httpMethod,
+            Uri? requestUri,
+            Version version,
+            HttpStatusCode statusCode,
+            IEnumerable<KeyValuePair<string, IEnumerable<string>>> headers,
+            string content)
         {
+            RequestMethod = httpMethod;
+            RequestUri = requestUri;
             Version = version;
             StatusCode = statusCode;
             Headers = headers;
@@ -115,8 +127,12 @@ public static class HttpResponseShouldExtensions
         public static async Task<ResponseData> Read(HttpResponseMessage message, CancellationToken cancellationToken)
         {
             var buffered = await BufferContent(message, cancellationToken);
+            var method = message.RequestMessage?.Method;
+            var uri = message.RequestMessage?.RequestUri;
 
             return new(
+                method,
+                uri,
                 message.Version,
                 message.StatusCode,
                 message.Headers.Concat(buffered.Headers),
@@ -199,6 +215,11 @@ public static class HttpResponseShouldExtensions
         private static string PrintResponse(ResponseData message)
         {
             var sb = new StringBuilder();
+            if (message.RequestMethod is not null && message.RequestUri is not null)
+            {
+                sb.Append(message.RequestMethod).Append(' ').Append(message.RequestUri).AppendLine();
+            }
+
             sb.AppendLine($"HTTP/{message.Version} {message.StatusCode}");
             foreach (var header in message.Headers)
             {

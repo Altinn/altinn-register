@@ -176,6 +176,8 @@ public class PartyController
     /// <param name="fields">The party fields to include.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A set of parties that have assigned the "revisor" ccr role to <paramref name="partyUuid"/>.</returns>
+    [ApiVersion(1.0)]
+    [ApiVersion(2.0)]
     [HttpGet("{partyUuid:guid}/customers/ccr/revisor")]
     [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status200OK)]
     [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status204NoContent)]
@@ -194,6 +196,8 @@ public class PartyController
     /// <param name="fields">The party fields to include.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A set of parties that have assigned the "regnskapsforer" ccr role to <paramref name="partyUuid"/>.</returns>
+    [ApiVersion(1.0)]
+    [ApiVersion(2.0)]
     [HttpGet("{partyUuid:guid}/customers/ccr/regnskapsforer")]
     [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status200OK)]
     [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status204NoContent)]
@@ -202,6 +206,26 @@ public class PartyController
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         CancellationToken cancellationToken = default)
         => GetCustomers(partyUuid, _regnskapsforerRole, fields, cancellationToken);
+
+    private static readonly ExternalRoleReference _forretningsforerRole = new(ExternalRoleSource.CentralCoordinatingRegister, "forretningsforer");
+
+    /// <summary>
+    /// Gets all parties that have assigned the "forretningsforer" ccr role to <paramref name="partyUuid"/>.
+    /// </summary>
+    /// <param name="partyUuid">The revisor party uuid.</param>
+    /// <param name="fields">The party fields to include.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>A set of parties that have assigned the "forretningsforer" ccr role to <paramref name="partyUuid"/>.</returns>
+    [ApiVersion(1.0)]
+    [ApiVersion(2.0)]
+    [HttpGet("{partyUuid:guid}/customers/ccr/forretningsforer")]
+    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status204NoContent)]
+    public Task<ActionResult<ListObject<PartyRecord>>> GetForretningsforerCustomers(
+        [FromRoute] Guid partyUuid,
+        [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
+        CancellationToken cancellationToken = default)
+        => GetCustomers(partyUuid, _forretningsforerRole, fields, cancellationToken);
 
     [NonAction]
     private async Task<ActionResult<ListObject<PartyRecord>>> GetCustomers(
