@@ -5,9 +5,7 @@ using System.Diagnostics.Metrics;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Core;
 using Altinn.Register.Core.ImportJobs;
-using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.PartyImport.A2;
-using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Jobs;
 
 namespace Altinn.Register.PartyImport.A2;
@@ -22,7 +20,6 @@ public sealed partial class A2PartyImportJob
     private readonly IImportJobTracker _tracker;
     private readonly ICommandSender _sender;
     private readonly IA2PartyImportService _importService;
-    private readonly IUnitOfWorkManager _unitOfWorkManager;
     private readonly TimeProvider _timeProvider;
     private readonly ImportMeters _meters;
 
@@ -34,7 +31,6 @@ public sealed partial class A2PartyImportJob
         IImportJobTracker tracker,
         ICommandSender sender,
         IA2PartyImportService importService,
-        IUnitOfWorkManager unitOfWorkManager,
         TimeProvider timeProvider,
         RegisterTelemetry telemetry)
     {
@@ -42,7 +38,6 @@ public sealed partial class A2PartyImportJob
         _tracker = tracker;
         _sender = sender;
         _importService = importService;
-        _unitOfWorkManager = unitOfWorkManager;
         _timeProvider = timeProvider;
         _meters = telemetry.GetServiceMeters<ImportMeters>();
     }
@@ -128,9 +123,7 @@ public sealed partial class A2PartyImportJob
                 break;
             }
 
-            var orgsOnly = await FilterPartyTypes(page, PartyType.Organization, cancellationToken);
-
-            var cmds = orgsOnly
+            var cmds = page
                 .Select(static update => new ImportA2CCRRolesCommand
                 {
                     PartyId = update.PartyId,
@@ -149,13 +142,11 @@ public sealed partial class A2PartyImportJob
             _meters.OrganizationCCRRolesEnqueued.Add(cmds.Count);
             enqueued += (ulong)cmds.Count;
 
-            if (enqueued > 50_000)
+            if (enqueuedMax - progress.ProcessedMax > 50_000)
             {
-                Log.PausingEnqueueingCCRRoles(_logger, enqueued);
+                Log.PausingEnqueueingCCRRoles(_logger, enqueuedMax, progress.ProcessedMax);
                 break;
             }
-
-            // Note: since ccr roles are only from organizations, we don't check for queue size, as there are expected to be large holes in ProcessedMax.
         }
 
         var duration = _timeProvider.GetElapsedTime(start);
@@ -174,19 +165,6 @@ public sealed partial class A2PartyImportJob
         var enqueuedMax = Math.Max(current.EnqueuedMax, newProgress.EnqueuedMax);
         var processedMax = Math.Max(current.ProcessedMax, newProgress.ProcessedMax);
         return new() { SourceMax = sourceMax, EnqueuedMax = enqueuedMax, ProcessedMax = processedMax };
-    }
-
-    private async Task<IEnumerable<A2PartyChange>> FilterPartyTypes(IEnumerable<A2PartyChange> changes, PartyType type, CancellationToken cancellationToken)
-    {
-        await using var uow = await _unitOfWorkManager.CreateAsync(cancellationToken);
-        var partyLookup = await uow.GetPartyPersistence()
-            .LookupParties(
-                partyUuids: [.. changes.Select(static update => update.PartyUuid)],
-                include: PartyFieldIncludes.PartyUuid | PartyFieldIncludes.PartyType,
-                cancellationToken: cancellationToken)
-            .ToDictionaryAsync(static party => party.PartyUuid.Value, cancellationToken);
-
-        return changes.Where(update => partyLookup.TryGetValue(update.PartyUuid, out var party) && party.PartyType.Value == type);
     }
 
     private static partial class Log
@@ -212,8 +190,8 @@ public sealed partial class A2PartyImportJob
         [LoggerMessage(6, LogLevel.Information, "Finished CCR role import in {Duration}.")]
         public static partial void FinishedCCRRoleImport(ILogger logger, TimeSpan duration);
 
-        [LoggerMessage(7, LogLevel.Information, "More than 50'000 parties enqueued for CCR role import in a single job run. Pausing enqueueing. Total enqueued this job run = {Enqueued}")]
-        public static partial void PausingEnqueueingCCRRoles(ILogger logger, ulong enqueued);
+        [LoggerMessage(7, LogLevel.Information, "More than 50'000 parties in queue since last measurement. Pausing enqueueing. EnqueuedMax = {EnqueuedMax}, ProcessedMax = {ProcessedMax}.")]
+        public static partial void PausingEnqueueingCCRRoles(ILogger logger, ulong enqueuedMax, ulong processedMax);
     }
 
     /// <summary>
