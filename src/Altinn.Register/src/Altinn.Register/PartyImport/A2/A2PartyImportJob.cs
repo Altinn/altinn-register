@@ -5,9 +5,7 @@ using System.Diagnostics.Metrics;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Core;
 using Altinn.Register.Core.ImportJobs;
-using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.PartyImport.A2;
-using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Jobs;
 
 namespace Altinn.Register.PartyImport.A2;
@@ -22,7 +20,6 @@ public sealed partial class A2PartyImportJob
     private readonly IImportJobTracker _tracker;
     private readonly ICommandSender _sender;
     private readonly IA2PartyImportService _importService;
-    private readonly IUnitOfWorkManager _unitOfWorkManager;
     private readonly TimeProvider _timeProvider;
     private readonly ImportMeters _meters;
 
@@ -34,7 +31,6 @@ public sealed partial class A2PartyImportJob
         IImportJobTracker tracker,
         ICommandSender sender,
         IA2PartyImportService importService,
-        IUnitOfWorkManager unitOfWorkManager,
         TimeProvider timeProvider,
         RegisterTelemetry telemetry)
     {
@@ -42,7 +38,6 @@ public sealed partial class A2PartyImportJob
         _tracker = tracker;
         _sender = sender;
         _importService = importService;
-        _unitOfWorkManager = unitOfWorkManager;
         _timeProvider = timeProvider;
         _meters = telemetry.GetServiceMeters<ImportMeters>();
     }
