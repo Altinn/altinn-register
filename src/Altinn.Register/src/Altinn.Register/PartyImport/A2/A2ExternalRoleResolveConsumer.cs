@@ -43,6 +43,7 @@ public sealed partial class A2ExternalRoleResolverConsumer
             await _sender.Send(new UpsertExternalRoleAssignmentsCommand
             {
                 FromPartyUuid = context.Message.FromPartyUuid,
+                FromPartyId = context.Message.FromPartyId,
                 Source = ExternalRoleSource.CentralCoordinatingRegister,
                 Assignments = [],
                 Tracking = context.Message.Tracking,
@@ -81,6 +82,7 @@ public sealed partial class A2ExternalRoleResolverConsumer
             new UpsertExternalRoleAssignmentsCommand
             {
                 FromPartyUuid = context.Message.FromPartyUuid,
+                FromPartyId = context.Message.FromPartyId,
                 Source = ExternalRoleSource.CentralCoordinatingRegister,
                 Assignments = assignments,
                 Tracking = context.Message.Tracking,

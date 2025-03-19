@@ -48,6 +48,7 @@ public class PartyImportBatchConsumerTests(ITestOutputHelper output)
         var cmd = new UpsertExternalRoleAssignmentsCommand
         {
             FromPartyUuid = org.PartyUuid.Value,
+            FromPartyId = org.PartyId.Value,
             Source = ExternalRoleSource.CentralCoordinatingRegister,
             Tracking = new("test", 1),
             Assignments = [
