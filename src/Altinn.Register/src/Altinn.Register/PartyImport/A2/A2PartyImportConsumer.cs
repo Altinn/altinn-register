@@ -52,6 +52,7 @@ public sealed class A2PartyImportConsumer
         var cmd = new ResolveAndUpsertA2CCRRoleAssignmentsCommand
         {
             FromPartyUuid = partyUuid,
+            FromPartyId = partyId,
             RoleAssignments = externalRoleAssignments,
             Tracking = new(JobNames.A2PartyImportCCRRoleAssignments, context.Message.ChangeId),
         };
