@@ -36,7 +36,8 @@ public class A2PartyImportServiceTests
         var logger = GetRequiredService<ILogger<A2PartyImportService>>();
         var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
 
-        var partyRecord = await client.GetParty(partyUuid);
+        var result = await client.GetParty(partyUuid);
+        var partyRecord = result.Should().HaveValue().Which;
 
         using (new AssertionScope())
         {
@@ -86,7 +87,8 @@ public class A2PartyImportServiceTests
         var logger = GetRequiredService<ILogger<A2PartyImportService>>();
         var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
 
-        var partyRecord = await client.GetParty(partyUuid);
+        var result = await client.GetParty(partyUuid);
+        var partyRecord = result.Should().HaveValue().Which;
 
         using (new AssertionScope())
         {

@@ -3,6 +3,7 @@
 using System.Diagnostics.Metrics;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Core;
+using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.PartyImport.A2;
 using MassTransit;
 
@@ -11,22 +12,25 @@ namespace Altinn.Register.PartyImport.A2;
 /// <summary>
 /// Consumer for importing parties from A2.
 /// </summary>
-public sealed class A2PartyImportConsumer
+public sealed partial class A2PartyImportConsumer
     : IConsumer<ImportA2PartyCommand>
     , IConsumer<ImportA2CCRRolesCommand>
 {
     private readonly IA2PartyImportService _importService;
     private readonly ICommandSender _sender;
     private readonly ImportMeters _meters;
+    private readonly ILogger<A2PartyImportConsumer> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="A2PartyImportConsumer"/> class.
     /// </summary>
     public A2PartyImportConsumer(
+        ILogger<A2PartyImportConsumer> logger,
         IA2PartyImportService importService,
         ICommandSender commandSender,
         RegisterTelemetry telemetry)
     {
+        _logger = logger;
         _importService = importService;
         _sender = commandSender;
         _meters = telemetry.GetServiceMeters<ImportMeters>();
@@ -35,8 +39,17 @@ public sealed class A2PartyImportConsumer
     /// <inheritdoc />
     public async Task Consume(ConsumeContext<ImportA2PartyCommand> context)
     {
-        var party = await _importService.GetParty(context.Message.PartyUuid, context.CancellationToken);
-        await _sender.Send(new UpsertPartyCommand { Party = party, Tracking = new(JobNames.A2PartyImportParty, context.Message.ChangeId) }, context.CancellationToken);
+        var partyResult = await _importService.GetParty(context.Message.PartyUuid, context.CancellationToken);
+        if (partyResult is { Problem.ErrorCode: var errorCode }
+            && errorCode == Problems.PartyGone.ErrorCode)
+        {
+            // Party is gone, so we can skip it. These should be rare, so don't bother with tracking.
+            Log.PartyGone(_logger, context.Message.PartyUuid);
+            return;
+        }
+
+        partyResult.EnsureSuccess();
+        await _sender.Send(new UpsertPartyCommand { Party = partyResult.Value, Tracking = new(JobNames.A2PartyImportParty, context.Message.ChangeId) }, context.CancellationToken);
         _meters.PartiesFetched.Add(1);
     }
 
@@ -89,6 +102,12 @@ public sealed class A2PartyImportConsumer
         /// <inheritdoc/>
         public static ImportMeters Create(RegisterTelemetry telemetry)
             => new ImportMeters(telemetry);
+    }
+
+    private static partial class Log
+    {
+        [LoggerMessage(0, LogLevel.Information, "Party with UUID {PartyUuid} is gone.")]
+        public static partial void PartyGone(ILogger logger, Guid partyUuid);
     }
 
     /// <summary>

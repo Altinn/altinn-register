@@ -2,10 +2,13 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Altinn.Authorization.ProblemDetails;
+using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
@@ -64,15 +67,38 @@ internal sealed partial class A2PartyImportService
     }
 
     /// <inheritdoc />
-    public async Task<PartyRecord> GetParty(Guid partyUuid, CancellationToken cancellationToken = default)
+    public async Task<Result<PartyRecord>> GetParty(Guid partyUuid, CancellationToken cancellationToken = default)
     {
         var url = $"parties?partyuuid={partyUuid}";
 
-        var response = await _httpClient.GetFromJsonAsync<V1Models.Party>(url, _options, cancellationToken);
+        using var responseMessage = await _httpClient.GetAsync(url, cancellationToken);
+        if (responseMessage.StatusCode == HttpStatusCode.Gone)
+        {
+            return Problems.PartyGone.Create([
+                new("partyUuid", partyUuid.ToString()),
+            ]);
+        }
 
+        if (responseMessage.StatusCode == HttpStatusCode.NotFound)
+        {
+            return Problems.PartyNotFound.Create([
+                new("partyUuid", partyUuid.ToString()),
+            ]);
+        }
+
+        if (!responseMessage.IsSuccessStatusCode)
+        {
+            return Problems.PartyFetchFailed.Create([
+                new("partyUuid", partyUuid.ToString()),
+            ]);
+        }
+
+        var response = await responseMessage.Content.ReadFromJsonAsync<V1Models.Party>(_options, cancellationToken);
         if (response is null)
         {
-            throw new PartyNotFoundException(partyUuid);
+            return Problems.PartyFetchFailed.Create([
+                new("partyUuid", partyUuid.ToString()),
+            ]);
         }
 
         Debug.Assert(response.PartyUuid == partyUuid, "Party UUID mismatch");
@@ -600,18 +626,6 @@ internal sealed partial class A2PartyImportService
         /// </summary>
         [JsonPropertyName("RoleCode")]
         public required string RoleCode { get; init; }
-    }
-
-    /// <summary>
-    /// Exception thrown when a party is not found.
-    /// </summary>
-    internal sealed class PartyNotFoundException(Guid partyUuid)
-        : InvalidOperationException($"Party {partyUuid} not found")
-    {
-        /// <summary>
-        /// Gets the UUID of the party that was not found.
-        /// </summary>
-        public Guid PartyUuid => partyUuid;
     }
 
     private static partial class Log
