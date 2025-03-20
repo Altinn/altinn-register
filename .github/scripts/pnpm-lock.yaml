@@ -28,7 +28,7 @@ importers:
         version: 5.8.2
       zx:
         specifier: ^8.0.0
-        version: 8.4.0
+        version: 8.4.1
 
 packages:
 
@@ -374,8 +374,8 @@ packages:
   universal-user-agent@7.0.2:
     resolution: {integrity: sha512-0JCqzSKnStlRRQfCdowvqy3cy0Dvtlb8xecj/H8JFZuCze4rwjPZQOgvFvn0Ws/usCHQFGpyr+pB9adaGwXn4Q==}
 
-  zx@8.4.0:
-    resolution: {integrity: sha512-b5+gbUT0akQ5vVuBuHgp0viQx2ZYCuooVD41Z7g47sN0diLsAvB2XteHcp5lec90CNEQ9o7TkXsE3ksaJrZHGw==}
+  zx@8.4.1:
+    resolution: {integrity: sha512-1Cb+Tfwt/daKV6wckBeDbB6h3IMauqj9KWp+EcbYzi9doeJeIHCktxp/yWspXOXRdoUzBCQSKoUgm3g8r9fz5A==}
     engines: {node: '>= 12.17.0'}
     hasBin: true
 
@@ -667,4 +667,4 @@ snapshots:
 
   universal-user-agent@7.0.2: {}
 
-  zx@8.4.0: {}
+  zx@8.4.1: {}
