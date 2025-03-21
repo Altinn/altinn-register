@@ -107,7 +107,6 @@ public sealed partial class A2PartyImportJob
         using var activity = RegisterTelemetry.StartActivity("import a2-ccr-roles", ActivityKind.Internal);
         var progress = await _tracker.GetStatus(JobNames.A2PartyImportCCRRoleAssignments, cancellationToken);
 
-        var enqueued = 0UL;
         var changes = _importService.GetChanges(checked((uint)progress.EnqueuedMax), cancellationToken);
         await foreach (var page in changes.WithCancellation(cancellationToken))
         {
@@ -140,7 +139,6 @@ public sealed partial class A2PartyImportJob
             var sourceMax = page.LastKnownChangeId;
             progress = await TrackQueueStatus(JobNames.A2PartyImportCCRRoleAssignments, progress, new() { EnqueuedMax = enqueuedMax, SourceMax = sourceMax }, cancellationToken);
             _meters.OrganizationCCRRolesEnqueued.Add(cmds.Count);
-            enqueued += (ulong)cmds.Count;
 
             if (enqueuedMax - progress.ProcessedMax > 50_000)
             {

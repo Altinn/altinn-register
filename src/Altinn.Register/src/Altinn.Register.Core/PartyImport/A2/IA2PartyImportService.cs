@@ -1,4 +1,5 @@
-﻿using Altinn.Register.Core.Parties;
+﻿using Altinn.Authorization.ProblemDetails;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 
 namespace Altinn.Register.Core.PartyImport.A2;
@@ -31,5 +32,5 @@ public interface IA2PartyImportService
     /// <param name="partyUuid">The party UUID.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="Party"/>.</returns>
-    Task<PartyRecord> GetParty(Guid partyUuid, CancellationToken cancellationToken = default);
+    Task<Result<PartyRecord>> GetParty(Guid partyUuid, CancellationToken cancellationToken = default);
 }

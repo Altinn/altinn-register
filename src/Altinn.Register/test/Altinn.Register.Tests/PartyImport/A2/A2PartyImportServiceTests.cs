@@ -2,7 +2,11 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Net;
 using System.Net.Http.Headers;
+using System.Text.Json;
+using Altinn.Authorization.ProblemDetails;
+using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.PartyImport.A2;
@@ -36,7 +40,8 @@ public class A2PartyImportServiceTests
         var logger = GetRequiredService<ILogger<A2PartyImportService>>();
         var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
 
-        var partyRecord = await client.GetParty(partyUuid);
+        var result = await client.GetParty(partyUuid);
+        var partyRecord = result.Should().HaveValue().Which;
 
         using (new AssertionScope())
         {
@@ -86,7 +91,8 @@ public class A2PartyImportServiceTests
         var logger = GetRequiredService<ILogger<A2PartyImportService>>();
         var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
 
-        var partyRecord = await client.GetParty(partyUuid);
+        var result = await client.GetParty(partyUuid);
+        var partyRecord = result.Should().HaveValue().Which;
 
         using (new AssertionScope())
         {
@@ -119,6 +125,39 @@ public class A2PartyImportServiceTests
             });
         }
     }
+
+    [Theory]
+    [MemberData(nameof(GetPartyProblemStatuses))]
+    public async Task GetParty_Problems(HttpStatusCode httpStatus, string errorCode)
+    {
+        var expected = JsonSerializer.Deserialize<ErrorCode>(JsonSerializer.Serialize(errorCode));
+
+        var partyId = 50012345;
+        var party = await TestDataLoader.Load<Altinn.Platform.Register.Models.Party>(partyId.ToString(CultureInfo.InvariantCulture));
+        Assert.NotNull(party);
+
+        var partyUuid = party.PartyUuid!.Value;
+
+        using var handler = new FakeHttpMessageHandler();
+        handler.Expect(HttpMethod.Get, "/parties")
+            .WithQuery("partyuuid", partyUuid.ToString())
+            .Respond(() => httpStatus);
+
+        var logger = GetRequiredService<ILogger<A2PartyImportService>>();
+        var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
+
+        var result = await client.GetParty(partyUuid);
+        result.Should().BeProblem(expected);
+    }
+
+    public static TheoryData<HttpStatusCode, string> GetPartyProblemStatuses()
+        => new()
+        {
+            { HttpStatusCode.Gone, Problems.PartyGone.ErrorCode.ToString()! },
+            { HttpStatusCode.NotFound, Problems.PartyNotFound.ErrorCode.ToString()! },
+            { HttpStatusCode.BadRequest, Problems.PartyFetchFailed.ErrorCode.ToString()! },
+            { HttpStatusCode.InternalServerError, Problems.PartyFetchFailed.ErrorCode.ToString()! },
+        };
 
     [Fact]
     public async Task GetExternalRoleAssignmentsFrom_Calls_Correct_Endpoint_AndMapsData()
