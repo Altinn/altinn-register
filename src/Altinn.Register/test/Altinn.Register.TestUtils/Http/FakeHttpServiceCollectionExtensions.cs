@@ -16,9 +16,9 @@ public static class FakeHttpServiceCollectionExtensions
     /// <param name="services">The service collection.</param>
     /// <param name="handlers">The <see cref="FakeHttpHandlers"/>.</param>
     /// <returns><paramref name="services"/>.</returns>
-    public static IServiceCollection AddFakeHttpHandlers(this IServiceCollection services, FakeHttpHandlers handlers)
+    public static IServiceCollection AddFakeHttpHandlers(this IServiceCollection services, FakeHttpHandlers? handlers = null)
     {
-        services.AddSingleton(handlers);
+        services.AddSingleton(handlers ?? new());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<HttpClientFactoryOptions>, ConfigureFakeHandlers>());
 
         return services;

@@ -2,6 +2,7 @@
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.IntegrationTests.Fixtures;
 using Altinn.Register.TestUtils;
+using Altinn.Register.TestUtils.Http;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Register.IntegrationTests;
@@ -14,6 +15,7 @@ public abstract class IntegrationTestBase
     private TestWebApplication? _webApp;
     private AsyncServiceScope? _scope;
     private HttpClient? _client;
+    private FakeHttpHandlers? _fakehttpHandlers;
 
     protected JsonSerializerOptions JsonOptions
         => _jsonOptions;
@@ -26,6 +28,9 @@ public abstract class IntegrationTestBase
 
     protected Uri BaseUrl
         => _client!.BaseAddress!;
+
+    protected FakeHttpHandlers FakeHttpHandlers
+        => _fakehttpHandlers!;
 
     protected T GetRequiredService<T>()
         where T : notnull
@@ -56,10 +61,16 @@ public abstract class IntegrationTestBase
         _webApp = await TestWebApplication.Create();
         _scope = _webApp.Services.CreateAsyncScope();
         _client = _webApp.CreateClient();
+        _fakehttpHandlers = _webApp.Services.GetRequiredService<FakeHttpHandlers>();
     }
 
     protected override async ValueTask DisposeAsync()
     {
+        if (_fakehttpHandlers is IDisposable fakehttpHandlers)
+        {
+            fakehttpHandlers.Dispose();
+        }
+
         if (_client is { } client)
         {
             client.Dispose();

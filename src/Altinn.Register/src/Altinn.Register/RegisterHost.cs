@@ -22,6 +22,7 @@ using Altinn.Register.PartyImport.A2;
 using Altinn.Register.Services;
 using Altinn.Register.Services.Implementation;
 using Altinn.Register.Services.Interfaces;
+using Altinn.Register.Utils;
 using AltinnCore.Authentication.JwtCookie;
 using Asp.Versioning.ApiExplorer;
 using MassTransit;
@@ -156,10 +157,15 @@ internal static class RegisterHost
         services.AddHttpClient<IA2PartyImportService, A2PartyImportService>()
             .ConfigureHttpClient((s, c) =>
             {
-                var config = s.GetRequiredService<IConfiguration>();
-                var baseAddress = config.GetValue<Uri>("GeneralSettings:BridgeApiEndpoint");
+                var config = s.GetRequiredService<IOptions<GeneralSettings>>();
+                var baseAddress = new Uri(config.Value.BridgeApiEndpoint);
 
                 c.BaseAddress = baseAddress;
+            })
+            .ReplaceResilienceHandler(c =>
+            {
+                // Do not retry in the IA2PartyImportService, it's handled by MassTransit
+                c.Retry.ShouldHandle = static _ => ValueTask.FromResult(false);
             });
 
         services.AddUnitOfWorkManager();

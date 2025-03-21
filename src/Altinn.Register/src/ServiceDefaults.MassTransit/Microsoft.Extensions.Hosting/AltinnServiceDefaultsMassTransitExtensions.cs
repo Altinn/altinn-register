@@ -7,6 +7,7 @@ using MassTransit.Logging;
 using MassTransit.Monitoring;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Polly.CircuitBreaker;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -171,6 +172,13 @@ public static class AltinnServiceDefaultsMassTransitExtensions
 
             configurator.AddConfigureEndpointsCallback((ctx, name, cfg) =>
             {
+                // kill-switch all CircuitBreaker exceptions
+                cfg.UseKillSwitch(options => options
+                    .SetExceptionFilter(f => f.Handle<BrokenCircuitException>())
+                    .SetRestartTimeout(TimeSpan.FromMinutes(15))
+                    .SetActivationThreshold(10)
+                    .SetTripThreshold(1));
+
                 // redeliver if all retries fail
                 if (redeliveryIntervals is not null)
                 {
