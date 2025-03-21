@@ -1,7 +1,6 @@
 ﻿using System.Collections.Concurrent;
-using Altinn.Register.TestUtils.Http;
 
-namespace Altinn.Register.TestUtils;
+namespace Altinn.Register.TestUtils.Http;
 
 /// <summary>
 /// A collection of fake HTTP handlers.

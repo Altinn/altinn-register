@@ -1,10 +1,12 @@
 ﻿using System.Diagnostics;
 using Altinn.Authorization.ServiceDefaults;
 using Altinn.Common.AccessToken.Services;
+using Altinn.Register.Configuration;
 using Altinn.Register.IntegrationTests.TestServices;
 using Altinn.Register.IntegrationTests.Tracing;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Database;
+using Altinn.Register.TestUtils.Http;
 using AltinnCore.Authentication.JwtCookie;
 using CommunityToolkit.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
@@ -134,6 +136,16 @@ public sealed class WebApplicationFixture
                 services.AddSingleton<TestOpenIdConnectConfigurationManager>();
                 services.AddSingleton<TestJwtService>();
                 services.AddSingleton<IPostConfigureOptions<JwtCookieOptions>, ConfigureTestJwtOptions>();
+                services.ConfigureHttpClientDefaults(builder =>
+                {
+                    builder.ConfigureAdditionalHttpMessageHandlers((handlers, _) =>
+                    {
+                        handlers.Add(new TracingHandler(FakeHttpMessageHandler.FakeBasePath.LocalPath[..^1]));
+                    });
+                });
+                services.AddFakeHttpHandlers();
+                services.AddOptions<GeneralSettings>()
+                    .PostConfigure(s => s.BridgeApiEndpoint = FakeHttpMessageHandler.FakeBasePath.ToString());
             });
 
             base.ConfigureWebHost(builder);

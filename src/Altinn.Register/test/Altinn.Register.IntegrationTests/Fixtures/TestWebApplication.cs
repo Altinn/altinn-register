@@ -53,24 +53,6 @@ public sealed class TestWebApplication
         await ((IAsyncDisposable)_db).DisposeAsync();
     }
 
-    private class TracingHandler
-        : DelegatingHandler
-    {
-        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            var activityVerb = request.Method.ToString().ToLowerInvariant();
-            var relPath = request.RequestUri?.PathAndQuery;
-
-            using var activity = IntegrationTestsActivities.Source.StartActivity(ActivityKind.Client, name: $"{activityVerb} {relPath}");
-            if (activity is not null)
-            {
-                request.Headers.Add("traceparent", activity.Id);
-            }
-
-            return await base.SendAsync(request, cancellationToken);
-        }
-    }
-
     private class DefaultTestAuthorizationHandler(TestJwtService jwt)
         : DelegatingHandler
     {
