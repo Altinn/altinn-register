@@ -40,7 +40,7 @@ public class PartyController
     /// <remarks>
     /// Changing this number is *not* a breaking change.
     /// </remarks>
-    internal const int ROLEASSIGNMENTS_STREAM_PAGE_SIZE = 100;
+    internal const int ROLEASSIGNMENTS_STREAM_PAGE_SIZE = 1_000;
 
     /// <summary>
     /// The maximum number of items that can be queried at once.
