@@ -57,6 +57,7 @@ internal static class RegisterHost
 
         services
             .AddControllers()
+            .AddControllersAsServices()
             .AddMvcOptions(opt =>
             {
                 opt.ModelBinderProviders.InsertSingleton<PartyComponentOptionModelBinder>(0);
