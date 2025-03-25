@@ -81,7 +81,7 @@ public class EventStreamTests
     [Fact]
     public async Task MultiplePages()
     {
-        const int MIN_EVENTS = (PartyController.PARTY_STREAM_PAGE_SIZE * 3) + (PartyController.PARTY_STREAM_PAGE_SIZE / 2);
+        const int MIN_EVENTS = (PartyController.ROLEASSIGNMENTS_STREAM_PAGE_SIZE * 3) + (PartyController.ROLEASSIGNMENTS_STREAM_PAGE_SIZE / 2);
 
         var evts = await Setup(async (uow, ct) =>
         {
@@ -130,7 +130,7 @@ public class EventStreamTests
             var content = await response.ShouldHaveJsonContent<ItemStream<ExternalRoleAssignmentEvent>>();
 
             var items = content.Items.ToList();
-            items.Count.ShouldBe(Math.Min(PartyController.PARTY_STREAM_PAGE_SIZE, evts.Count - seen));
+            items.Count.ShouldBe(Math.Min(PartyController.ROLEASSIGNMENTS_STREAM_PAGE_SIZE, evts.Count - seen));
 
             for (var i = 0; i < items.Count; i++)
             {
