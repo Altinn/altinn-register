@@ -98,4 +98,52 @@ public class PartyImportFlowTests(ITestOutputHelper output)
             fromDb.Should().BeEquivalentTo(personUpdated with { VersionId = fromDb!.VersionId });
         }
     }
+
+    [Fact]
+    public async Task Batches_With_Errors()
+    {
+        var person1 = new PersonRecord
+        {
+            PartyUuid = Guid.NewGuid(),
+            PartyId = 1,
+            DisplayName = "Test Mid Testson",
+            PersonIdentifier = PersonIdentifier.Parse("25871999336"),
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            VersionId = FieldValue.Unset,
+
+            FirstName = "Test",
+            MiddleName = "Mid",
+            LastName = "Testson",
+            ShortName = "TESTSON Test Mid",
+            Address = null,
+            MailingAddress = null,
+            DateOfBirth = new DateOnly(1919, 7, 25),
+            DateOfDeath = FieldValue.Null,
+        };
+
+        var person2 = person1 with { PartyUuid = Guid.NewGuid(), PartyId = 2 };
+
+        IReadOnlyList<UpsertPartyCommand> cmds = [
+            new UpsertPartyCommand { Party = person1 },
+            new UpsertPartyCommand { Party = person2 },
+        ];
+
+        await CommandSender.Send(cmds);
+
+        var evts = Harness.Published.SelectAsync<PartyUpdatedEvent>();
+        var updateEvent = await evts.FirstOrDefaultAsync();
+        Assert.NotNull(updateEvent);
+
+        {
+            var insertedPerson = updateEvent.Context.Message.Party.PartyUuid == person1.PartyUuid ? person1 : person2;
+
+            await using var uow = await UOW.CreateAsync();
+            var persistence = uow.GetPartyPersistence();
+            var fromDb = await persistence.GetPartyById(insertedPerson.PartyUuid.Value, PartyFieldIncludes.Party | PartyFieldIncludes.Person).FirstAsync();
+            fromDb.Should().BeEquivalentTo(insertedPerson with { VersionId = fromDb!.VersionId });
+        }
+    }
 }

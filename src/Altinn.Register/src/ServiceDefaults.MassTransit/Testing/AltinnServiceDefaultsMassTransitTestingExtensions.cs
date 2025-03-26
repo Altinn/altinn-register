@@ -28,7 +28,7 @@ public static class AltinnServiceDefaultsMassTransitTestingExtensions
         AltinnServiceDefaultsMassTransitExtensions.SetupCoreBusServices(
             service,
             helper,
-            redeliveryIntervals: null,
+            redeliveryIntervals: [TimeSpan.Zero],
             configureMassTransit,
             configureBus,
             (s, c) => s.AddMassTransitTestHarness(output ?? Console.Out, cfg =>
