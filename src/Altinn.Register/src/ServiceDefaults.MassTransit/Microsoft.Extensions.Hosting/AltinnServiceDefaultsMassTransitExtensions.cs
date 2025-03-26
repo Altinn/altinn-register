@@ -201,7 +201,6 @@ public static class AltinnServiceDefaultsMassTransitExtensions
                 cfg.ConnectEndpointConfigurationObserver(observer);
 
                 configureBus?.Invoke(cfg);
-                cfg.UseInMemoryOutbox(ctx, x => x.ConcurrentMessageDelivery = true);
             });
         });
     }

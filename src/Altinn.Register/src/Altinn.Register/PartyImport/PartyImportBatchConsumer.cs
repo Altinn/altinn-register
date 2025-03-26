@@ -4,6 +4,7 @@ using System.Buffers;
 using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
+using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core;
@@ -21,8 +22,8 @@ namespace Altinn.Register.PartyImport;
 /// Consumer for upserting parties from different sources in batches.
 /// </summary>
 public sealed class PartyImportBatchConsumer
-    : IConsumer<Batch<UpsertValidatedPartyCommand>>
-    , IConsumer<Batch<UpsertExternalRoleAssignmentsCommand>>
+    : IConsumer<UpsertValidatedPartyCommand>
+    , IConsumer<UpsertExternalRoleAssignmentsCommand>
 {
     private const int BATCH_SIZE = 10;
 
@@ -44,18 +45,18 @@ public sealed class PartyImportBatchConsumer
     /// Consumes a batch of upsert party commands.
     /// </summary>
     /// <param name="context">The consume context.</param>
-    public async Task Consume(ConsumeContext<Batch<UpsertValidatedPartyCommand>> context)
+    public async Task Consume(ConsumeContext<UpsertValidatedPartyCommand> context)
     {
-        await UpsertParties(context.Message, context.CancellationToken);
+        await UpsertParties([context], context.CancellationToken);
     }
 
     /// <summary>
     /// Consumes a batch of upsert external role assignments commands.
     /// </summary>
     /// <param name="context">The consume context.</param>
-    public async Task Consume(ConsumeContext<Batch<UpsertExternalRoleAssignmentsCommand>> context)
+    public async Task Consume(ConsumeContext<UpsertExternalRoleAssignmentsCommand> context)
     {
-        await UpsertExternalRoleAssignments(context.Message, context.CancellationToken);
+        await UpsertExternalRoleAssignments([context], context.CancellationToken);
     }
 
     /// <summary>
@@ -64,7 +65,7 @@ public sealed class PartyImportBatchConsumer
     /// <param name="upserts">The parties to upsert.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     private async Task UpsertParties(
-        Batch<UpsertValidatedPartyCommand> upserts,
+        IReadOnlyList<ConsumeContext<UpsertValidatedPartyCommand>> upserts,
         CancellationToken cancellationToken)
     {
         using var tracking = TrackingHelper.Create(BATCH_SIZE);
@@ -102,13 +103,13 @@ public sealed class PartyImportBatchConsumer
             await _tracker.TrackProcessedStatus(info.JobName, new ImportJobProcessingStatus { ProcessedMax = info.Progress }, cancellationToken);
         }
 
-        _meters.PartiesUpserted.Add(upserts.Length);
+        _meters.PartiesUpserted.Add(upserts.Count);
         _meters.PartyBatchesSucceeded.Add(1);
-        _meters.PartyBatchSize.Record(upserts.Length);
+        _meters.PartyBatchSize.Record(upserts.Count);
     }
 
     private async Task UpsertExternalRoleAssignments(
-        Batch<UpsertExternalRoleAssignmentsCommand> upserts,
+        IReadOnlyList<ConsumeContext<UpsertExternalRoleAssignmentsCommand>> upserts,
         CancellationToken cancellationToken)
     {
         using var tracking = TrackingHelper.Create(BATCH_SIZE);
@@ -184,7 +185,7 @@ public sealed class PartyImportBatchConsumer
         }
 
         _meters.RoleAssignmentBatchesSucceeded.Add(1);
-        _meters.RoleAssignmentBatchSize.Record(upserts.Length);
+        _meters.RoleAssignmentBatchSize.Record(upserts.Count);
     }
 
     private static string ToTagString(ExternalRoleSource source)
@@ -295,15 +296,7 @@ public sealed class PartyImportBatchConsumer
             base.ConfigureConsumer(endpointConfigurator, consumerConfigurator, context);
 
             endpointConfigurator.PrefetchCount = BATCH_SIZE * 5;
-
-            consumerConfigurator.Options<BatchOptions>(options =>
-            {
-                options
-                    .SetMessageLimit(BATCH_SIZE)
-                    .SetTimeLimit(_isTest ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(15))
-                    .SetTimeLimitStart(BatchTimeLimitStart.FromFirst)
-                    .SetConcurrencyLimit(1);
-            });
+            endpointConfigurator.ConcurrentMessageLimit = 3;
         }
     }
 
