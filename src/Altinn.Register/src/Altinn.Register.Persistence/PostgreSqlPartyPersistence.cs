@@ -375,6 +375,7 @@ internal partial class PostgreSqlPartyPersistence
                 // duplicate id, orgno or ssn
                 await savePoint.RollbackAsync(cancellationToken);
                 return Problems.PartyConflict.Create([
+                    new("partyUuid", party.PartyUuid.Value.ToString()),
                     new("constraintName", e.ConstraintName ?? string.Empty),
                     new("columnName", e.ColumnName ?? string.Empty),
                 ]);
