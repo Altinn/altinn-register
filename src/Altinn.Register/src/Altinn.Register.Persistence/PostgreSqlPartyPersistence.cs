@@ -374,7 +374,10 @@ internal partial class PostgreSqlPartyPersistence
             {
                 // duplicate id, orgno or ssn
                 await savePoint.RollbackAsync(cancellationToken);
-                return Problems.PartyConflict;
+                return Problems.PartyConflict.Create([
+                    new("constraintName", e.ConstraintName ?? string.Empty),
+                    new("columnName", e.ColumnName ?? string.Empty),
+                ]);
             }
 
             Debug.Assert(result.PartyUuid == party.PartyUuid, "PartyUuid should match");
