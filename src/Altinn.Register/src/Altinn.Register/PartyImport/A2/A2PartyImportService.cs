@@ -254,7 +254,7 @@ internal sealed partial class A2PartyImportService
             };
         }
 
-        static DateOnly CalculateDateOfBirth(PersonIdentifier personIdentifier)
+        static DateOnly? CalculateDateOfBirth(PersonIdentifier personIdentifier)
         {
             var s = personIdentifier.ToString().AsSpan();
             var d1 = s[0] - '0';
@@ -292,7 +292,15 @@ internal sealed partial class A2PartyImportService
                 _ => 1900 + yearComponent,
             };
 
-            return new DateOnly(year, monthComponent, dayComponent);
+            try
+            {
+                return new DateOnly(year, monthComponent, dayComponent);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // Invalid date of birth
+                return null;
+            }
         }
 
         static SelfIdentifiedUserRecord MapSelfIdentifiedUser(V1Models.Party party, DateTimeOffset now)
@@ -353,7 +361,7 @@ internal sealed partial class A2PartyImportService
                 postalCode: person.MailingPostalCode,
                 city: person.MailingPostalCity);
 
-            DateOnly dateOfBirth = CalculateDateOfBirth(personIdentifier);
+            DateOnly? dateOfBirth = CalculateDateOfBirth(personIdentifier);
             DateOnly? dateOfDeath = person.DateOfDeath is null ? null : DateOnly.FromDateTime(person.DateOfDeath.Value);
 
             if (displayName is null && lastName is not null)
@@ -416,7 +424,7 @@ internal sealed partial class A2PartyImportService
                 ShortName = shortName ?? displayName,
                 Address = address,
                 MailingAddress = mailingAddress,
-                DateOfBirth = dateOfBirth,
+                DateOfBirth = FieldValue.From(dateOfBirth),
                 DateOfDeath = FieldValue.From(dateOfDeath),
             };
         }
