@@ -38,7 +38,7 @@ public static class PartyImportHelper
             Check(ref builder, person.ShortName.HasValue, "/shortName");
             Check(ref builder, person.Address.IsSet, "/address");
             Check(ref builder, person.MailingAddress.IsSet, "/mailingAddress");
-            Check(ref builder, person.DateOfBirth.HasValue, "/dateOfBirth");
+            Check(ref builder, person.DateOfBirth.IsSet, "/dateOfBirth");
             Check(ref builder, person.DateOfDeath.IsSet, "/dateOfDeath");
         }
         else if (party is OrganizationRecord org)

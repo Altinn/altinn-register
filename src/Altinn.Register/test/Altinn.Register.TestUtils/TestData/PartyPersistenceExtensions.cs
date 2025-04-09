@@ -334,14 +334,18 @@ public static class PartyPersistenceExtensions
             id = await uow.GetNextPartyId(cancellationToken);
         }
 
-        if (!dateOfBirth.HasValue)
+        if (!dateOfBirth.IsSet)
         {
-            dateOfBirth = uow.GetRandomBirthDate();
+            // 10% chance of having no date of birth
+            dateOfBirth = Random.Shared.NextDouble() > 0.1 
+                ? uow.GetRandomBirthDate()
+                : FieldValue.Null;
         }
 
         if (!identifier.HasValue)
         {
-            identifier = await uow.GetNewPersonIdentifier(dateOfBirth.Value, isDNumber: false, cancellationToken);
+            var dateOfBirthValue = dateOfBirth.HasValue ? dateOfBirth.Value : uow.GetRandomBirthDate();
+            identifier = await uow.GetNewPersonIdentifier(dateOfBirthValue, isDNumber: false, cancellationToken);
         }
 
         if (!address.HasValue)

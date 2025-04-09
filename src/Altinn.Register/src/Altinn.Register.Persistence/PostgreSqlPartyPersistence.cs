@@ -496,7 +496,7 @@ internal partial class PostgreSqlPartyPersistence
             Debug.Assert(record.ShortName.HasValue, "person must have ShortName set");
             Debug.Assert(record.Address.IsSet, "person must have Address set");
             Debug.Assert(record.MailingAddress.IsSet, "person must have MailingAddress set");
-            Debug.Assert(record.DateOfBirth.HasValue, "person must have DateOfBirth set");
+            Debug.Assert(record.DateOfBirth.IsSet, "person must have DateOfBirth set");
             Debug.Assert(record.DateOfDeath.IsSet, "person must have DateOfDeath set");
 
             var partyResult = await DoUpsertParty(record, cancellationToken);
