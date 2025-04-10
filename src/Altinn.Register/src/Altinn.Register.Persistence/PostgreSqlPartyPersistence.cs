@@ -719,14 +719,36 @@ internal partial class PostgreSqlPartyPersistence
     #region Roles
 
     /// <inheritdoc/>
+    IAsyncEnumerable<PartyExternalRoleAssignmentRecord> IPartyExternalRolePersistence.GetExternalRoleAssignmentsFromParty(
+        Guid partyUuid,
+        PartyExternalRoleAssignmentFieldIncludes include,
+        CancellationToken cancellationToken)
+        => GetExternalRoleAssignmentsFromParty(partyUuid, null, include, cancellationToken);
+
+    /// <inheritdoc/>
+    IAsyncEnumerable<PartyExternalRoleAssignmentRecord> IPartyExternalRolePersistence.GetExternalRoleAssignmentsFromParty(
+        Guid partyUuid,
+        ExternalRoleReference role,
+        PartyExternalRoleAssignmentFieldIncludes include,
+        CancellationToken cancellationToken)
+        => GetExternalRoleAssignmentsFromParty(partyUuid, role, include, cancellationToken);
+
+    /// <inheritdoc cref="IPartyExternalRolePersistence.GetExternalRoleAssignmentsFromParty(Guid, ExternalRoleReference, PartyExternalRoleAssignmentFieldIncludes, CancellationToken)"/>
     public IAsyncEnumerable<PartyExternalRoleAssignmentRecord> GetExternalRoleAssignmentsFromParty(
         Guid partyUuid,
+        ExternalRoleReference? role = null,
         PartyExternalRoleAssignmentFieldIncludes include = PartyExternalRoleAssignmentFieldIncludes.RoleAssignment,
         CancellationToken cancellationToken = default)
     {
         _handle.ThrowIfCompleted();
 
-        var query = PartyRoleQuery.Get(include, PartyRoleFilters.FromParty);
+        var filter = PartyRoleFilters.FromParty;
+        if (role is not null)
+        {
+            filter |= PartyRoleFilters.Role;
+        }
+
+        var query = PartyRoleQuery.Get(include, filter);
         NpgsqlCommand? cmd = null;
         try
         {
@@ -734,6 +756,12 @@ internal partial class PostgreSqlPartyPersistence
             cmd.CommandText = query.CommandText;
 
             query.AddFromPartyParameter(cmd, partyUuid);
+
+            if (role is not null)
+            {
+                query.AddRoleSourceParameter(cmd, role.Source);
+                query.AddRoleIdentifierParameter(cmd, role.Identifier);
+            }
 
             return PrepareAndReadPartyRolesAsync(cmd, query, cancellationToken);
         }
