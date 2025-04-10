@@ -1,6 +1,6 @@
 ﻿#nullable enable
 
-using Altinn.Register.Core.Utils;
+using Altinn.Authorization.ModelUtils;
 using CommunityToolkit.Diagnostics;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;

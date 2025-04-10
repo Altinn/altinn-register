@@ -1,9 +1,10 @@
 ﻿#nullable enable
 
+using System.Collections.Immutable;
 using System.Text.Json;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
-using Altinn.Register.Core.Utils;
 using Altinn.Register.TestUtils;
 
 namespace Altinn.Register.Tests.UnitTests;
@@ -27,6 +28,7 @@ public class PartyRecordTests
             CreatedAt = FieldValue.Unset,
             ModifiedAt = FieldValue.Unset,
             IsDeleted = FieldValue.Unset,
+            User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
         };
 
@@ -51,6 +53,10 @@ public class PartyRecordTests
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = new PartyUserRecord
+            {
+                UserIds = ImmutableValueArray.Create(1U, 2U),
+            },
             VersionId = 50,
         };
 
@@ -64,6 +70,10 @@ public class PartyRecordTests
                 "createdAt":"2000-01-01T00:00:00+00:00",
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":false,
+                "user": {
+                    "userId": 1,
+                    "userIds": [1, 2]
+                },
                 "versionId":50
             }
             """);
@@ -86,6 +96,10 @@ public class PartyRecordTests
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = true,
+            User = new PartyUserRecord
+            {
+                UserIds = FieldValue.Unset,
+            },
             VersionId = 42,
         };
 
@@ -101,6 +115,7 @@ public class PartyRecordTests
                 "createdAt":"2000-01-01T00:00:00+00:00",
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":true,
+                "user": {},
                 "versionId":42
             }
             """);
@@ -123,6 +138,10 @@ public class PartyRecordTests
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = new PartyUserRecord
+            {
+                UserIds = FieldValue.Unset,
+            },
             VersionId = 42,
         };
 
@@ -138,6 +157,7 @@ public class PartyRecordTests
                 "createdAt":"2000-01-01T00:00:00+00:00",
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":false,
+                "user": {},
                 "versionId":42
             }
             """);
@@ -160,6 +180,10 @@ public class PartyRecordTests
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = true,
+            User = new PartyUserRecord
+            {
+                UserIds = ImmutableValueArray.Create(1U),
+            },
             VersionId = 42,
         };
 
@@ -175,6 +199,10 @@ public class PartyRecordTests
                 "createdAt":"2000-01-01T00:00:00+00:00",
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":true,
+                "user": {
+                    "userId": 1,
+                    "userIds": [1]
+                },
                 "versionId":42
             }
             """);
@@ -197,6 +225,7 @@ public class PartyRecordTests
             CreatedAt = FieldValue.Unset,
             ModifiedAt = FieldValue.Unset,
             IsDeleted = FieldValue.Unset,
+            User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
 
             FirstName = FieldValue.Unset,
@@ -235,6 +264,10 @@ public class PartyRecordTests
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = new PartyUserRecord
+            {
+                UserIds = FieldValue.Unset,
+            },
             VersionId = 42,
 
             FirstName = FieldValue.Unset,
@@ -259,6 +292,7 @@ public class PartyRecordTests
                 "createdAt":"2000-01-01T00:00:00+00:00",
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":false,
+                "user": {},
                 "versionId":42
             }
             """);
@@ -281,6 +315,10 @@ public class PartyRecordTests
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow() + TimeSpan.FromDays(1),
             IsDeleted = true,
+            User = new PartyUserRecord
+            {
+                UserIds = ImmutableValueArray.Create(1U),
+            },
             VersionId = 42,
 
             FirstName = "First",
@@ -319,6 +357,10 @@ public class PartyRecordTests
                 "createdAt": "2000-01-01T00:00:00+00:00",
                 "modifiedAt": "2000-01-02T00:00:00+00:00",
                 "isDeleted": true,
+                "user": {
+                    "userId": 1,
+                    "userIds": [1]
+                },
                 "versionId": 42,
                 "firstName": "First",
                 "middleName": null,
@@ -361,6 +403,7 @@ public class PartyRecordTests
             CreatedAt = FieldValue.Unset,
             ModifiedAt = FieldValue.Unset,
             IsDeleted = FieldValue.Unset,
+            User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
 
             UnitStatus = FieldValue.Unset,
@@ -399,6 +442,7 @@ public class PartyRecordTests
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = FieldValue.Null,
             VersionId = 42,
 
             UnitStatus = "status",
@@ -434,6 +478,7 @@ public class PartyRecordTests
                 "createdAt":"2000-01-01T00:00:00+00:00",
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":false,
+                "user":null,
                 "versionId":42,
                 "unitStatus":"status",
                 "unitType":"type",
@@ -473,6 +518,7 @@ public class PartyRecordTests
             CreatedAt = FieldValue.Unset,
             ModifiedAt = FieldValue.Unset,
             IsDeleted = FieldValue.Unset,
+            User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
 
             UnitStatus = FieldValue.Unset,
@@ -521,6 +567,10 @@ public class PartyRecordTests
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = new PartyUserRecord
+            {
+                UserIds = ImmutableValueArray.Create(1U),
+            },
             VersionId = 42,
         };
 
@@ -536,6 +586,10 @@ public class PartyRecordTests
                 "createdAt":"2000-01-01T00:00:00+00:00",
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":false,
+                "user": {
+                    "userId": 1,
+                    "userIds": [1]
+                },
                 "versionId":42
             }
             """);
@@ -560,6 +614,7 @@ public class PartyRecordTests
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = FieldValue.Null,
             VersionId = 42,
 
             UnitStatus = "status",
@@ -595,6 +650,7 @@ public class PartyRecordTests
                 "CreatedAt":"2000-01-01T00:00:00+00:00",
                 "ModifiedAt":"2000-01-01T00:00:00+00:00",
                 "IsDeleted":false,
+                "User":null,
                 "VersionId":42,
                 "UnitStatus":"status",
                 "UnitType":"type",

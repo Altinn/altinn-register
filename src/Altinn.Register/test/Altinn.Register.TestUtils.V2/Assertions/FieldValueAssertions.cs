@@ -1,8 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using Altinn.Register.Core.Utils;
+using Altinn.Authorization.ModelUtils;
 using CommunityToolkit.Diagnostics;
-using FluentAssertions;
 using FluentAssertions.Execution;
 
 namespace Altinn.Register.TestUtils.Assertions;

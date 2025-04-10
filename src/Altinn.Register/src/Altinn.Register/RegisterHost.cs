@@ -202,6 +202,7 @@ internal static class RegisterHost
         services.AddOpenApiExampleProvider();
         services.AddSwaggerFilterAttributeSupport();
         services.AddUrnSwaggerSupport();
+        services.AddAuthorizationModelUtilsSwaggerSupport();
         services.AddOptions<SwaggerGenOptions>()
             .Configure((SwaggerGenOptions opt, IApiVersionDescriptionProvider provider) =>
             {

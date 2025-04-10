@@ -1,10 +1,10 @@
 ﻿#nullable enable
 
+using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
-using Altinn.Register.Core.Utils;
 using Altinn.Register.PartyImport;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.MassTransit;
@@ -35,6 +35,7 @@ public class PartyImportFlowTests(ITestOutputHelper output)
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
 
             FirstName = "Test",
@@ -112,6 +113,7 @@ public class PartyImportFlowTests(ITestOutputHelper output)
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
 
             FirstName = "Test",

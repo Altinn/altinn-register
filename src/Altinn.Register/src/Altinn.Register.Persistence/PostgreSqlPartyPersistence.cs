@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Errors;
@@ -362,6 +363,7 @@ internal partial class PostgreSqlPartyPersistence
                     CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("created", cancellationToken),
                     ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("updated", cancellationToken),
                     IsDeleted = await reader.GetConditionalFieldValueAsync<bool>("is_deleted", cancellationToken),
+                    User = FieldValue.Unset, // TODO: add user info
                     VersionId = await reader.GetConditionalFieldValueAsync<long>("version_id", cancellationToken).Select(static v => (ulong)v),
                 };
             }
@@ -439,6 +441,7 @@ internal partial class PostgreSqlPartyPersistence
                 CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("created", cancellationToken),
                 ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("updated", cancellationToken),
                 IsDeleted = await reader.GetConditionalFieldValueAsync<bool>("is_deleted", cancellationToken),
+                User = FieldValue.Unset, // TODO: add user info
                 VersionId = await reader.GetConditionalFieldValueAsync<long>("version_id", cancellationToken).Select(static v => (ulong)v),
             };
 
@@ -459,6 +462,7 @@ internal partial class PostgreSqlPartyPersistence
             Debug.Assert(party.CreatedAt.HasValue, "party must have CreatedAt set");
             Debug.Assert(party.ModifiedAt.HasValue, "party must have ModifiedAt set");
             Debug.Assert(party.IsDeleted.HasValue, "party must have IsDeleted set");
+            Debug.Assert(party.User.IsUnset, "user properties not yet supported");
 
             // Note: we're running inside a transaction, so we don't need to worry about data races except in the case where the entire transaction fails
             var result = await TryInsertParty(party, cancellationToken);
@@ -537,6 +541,7 @@ internal partial class PostgreSqlPartyPersistence
                 CreatedAt = partyData.CreatedAt,
                 ModifiedAt = partyData.ModifiedAt,
                 IsDeleted = partyData.IsDeleted,
+                User = FieldValue.Unset, // TODO: add user info
                 VersionId = partyData.VersionId,
                 FirstName = await reader.GetConditionalFieldValueAsync<string>("first_name", cancellationToken),
                 MiddleName = await reader.GetConditionalFieldValueAsync<string>("middle_name", cancellationToken),
@@ -623,6 +628,7 @@ internal partial class PostgreSqlPartyPersistence
                 CreatedAt = partyData.CreatedAt,
                 ModifiedAt = partyData.ModifiedAt,
                 IsDeleted = partyData.IsDeleted,
+                User = FieldValue.Unset, // TODO: add user info
                 VersionId = partyData.VersionId,
                 UnitStatus = await reader.GetConditionalFieldValueAsync<string>("unit_status", cancellationToken),
                 UnitType = await reader.GetConditionalFieldValueAsync<string>("unit_type", cancellationToken),
@@ -658,6 +664,7 @@ internal partial class PostgreSqlPartyPersistence
                 CreatedAt = partyData.CreatedAt,
                 ModifiedAt = partyData.ModifiedAt,
                 IsDeleted = partyData.IsDeleted,
+                User = FieldValue.Unset, // TODO: add user info
                 VersionId = partyData.VersionId,
             };
         }
