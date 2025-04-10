@@ -441,7 +441,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [Fact]
     public async Task GetRoles_CanInclude_RoleDefinitions()
     {
-        var roles = await Persistence.GetExternalRoleAssignmentsFromParty(ChildOrganizationUuid, PartyExternalRoleAssignmentFieldIncludes.RoleAssignment | PartyExternalRoleAssignmentFieldIncludes.RoleDefinition).ToListAsync();
+        var roles = await Persistence.GetExternalRoleAssignmentsFromParty(ChildOrganizationUuid, include: PartyExternalRoleAssignmentFieldIncludes.RoleAssignment | PartyExternalRoleAssignmentFieldIncludes.RoleDefinition).ToListAsync();
 
         var role = roles.Should().ContainSingle().Which;
 

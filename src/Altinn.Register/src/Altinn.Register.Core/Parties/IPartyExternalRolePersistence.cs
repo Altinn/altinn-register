@@ -26,6 +26,23 @@ public interface IPartyExternalRolePersistence
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all roles where <see cref="PartyExternalRoleAssignmentRecord.FromParty"/> is <paramref name="partyUuid"/>.
+    /// </summary>
+    /// <param name="partyUuid"><see cref="PartyExternalRoleAssignmentRecord.FromParty"/>.</param>
+    /// <param name="role">The role for which to get role-assignments.</param>
+    /// <param name="include">Data/fields to include.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>
+    /// A <see cref="IAsyncEnumerable{T}"/> containing all roles where <see cref="PartyExternalRoleAssignmentRecord.FromParty"/>
+    /// is <paramref name="partyUuid"/>.
+    /// </returns>
+    public IAsyncEnumerable<PartyExternalRoleAssignmentRecord> GetExternalRoleAssignmentsFromParty(
+        Guid partyUuid,
+        ExternalRoleReference role,
+        PartyExternalRoleAssignmentFieldIncludes include = PartyExternalRoleAssignmentFieldIncludes.RoleAssignment,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets all roles where <see cref="PartyExternalRoleAssignmentRecord.ToParty"/> is <paramref name="partyUuid"/>.
     /// </summary>
     /// <param name="partyUuid"><see cref="PartyExternalRoleAssignmentRecord.ToParty"/>.</param>

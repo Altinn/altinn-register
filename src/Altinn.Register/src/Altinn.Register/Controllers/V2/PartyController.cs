@@ -277,6 +277,71 @@ public class PartyController
         return ListObject.Create(customers);
     }
 
+    private static readonly ExternalRoleReference _dagligLederRole = new(ExternalRoleSource.CentralCoordinatingRegister, "daglig-leder");
+
+    /// <summary>
+    /// Gets all parties assigned the "daglig-leder" ccr role by <paramref name="partyUuid"/>.
+    /// </summary>
+    /// <param name="partyUuid">The party uuid to find "daglig-leder"s for.</param>
+    /// <param name="fields">The party fields to include.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>A set of parties that have been assigned the "daglig-leder" ccr role from <paramref name="partyUuid"/>.</returns>
+    [ApiVersion(1.0)]
+    [ApiVersion(2.0)]
+    [HttpGet("{partyUuid:guid}/holders/ccr/daglig-leder")]
+    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status204NoContent)]
+    public Task<ActionResult<ListObject<PartyRecord>>> GetDagligLedere(
+        [FromRoute] Guid partyUuid,
+        [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
+        CancellationToken cancellationToken = default)
+        => GetRoleHolders(partyUuid, _dagligLederRole, fields, cancellationToken);
+
+    [NonAction]
+    private async Task<ActionResult<ListObject<PartyRecord>>> GetRoleHolders(
+        Guid partyUuid,
+        ExternalRoleReference role,
+        PartyFieldIncludes fields,
+        CancellationToken cancellationToken)
+    {
+        await using var uow = await _uowManager.CreateAsync(cancellationToken);
+        var partyPersistence = uow.GetPartyPersistence();
+        var rolePersistence = uow.GetPartyExternalRolePersistence();
+
+        List<Guid> customerPartyUuids;
+
+        {
+            using var activity = RegisterTelemetry.StartActivity("GetExternalRoleAssignmentsFromParty");
+
+            customerPartyUuids = await rolePersistence.GetExternalRoleAssignmentsFromParty(
+                partyUuid,
+                role,
+                PartyExternalRoleAssignmentFieldIncludes.RoleToParty,
+                cancellationToken)
+                .Select(static r => r.ToParty.Value)
+                .ToListAsync(cancellationToken);
+        }
+
+        List<PartyRecord> holders;
+
+        {
+            using var activity = RegisterTelemetry.StartActivity("LookupParties");
+
+            holders = await partyPersistence.LookupParties(
+                partyUuids: customerPartyUuids,
+                include: fields,
+                cancellationToken: cancellationToken)
+                .ToListAsync(cancellationToken);
+        }
+
+        if (holders.Count == 0)
+        {
+            return StatusCode(StatusCodes.Status204NoContent, ListObject.Create<PartyRecord>([]));
+        }
+
+        return ListObject.Create(holders);
+    }
+
     /// <summary>
     /// Looks up parties based on the provided identifiers.
     /// </summary>
