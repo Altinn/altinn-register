@@ -21,7 +21,7 @@ public sealed record PartyUserRecord
     /// Gets the (historical) user ids of the party.
     /// </summary>
     /// <remarks>
-    /// Should never be empty, but can be null or unset.
+    /// Should never be empty, but can be null or unset. The first user id is the current one - the rest should be ordered in descending order.
     /// </remarks>
     public required FieldValue<ImmutableValueArray<uint>> UserIds 
     {
