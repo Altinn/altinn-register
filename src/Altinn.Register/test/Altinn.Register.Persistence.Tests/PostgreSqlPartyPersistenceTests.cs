@@ -1,11 +1,11 @@
 ﻿using System.Data;
 using System.Linq.Expressions;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
-using Altinn.Register.Core.Utils;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.TestData;
 using FluentAssertions.Execution;
@@ -561,6 +561,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             UnitStatus = "N",
             UnitType = "AS",
@@ -598,6 +599,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             UnitStatus = "N",
             UnitType = "AS",
@@ -663,6 +665,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             UnitStatus = "N",
             UnitType = "AS",
@@ -709,6 +712,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             UnitStatus = "N",
             UnitType = "AS",
@@ -755,6 +759,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             UnitStatus = "N",
             UnitType = "AS",
@@ -783,6 +788,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             UnitStatus = "N",
             UnitType = "AS",
@@ -825,6 +831,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             FirstName = "Test",
             MiddleName = "Mid",
@@ -863,6 +870,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             FirstName = "Test",
             MiddleName = "Mid",
@@ -937,6 +945,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             FirstName = "Test",
             MiddleName = "Mid",
@@ -984,6 +993,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             FirstName = "Test",
             MiddleName = "Mid",
@@ -1031,6 +1041,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             FirstName = "Test",
             MiddleName = "Mid",
@@ -1058,6 +1069,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             FirstName = "Test",
             MiddleName = "Mid",
@@ -1098,6 +1110,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
         };
 
@@ -1128,6 +1141,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
+            User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
         };
 

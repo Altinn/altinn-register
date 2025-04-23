@@ -54,7 +54,7 @@ internal ref struct JsonArrayEquivalencyValidator
                 subjects[i] = subjectEnumerator.Current;
                 expectations[i] = expectationEnumerator.Current;
                 unmatchedSubjectIndices[i] = i;
-                itemResults = default;
+                itemResults[i] = default;
             }
 
             var validator = new JsonArrayEquivalencyValidator(
@@ -76,21 +76,25 @@ internal ref struct JsonArrayEquivalencyValidator
         {
             if (subjects is not null)
             {
+                subjects.AsSpan().Clear();
                 ArrayPool<JsonElement>.Shared.Return(subjects);
             }
 
             if (expectations is not null)
             {
+                expectations.AsSpan().Clear();
                 ArrayPool<JsonElement>.Shared.Return(expectations);
             }
 
             if (unmatchedSubjectIndices is not null)
             {
+                unmatchedSubjectIndices.AsSpan().Clear();
                 ArrayPool<int>.Shared.Return(unmatchedSubjectIndices);
             }
 
             if (itemResults is not null)
             {
+                itemResults.AsSpan().Clear();
                 ArrayPool<StringValues>.Shared.Return(itemResults);
             }
         }
@@ -322,15 +326,15 @@ internal ref struct JsonArrayEquivalencyValidator
     {
         public static IObjectInfo Instance { get; } = new JsonArrayObjectInfo();
 
-        public Type Type => throw new NotImplementedException();
+        public Type Type => typeof(Span<JsonElement>);
 
         public Type ParentType => throw new NotImplementedException();
 
         public string Path { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
-        public Type CompileTimeType => throw new NotImplementedException();
+        public Type CompileTimeType => typeof(Span<JsonElement>);
 
-        public Type RuntimeType => throw new NotImplementedException();
+        public Type RuntimeType => typeof(Span<JsonElement>);
 
         private JsonArrayObjectInfo() 
         {

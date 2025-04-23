@@ -1,5 +1,5 @@
-﻿using Altinn.Register.Contracts.ExternalRoles;
-using Altinn.Register.Core.Utils;
+﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Register.Contracts.ExternalRoles;
 
 namespace Altinn.Register.Core.Parties.Records;
 

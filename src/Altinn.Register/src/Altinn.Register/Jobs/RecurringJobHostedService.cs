@@ -9,7 +9,6 @@ using System.Runtime.ExceptionServices;
 using System.Threading.Tasks.Sources;
 using Altinn.Register.Core;
 using Altinn.Register.Core.Leases;
-using Altinn.Register.Core.Utils;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.Jobs;

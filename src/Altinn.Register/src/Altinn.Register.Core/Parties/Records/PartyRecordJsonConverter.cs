@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Altinn.Register.Core.Utils;
+using Altinn.Authorization.ModelUtils;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.Core.Parties.Records;

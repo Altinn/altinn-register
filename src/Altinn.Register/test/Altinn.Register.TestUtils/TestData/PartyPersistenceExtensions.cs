@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
@@ -282,6 +283,7 @@ public static class PartyPersistenceExtensions
                 CreatedAt = createdAt.HasValue ? createdAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
                 ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
                 IsDeleted = isDeleted.HasValue ? isDeleted.Value : false,
+                User = FieldValue.Unset,
                 VersionId = FieldValue.Unset,
                 UnitStatus = unitStatus.HasValue ? unitStatus.Value : "N",
                 UnitType = unitType.HasValue ? unitType.Value : "AS",
@@ -325,6 +327,7 @@ public static class PartyPersistenceExtensions
         FieldValue<MailingAddress> mailingAddress = default,
         FieldValue<DateOnly> dateOfBirth = default,
         FieldValue<DateOnly> dateOfDeath = default,
+        FieldValue<PartyUserRecord> user = default,
         CancellationToken cancellationToken = default)
     {
         var connection = uow.GetRequiredService<NpgsqlConnection>();
@@ -382,6 +385,7 @@ public static class PartyPersistenceExtensions
             dateOfDeath = FieldValue.Null;
         }
 
+        // TODO: Generate user and historical user data
         var result = await uow.GetRequiredService<IPartyPersistence>().UpsertParty(
             new PersonRecord
             {
@@ -393,6 +397,7 @@ public static class PartyPersistenceExtensions
                 CreatedAt = createdAt.HasValue ? createdAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
                 ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
                 IsDeleted = dateOfDeath.HasValue,
+                User = user,
                 VersionId = FieldValue.Unset,
                 FirstName = name.Value.FirstName,
                 MiddleName = name.Value.MiddleName,

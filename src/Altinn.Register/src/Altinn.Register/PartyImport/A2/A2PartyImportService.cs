@@ -7,12 +7,12 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
-using Altinn.Register.Core.Utils;
 using CommunityToolkit.Diagnostics;
 using V1Models = Altinn.Platform.Register.Models;
 using V1PartyType = Altinn.Platform.Register.Enums.PartyType;
@@ -325,6 +325,7 @@ internal sealed partial class A2PartyImportService
                 CreatedAt = now,
                 ModifiedAt = now,
                 IsDeleted = party.IsDeleted,
+                User = FieldValue.Unset,
                 VersionId = FieldValue.Unset,
             };
         }
@@ -415,6 +416,7 @@ internal sealed partial class A2PartyImportService
                 CreatedAt = now,
                 ModifiedAt = now,
                 IsDeleted = isDeleted,
+                User = FieldValue.Unset,
                 VersionId = FieldValue.Unset,
 
                 // person fields
@@ -516,6 +518,7 @@ internal sealed partial class A2PartyImportService
                 CreatedAt = now,
                 ModifiedAt = now,
                 IsDeleted = isDeleted,
+                User = FieldValue.Unset,
                 VersionId = FieldValue.Unset,
 
                 // organization fields
