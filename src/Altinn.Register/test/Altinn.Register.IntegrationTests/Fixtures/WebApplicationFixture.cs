@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
 using Altinn.Authorization.ServiceDefaults;
+using Altinn.Authorization.ServiceDefaults.MassTransit;
+using Altinn.Authorization.ServiceDefaults.MassTransit.Testing;
 using Altinn.Common.AccessToken.Services;
 using Altinn.Register.Configuration;
 using Altinn.Register.IntegrationTests.TestServices;
@@ -9,6 +11,7 @@ using Altinn.Register.TestUtils.Database;
 using Altinn.Register.TestUtils.Http;
 using AltinnCore.Authentication.JwtCookie;
 using CommunityToolkit.Diagnostics;
+using MassTransit;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -19,6 +22,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Altinn.Register.IntegrationTests.Fixtures;
 
@@ -131,6 +135,9 @@ public sealed class WebApplicationFixture
 
             builder.ConfigureServices(services =>
             {
+                services.AddSingleton<FakeTimeProvider>();
+                services.AddSingleton<TimeProvider>(s => s.GetRequiredService<FakeTimeProvider>());
+
                 services.AddSingleton<IPublicSigningKeyProvider, TestPublicSigningKeyProvider>();
                 services.AddSingleton<TestCertificateService>();
                 services.AddSingleton<TestOpenIdConnectConfigurationManager>();
@@ -146,6 +153,15 @@ public sealed class WebApplicationFixture
                 services.AddFakeHttpHandlers();
                 services.AddOptions<GeneralSettings>()
                     .PostConfigure(s => s.BridgeApiEndpoint = FakeHttpMessageHandler.FakeBasePath.ToString());
+
+                AltinnServiceDefaultsMassTransitTestingExtensions.AddAltinnMassTransitTestHarness(
+                    services,
+                    configureMassTransit: (cfg) =>
+                    {
+                        cfg.AddConsumers(typeof(RegisterHost).Assembly);
+                    });
+
+                services.Configure<AltinnMassTransitOptions>(o => o.ActivityPropagation = "Child");
             });
 
             base.ConfigureWebHost(builder);

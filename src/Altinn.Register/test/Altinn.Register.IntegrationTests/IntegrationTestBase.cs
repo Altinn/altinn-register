@@ -1,9 +1,12 @@
 ﻿using System.Text.Json;
+using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.IntegrationTests.Fixtures;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Http;
+using MassTransit.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Altinn.Register.IntegrationTests;
 
@@ -15,7 +18,10 @@ public abstract class IntegrationTestBase
     private TestWebApplication? _webApp;
     private AsyncServiceScope? _scope;
     private HttpClient? _client;
-    private FakeHttpHandlers? _fakehttpHandlers;
+    private FakeHttpHandlers? _fakeHttpHandlers;
+    private FakeTimeProvider? _timeProvider;
+    private ITestHarness? _testHarness;
+    private ICommandSender? _commandSender;
 
     protected JsonSerializerOptions JsonOptions
         => _jsonOptions;
@@ -30,7 +36,16 @@ public abstract class IntegrationTestBase
         => _client!.BaseAddress!;
 
     protected FakeHttpHandlers FakeHttpHandlers
-        => _fakehttpHandlers!;
+        => _fakeHttpHandlers!;
+
+    protected FakeTimeProvider TimeProvider
+        => _timeProvider!;
+
+    protected ICommandSender CommandSender
+        => _commandSender!;
+
+    protected ITestHarness TestHarness
+        => _testHarness!;
 
     protected T GetRequiredService<T>()
         where T : notnull
@@ -55,18 +70,40 @@ public abstract class IntegrationTestBase
             return null;
         });
 
+    protected async Task<T> Check<T>(Func<IUnitOfWork, CancellationToken, Task<T>> check)
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var uowManager = GetRequiredService<IUnitOfWorkManager>();
+        await using var uow = await uowManager.CreateAsync(activityName: $"check {TestContext.Current.Test!.TestDisplayName}", cancellationToken: ct);
+        var result = await check(uow, ct);
+        await uow.RollbackAsync(ct);
+
+        return result;
+    }
+
+    protected Task Check(Func<IUnitOfWork, CancellationToken, Task> check)
+        => Check<object?>(async (uow, ct) =>
+        {
+            await check(uow, ct);
+            return null;
+        });
+
     protected override async ValueTask InitializeAsync()
     {
         await base.InitializeAsync();
         _webApp = await TestWebApplication.Create();
         _scope = _webApp.Services.CreateAsyncScope();
         _client = _webApp.CreateClient();
-        _fakehttpHandlers = _webApp.Services.GetRequiredService<FakeHttpHandlers>();
+        _timeProvider = _webApp.Services.GetRequiredService<FakeTimeProvider>();
+        _fakeHttpHandlers = _webApp.Services.GetRequiredService<FakeHttpHandlers>();
+        _testHarness = _webApp.Services.GetRequiredService<ITestHarness>();
+        _commandSender = _scope.Value.ServiceProvider.GetRequiredService<ICommandSender>();
     }
 
     protected override async ValueTask DisposeAsync()
     {
-        if (_fakehttpHandlers is IDisposable fakehttpHandlers)
+        if (_fakeHttpHandlers is IDisposable fakehttpHandlers)
         {
             fakehttpHandlers.Dispose();
         }

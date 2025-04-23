@@ -89,15 +89,16 @@ internal sealed class ActivityCollector
             return ActivitySamplingResult.None;
         }
 
-        if (_activity is null)
-        {
-            // test-activity not yet created, definitely not a child
-            return ActivitySamplingResult.None;
-        }
-
         if (options.TraceId == _activity.TraceId)
         {
             // activity created by the test
+            return ActivitySamplingResult.AllDataAndRecorded;
+        }
+
+        if (options.Links is { } links
+            && links.Any(l => l.Context.TraceId == _activity.TraceId))
+        {
+            // activity linked to the test
             return ActivitySamplingResult.AllDataAndRecorded;
         }
 
