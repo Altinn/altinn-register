@@ -175,7 +175,7 @@ internal partial class PostgreSqlPartyPersistence
                 Debug.Assert(party.ShortName.HasValue, "person must have ShortName set");
                 Debug.Assert(party.Address.IsSet, "person must have Address set");
                 Debug.Assert(party.MailingAddress.IsSet, "person must have MailingAddress set");
-                Debug.Assert(party.DateOfBirth.HasValue, "person must have DateOfBirth set");
+                Debug.Assert(party.DateOfBirth.IsSet, "person must have DateOfBirth set");
                 Debug.Assert(party.DateOfDeath.IsSet, "person must have DateOfDeath set");
             }
 

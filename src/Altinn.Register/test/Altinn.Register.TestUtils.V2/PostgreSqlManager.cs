@@ -169,7 +169,7 @@ public sealed class PostgreSqlManager
     internal sealed class Container
         : IAsyncResource<Container>
     {
-        private const int MAX_CONCURRENCY = 20;
+        private const int MAX_CONCURRENCY = 5;
 
         private readonly PostgreSqlContainer _container;
         private readonly NpgsqlDataSource _dataSource;
