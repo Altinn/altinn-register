@@ -17,7 +17,7 @@ namespace Altinn.Register.Tests.IntegrationTests;
 public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly WebApplicationFactorySetup _webApplicationFactorySetup;
-    private readonly JsonSerializerOptions options = new()
+    private readonly JsonSerializerOptions _options = new()
     {
         PropertyNameCaseInsensitive = true,
     };
@@ -70,7 +70,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         string responseContent = await response.Content.ReadAsStringAsync();
 
         List<Party> actualParties = JsonSerializer.Deserialize<List<Party>>(
-            responseContent, options);
+            responseContent, _options);
 
         // Assert
         Assert.NotNull(sblRequest);
@@ -120,7 +120,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         string responseContent = await response.Content.ReadAsStringAsync();
 
         List<Party> actualParties = JsonSerializer.Deserialize<List<Party>>(
-            responseContent, options);
+            responseContent, _options);
 
         // Assert
         Assert.NotNull(sblRequest);
@@ -170,7 +170,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         string responseContent = await response.Content.ReadAsStringAsync();
 
         List<Party> actualParties = JsonSerializer.Deserialize<List<Party>>(
-            responseContent, options);
+            responseContent, _options);
 
         // Assert
         Assert.NotNull(sblRequest);
@@ -220,7 +220,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         string responseContent = await response.Content.ReadAsStringAsync();
 
         List<Party> actualParties = JsonSerializer.Deserialize<List<Party>>(
-            responseContent, options);
+            responseContent, _options);
 
         // Assert
         Assert.NotNull(sblRequest);
@@ -320,10 +320,10 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         string responseContent = await response.Content.ReadAsStringAsync();
 
         PartyNamesLookupResult actualResult = JsonSerializer.Deserialize<PartyNamesLookupResult>(
-            responseContent, options);
+            responseContent, _options);
 
         PartyNamesLookupResult actualResultFromCache = JsonSerializer.Deserialize<PartyNamesLookupResult>(
-            responseContent, options);
+            responseContent, _options);
 
         // Assert
         Assert.NotNull(sblRequest);
@@ -390,7 +390,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         string responseContent = await response.Content.ReadAsStringAsync();
 
         PartyNamesLookupResult actualResult = JsonSerializer.Deserialize<PartyNamesLookupResult>(
-            responseContent, options);
+            responseContent, _options);
 
         // Assert
         Assert.NotNull(sblRequest);
@@ -516,7 +516,22 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         // Act
         HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
         string responseContent = await response.Content.ReadAsStringAsync();
-        PartyNamesLookupResult actualResult = JsonSerializer.Deserialize<PartyNamesLookupResult>(responseContent, options);
+        PartyNamesLookupResult actualResult;
+
+        try
+        {
+            actualResult = JsonSerializer.Deserialize<PartyNamesLookupResult>(responseContent, _options);
+        } 
+        catch (JsonException ex)
+        {
+            throw new Exception(
+                $"""
+                Failed to deserialize response as JSON. Response:
+
+                {responseContent}
+                """,
+                ex);
+        }
 
         // Assert
         Assert.NotNull(sblRequest);
