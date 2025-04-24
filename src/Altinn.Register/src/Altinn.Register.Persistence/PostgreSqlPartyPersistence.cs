@@ -1,18 +1,15 @@
 ﻿using System.Data;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts.ExternalRoles;
-using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Core.Utils;
 using Altinn.Register.Persistence.AsyncEnumerables;
 using Altinn.Register.Persistence.DbArgTypes;
-using Altinn.Register.Persistence.UnitOfWork;
 using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -29,7 +26,6 @@ internal partial class PostgreSqlPartyPersistence
 {
     private readonly IUnitOfWorkHandle _handle;
     private readonly NpgsqlConnection _connection;
-    private readonly SavePointManager _savePointManager;
     private readonly ILogger<PostgreSqlPartyPersistence> _logger;
 
     /// <summary>
@@ -38,12 +34,10 @@ internal partial class PostgreSqlPartyPersistence
     public PostgreSqlPartyPersistence(
         IUnitOfWorkHandle handle,
         NpgsqlConnection connection,
-        SavePointManager savePointManager,
         ILogger<PostgreSqlPartyPersistence> logger)
     {
         _handle = handle;
         _connection = connection;
-        _savePointManager = savePointManager;
         _logger = logger;
     }
 
