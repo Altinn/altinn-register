@@ -14,8 +14,8 @@ public static class TestHarnessExtensions
     /// <param name="harness">The <see cref="ITestHarness"/>.</param>
     /// <param name="guid">The conversation ID.</param>
     /// <returns>A <see cref="TestHarnessConversation"/>.</returns>
-    public static TestHarnessConversation Conversation(this ITestHarness harness, Guid guid)
-        => new(harness, guid);
+    public static TestHarnessConversation Conversation(this ITestHarness harness, Guid guid, CancellationToken cancellationToken = default)
+        => new(harness, guid, cancellationToken);
 
     /// <summary>
     /// Gets a conversation helper by the initial command.
@@ -26,11 +26,16 @@ public static class TestHarnessExtensions
     /// <returns>A <see cref="TestHarnessConversation"/>.</returns>
     public static async Task<TestHarnessConversation> Conversation<TCommand>(
         this ITestHarness harness,
-        TCommand command)
+        TCommand command,
+        CancellationToken cancellationToken = default)
         where TCommand : CommandBase
     {
-        var consumed = await harness.Consumed.SelectAsync<TCommand>(m => m.Context.CorrelationId == command.CommandId).FirstAsync();
+        var consumed = await harness.Consumed.SelectAsync<TCommand>(m => m.Context.CorrelationId == command.CommandId, cancellationToken).FirstOrDefaultAsync(cancellationToken);
+        if (consumed is null)
+        {
+            Assert.Fail("Consumed message not found");
+        }
 
-        return harness.Conversation(consumed.Context.ConversationId!.Value);
+        return harness.Conversation(consumed.Context.ConversationId!.Value, cancellationToken);
     }
 }

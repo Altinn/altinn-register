@@ -9,6 +9,11 @@
         <XUnitVersion Condition=" '$(XUnitVersion)' == '' ">v2</XUnitVersion>
       </PropertyGroup>
 
+      <PropertyGroup>
+        <DefineConstants Condition=" '$(XUnitVersion)' == 'v2' ">$(DefineConstants);XUNIT2</DefineConstants>
+        <DefineConstants Condition=" '$(XUnitVersion)' == 'v3' ">$(DefineConstants);XUNIT3</DefineConstants>
+      </PropertyGroup>
+
       <ItemGroup>
         <DocFileItem Remove="@(DocFileItem)" />
       </ItemGroup>
@@ -47,6 +52,11 @@
       <PropertyGroup>
         <GenerateDocumentationFile>false</GenerateDocumentationFile>
         <NoWarn>$(NoWarn);SA0001</NoWarn>
+      </PropertyGroup>
+
+      <PropertyGroup>
+        <DefineConstants Condition=" '$(XUnitVersion)' == 'v2' ">$(DefineConstants);XUNIT2</DefineConstants>
+        <DefineConstants Condition=" '$(XUnitVersion)' == 'v3' ">$(DefineConstants);XUNIT3</DefineConstants>
       </PropertyGroup>
 
       <ItemGroup>

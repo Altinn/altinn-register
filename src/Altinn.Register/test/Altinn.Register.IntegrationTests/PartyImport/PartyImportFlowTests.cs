@@ -1,28 +1,20 @@
-﻿#nullable enable
-
-using Altinn.Authorization.ModelUtils;
+﻿using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.PartyImport;
-using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.MassTransit;
-using Xunit.Abstractions;
 
-namespace Altinn.Register.Tests.PartyImport;
+namespace Altinn.Register.IntegrationTests.PartyImport;
 
-public class PartyImportFlowTests(ITestOutputHelper output)
-    : BusTestBase(output)
+public class PartyImportFlowTests
+    : IntegrationTestBase
 {
-    protected override ITestOutputHelper? TestOutputHelper => output;
-
-    private IUnitOfWorkManager UOW => GetRequiredService<IUnitOfWorkManager>();
-
     [Fact]
     public async Task UpsertPartyCommand_UpsertsParty()
     {
-        var partyUuid = Guid.NewGuid();
+        var partyUuid = Guid.CreateVersion7();
         var partyId = 1;
 
         var person = new PersonRecord
@@ -53,20 +45,20 @@ public class PartyImportFlowTests(ITestOutputHelper output)
             Party = person,
         };
 
-        await CommandSender.Send(cmd1);
-        var conversation = await Harness.Conversation(cmd1);
-        var updateEvent = await conversation.Events.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync();
-        
-        Assert.NotNull(updateEvent);
-        Assert.Equal(partyUuid, updateEvent.Party.PartyUuid);
+        await CommandSender.Send(cmd1, TestContext.Current.CancellationToken);
+        var conversation = await TestHarness.Conversation(cmd1, TestContext.Current.CancellationToken);
+        var updateEvent = await conversation.Events.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
+        updateEvent.ShouldNotBeNull();
+        updateEvent.Party.PartyUuid.ShouldBe(partyUuid);
+
+        await Check(async (uow, ct) =>
         {
-            await using var uow = await UOW.CreateAsync();
             var persistence = uow.GetPartyPersistence();
-            var fromDb = await persistence.GetPartyById(partyUuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person).FirstAsync();
+            var fromDb = await persistence.GetPartyById(partyUuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person, ct).FirstAsync(ct);
 
-            fromDb.Should().BeEquivalentTo(person with { VersionId = fromDb!.VersionId });
-        }
+            fromDb.ShouldBe(person with { VersionId = fromDb!.VersionId });
+        });
 
         var personUpdated = person with
         {
@@ -85,19 +77,19 @@ public class PartyImportFlowTests(ITestOutputHelper output)
             Party = personUpdated,
         };
 
-        await CommandSender.Send(cmd2);
-        conversation = await Harness.Conversation(cmd2);
-        updateEvent = await conversation.Events.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync();
+        await CommandSender.Send(cmd2, TestContext.Current.CancellationToken);
+        conversation = await TestHarness.Conversation(cmd2, TestContext.Current.CancellationToken);
+        updateEvent = await conversation.Events.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
-        Assert.NotNull(updateEvent);
-        Assert.Equal(partyUuid, updateEvent.Party.PartyUuid);
+        updateEvent.ShouldNotBeNull();
+        updateEvent.Party.PartyUuid.ShouldBe(partyUuid);
 
+        await Check(async (uow, ct) =>
         {
-            await using var uow = await UOW.CreateAsync();
             var persistence = uow.GetPartyPersistence();
-            var fromDb = await persistence.GetPartyById(partyUuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person).FirstAsync();
-            fromDb.Should().BeEquivalentTo(personUpdated with { VersionId = fromDb!.VersionId });
-        }
+            var fromDb = await persistence.GetPartyById(partyUuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person, ct).FirstAsync(ct);
+            fromDb.ShouldBe(personUpdated with { VersionId = fromDb!.VersionId });
+        });
     }
 
     [Fact]
@@ -133,19 +125,18 @@ public class PartyImportFlowTests(ITestOutputHelper output)
             new UpsertPartyCommand { Party = person2 },
         ];
 
-        await CommandSender.Send(cmds);
+        await CommandSender.Send(cmds, TestContext.Current.CancellationToken);
 
-        var evts = Harness.Published.SelectAsync<PartyUpdatedEvent>();
-        var updateEvent = await evts.FirstOrDefaultAsync();
-        Assert.NotNull(updateEvent);
+        var evts = TestHarness.Published.SelectAsync<PartyUpdatedEvent>(TestContext.Current.CancellationToken);
+        var updateEvent = await evts.FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+        updateEvent.ShouldNotBeNull();
 
+        await Check(async (uow, ct) =>
         {
             var insertedPerson = updateEvent.Context.Message.Party.PartyUuid == person1.PartyUuid ? person1 : person2;
-
-            await using var uow = await UOW.CreateAsync();
             var persistence = uow.GetPartyPersistence();
-            var fromDb = await persistence.GetPartyById(insertedPerson.PartyUuid.Value, PartyFieldIncludes.Party | PartyFieldIncludes.Person).FirstAsync();
-            fromDb.Should().BeEquivalentTo(insertedPerson with { VersionId = fromDb!.VersionId });
-        }
+            var fromDb = await persistence.GetPartyById(insertedPerson.PartyUuid.Value, PartyFieldIncludes.Party | PartyFieldIncludes.Person, ct).FirstAsync(ct);
+            fromDb.ShouldBe(insertedPerson with { VersionId = fromDb!.VersionId });
+        });
     }
 }

@@ -7,6 +7,7 @@ using MassTransit.Logging;
 using MassTransit.Monitoring;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Polly.CircuitBreaker;
 
 namespace Microsoft.Extensions.Hosting;
@@ -192,6 +193,7 @@ public static class AltinnServiceDefaultsMassTransitExtensions
                 cfg.UseInMemoryOutbox(ctx, x => x.ConcurrentMessageDelivery = true);
             });
 
+            configurator.AddOptions<AltinnMassTransitOptions>();
             configurator.AddSendObserver<DiagnosticHeadersSendObserver>();
 
             configureMassTransit?.Invoke(configurator);
@@ -210,7 +212,7 @@ public static class AltinnServiceDefaultsMassTransitExtensions
         public static readonly ServiceDescriptor ServiceDescriptor = ServiceDescriptor.Singleton<Marker, Marker>();
     }
 
-    private sealed class DiagnosticHeadersSendObserver
+    private sealed class DiagnosticHeadersSendObserver(IOptionsMonitor<AltinnMassTransitOptions> options)
         : ISendObserver
     {
         public Task PostSend<T>(SendContext<T> context)
@@ -225,7 +227,7 @@ public static class AltinnServiceDefaultsMassTransitExtensions
             if (!context.Headers.TryGetHeader(DiagnosticHeaders.ActivityPropagation, out _))
             {
                 // TODO: handle queries which should be children, not links
-                context.Headers.Set(DiagnosticHeaders.ActivityPropagation, "Link");
+                context.Headers.Set(DiagnosticHeaders.ActivityPropagation, options.CurrentValue.ActivityPropagation);
             }
 
             return Task.CompletedTask;
@@ -236,7 +238,7 @@ public static class AltinnServiceDefaultsMassTransitExtensions
         {
             if (!context.Headers.TryGetHeader(DiagnosticHeaders.ActivityPropagation, out _))
             {
-                context.Headers.Set(DiagnosticHeaders.ActivityPropagation, "Link");
+                context.Headers.Set(DiagnosticHeaders.ActivityPropagation, options.CurrentValue.ActivityPropagation);
             }
 
             return Task.CompletedTask;
