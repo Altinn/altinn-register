@@ -21,4 +21,12 @@ public static class ValidationErrors
     /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
     public static ValidationErrorDescriptor PartyUrn_Invalid { get; }
         = _factory.Create(2, "Invalid party URN");
+
+    /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
+    public static ValidationErrorDescriptor Null { get; }
+        = _factory.Create(3, "Value cannot be null");
+
+    /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
+    public static ValidationErrorDescriptor Empty { get; }
+        = _factory.Create(4, "List cannot be empty");
 }
