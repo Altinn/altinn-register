@@ -122,6 +122,13 @@ public sealed class PostgreSqlManager
                 Database = databaseName,
                 Username = user.Name,
                 Password = user.Pass,
+                Pooling = true,
+                MinPoolSize = 0,
+                MaxPoolSize = 4,
+                ConnectionIdleLifetime = 5,
+                ConnectionPruningInterval = 5,
+                ConnectionLifetime = 30,
+                Timeout = 5,
             };
 
             return builder.ConnectionString;
@@ -207,6 +214,7 @@ public sealed class PostgreSqlManager
                 .WithImage("docker.io/postgres:16.1-alpine")
                 .WithUsername(username)
                 .WithPassword(password)
+                .WithCommand("-c", "max_locks_per_transaction=4096")
                 .WithCleanUp(true);
 
             if (Debugger.IsAttached)
