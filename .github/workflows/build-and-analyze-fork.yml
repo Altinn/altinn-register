@@ -58,6 +58,7 @@ jobs:
         run: dotnet build Altinn.Register.sln -v m
 
       - name: dotnet test
+        timeout-minutes: 10
         run: dotnet test Altinn.Register.sln --results-directory TestResults/ --collect:"XPlat Code Coverage" -v m
 
       - name: Generate coverage results

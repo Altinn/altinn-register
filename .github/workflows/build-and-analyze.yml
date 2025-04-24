@@ -55,6 +55,7 @@ jobs:
         run: dotnet workload restore
 
       - name: Build & Test
+        timeout-minutes: 10
         run: |
           dotnet build -v m
           dotnet test --no-build -v m
@@ -107,6 +108,7 @@ jobs:
           dotnet tool update dotnet-sonarscanner --tool-path ./.sonar/scanner
 
       - name: Analyze
+        timeout-minutes: 10
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
