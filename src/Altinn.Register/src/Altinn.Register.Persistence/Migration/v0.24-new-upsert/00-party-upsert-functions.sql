@@ -152,20 +152,10 @@ BEGIN
   END IF;
 
   -- Update p_user_ids to reflect what's in the database
-  WITH active_user_id AS (
-    SELECT u.user_id AS active
-    FROM register.user u
-    WHERE u.uuid = p_uuid
-      AND u.is_active = TRUE
-  ), inactive_user_ids AS (
-    SELECT array_agg(u.user_id ORDER BY u.user_id DESC) AS inactive
-    FROM register.user u
-    WHERE u.uuid = p_uuid
-      AND u.is_active = FALSE
-  )
-  SELECT array_prepend(active, inactive)
+  SELECT array_agg(u.user_id ORDER BY u.is_active DESC, u.user_id DESC)
   INTO p_user_ids
-  FROM active_user_id, inactive_user_ids;
+  FROM register.user u
+  WHERE u.uuid = p_uuid;
 END;
 $$ LANGUAGE plpgsql;
 
