@@ -128,7 +128,6 @@ public sealed class PostgreSqlManager
                 ConnectionIdleLifetime = 5,
                 ConnectionPruningInterval = 5,
                 ConnectionLifetime = 30,
-                Timeout = 5,
             };
 
             return builder.ConnectionString;

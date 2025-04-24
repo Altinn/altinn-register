@@ -318,7 +318,6 @@ public class PostgresServerFixture
                 ConnectionIdleLifetime = 5,
                 ConnectionPruningInterval = 5,
                 ConnectionLifetime = 30,
-                Timeout = 5,
             };
 
             connectionString = builder.ConnectionString;
