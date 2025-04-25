@@ -10,7 +10,7 @@ namespace Altinn.Register.TestUtils.Database;
 public class PostgresServerFixture
     : IAsyncLifetime
 {
-    private const int MAX_CONCURRENCY = 20;
+    private const int MAX_CONCURRENCY = 1;
 
     private readonly AsyncConcurrencyLimiter _throttler = new(MAX_CONCURRENCY);
     private readonly PostgreSqlContainer _container;
@@ -27,6 +27,7 @@ public class PostgresServerFixture
             .WithImage("docker.io/postgres:16.2-alpine")
             .WithUsername(username)
             .WithPassword(password)
+            .WithCommand("-c", "max_locks_per_transaction=4096")
             .WithCleanUp(true);
 
         if (Debugger.IsAttached)
@@ -306,10 +307,18 @@ public class PostgresServerFixture
                 return connectionString;
             }
 
-            var builder = new NpgsqlConnectionStringBuilder(_server._dataSource!.ConnectionString);
-            builder.Database = _databaseName;
-            builder.Username = user.Name;
-            builder.Password = user.Pass;
+            var builder = new NpgsqlConnectionStringBuilder(_server._dataSource!.ConnectionString) 
+            {
+                Database = _databaseName,
+                Username = user.Name,
+                Password = user.Pass,
+                Pooling = true,
+                MinPoolSize = 0,
+                MaxPoolSize = 4,
+                ConnectionIdleLifetime = 5,
+                ConnectionPruningInterval = 5,
+                ConnectionLifetime = 30,
+            };
 
             connectionString = builder.ConnectionString;
             return connectionString;

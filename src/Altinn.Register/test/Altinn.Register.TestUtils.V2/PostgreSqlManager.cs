@@ -122,6 +122,12 @@ public sealed class PostgreSqlManager
                 Database = databaseName,
                 Username = user.Name,
                 Password = user.Pass,
+                Pooling = true,
+                MinPoolSize = 0,
+                MaxPoolSize = 4,
+                ConnectionIdleLifetime = 5,
+                ConnectionPruningInterval = 5,
+                ConnectionLifetime = 30,
             };
 
             return builder.ConnectionString;
@@ -169,7 +175,7 @@ public sealed class PostgreSqlManager
     internal sealed class Container
         : IAsyncResource<Container>
     {
-        private const int MAX_CONCURRENCY = 20;
+        private const int MAX_CONCURRENCY = 2;
 
         private readonly PostgreSqlContainer _container;
         private readonly NpgsqlDataSource _dataSource;
@@ -207,6 +213,7 @@ public sealed class PostgreSqlManager
                 .WithImage("docker.io/postgres:16.1-alpine")
                 .WithUsername(username)
                 .WithPassword(password)
+                .WithCommand("-c", "max_locks_per_transaction=4096")
                 .WithCleanUp(true);
 
             if (Debugger.IsAttached)

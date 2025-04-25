@@ -1,18 +1,15 @@
 ﻿using System.Data;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts.ExternalRoles;
-using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Core.Utils;
 using Altinn.Register.Persistence.AsyncEnumerables;
 using Altinn.Register.Persistence.DbArgTypes;
-using Altinn.Register.Persistence.UnitOfWork;
 using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -29,7 +26,6 @@ internal partial class PostgreSqlPartyPersistence
 {
     private readonly IUnitOfWorkHandle _handle;
     private readonly NpgsqlConnection _connection;
-    private readonly SavePointManager _savePointManager;
     private readonly ILogger<PostgreSqlPartyPersistence> _logger;
 
     /// <summary>
@@ -38,12 +34,10 @@ internal partial class PostgreSqlPartyPersistence
     public PostgreSqlPartyPersistence(
         IUnitOfWorkHandle handle,
         NpgsqlConnection connection,
-        SavePointManager savePointManager,
         ILogger<PostgreSqlPartyPersistence> logger)
     {
         _handle = handle;
         _connection = connection;
-        _savePointManager = savePointManager;
         _logger = logger;
     }
 
@@ -309,365 +303,7 @@ internal partial class PostgreSqlPartyPersistence
     {
         _handle.ThrowIfCompleted();
 
-        return party switch
-        {
-            PersonRecord person => UpsertPerson(person, cancellationToken),
-            OrganizationRecord org => UpsertOrg(org, cancellationToken),
-            SelfIdentifiedUserRecord siu => UpsertSelfIdentifiedUser(siu, cancellationToken),
-            _ => ThrowHelper.ThrowArgumentException<Task<Result<PartyRecord>>>("Unsupported party type"),
-        };
-
-        async Task<Result<PartyRecord>> TryInsertParty(
-            PartyRecord party,
-            CancellationToken cancellationToken)
-        {
-            const string SAVEPOINT_NAME = "try_insert_party";
-            const string QUERY =
-                /*strpsql*/"""
-                INSERT INTO register.party (uuid, id, party_type, display_name, person_identifier, organization_identifier, created, updated, is_deleted)
-                VALUES (@uuid, @id, @party_type, @display_name, @person_identifier, @organization_identifier, @created, @updated, @is_deleted)
-                RETURNING uuid, id, party_type, display_name, person_identifier, organization_identifier, created, updated, is_deleted, version_id
-                """;
-
-            await using var cmd = _connection.CreateCommand();
-            cmd.CommandText = QUERY;
-
-            cmd.Parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = party.PartyUuid.Value;
-            cmd.Parameters.Add<int>("id", NpgsqlDbType.Integer).TypedValue = party.PartyId.Value;
-            cmd.Parameters.Add<PartyType>("party_type").TypedValue = party.PartyType.Value;
-            cmd.Parameters.Add<string>("display_name", NpgsqlDbType.Text).TypedValue = party.DisplayName.Value;
-            cmd.Parameters.Add<string>("person_identifier", NpgsqlDbType.Text).TypedValue = party.PersonIdentifier.Value?.ToString();
-            cmd.Parameters.Add<string>("organization_identifier", NpgsqlDbType.Text).TypedValue = party.OrganizationIdentifier.Value?.ToString();
-            cmd.Parameters.Add<DateTimeOffset>("created", NpgsqlDbType.TimestampTz).TypedValue = party.CreatedAt.Value;
-            cmd.Parameters.Add<DateTimeOffset>("updated", NpgsqlDbType.TimestampTz).TypedValue = party.ModifiedAt.Value;
-            cmd.Parameters.Add<bool>("is_deleted", NpgsqlDbType.Boolean).TypedValue = party.IsDeleted.Value;
-
-            await cmd.PrepareAsync(cancellationToken);
-            await using var savePoint = await _savePointManager.CreateSavePoint(SAVEPOINT_NAME, cancellationToken);
-
-            PartyRecord result;
-            try
-            {
-                await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-                var read = await reader.ReadAsync(cancellationToken);
-
-                Debug.Assert(read, "INSERT should return a row");
-
-                result = new PartyRecord(await reader.GetConditionalFieldValueAsync<PartyType>("party_type", cancellationToken))
-                {
-                    PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("uuid", cancellationToken),
-                    PartyId = await reader.GetConditionalFieldValueAsync<int>("id", cancellationToken),
-                    DisplayName = await reader.GetConditionalFieldValueAsync<string>("display_name", cancellationToken),
-                    PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>("person_identifier", cancellationToken),
-                    OrganizationIdentifier = await reader.GetConditionalParsableFieldValueAsync<OrganizationIdentifier>("organization_identifier", cancellationToken),
-                    CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("created", cancellationToken),
-                    ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("updated", cancellationToken),
-                    IsDeleted = await reader.GetConditionalFieldValueAsync<bool>("is_deleted", cancellationToken),
-                    User = FieldValue.Unset, // TODO: add user info
-                    VersionId = await reader.GetConditionalFieldValueAsync<long>("version_id", cancellationToken).Select(static v => (ulong)v),
-                };
-            }
-            catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.UniqueViolation && e.ConstraintName == "party_pkey")
-            {
-                await savePoint.RollbackAsync(cancellationToken);
-                return Problems.InvalidPartyUpdate;
-            }
-            catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.UniqueViolation)
-            {
-                // duplicate id, orgno or ssn
-                await savePoint.RollbackAsync(cancellationToken);
-                return Problems.PartyConflict.Create([
-                    new("partyUuid", party.PartyUuid.Value.ToString()),
-                    new("constraintName", e.ConstraintName ?? string.Empty),
-                    new("columnName", e.ColumnName ?? string.Empty),
-                ]);
-            }
-
-            Debug.Assert(result.PartyUuid == party.PartyUuid, "PartyUuid should match");
-
-            await savePoint.ReleaseAsync(cancellationToken);
-            return result;
-        }
-
-        async Task<Result<PartyRecord>> DoUpdateParty(
-            PartyRecord party,
-            CancellationToken cancellationToken)
-        {
-            const string QUERY =
-                /*strpsql*/"""
-                UPDATE register.party
-                SET display_name = @display_name, updated = @updated, is_deleted = @is_deleted
-                WHERE 
-                        uuid = @uuid
-                    AND id = @id
-                    AND party_type = @party_type
-                    AND person_identifier IS NOT DISTINCT FROM @person_identifier
-                    AND organization_identifier IS NOT DISTINCT FROM @organization_identifier
-                RETURNING uuid, id, party_type, display_name, person_identifier, organization_identifier, created, updated, is_deleted, version_id
-                """;
-
-            await using var cmd = _connection.CreateCommand();
-            cmd.CommandText = QUERY;
-
-            cmd.Parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = party.PartyUuid.Value;
-            cmd.Parameters.Add<int>("id", NpgsqlDbType.Integer).TypedValue = party.PartyId.Value;
-            cmd.Parameters.Add<PartyType>("party_type").TypedValue = party.PartyType.Value;
-            cmd.Parameters.Add<string>("display_name", NpgsqlDbType.Text).TypedValue = party.DisplayName.Value;
-            cmd.Parameters.Add<string>("person_identifier", NpgsqlDbType.Text).TypedValue = party.PersonIdentifier.Value?.ToString();
-            cmd.Parameters.Add<string>("organization_identifier", NpgsqlDbType.Text).TypedValue = party.OrganizationIdentifier.Value?.ToString();
-            cmd.Parameters.Add<DateTimeOffset>("updated", NpgsqlDbType.TimestampTz).TypedValue = party.ModifiedAt.Value;
-            cmd.Parameters.Add<bool>("is_deleted", NpgsqlDbType.Boolean).TypedValue = party.IsDeleted.Value;
-
-            await cmd.PrepareAsync(cancellationToken);
-
-            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-            var read = await reader.ReadAsync(cancellationToken);
-
-            if (!read)
-            {
-                // no rows affected, this means that the [uuid, id, party_type, person_identifier, organization_identifier] fields
-                // does not match what is present in the database, however, since we arrived here we've alredy hit a unique
-                // constraint trying to insert the party - thus the update is invalid.
-                return Problems.InvalidPartyUpdate;
-            }
-
-            var result = new PartyRecord(await reader.GetConditionalFieldValueAsync<PartyType>("party_type", cancellationToken))
-            {
-                PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("uuid", cancellationToken),
-                PartyId = await reader.GetConditionalFieldValueAsync<int>("id", cancellationToken),
-                DisplayName = await reader.GetConditionalFieldValueAsync<string>("display_name", cancellationToken),
-                PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>("person_identifier", cancellationToken),
-                OrganizationIdentifier = await reader.GetConditionalParsableFieldValueAsync<OrganizationIdentifier>("organization_identifier", cancellationToken),
-                CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("created", cancellationToken),
-                ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("updated", cancellationToken),
-                IsDeleted = await reader.GetConditionalFieldValueAsync<bool>("is_deleted", cancellationToken),
-                User = FieldValue.Unset, // TODO: add user info
-                VersionId = await reader.GetConditionalFieldValueAsync<long>("version_id", cancellationToken).Select(static v => (ulong)v),
-            };
-
-            Debug.Assert(result.PartyUuid == party.PartyUuid, "PartyUuid should match");
-            return result;
-        }
-
-        async Task<Result<PartyRecord>> DoUpsertParty(
-            PartyRecord party,
-            CancellationToken cancellationToken)
-        {
-            Debug.Assert(party.PartyUuid.HasValue, "party must have PartyUuid set");
-            Debug.Assert(party.PartyId.HasValue, "party must have PartyId set");
-            Debug.Assert(party.PartyType.HasValue, "party must have PartyType set");
-            Debug.Assert(party.DisplayName.HasValue, "party must have Name set");
-            Debug.Assert(party.PersonIdentifier.IsSet, "party must have PersonIdentifier set");
-            Debug.Assert(party.OrganizationIdentifier.IsSet, "party must have OrganizationIdentifier set");
-            Debug.Assert(party.CreatedAt.HasValue, "party must have CreatedAt set");
-            Debug.Assert(party.ModifiedAt.HasValue, "party must have ModifiedAt set");
-            Debug.Assert(party.IsDeleted.HasValue, "party must have IsDeleted set");
-            Debug.Assert(party.User.IsUnset, "user properties not yet supported");
-
-            // Note: we're running inside a transaction, so we don't need to worry about data races except in the case where the entire transaction fails
-            var result = await TryInsertParty(party, cancellationToken);
-            if (result.IsProblem && result.Problem.ErrorCode == Problems.InvalidPartyUpdate.ErrorCode)
-            {
-                return await DoUpdateParty(party, cancellationToken);
-            }
-
-            return result;
-        }
-
-        async Task<Result<PartyRecord>> UpsertPerson(
-            PersonRecord record,
-            CancellationToken cancellationToken)
-        {
-            const string QUERY =
-                /*strpsql*/"""
-                INSERT INTO register.person (uuid, first_name, middle_name, last_name, short_name, address, mailing_address, date_of_birth, date_of_death)
-                VALUES (@uuid, @first_name, @middle_name, @last_name, @short_name, @address, @mailing_address, @date_of_birth, @date_of_death)
-                ON CONFLICT (uuid) DO UPDATE SET 
-                    first_name = EXCLUDED.first_name,
-                    middle_name = EXCLUDED.middle_name,
-                    last_name = EXCLUDED.last_name,
-                    short_name = EXCLUDED.short_name,
-                    address = EXCLUDED.address,
-                    mailing_address = EXCLUDED.mailing_address,
-                    date_of_birth = EXCLUDED.date_of_birth,
-                    date_of_death = EXCLUDED.date_of_death
-                RETURNING first_name, middle_name, last_name, short_name, address, mailing_address, date_of_birth, date_of_death
-                """;
-
-            Debug.Assert(record.FirstName.HasValue, "person must have FirstName set");
-            Debug.Assert(record.MiddleName.IsSet, "person must have MiddleName set");
-            Debug.Assert(record.LastName.HasValue, "person must have LastName set");
-            Debug.Assert(record.ShortName.HasValue, "person must have ShortName set");
-            Debug.Assert(record.Address.IsSet, "person must have Address set");
-            Debug.Assert(record.MailingAddress.IsSet, "person must have MailingAddress set");
-            Debug.Assert(record.DateOfBirth.IsSet, "person must have DateOfBirth set");
-            Debug.Assert(record.DateOfDeath.IsSet, "person must have DateOfDeath set");
-
-            var partyResult = await DoUpsertParty(record, cancellationToken);
-
-            if (partyResult.IsProblem)
-            {
-                return partyResult;
-            }
-
-            var partyData = partyResult.Value;
-
-            await using var cmd = _connection.CreateCommand();
-            cmd.CommandText = QUERY;
-
-            cmd.Parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = partyData.PartyUuid.Value;
-            cmd.Parameters.Add<string>("first_name", NpgsqlDbType.Text).TypedValue = record.FirstName.Value;
-            cmd.Parameters.Add<string>("middle_name", NpgsqlDbType.Text).TypedValue = record.MiddleName.Value;
-            cmd.Parameters.Add<string>("last_name", NpgsqlDbType.Text).TypedValue = record.LastName.Value;
-            cmd.Parameters.Add<string>("short_name", NpgsqlDbType.Text).TypedValue = record.ShortName.Value;
-            cmd.Parameters.Add<StreetAddress>("address").TypedValue = record.Address.Value;
-            cmd.Parameters.Add<MailingAddress>("mailing_address").TypedValue = record.MailingAddress.Value;
-            cmd.Parameters.Add<DateOnly>("date_of_birth", NpgsqlDbType.Date).TypedValue = record.DateOfBirth.Value;
-            cmd.Parameters.Add<DateOnly?>("date_of_death", NpgsqlDbType.Date).TypedValue = record.DateOfDeath.HasValue ? record.DateOfDeath.Value : null;
-
-            await cmd.PrepareAsync(cancellationToken);
-            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-            var read = await reader.ReadAsync(cancellationToken);
-
-            Debug.Assert(read, "INSERT should return a row");
-
-            return new PersonRecord
-            {
-                PartyUuid = partyData.PartyUuid,
-                PartyId = partyData.PartyId,
-                DisplayName = partyData.DisplayName,
-                PersonIdentifier = partyData.PersonIdentifier,
-                OrganizationIdentifier = partyData.OrganizationIdentifier,
-                CreatedAt = partyData.CreatedAt,
-                ModifiedAt = partyData.ModifiedAt,
-                IsDeleted = partyData.IsDeleted,
-                User = FieldValue.Unset, // TODO: add user info
-                VersionId = partyData.VersionId,
-                FirstName = await reader.GetConditionalFieldValueAsync<string>("first_name", cancellationToken),
-                MiddleName = await reader.GetConditionalFieldValueAsync<string>("middle_name", cancellationToken),
-                LastName = await reader.GetConditionalFieldValueAsync<string>("last_name", cancellationToken),
-                ShortName = await reader.GetConditionalFieldValueAsync<string>("short_name", cancellationToken),
-                Address = await reader.GetConditionalFieldValueAsync<StreetAddress>("address", cancellationToken),
-                MailingAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>("mailing_address", cancellationToken),
-                DateOfBirth = await reader.GetConditionalFieldValueAsync<DateOnly>("date_of_birth", cancellationToken),
-                DateOfDeath = await reader.GetConditionalFieldValueAsync<DateOnly>("date_of_death", cancellationToken),
-            };
-        }
-
-        async Task<Result<PartyRecord>> UpsertOrg(OrganizationRecord record, CancellationToken cancellationToken)
-        {
-            const string QUERY =
-                /*strpsql*/"""
-                INSERT INTO register.organization (
-                    uuid, unit_status, unit_type, telephone_number, mobile_number, fax_number,
-                    email_address, internet_address, mailing_address, business_address)
-                VALUES (
-                    @uuid, @unit_status, @unit_type, @telephone_number, @mobile_number, @fax_number,
-                    @email_address, @internet_address, @mailing_address, @business_address)
-                ON CONFLICT (uuid) DO UPDATE SET
-                    unit_status = EXCLUDED.unit_status,
-                    unit_type = EXCLUDED.unit_type,
-                    telephone_number = EXCLUDED.telephone_number,
-                    mobile_number = EXCLUDED.mobile_number,
-                    fax_number = EXCLUDED.fax_number,
-                    email_address = EXCLUDED.email_address,
-                    internet_address = EXCLUDED.internet_address,
-                    mailing_address = EXCLUDED.mailing_address,
-                    business_address = EXCLUDED.business_address
-                RETURNING 
-                    unit_status, unit_type, telephone_number, mobile_number, fax_number,
-                    email_address, internet_address, mailing_address, business_address
-                """;
-
-            Debug.Assert(record.UnitStatus.HasValue, "organization must have UnitStatus set");
-            Debug.Assert(record.UnitType.HasValue, "organization must have UnitType set");
-            Debug.Assert(record.TelephoneNumber.IsSet, "organization must have TelephoneNumber set");
-            Debug.Assert(record.MobileNumber.IsSet, "organization must have MobileNumber set");
-            Debug.Assert(record.FaxNumber.IsSet, "organization must have FaxNumber set");
-            Debug.Assert(record.EmailAddress.IsSet, "organization must have EmailAddress set");
-            Debug.Assert(record.InternetAddress.IsSet, "organization must have InternetAddress set");
-            Debug.Assert(record.MailingAddress.IsSet, "organization must have MailingAddress set");
-            Debug.Assert(record.BusinessAddress.IsSet, "organization must have BusinessAddress set");
-
-            var partyResult = await DoUpsertParty(record, cancellationToken);
-
-            if (partyResult.IsProblem)
-            {
-                return partyResult;
-            }
-
-            var partyData = partyResult.Value;
-
-            await using var cmd = _connection.CreateCommand();
-            cmd.CommandText = QUERY;
-
-            cmd.Parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = partyData.PartyUuid.Value;
-            cmd.Parameters.Add<string>("unit_status", NpgsqlDbType.Text).TypedValue = record.UnitStatus.Value;
-            cmd.Parameters.Add<string>("unit_type", NpgsqlDbType.Text).TypedValue = record.UnitType.Value;
-            cmd.Parameters.Add<string>("telephone_number", NpgsqlDbType.Text).TypedValue = record.TelephoneNumber.Value;
-            cmd.Parameters.Add<string>("mobile_number", NpgsqlDbType.Text).TypedValue = record.MobileNumber.Value;
-            cmd.Parameters.Add<string>("fax_number", NpgsqlDbType.Text).TypedValue = record.FaxNumber.Value;
-            cmd.Parameters.Add<string>("email_address", NpgsqlDbType.Text).TypedValue = record.EmailAddress.Value;
-            cmd.Parameters.Add<string>("internet_address", NpgsqlDbType.Text).TypedValue = record.InternetAddress.Value;
-            cmd.Parameters.Add<MailingAddress>("mailing_address").TypedValue = record.MailingAddress.Value;
-            cmd.Parameters.Add<MailingAddress>("business_address").TypedValue = record.BusinessAddress.Value;
-
-            await cmd.PrepareAsync(cancellationToken);
-            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-            var read = await reader.ReadAsync(cancellationToken);
-
-            Debug.Assert(read, "INSERT should return a row");
-
-            return new OrganizationRecord
-            {
-                PartyUuid = partyData.PartyUuid,
-                PartyId = partyData.PartyId,
-                DisplayName = partyData.DisplayName,
-                PersonIdentifier = partyData.PersonIdentifier,
-                OrganizationIdentifier = partyData.OrganizationIdentifier,
-                CreatedAt = partyData.CreatedAt,
-                ModifiedAt = partyData.ModifiedAt,
-                IsDeleted = partyData.IsDeleted,
-                User = FieldValue.Unset, // TODO: add user info
-                VersionId = partyData.VersionId,
-                UnitStatus = await reader.GetConditionalFieldValueAsync<string>("unit_status", cancellationToken),
-                UnitType = await reader.GetConditionalFieldValueAsync<string>("unit_type", cancellationToken),
-                TelephoneNumber = await reader.GetConditionalFieldValueAsync<string>("telephone_number", cancellationToken),
-                MobileNumber = await reader.GetConditionalFieldValueAsync<string>("mobile_number", cancellationToken),
-                FaxNumber = await reader.GetConditionalFieldValueAsync<string>("fax_number", cancellationToken),
-                EmailAddress = await reader.GetConditionalFieldValueAsync<string>("email_address", cancellationToken),
-                InternetAddress = await reader.GetConditionalFieldValueAsync<string>("internet_address", cancellationToken),
-                MailingAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>("mailing_address", cancellationToken),
-                BusinessAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>("business_address", cancellationToken),
-
-                ParentOrganizationUuid = FieldValue.Unset,
-            };
-        }
-
-        async Task<Result<PartyRecord>> UpsertSelfIdentifiedUser(SelfIdentifiedUserRecord record, CancellationToken cancellationToken)
-        {
-            var partyResult = await DoUpsertParty(record, cancellationToken);
-
-            if (partyResult.IsProblem)
-            {
-                return partyResult;
-            }
-
-            var partyData = partyResult.Value;
-            return new SelfIdentifiedUserRecord
-            {
-                PartyUuid = partyData.PartyUuid,
-                PartyId = partyData.PartyId,
-                DisplayName = partyData.DisplayName,
-                PersonIdentifier = partyData.PersonIdentifier,
-                OrganizationIdentifier = partyData.OrganizationIdentifier,
-                CreatedAt = partyData.CreatedAt,
-                ModifiedAt = partyData.ModifiedAt,
-                IsDeleted = partyData.IsDeleted,
-                User = FieldValue.Unset, // TODO: add user info
-                VersionId = partyData.VersionId,
-            };
-        }
+        return UpsertPartyQuery.UpsertParty(_connection, party, cancellationToken);
     }
 
     private async IAsyncEnumerable<PartyRecord> PrepareAndReadPartiesAsync(

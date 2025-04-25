@@ -31,12 +31,14 @@ public sealed class WebApplicationFixture
 {
     private readonly WebApplicationFactory _factory = new();
 
-    async ValueTask IAsyncDisposable.DisposeAsync()
+    ValueTask IAsyncDisposable.DisposeAsync()
     {
         if (_factory is { } factory)
         {
-            await factory.DisposeAsync();
+            return factory.DisposeAsync();
         }
+
+        return ValueTask.CompletedTask;
     }
 
     ValueTask IAsyncLifetime.InitializeAsync()
