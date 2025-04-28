@@ -214,4 +214,22 @@ public enum PartyFieldIncludes
     /// </summary>
     [JsonStringEnumMemberName("org.subunits")]
     SubUnits = 1 << 27,
+
+    /// <summary>
+    /// The user id(s), if the party has an associated user.
+    /// </summary>
+    [JsonStringEnumMemberName("user.id")]
+    UserId = 1 << 28,
+
+    /// <summary>
+    /// The username, if the party has an associated user.
+    /// </summary>
+    [JsonStringEnumMemberName("user.name")]
+    UserName = 1 << 29,
+
+    /// <summary>
+    /// All user fields.
+    /// </summary>
+    [JsonStringEnumMemberName("user")]
+    User = UserId | UserName,
 }

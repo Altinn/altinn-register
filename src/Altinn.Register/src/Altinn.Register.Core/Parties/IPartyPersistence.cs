@@ -84,6 +84,20 @@ public interface IPartyPersistence
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets a single party (as a <see cref="IAsyncEnumerable{T}"/>).
+    /// </summary>
+    /// <param name="userId">The user ID.</param>
+    /// <param name="include">Data/fields to include.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>
+    /// A <see cref="IAsyncEnumerable{T}"/> containing 0 or 1 <see cref="PartyRecord"/>.
+    /// </returns>
+    public IAsyncEnumerable<PartyRecord> GetPartyByUserId(
+        uint userId,
+        PartyFieldIncludes include = PartyFieldIncludes.Party,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Looks up parties based on the provided identifiers. The returned parties
     /// is the result of a logical OR operation on the provided identifiers.
     /// </summary>
@@ -91,6 +105,7 @@ public interface IPartyPersistence
     /// <param name="partyIds"><see cref="PartyRecord.PartyId"/>s.</param>
     /// <param name="organizationIdentifiers"><see cref="PartyRecord.OrganizationIdentifier"/>s.</param>
     /// <param name="personIdentifiers"><see cref="PartyRecord.PersonIdentifier"/>s.</param>
+    /// <param name="userIds"><see cref="PartyRecord.User"/>'s <see cref="PartyUserRecord.UserIds"/>.</param>
     /// <param name="include">Data/fields to include.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>
@@ -105,9 +120,10 @@ public interface IPartyPersistence
     // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
     public IAsyncEnumerable<PartyRecord> LookupParties(
         IReadOnlyList<Guid>? partyUuids = null,
-        IReadOnlyList<int>? partyIds = null,
+        IReadOnlyList<uint>? partyIds = null,
         IReadOnlyList<OrganizationIdentifier>? organizationIdentifiers = null,
         IReadOnlyList<PersonIdentifier>? personIdentifiers = null,
+        IReadOnlyList<uint>? userIds = null,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default);
 

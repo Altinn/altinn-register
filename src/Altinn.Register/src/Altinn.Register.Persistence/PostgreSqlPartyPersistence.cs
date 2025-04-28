@@ -51,6 +51,9 @@ internal partial class PostgreSqlPartyPersistence
     {
         _handle.ThrowIfCompleted();
 
+        // always include by-field in the result
+        include |= PartyFieldIncludes.PartyUuid;
+
         var query = PartyQuery.Get(include, PartyFilters.PartyUuid);
 
         NpgsqlCommand? cmd = null;
@@ -77,6 +80,9 @@ internal partial class PostgreSqlPartyPersistence
     {
         _handle.ThrowIfCompleted();
 
+        // always include by-field in the result
+        include |= PartyFieldIncludes.PartyId;
+
         var query = PartyQuery.Get(include, PartyFilters.PartyId);
 
         NpgsqlCommand? cmd = null;
@@ -102,6 +108,9 @@ internal partial class PostgreSqlPartyPersistence
         CancellationToken cancellationToken = default)
     {
         _handle.ThrowIfCompleted();
+
+        // always include by-field in the result
+        include |= PartyFieldIncludes.PartyOrganizationIdentifier;
 
         // filter out person fields as result is guaranteed to be an organization
         include &= ~PartyFieldIncludes.Person;
@@ -131,6 +140,9 @@ internal partial class PostgreSqlPartyPersistence
     {
         _handle.ThrowIfCompleted();
 
+        // always include by-field in the result
+        include |= PartyFieldIncludes.PartyPersonIdentifier;
+
         // filter out organization fields as result is guaranteed to be a person
         include &= ~(PartyFieldIncludes.Organization & PartyFieldIncludes.SubUnits);
 
@@ -152,11 +164,40 @@ internal partial class PostgreSqlPartyPersistence
     }
 
     /// <inheritdoc/>
+    public IAsyncEnumerable<PartyRecord> GetPartyByUserId(
+        uint userId,
+        PartyFieldIncludes include = PartyFieldIncludes.Party,
+        CancellationToken cancellationToken = default)
+    {
+        _handle.ThrowIfCompleted();
+
+        // always include by-field in the result
+        include |= PartyFieldIncludes.UserId;
+
+        var query = PartyQuery.Get(include, PartyFilters.UserId);
+        NpgsqlCommand? cmd = null;
+        try
+        {
+            cmd = _connection.CreateCommand();
+            cmd.CommandText = query.CommandText;
+
+            query.AddUserIdParameter(cmd, checked((int)userId));
+
+            return PrepareAndReadPartiesAsync(cmd, query, cancellationToken);
+        }
+        catch (Exception e)
+        {
+            return new ThrowingAsyncEnumerable<PartyRecord>(e).Using(cmd);
+        }
+    }
+
+    /// <inheritdoc/>
     public IAsyncEnumerable<PartyRecord> LookupParties(
         IReadOnlyList<Guid>? partyUuids = null,
-        IReadOnlyList<int>? partyIds = null,
+        IReadOnlyList<uint>? partyIds = null,
         IReadOnlyList<OrganizationIdentifier>? organizationIdentifiers = null,
         IReadOnlyList<PersonIdentifier>? personIdentifiers = null,
+        IReadOnlyList<uint>? userIds = null,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default)
     {
@@ -169,24 +210,35 @@ internal partial class PostgreSqlPartyPersistence
         {
             any = orgs = persons = true;
             filters |= PartyFilters.PartyUuid;
+            include |= PartyFieldIncludes.PartyUuid;
         }
 
         if (partyIds is { Count: > 0 })
         {
             any = orgs = persons = true;
             filters |= PartyFilters.PartyId;
+            include |= PartyFieldIncludes.PartyId;
         }
 
         if (organizationIdentifiers is { Count: > 0 })
         {
             any = orgs = true;
             filters |= PartyFilters.OrganizationIdentifier;
+            include |= PartyFieldIncludes.PartyOrganizationIdentifier;
         }
 
         if (personIdentifiers is { Count: > 0 })
         {
             any = persons = true;
             filters |= PartyFilters.PersonIdentifier;
+            include |= PartyFieldIncludes.PartyPersonIdentifier;
+        }
+
+        if (userIds is { Count: > 0 })
+        {
+            any = persons = true;
+            filters |= PartyFilters.UserId;
+            include |= PartyFieldIncludes.UserId;
         }
 
         if (!any)
@@ -215,22 +267,27 @@ internal partial class PostgreSqlPartyPersistence
 
             if (partyUuids is { Count: > 0 })
             {
-                query.AddPartyUuidListParameter(cmd, partyUuids.ToList());
+                query.AddPartyUuidListParameter(cmd, [.. partyUuids]);
             }
             
             if (partyIds is { Count: > 0 })
             {
-                query.AddPartyIdListParameter(cmd, partyIds.ToList());
+                query.AddPartyIdListParameter(cmd, [.. partyIds.Select(static id => checked((int)id))]);
             }
 
             if (organizationIdentifiers is { Count: > 0 })
             {
-                query.AddOrganizationIdentifierListParameter(cmd, organizationIdentifiers.Select(static o => o.ToString()).ToList());
+                query.AddOrganizationIdentifierListParameter(cmd, [.. organizationIdentifiers.Select(static o => o.ToString())]);
             }
 
             if (personIdentifiers is { Count: > 0 })
             {
-                query.AddPersonIdentifierListParameter(cmd, personIdentifiers.Select(static p => p.ToString()).ToList());
+                query.AddPersonIdentifierListParameter(cmd, [.. personIdentifiers.Select(static p => p.ToString())]);
+            }
+
+            if (userIds is { Count: > 0 })
+            {
+                query.AddUserIdListParameter(cmd, [.. userIds.Select(static id => checked((int)id))]);
             }
 
             return PrepareAndReadPartiesAsync(cmd, query, cancellationToken);
@@ -352,7 +409,8 @@ internal partial class PostgreSqlPartyPersistence
         PartyUuid = 1 << 1,
         PersonIdentifier = 1 << 2,
         OrganizationIdentifier = 1 << 3,
-        StreamPage = 1 << 4,
+        UserId = 1 << 4,
+        StreamPage = 1 << 5,
 
         Multiple = 1 << 7,
     }

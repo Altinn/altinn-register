@@ -306,7 +306,7 @@ internal sealed partial class A2PartyImportService
         static SelfIdentifiedUserRecord MapSelfIdentifiedUser(V1Models.Party party, DateTimeOffset now)
         {
             var partyUuid = party.PartyUuid!.Value;
-            var partyId = party.PartyId;
+            var partyId = checked((uint)party.PartyId);
             var displayName = Normalize(party.Name);
 
             if (displayName is null)
@@ -335,7 +335,7 @@ internal sealed partial class A2PartyImportService
             var person = party.Person!;
 
             var partyUuid = party.PartyUuid!.Value;
-            var partyId = party.PartyId;
+            var partyId = checked((uint)party.PartyId);
             var personIdentifier = MapPersonIdentifier(person.SSN.AsSpan().Trim());
             var firstName = Normalize(person.FirstName);
             var middleName = Normalize(person.MiddleName);
@@ -480,7 +480,7 @@ internal sealed partial class A2PartyImportService
             var organization = party.Organization!;
 
             var partyUuid = party.PartyUuid!.Value;
-            var partyId = party.PartyId;
+            var partyId = checked((uint)party.PartyId);
             var organizationNumber = MapOrganizationIdentifier(organization.OrgNumber.AsSpan().Trim());
             var name = Normalize(organization.Name);
             var unitStatus = Normalize(organization.UnitStatus);

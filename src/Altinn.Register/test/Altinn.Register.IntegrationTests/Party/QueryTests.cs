@@ -41,11 +41,13 @@ public class QueryTests
             PartyUrn.PartyUuid.Create(party.PartyUuid.Value),
             PartyUrn.PartyId.Create(party.PartyId.Value),
             PartyUrn.PersonId.Create(party.PersonIdentifier.Value!),
+            PartyUrn.UserId.Create(party.User.Value!.UserId.Value),
 
             // repeat again for good measure
             PartyUrn.PartyUuid.Create(party.PartyUuid.Value),
             PartyUrn.PartyId.Create(party.PartyId.Value),
             PartyUrn.PersonId.Create(party.PersonIdentifier.Value!),
+            PartyUrn.UserId.Create(party.User.Value!.UserId.Value),
         ]);
 
         var response = await HttpClient.PostAsJsonAsync("register/api/v2/internal/parties/query", requestContent, JsonOptions, TestContext.Current.CancellationToken);
@@ -80,7 +82,7 @@ public class QueryTests
     public async Task TooManyInRequest()
     {
         var items = new List<PartyUrn>(PartyController.PARTY_QUERY_MAX_ITEMS + 1);
-        for (int i = 0; i < PartyController.PARTY_QUERY_MAX_ITEMS + 1; i++)
+        for (uint i = 0; i < PartyController.PARTY_QUERY_MAX_ITEMS + 1; i++)
         {
             items.Add(PartyUrn.PartyId.Create(i));
         }

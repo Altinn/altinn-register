@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
@@ -20,14 +20,13 @@ internal partial class PostgreSqlPartyPersistence
     [SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1516:Elements should be separated by blank line", Justification = "This class is long enough already")]
     private sealed class PartyQuery
     {
-        private static ImmutableDictionary<(PartyFieldIncludes Includes, PartyFilters FilterBy), PartyQuery> _queries
-            = ImmutableDictionary<(PartyFieldIncludes Includes, PartyFilters FilterBy), PartyQuery>.Empty;
+        private static ConcurrentDictionary<(PartyFieldIncludes Includes, PartyFilters FilterBy), PartyQuery> _queries = new();
 
         public static PartyQuery Get(PartyFieldIncludes includes, PartyFilters filterBy)
         {
             includes |= PartyFieldIncludes.PartyUuid | PartyFieldIncludes.PartyType; // always include the UUID and type
 
-            return ImmutableInterlocked.GetOrAdd(ref _queries, (Includes: includes, FilterBy: filterBy), static (key) => Builder.Create(key.Includes, key.FilterBy));
+            return _queries.GetOrAdd((Includes: includes, FilterBy: filterBy), static (key) => Builder.Create(key.Includes, key.FilterBy));
         }
 
         private PartyQuery(
@@ -38,10 +37,12 @@ internal partial class PostgreSqlPartyPersistence
             FilterParameter paramPartyId,
             FilterParameter paramPersonIdentifier,
             FilterParameter paramOrganizationIdentifier,
+            FilterParameter paramUserId,
             FilterParameter paramPartyUuidList,
             FilterParameter paramPartyIdList,
             FilterParameter paramPersonIdentifierList,
             FilterParameter paramOrganizationIdentifierList,
+            FilterParameter paramUserIdList,
             FilterParameter paramStreamFrom,
             FilterParameter paramStreamLimit)
         {
@@ -52,10 +53,12 @@ internal partial class PostgreSqlPartyPersistence
             _paramPartyId = paramPartyId;
             _paramPersonIdentifier = paramPersonIdentifier;
             _paramOrganizationIdentifier = paramOrganizationIdentifier;
+            _paramUserId = paramUserId;
             _paramPartyUuidList = paramPartyUuidList;
             _paramPartyIdList = paramPartyIdList;
             _paramPersonIdentifierList = paramPersonIdentifierList;
             _paramOrganizationIdentifierList = paramOrganizationIdentifierList;
+            _paramUserIdList = paramUserIdList;
             _paramStreamFromExlusive = paramStreamFrom;
             _paramStreamLimit = paramStreamLimit;
 
@@ -68,10 +71,12 @@ internal partial class PostgreSqlPartyPersistence
         private readonly FilterParameter _paramPartyId;
         private readonly FilterParameter _paramPersonIdentifier;
         private readonly FilterParameter _paramOrganizationIdentifier;
+        private readonly FilterParameter _paramUserId;
         private readonly FilterParameter _paramPartyUuidList;
         private readonly FilterParameter _paramPartyIdList;
         private readonly FilterParameter _paramPersonIdentifierList;
         private readonly FilterParameter _paramOrganizationIdentifierList;
+        private readonly FilterParameter _paramUserIdList;
         private readonly FilterParameter _paramStreamFromExlusive;
         private readonly FilterParameter _paramStreamLimit;
 
@@ -92,6 +97,9 @@ internal partial class PostgreSqlPartyPersistence
         public NpgsqlParameter<string> AddOrganizationIdentifierParameter(NpgsqlCommand cmd, string value)
             => AddParameter(cmd, in _paramOrganizationIdentifier, value);
 
+        public NpgsqlParameter<int> AddUserIdParameter(NpgsqlCommand cmd, int value)
+            => AddParameter(cmd, in _paramUserId, value);
+
         public NpgsqlParameter<IList<Guid>> AddPartyUuidListParameter(NpgsqlCommand cmd, IList<Guid> value)
             => AddParameter(cmd, in _paramPartyUuidList, value);
 
@@ -103,6 +111,9 @@ internal partial class PostgreSqlPartyPersistence
 
         public NpgsqlParameter<IList<string>> AddOrganizationIdentifierListParameter(NpgsqlCommand cmd, IList<string> value)
             => AddParameter(cmd, in _paramOrganizationIdentifierList, value);
+
+        public NpgsqlParameter<IList<int>> AddUserIdListParameter(NpgsqlCommand cmd, IList<int> value)
+            => AddParameter(cmd, in _paramUserIdList, value);
 
         public (NpgsqlParameter<long> From, NpgsqlParameter<int> Limit) AddStreamPageParameters(NpgsqlCommand cmd, ulong fromExclusive, ushort limit)
         {
@@ -181,14 +192,14 @@ internal partial class PostgreSqlPartyPersistence
                 return new PartyRecord(partyType)
                 {
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>(fields.PartyUuid, cancellationToken),
-                    PartyId = await reader.GetConditionalFieldValueAsync<int>(fields.PartyId, cancellationToken),
+                    PartyId = await reader.GetConditionalFieldValueAsync<int>(fields.PartyId, cancellationToken).Select(static id => checked((uint)id)),
                     DisplayName = await reader.GetConditionalFieldValueAsync<string>(fields.PartyDisplayName, cancellationToken),
                     PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>(fields.PartyPersonIdentifier, cancellationToken),
                     OrganizationIdentifier = await reader.GetConditionalParsableFieldValueAsync<OrganizationIdentifier>(fields.PartyOrganizationIdentifier, cancellationToken),
                     CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyCreated, cancellationToken),
                     ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyUpdated, cancellationToken),
                     IsDeleted = await reader.GetConditionalFieldValueAsync<bool>(fields.PartyIsDeleted, cancellationToken),
-                    User = FieldValue.Unset, // TODO: add user info
+                    User = await ReadUser(reader, fields, cancellationToken),
                     VersionId = await reader.GetConditionalFieldValueAsync<long>(fields.PartyVersionId, cancellationToken).Select(static v => (ulong)v),
                 };
             }
@@ -198,14 +209,14 @@ internal partial class PostgreSqlPartyPersistence
                 return new PersonRecord
                 {
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>(fields.PartyUuid, cancellationToken),
-                    PartyId = await reader.GetConditionalFieldValueAsync<int>(fields.PartyId, cancellationToken),
+                    PartyId = await reader.GetConditionalFieldValueAsync<int>(fields.PartyId, cancellationToken).Select(static id => checked((uint)id)),
                     DisplayName = await reader.GetConditionalFieldValueAsync<string>(fields.PartyDisplayName, cancellationToken),
                     PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>(fields.PartyPersonIdentifier, cancellationToken),
                     OrganizationIdentifier = await reader.GetConditionalParsableFieldValueAsync<OrganizationIdentifier>(fields.PartyOrganizationIdentifier, cancellationToken),
                     CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyCreated, cancellationToken),
                     ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyUpdated, cancellationToken),
                     IsDeleted = await reader.GetConditionalFieldValueAsync<bool>(fields.PartyIsDeleted, cancellationToken),
-                    User = FieldValue.Unset, // TODO: add user info
+                    User = await ReadUser(reader, fields, cancellationToken),
                     VersionId = await reader.GetConditionalFieldValueAsync<long>(fields.PartyVersionId, cancellationToken).Select(static v => (ulong)v),
                     FirstName = await reader.GetConditionalFieldValueAsync<string>(fields.PersonFirstName, cancellationToken),
                     MiddleName = await reader.GetConditionalFieldValueAsync<string>(fields.PersonMiddleName, cancellationToken),
@@ -223,14 +234,14 @@ internal partial class PostgreSqlPartyPersistence
                 return new SelfIdentifiedUserRecord
                 {
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>(fields.PartyUuid, cancellationToken),
-                    PartyId = await reader.GetConditionalFieldValueAsync<int>(fields.PartyId, cancellationToken),
+                    PartyId = await reader.GetConditionalFieldValueAsync<int>(fields.PartyId, cancellationToken).Select(static id => checked((uint)id)),
                     DisplayName = await reader.GetConditionalFieldValueAsync<string>(fields.PartyDisplayName, cancellationToken),
                     PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>(fields.PartyPersonIdentifier, cancellationToken),
                     OrganizationIdentifier = await reader.GetConditionalParsableFieldValueAsync<OrganizationIdentifier>(fields.PartyOrganizationIdentifier, cancellationToken),
                     CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyCreated, cancellationToken),
                     ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyUpdated, cancellationToken),
                     IsDeleted = await reader.GetConditionalFieldValueAsync<bool>(fields.PartyIsDeleted, cancellationToken),
-                    User = FieldValue.Unset, // TODO: add user info
+                    User = await ReadUser(reader, fields, cancellationToken),
                     VersionId = await reader.GetConditionalFieldValueAsync<long>(fields.PartyVersionId, cancellationToken).Select(static v => (ulong)v),
                 };
             }
@@ -240,14 +251,14 @@ internal partial class PostgreSqlPartyPersistence
                 return new OrganizationRecord
                 {
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>(fields.PartyUuid, cancellationToken),
-                    PartyId = await reader.GetConditionalFieldValueAsync<int>(fields.PartyId, cancellationToken),
+                    PartyId = await reader.GetConditionalFieldValueAsync<int>(fields.PartyId, cancellationToken).Select(static id => checked((uint)id)),
                     DisplayName = await reader.GetConditionalFieldValueAsync<string>(fields.PartyDisplayName, cancellationToken),
                     PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>(fields.PartyPersonIdentifier, cancellationToken),
                     OrganizationIdentifier = await reader.GetConditionalParsableFieldValueAsync<OrganizationIdentifier>(fields.PartyOrganizationIdentifier, cancellationToken),
                     CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyCreated, cancellationToken),
                     ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyUpdated, cancellationToken),
                     IsDeleted = await reader.GetConditionalFieldValueAsync<bool>(fields.PartyIsDeleted, cancellationToken),
-                    User = FieldValue.Unset, // TODO: add user info
+                    User = await ReadUser(reader, fields, cancellationToken),
                     VersionId = await reader.GetConditionalFieldValueAsync<long>(fields.PartyVersionId, cancellationToken).Select(static v => (ulong)v),
                     UnitStatus = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationUnitStatus, cancellationToken),
                     UnitType = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationUnitType, cancellationToken),
@@ -260,6 +271,14 @@ internal partial class PostgreSqlPartyPersistence
                     BusinessAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>(fields.OrganizationBusinessAddress, cancellationToken),
                     ParentOrganizationUuid = parentPartyUuid,
                 };
+            }
+
+            static async ValueTask<FieldValue<PartyUserRecord>> ReadUser(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
+            {
+                var userIds = await reader.GetConditionalFieldValueAsync<List<int>>(fields.UserIds, cancellationToken)
+                    .Select(static ids => ids.Select(static id => checked((uint)id)).ToImmutableValueArray());
+
+                return userIds.Select(static ids => new PartyUserRecord { UserIds = ids });
             }
 
             static ValueTask<PartyRecord> Unreachable()
@@ -300,7 +319,8 @@ internal partial class PostgreSqlPartyPersistence
                     organizationEmailAddress: builder._organizationEmailAddress,
                     organizationInternetAddress: builder._organizationInternetAddress,
                     organizationMailingAddress: builder._organizationMailingAddress,
-                    organizationBusinessAddress: builder._organizationBusinessAddress);
+                    organizationBusinessAddress: builder._organizationBusinessAddress,
+                    userIds: builder._userIds);
 
                 PartyFields? childFields = !builder._hasSubUnits ? null
                     : new(
@@ -330,7 +350,8 @@ internal partial class PostgreSqlPartyPersistence
                         organizationEmailAddress: builder._childOrganizationEmailAddress,
                         organizationInternetAddress: builder._childOrganizationInternetAddress,
                         organizationMailingAddress: builder._childOrganizationMailingAddress,
-                        organizationBusinessAddress: builder._childOrganizationBusinessAddress);
+                        organizationBusinessAddress: builder._childOrganizationBusinessAddress,
+                        userIds: -1);
 
                 var commandText = builder._builder.ToString();
                 return new(
@@ -341,10 +362,12 @@ internal partial class PostgreSqlPartyPersistence
                     paramPartyId: builder._paramPartyId,
                     paramPersonIdentifier: builder._paramPersonIdentifier,
                     paramOrganizationIdentifier: builder._paramOrganizationIdentifier,
+                    paramUserId: builder._paramUserId,
                     paramPartyUuidList: builder._paramPartyUuidList,
                     paramPartyIdList: builder._paramPartyIdList,
                     paramPersonIdentifierList: builder._paramPersonIdentifierList,
                     paramOrganizationIdentifierList: builder._paramOrganizationIdentifierList,
+                    paramUserIdList: builder._paramUserIdList,
                     paramStreamFrom: builder._paramStreamFromExclusive,
                     paramStreamLimit: builder._paramStreamLimit);
             }
@@ -356,10 +379,12 @@ internal partial class PostgreSqlPartyPersistence
             private FilterParameter _paramPartyId;
             private FilterParameter _paramPersonIdentifier;
             private FilterParameter _paramOrganizationIdentifier;
+            private FilterParameter _paramUserId;
             private FilterParameter _paramPartyUuidList;
             private FilterParameter _paramPartyIdList;
             private FilterParameter _paramPersonIdentifierList;
             private FilterParameter _paramOrganizationIdentifierList;
+            private FilterParameter _paramUserIdList;
             private FilterParameter _paramStreamFromExclusive;
             private FilterParameter _paramStreamLimit;
 
@@ -399,6 +424,9 @@ internal partial class PostgreSqlPartyPersistence
             private sbyte _organizationInternetAddress = -1;
             private sbyte _organizationMailingAddress = -1;
             private sbyte _organizationBusinessAddress = -1;
+
+            // parent register.user
+            private sbyte _userIds = -1;
 
             // child register.party
             private sbyte _childPartyUuid = -1;
@@ -457,6 +485,8 @@ internal partial class PostgreSqlPartyPersistence
                 _organizationMailingAddress = AddField("o.mailing_address", "p_org_mailing_address", includes.HasFlag(PartyFieldIncludes.OrganizationMailingAddress));
                 _organizationBusinessAddress = AddField("o.business_address", "p_business_address", includes.HasFlag(PartyFieldIncludes.OrganizationBusinessAddress));
 
+                _userIds = AddField("ua.user_ids", "u_user_ids", includes.HasFlag(PartyFieldIncludes.UserId));
+
                 if (includes.HasFlag(PartyFieldIncludes.SubUnits))
                 {
                     _childPartyUuid = AddField("cp.uuid", "cp_uuid", includes.HasFlag(PartyFieldIncludes.PartyUuid));
@@ -494,6 +524,36 @@ internal partial class PostgreSqlPartyPersistence
                 {
                     _builder.AppendLine().Append(/*strpsql*/"FULL JOIN register.organization o USING (uuid)");
                 }
+
+                if (includes.HasFlag(PartyFieldIncludes.UserId))
+                {
+                    _builder.AppendLine().Append(/*strpsql*/"LEFT JOIN (");
+                    _builder.AppendLine().Append(/*strpsql*/"    SELECT");
+                    _builder.AppendLine().Append(/*strpsql*/"        u.uuid,");
+                    _builder.AppendLine().Append(/*strpsql*/"        array_agg(u.user_id ORDER BY u.is_active DESC, u.user_id DESC) AS user_ids");
+                    _builder.AppendLine().Append(/*strpsql*/"    FROM register.user u");
+                    _builder.AppendLine().Append(/*strpsql*/"    WHERE u.is_active");
+
+                    if (filterBy.HasFlag(PartyFilters.UserId))
+                    {
+                        if (filterBy.HasFlag(PartyFilters.Multiple))
+                        {
+                            // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
+                            _paramUserIdList = new(typeof(IList<int>), "userIds", NpgsqlDbType.Array | NpgsqlDbType.Bigint);
+                            _builder.Append(/*strpsql*/" OR u.user_id = ANY (@userIds)");
+                        }
+                        else
+                        {
+                            _paramUserId = new(typeof(int), "userId", NpgsqlDbType.Bigint);
+                            _builder.Append(/*strpsql*/" OR u.user_id = @userId");
+                        }
+                    }
+
+                    _builder.AppendLine().Append(/*strpsql*/"    GROUP BY u.uuid");
+                    _builder.AppendLine().Append(/*strpsql*/") ua USING (uuid)");
+                }
+
+                // TODO: join in user again for active username
 
                 if (_hasSubUnits)
                 {
@@ -557,6 +617,12 @@ internal partial class PostgreSqlPartyPersistence
                             _paramOrganizationIdentifier = AddFilter(typeof(string), "organizationIdentifier", /*strpsql*/"p.organization_identifier =", NpgsqlDbType.Text, ref firstFilter);
                             break;
 
+                        case PartyFilters.UserId:
+                            // parameter already created
+                            AddFilterPrefix(ref firstFilter);
+                            _builder.Append(/*strpsql*/"@userId = ANY (ua.user_ids)");
+                            break;
+
                         case PartyFilters.StreamPage:
                             // handled later, but legal
                             break;
@@ -590,6 +656,13 @@ internal partial class PostgreSqlPartyPersistence
                     {
                         // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
                         _paramOrganizationIdentifierList = AddFilter(typeof(IList<string>), "organizationIdentifiers", /*strpsql*/"p.organization_identifier = ANY", NpgsqlDbType.Array | NpgsqlDbType.Text, ref firstFilter);
+                    }
+
+                    if (filterBy.HasFlag(PartyFilters.UserId))
+                    {
+                        // parameter already created
+                        AddFilterPrefix(ref firstFilter);
+                        _builder.Append(/*strpsql*/"@userIds && ua.user_ids");
                     }
 
                     Debug.Assert(!firstFilter, "No filters were added, but multiple filters were requested");
@@ -671,17 +744,22 @@ internal partial class PostgreSqlPartyPersistence
                 _builder.Append("            ").Append(sourceSql);
             }
 
-            private FilterParameter AddFilter(Type type, string name, string sourceSql, NpgsqlDbType dbType, ref bool first)
+            private void AddFilterPrefix(ref bool first)
             {
                 if (first)
                 {
-                    _builder.AppendLine().Append(/*strpsql*/"WHERE (");
+                    _builder.AppendLine().AppendLine(/*strpsql*/"WHERE (").Append("       ");
                     first = false;
                 }
                 else
                 {
                     _builder.AppendLine().Append(/*strpsql*/"    OR ");
                 }
+            }
+
+            private FilterParameter AddFilter(Type type, string name, string sourceSql, NpgsqlDbType dbType, ref bool first)
+            {
+                AddFilterPrefix(ref first);
 
                 _builder.Append(sourceSql);
                 
@@ -754,7 +832,10 @@ internal partial class PostgreSqlPartyPersistence
             sbyte organizationEmailAddress,
             sbyte organizationInternetAddress,
             sbyte organizationMailingAddress,
-            sbyte organizationBusinessAddress)
+            sbyte organizationBusinessAddress,
+            
+            // register.user
+            sbyte userIds)
         {
             // register.party
             public int PartyUuid => partyUuid;
@@ -788,6 +869,9 @@ internal partial class PostgreSqlPartyPersistence
             public int OrganizationInternetAddress => organizationInternetAddress;
             public int OrganizationMailingAddress => organizationMailingAddress;
             public int OrganizationBusinessAddress => organizationBusinessAddress;
+
+            // register.user
+            public int UserIds => userIds;
         }
     }
 }

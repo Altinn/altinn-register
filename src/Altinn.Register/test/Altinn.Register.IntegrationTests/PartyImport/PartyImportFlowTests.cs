@@ -15,7 +15,7 @@ public class PartyImportFlowTests
     public async Task UpsertPartyCommand_UpsertsParty()
     {
         var partyUuid = Guid.CreateVersion7();
-        var partyId = 1;
+        var partyId = 1U;
 
         var person = new PersonRecord
         {

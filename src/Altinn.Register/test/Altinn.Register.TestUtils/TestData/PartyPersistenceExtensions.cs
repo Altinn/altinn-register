@@ -228,7 +228,7 @@ public static class PartyPersistenceExtensions
         return DateOnly.FromDayNumber(value);
     }
 
-    public static async Task<int> GetNextPartyId(this IUnitOfWork uow, CancellationToken cancellationToken = default)
+    public static async Task<uint> GetNextPartyId(this IUnitOfWork uow, CancellationToken cancellationToken = default)
     {
         var connection = uow.GetRequiredService<NpgsqlConnection>();
         await using var cmd = connection.CreateCommand();
@@ -237,13 +237,26 @@ public static class PartyPersistenceExtensions
             SELECT COALESCE(MAX(id), 0) FROM register.party
             """;
 
-        return Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken)) + 1;
+        return Convert.ToUInt32(await cmd.ExecuteScalarAsync(cancellationToken)) + 1;
+    }
+
+    public static async Task<IEnumerable<int>> GetNewUserIds(this IUnitOfWork uow, int count = 1, CancellationToken cancellationToken = default)
+    {
+        var connection = uow.GetRequiredService<NpgsqlConnection>();
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText =
+            /*strpsql*/"""
+            SELECT COALESCE(MAX(user_id), 0) FROM register.user
+            """;
+
+        var max = Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken));
+        return Enumerable.Range(max + 1, count);
     }
 
     public static async Task<OrganizationRecord> CreateOrg(
         this IUnitOfWork uow,
         FieldValue<Guid> uuid = default,
-        FieldValue<int> id = default,
+        FieldValue<uint> id = default,
         FieldValue<string> name = default,
         FieldValue<OrganizationIdentifier> identifier = default,
         FieldValue<DateTimeOffset> createdAt = default,
@@ -318,7 +331,7 @@ public static class PartyPersistenceExtensions
     public static async Task<PersonRecord> CreatePerson(
         this IUnitOfWork uow,
         FieldValue<Guid> uuid = default,
-        FieldValue<int> id = default,
+        FieldValue<uint> id = default,
         FieldValue<PersonIdentifier> identifier = default,
         FieldValue<DateTimeOffset> createdAt = default,
         FieldValue<DateTimeOffset> modifiedAt = default,
@@ -383,6 +396,15 @@ public static class PartyPersistenceExtensions
         if (dateOfDeath.IsUnset)
         {
             dateOfDeath = FieldValue.Null;
+        }
+
+        if (user.IsUnset)
+        {
+            var userIdsEnumerable = await uow.GetNewUserIds(3, cancellationToken);
+            user = new PartyUserRecord
+            {
+                UserIds = userIdsEnumerable.Select(static id => (uint)id).OrderByDescending(static id => id).ToImmutableValueArray(),
+            };
         }
 
         // TODO: Generate user and historical user data
