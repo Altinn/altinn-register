@@ -18,6 +18,11 @@ public sealed record PartyUserRecord
         => UserIds.Select(static ids => ids[0]);
 
     /// <summary>
+    /// Gets the username of the party (if any).
+    /// </summary>
+    public FieldValue<string> Username { get; init; }
+
+    /// <summary>
     /// Gets the (historical) user ids of the party.
     /// </summary>
     /// <remarks>

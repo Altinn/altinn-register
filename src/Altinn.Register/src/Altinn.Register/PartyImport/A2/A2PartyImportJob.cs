@@ -125,7 +125,7 @@ public sealed partial class A2PartyImportJob
             var cmds = page
                 .Select(static update => new ImportA2CCRRolesCommand
                 {
-                    PartyId = update.PartyId,
+                    PartyId = checked((uint)update.PartyId),
                     PartyUuid = update.PartyUuid,
                     ChangedTime = update.ChangeTime,
                     ChangeId = update.ChangeId,

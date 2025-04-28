@@ -26,7 +26,7 @@ public class A2PartyImportServiceTests
     [Fact]
     public async Task GetParty_Calls_Correct_Endpoint_AndMapsOrganizationData()
     {
-        var partyId = 50004216;
+        var partyId = 50004216U;
         var party = await TestDataLoader.Load<Altinn.Platform.Register.Models.Party>(partyId.ToString(CultureInfo.InvariantCulture));
         Assert.NotNull(party);
 
@@ -77,7 +77,7 @@ public class A2PartyImportServiceTests
     [Fact]
     public async Task GetParty_Calls_Correct_Endpoint_AndMapsPersonData()
     {
-        var partyId = 50012345;
+        var partyId = 50012345U;
         var party = await TestDataLoader.Load<Altinn.Platform.Register.Models.Party>(partyId.ToString(CultureInfo.InvariantCulture));
         Assert.NotNull(party);
 
@@ -162,7 +162,7 @@ public class A2PartyImportServiceTests
     [Fact]
     public async Task GetExternalRoleAssignmentsFrom_Calls_Correct_Endpoint_AndMapsData()
     {
-        var partyId = 50012345;
+        var partyId = 50012345U;
         var party = await TestDataLoader.Load<Altinn.Platform.Register.Models.Party>(partyId.ToString(CultureInfo.InvariantCulture));
         Assert.NotNull(party);
 
@@ -206,7 +206,7 @@ public class A2PartyImportServiceTests
     [Fact]
     public async Task GetExternalRoleAssignmentsFrom_Calls_Correct_Endpoint_AndMapsData_KONT_Roles()
     {
-        var partyId = 50012345;
+        var partyId = 50012345U;
         var party = await TestDataLoader.Load<Altinn.Platform.Register.Models.Party>(partyId.ToString(CultureInfo.InvariantCulture));
         Assert.NotNull(party);
 
@@ -455,7 +455,7 @@ public class A2PartyImportServiceTests
         thirdPage[0].ChangeTime.Should().Be(new DateTimeOffset(2020, 1, 5, 0, 0, 0, TimeSpan.Zero));
     }
 
-    private static async Task<SequenceHttpContent> TestDataParty(int id)
+    private static async Task<SequenceHttpContent> TestDataParty(uint id)
     {
         Sequence<byte>? content = null;
 

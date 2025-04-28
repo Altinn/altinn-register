@@ -17,7 +17,7 @@ public sealed record ImportA2CCRRolesCommand
     /// It's the callers responsibility to ensure that <see cref="PartyId"/> and <see cref="PartyUuid"/>
     /// is for the same party. Failing to do so will result in undefined behavior.
     /// </remarks>
-    public required int PartyId { get; init; }
+    public required uint PartyId { get; init; }
 
     /// <summary>
     /// Gets the party UUID.

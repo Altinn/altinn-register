@@ -107,7 +107,7 @@ internal sealed partial class A2PartyImportService
 
     /// <inheritdoc />
     public async IAsyncEnumerable<A2PartyExternalRoleAssignment> GetExternalRoleAssignmentsFrom(
-        int fromPartyId,
+        uint fromPartyId,
         Guid fromPartyUuid,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
