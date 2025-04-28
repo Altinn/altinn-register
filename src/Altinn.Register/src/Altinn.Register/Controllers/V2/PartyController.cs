@@ -376,9 +376,10 @@ public class PartyController
         }
 
         List<Guid>? uuids = null;
-        List<int>? ids = null;
+        List<uint>? ids = null;
         List<PersonIdentifier>? personIds = null;
         List<OrganizationIdentifier>? orgIds = null;
+        List<uint>? userIds = null;
 
         var count = 0;
         foreach (var item in parties.Items)
@@ -407,6 +408,12 @@ public class PartyController
                     fields |= PartyFieldIncludes.PartyOrganizationIdentifier;
                     orgIds ??= new();
                     orgIds.Add(orgId.Value);
+                    break;
+
+                case PartyUrn.UserId userId:
+                    fields |= PartyFieldIncludes.UserId;
+                    userIds ??= new();
+                    userIds.Add(userId.Value);
                     break;
 
                 default:
@@ -440,6 +447,7 @@ public class PartyController
             partyIds: ids,
             organizationIdentifiers: orgIds,
             personIdentifiers: personIds,
+            userIds: userIds,
             fields,
             cancellationToken)
             .ToListAsync(cancellationToken);

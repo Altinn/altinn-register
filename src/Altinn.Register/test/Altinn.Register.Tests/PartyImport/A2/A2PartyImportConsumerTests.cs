@@ -30,7 +30,7 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
     [Fact]
     public async Task ImportA2PartyCommand_FetchesParty_AndSendsUpsertCommand()
     {
-        var partyId = 50004216;
+        var partyId = 50004216U;
         var partyUuid = Guid.Parse("7aa53da8-836c-4812-afcb-76d39f5ebb0e");
         HttpHandlers.For<IA2PartyImportService>().Expect(HttpMethod.Get, "/parties")
             .WithQuery("partyuuid", partyUuid.ToString())
@@ -50,7 +50,7 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
     [Fact]
     public async Task ImportA2PartyCommand_FetchesParty_AndSendsUpsertCommand_SIUser()
     {
-        var partyId = 50006237;
+        var partyId = 50006237U;
         var partyUuid = Guid.Parse("4fe860c4-bc65-4d2f-a288-f825b460f26b");
         HttpHandlers.For<IA2PartyImportService>().Expect(HttpMethod.Get, "/parties")
             .WithQuery("partyuuid", partyUuid.ToString())
@@ -163,7 +163,7 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
         var person = sent.Context.Message.Party.Should().BeOfType<PersonRecord>().Which;
         using (new AssertionScope())
         {
-            person.PartyId.Should().Be(party.PartyId);
+            person.PartyId.Should().Be((uint)party.PartyId);
             person.PartyUuid.Should().Be(partyUuid);
             person.DisplayName.Should().Be(input.ExpectedName);
             person.FirstName.Should().Be(input.ExpectedFirstName);
@@ -268,7 +268,7 @@ public class A2PartyImportConsumerTests(ITestOutputHelper output)
         }
     };
 
-    private static async Task<SequenceHttpContent> TestDataParty(int id)
+    private static async Task<SequenceHttpContent> TestDataParty(uint id)
     {
         Sequence<byte>? content = null;
 

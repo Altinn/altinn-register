@@ -21,7 +21,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     protected override ITestOutputHelper? TestOutputHelper => output;
 
     private readonly static Guid OrganizationWithChildrenUuid = Guid.Parse("b6368d0a-bce4-4798-8460-f4f86fc354c2");
-    private readonly static int OrganizationWithChildrenId = 50056131;
+    private readonly static uint OrganizationWithChildrenId = 50056131;
     private readonly static OrganizationIdentifier OrganizationWithChildrenIdentifier = OrganizationIdentifier.Parse("910114166");
     private readonly static Guid ChildOrganizationUuid = Guid.Parse("08cb91ff-75a4-45a4-b141-3c6be1bf8728");
     private readonly static Guid PersonUuid = Guid.Parse("1dee49bc-7758-43d9-b5de-63c79dbe13a3");
@@ -164,6 +164,71 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         party.InternetAddress.Should().BeNull();
         party.MailingAddress.Should().BeNull();
         party.BusinessAddress.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetPartyByUserId_Returns_SingleParty()
+    {
+        var person = await UoW.CreatePerson();
+        var personUserId = person.User.SelectFieldValue(static u => u.UserId).Should().HaveValue().Which;
+
+        var result = await Persistence.GetPartyByUserId(personUserId, include: PartyFieldIncludes.Party).ToListAsync();
+
+        var party = result.Should().ContainSingle().Which.Should().BeOfType<PersonRecord>().Which;
+
+        using var scope = new AssertionScope();
+
+        party.PartyUuid.Should().Be(person.PartyUuid);
+        party.PartyId.Should().Be(person.PartyId);
+        party.PartyType.Should().Be(person.PartyType);
+        party.DisplayName.Should().Be(person.DisplayName);
+        party.PersonIdentifier.Should().Be(person.PersonIdentifier);
+        party.OrganizationIdentifier.Should().Be(person.OrganizationIdentifier);
+        party.User.Should().Be(new PartyUserRecord { UserIds = ImmutableValueArray.Create(personUserId) });
+    }
+
+    [Fact]
+    public async Task GetPartyByUserId_HistoricalId_Returns_SingleParty_WithMultipleUserIds()
+    {
+        var person = await UoW.CreatePerson();
+        var personUserIds = person.User.SelectFieldValue(static u => u.UserIds).Should().HaveValue().Which;
+        personUserIds.Should().HaveCountGreaterThanOrEqualTo(3);
+
+        var personUserId = personUserIds[0];
+        var historicalUserId1 = personUserIds[1];
+        var historicalUserId2 = personUserIds[2];
+
+        {
+            var result = await Persistence.GetPartyByUserId(historicalUserId1, include: PartyFieldIncludes.Party).ToListAsync();
+
+            var party = result.Should().ContainSingle().Which.Should().BeOfType<PersonRecord>().Which;
+
+            using var scope = new AssertionScope();
+
+            party.PartyUuid.Should().Be(person.PartyUuid);
+            party.PartyId.Should().Be(person.PartyId);
+            party.PartyType.Should().Be(person.PartyType);
+            party.DisplayName.Should().Be(person.DisplayName);
+            party.PersonIdentifier.Should().Be(person.PersonIdentifier);
+            party.OrganizationIdentifier.Should().Be(person.OrganizationIdentifier);
+            party.User.Should().Be(new PartyUserRecord { UserIds = ImmutableValueArray.Create(personUserId, historicalUserId1) });
+        }
+
+        {
+            var result = await Persistence.GetPartyByUserId(historicalUserId2, include: PartyFieldIncludes.Party).ToListAsync();
+
+            var party = result.Should().ContainSingle().Which.Should().BeOfType<PersonRecord>().Which;
+
+            using var scope = new AssertionScope();
+
+            party.PartyUuid.Should().Be(person.PartyUuid);
+            party.PartyId.Should().Be(person.PartyId);
+            party.PartyType.Should().Be(person.PartyType);
+            party.DisplayName.Should().Be(person.DisplayName);
+            party.PersonIdentifier.Should().Be(person.PersonIdentifier);
+            party.OrganizationIdentifier.Should().Be(person.OrganizationIdentifier);
+            party.User.Should().Be(new PartyUserRecord { UserIds = ImmutableValueArray.Create(personUserId, historicalUserId2) });
+        }
     }
 
     [Fact]
@@ -335,18 +400,28 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [Fact]
     public async Task LookupParties_CanReturn_MultipleParties()
     {
+        var person1 = await UoW.CreatePerson();
+        var person2 = await UoW.CreatePerson();
+
+        var person1UserId = person1.User.SelectFieldValue(static u => u.UserId).Should().HaveValue().Which;
+        var person2UserId = person2.User.SelectFieldValue(static u => u.UserId).Should().HaveValue().Which;
+        var person2HistoricalUserId = person2.User.SelectFieldValue(static u => u.UserIds).Should().HaveValue().Which[1];
+
         var result = await Persistence.LookupParties(
             organizationIdentifiers: [OrganizationWithChildrenIdentifier],
-            personIdentifiers: [PersonIdentifier])
+            personIdentifiers: [PersonIdentifier],
+            userIds: [person1UserId, person2HistoricalUserId])
             .ToListAsync();
 
-        result.Should().HaveCount(2);
+        result.Should().HaveCount(4);
 
-        var pers = result[0].Should().BeOfType<PersonRecord>().Which;
-        var org = result[1].Should().BeOfType<OrganizationRecord>().Which;
+        var testDataPers = result.Should().ContainSingle(static p => p.PartyUuid == PersonUuid).Which.Should().BeOfType<PersonRecord>().Which;
+        var testDataOrg = result.Should().ContainSingle(static p => p.PartyUuid == OrganizationWithChildrenUuid).Which.Should().BeOfType<OrganizationRecord>().Which;
+        var person1Result = result.Should().ContainSingle(p => p.PartyUuid == person1.PartyUuid).Which.Should().BeOfType<PersonRecord>().Which;
+        var person2Result = result.Should().ContainSingle(p => p.PartyUuid == person2.PartyUuid).Which.Should().BeOfType<PersonRecord>().Which;
 
-        pers.PartyUuid.Should().Be(PersonUuid);
-        org.PartyUuid.Should().Be(OrganizationWithChildrenUuid);
+        person1Result.User.Should().HaveValue().Which.UserIds.Should().Be(ImmutableValueArray.Create(person1UserId));
+        person2Result.User.Should().HaveValue().Which.UserIds.Should().Be(ImmutableValueArray.Create(person2UserId, person2HistoricalUserId));
     }
 
     [Fact]

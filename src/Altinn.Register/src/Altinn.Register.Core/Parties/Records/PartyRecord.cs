@@ -25,7 +25,7 @@ public record PartyRecord
     /// <summary>
     /// Gets the ID of the party.
     /// </summary>
-    public required FieldValue<int> PartyId { get; init; }
+    public required FieldValue<uint> PartyId { get; init; }
 
     /// <summary>
     /// Gets the type of the party.

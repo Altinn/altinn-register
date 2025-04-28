@@ -10,7 +10,7 @@ namespace Altinn.Register.TestUtils.Database;
 public class PostgresServerFixture
     : IAsyncLifetime
 {
-    private const int MAX_CONCURRENCY = 1;
+    private const int MAX_CONCURRENCY = 5;
 
     private readonly AsyncConcurrencyLimiter _throttler = new(MAX_CONCURRENCY);
     private readonly PostgreSqlContainer _container;

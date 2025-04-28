@@ -78,7 +78,7 @@ internal partial class PostgreSqlPartyPersistence
                     .Select(static ids => ids.Select(static id => checked((int)id)).ToArray());
 
                 cmd.Parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = party.PartyUuid.Value;
-                cmd.Parameters.Add<int>("id", NpgsqlDbType.Bigint).TypedValue = party.PartyId.Value;
+                cmd.Parameters.Add<int>("id", NpgsqlDbType.Bigint).TypedValue = checked((int)party.PartyId.Value);
                 cmd.Parameters.Add<int[]?>("user_ids", NpgsqlDbType.Bigint | NpgsqlDbType.Array).TypedValue = userIds.OrDefault();
                 cmd.Parameters.Add<PartyType>("party_type").TypedValue = party.PartyType.Value;
                 cmd.Parameters.Add<string>("display_name", NpgsqlDbType.Text).TypedValue = party.DisplayName.Value;
@@ -197,7 +197,7 @@ internal partial class PostgreSqlPartyPersistence
                 return new PersonRecord
                 {
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_uuid", cancellationToken),
-                    PartyId = await reader.GetConditionalFieldValueAsync<int>("p_id", cancellationToken),
+                    PartyId = await reader.GetConditionalFieldValueAsync<int>("p_id", cancellationToken).Select(static id => checked((uint)id)),
                     User = await ReadUser(reader, cancellationToken),
                     DisplayName = await reader.GetConditionalFieldValueAsync<string>("p_display_name", cancellationToken),
                     PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>("p_person_identifier", cancellationToken),
@@ -279,7 +279,7 @@ internal partial class PostgreSqlPartyPersistence
                 return new OrganizationRecord
                 {
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_uuid", cancellationToken),
-                    PartyId = await reader.GetConditionalFieldValueAsync<int>("p_id", cancellationToken),
+                    PartyId = await reader.GetConditionalFieldValueAsync<int>("p_id", cancellationToken).Select(static id => checked((uint)id)),
                     User = await ReadUser(reader, cancellationToken),
                     DisplayName = await reader.GetConditionalFieldValueAsync<string>("p_display_name", cancellationToken),
                     PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>("p_person_identifier", cancellationToken),
@@ -312,7 +312,7 @@ internal partial class PostgreSqlPartyPersistence
                 return new SelfIdentifiedUserRecord
                 {
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_uuid", cancellationToken),
-                    PartyId = await reader.GetConditionalFieldValueAsync<int>("p_id", cancellationToken),
+                    PartyId = await reader.GetConditionalFieldValueAsync<int>("p_id", cancellationToken).Select(static id => checked((uint)id)),
                     User = await ReadUser(reader, cancellationToken),
                     DisplayName = await reader.GetConditionalFieldValueAsync<string>("p_display_name", cancellationToken),
                     PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>("p_person_identifier", cancellationToken),

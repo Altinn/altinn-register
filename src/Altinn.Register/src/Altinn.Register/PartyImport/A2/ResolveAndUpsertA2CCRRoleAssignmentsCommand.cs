@@ -25,7 +25,7 @@ public sealed record ResolveAndUpsertA2CCRRoleAssignmentsCommand
     /// does not contain this value and will default to 0. This is why this property is
     /// not marked as required as of now.
     /// </remarks>
-    public int FromPartyId { get; init; }
+    public uint FromPartyId { get; init; }
 
     /// <summary>
     /// Gets the role assignments.

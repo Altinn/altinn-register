@@ -19,7 +19,7 @@ public abstract partial record PartyUrn
     /// <returns><see langword="true"/> if this party reference is a party id, otherwise <see langword="false"/>.</returns>
     [UrnKey("altinn:party:id", Canonical = true)]
     [UrnKey("altinn:partyid")]
-    public partial bool IsPartyId(out int partyId);
+    public partial bool IsPartyId(out uint partyId);
 
     /// <summary>
     /// Try to get the urn as a party uuid.
@@ -30,6 +30,7 @@ public abstract partial record PartyUrn
     [UrnKey("altinn:person:uuid")]
     [UrnKey("altinn:organization:uuid")]
     [UrnKey("altinn:systemuser:uuid")]
+    [UrnKey("altinn:user:uuid")]
     public partial bool IsPartyUuid(out Guid partyUuid);
 
     /// <summary>
@@ -48,7 +49,20 @@ public abstract partial record PartyUrn
     [UrnKey("altinn:person:identifier-no", Canonical = true)]
     public partial bool IsPersonId(out PersonIdentifier personIdentifier);
 
+    /// <summary>
+    /// Try to get the urn as a user id.
+    /// </summary>
+    /// <param name="userId">The resulting user id.</param>
+    /// <returns><see langword="true"/> if this party reference is a user id, otherwise <see langword="false"/>.</returns>
+    [UrnKey("altinn:user:id", Canonical = true)]
+    [UrnKey("altinn:userid")]
+    public partial bool IsUserId(out uint userId);
+
     // Manually overridden to disallow negative party ids
-    private static bool TryParsePartyId(ReadOnlySpan<char> segment, IFormatProvider? provider, out int value)
-        => int.TryParse(segment, NumberStyles.None, provider, out value);
+    private static bool TryParsePartyId(ReadOnlySpan<char> segment, IFormatProvider? provider, out uint value)
+        => uint.TryParse(segment, NumberStyles.None, provider, out value);
+
+    // Manually overridden to disallow negative user ids
+    private static bool TryParseUserId(ReadOnlySpan<char> segment, IFormatProvider? provider, out uint value)
+        => uint.TryParse(segment, NumberStyles.None, provider, out value);
 }

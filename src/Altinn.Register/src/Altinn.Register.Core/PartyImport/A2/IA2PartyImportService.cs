@@ -24,7 +24,7 @@ public interface IA2PartyImportService
     /// <param name="fromPartyUuid">The party uuid of the providing party.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A read only list of all role assignments from the given party.</returns>
-    IAsyncEnumerable<A2PartyExternalRoleAssignment> GetExternalRoleAssignmentsFrom(int fromPartyId, Guid fromPartyUuid, CancellationToken cancellationToken = default);
+    IAsyncEnumerable<A2PartyExternalRoleAssignment> GetExternalRoleAssignmentsFrom(uint fromPartyId, Guid fromPartyUuid, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a party by its UUID.
