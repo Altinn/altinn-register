@@ -30,6 +30,7 @@ public abstract partial record PartyUrn
     [UrnKey("altinn:person:uuid")]
     [UrnKey("altinn:organization:uuid")]
     [UrnKey("altinn:systemuser:uuid")]
+    [UrnKey("altinn:user:uuid")]
     public partial bool IsPartyUuid(out Guid partyUuid);
 
     /// <summary>
