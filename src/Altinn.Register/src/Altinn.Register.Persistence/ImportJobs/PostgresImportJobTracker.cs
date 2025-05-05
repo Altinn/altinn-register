@@ -285,13 +285,13 @@ internal partial class PostgresImportJobTracker
                     return default;
                 }
 
-                var sourceMax = await reader.GetFieldValueAsync<long>("source_max", cancellationToken);
+                var sourceMax = await reader.GetFieldValueOrDefaultAsync<long?>("source_max", cancellationToken) switch { null => (ulong?)null, long l => (ulong)l };
                 var enqueuedMax = await reader.GetFieldValueAsync<long>("enqueued_max", cancellationToken);
                 var processedMax = await reader.GetFieldValueAsync<long>("processed_max", cancellationToken);
 
                 return new ImportJobStatus
                 {
-                    SourceMax = (ulong)sourceMax,
+                    SourceMax = sourceMax,
                     EnqueuedMax = (ulong)enqueuedMax,
                     ProcessedMax = (ulong)processedMax,
                 };
@@ -347,7 +347,7 @@ internal partial class PostgresImportJobTracker
                 cmd.CommandText = QUERY;
 
                 cmd.Parameters.Add<string>("id", NpgsqlDbType.Text).TypedValue = id;
-                cmd.Parameters.Add<long>("source_max", NpgsqlDbType.Bigint).TypedValue = checked((long)status.SourceMax);
+                cmd.Parameters.Add<long?>("source_max", NpgsqlDbType.Bigint).TypedValue = status.SourceMax switch { null => null, ulong u => checked((long)u) };
                 cmd.Parameters.Add<long>("enqueued_max", NpgsqlDbType.Bigint).TypedValue = checked((long)status.EnqueuedMax);
 
                 Log.UpdateQueueStatus(logger, id, status);
@@ -357,7 +357,7 @@ internal partial class PostgresImportJobTracker
                 var read = await reader.ReadAsync(cancellationToken);
                 Debug.Assert(read);
 
-                var sourceMax = (ulong)await reader.GetFieldValueAsync<long>("source_max", cancellationToken);
+                var sourceMax = await reader.GetFieldValueOrDefaultAsync<long?>("source_max", cancellationToken) switch { null => (ulong?)null, long l => (ulong)l };
                 var enqueuedMax = (ulong)await reader.GetFieldValueAsync<long>("enqueued_max", cancellationToken);
                 var processedMax = (ulong)await reader.GetFieldValueAsync<long>("processed_max", cancellationToken);
                 var source = await reader.GetFieldValueAsync<int>("source", cancellationToken);
@@ -425,7 +425,7 @@ internal partial class PostgresImportJobTracker
                     throw new JobDoesNotExistException(id);
                 }
 
-                var sourceMax = (ulong)await reader.GetFieldValueAsync<long>("source_max", cancellationToken);
+                var sourceMax = await reader.GetFieldValueOrDefaultAsync<long?>("source_max", cancellationToken) switch { null => (ulong?)null, long l => (ulong)l };
                 var enqueuedMax = (ulong)await reader.GetFieldValueAsync<long>("enqueued_max", cancellationToken);
                 var processedMax = (ulong)await reader.GetFieldValueAsync<long>("processed_max", cancellationToken);
                 var source = await reader.GetFieldValueAsync<int>("source", cancellationToken);
@@ -549,7 +549,7 @@ internal partial class PostgresImportJobTracker
         public static partial void TransactionSerializationError(ILogger logger);
 
         [LoggerMessage(1, LogLevel.Debug, "Updating queue status for job {JobId} with source max {SourceMax} and enqueued max {EnqueuedMax}")]
-        private static partial void UpdateQueueStatus(ILogger logger, string jobId, ulong sourceMax, ulong enqueuedMax);
+        private static partial void UpdateQueueStatus(ILogger logger, string jobId, ulong? sourceMax, ulong enqueuedMax);
 
         public static void UpdateQueueStatus(ILogger logger, string jobId, ImportJobQueueStatus status)
             => UpdateQueueStatus(logger, jobId, status.SourceMax, status.EnqueuedMax);

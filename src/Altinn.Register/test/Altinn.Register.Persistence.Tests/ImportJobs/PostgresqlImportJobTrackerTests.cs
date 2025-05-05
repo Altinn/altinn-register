@@ -34,6 +34,21 @@ public class PostgresqlImportJobTrackerTests
         });
     }
 
+    [Fact]
+    public async Task SourceMax_CanBe_Null()
+    {
+        await Tracker.TrackQueueStatus("test", new ImportJobQueueStatus { SourceMax = null, EnqueuedMax = 10 });
+        await _tracker!.ClearCache("test");
+
+        var result = await Tracker.GetStatus("test");
+        result.Should().Be(new ImportJobStatus
+        {
+            EnqueuedMax = 10,
+            SourceMax = null,
+            ProcessedMax = 0,
+        });
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -377,6 +392,43 @@ public class PostgresqlImportJobTrackerTests
         {
             EnqueuedMax = 20,
             SourceMax = 20,
+        });
+
+        await Tracker.TrackProcessedStatus(JOB_NAME, new ImportJobProcessingStatus
+        {
+            ProcessedMax = 15,
+        });
+
+        await Tracker.TrackProcessedStatus(JOB_NAME, new ImportJobProcessingStatus
+        {
+            ProcessedMax = 20,
+        });
+    }
+
+    [Fact]
+    public async Task Track_NormalLifecycle_SourceMaxNull()
+    {
+        const string JOB_NAME = "test";
+
+        UpdateTimerRealtime(
+            interval: TimeSpan.FromMilliseconds(2),
+            stepSize: TimeSpan.FromMilliseconds(10));
+
+        await Tracker.TrackQueueStatus("test", new ImportJobQueueStatus
+        {
+            EnqueuedMax = 10,
+            SourceMax = null,
+        });
+
+        await Tracker.TrackProcessedStatus(JOB_NAME, new ImportJobProcessingStatus
+        {
+            ProcessedMax = 5,
+        });
+
+        await Tracker.TrackQueueStatus(JOB_NAME, new ImportJobQueueStatus
+        {
+            EnqueuedMax = 20,
+            SourceMax = null,
         });
 
         await Tracker.TrackProcessedStatus(JOB_NAME, new ImportJobProcessingStatus

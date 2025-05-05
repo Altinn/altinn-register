@@ -159,10 +159,19 @@ public sealed partial class A2PartyImportJob
 
         // TODO: this is working around a bug that currently exists in the tracker where the status returned is for whatever reason lower than the current status.
         // This should be removed once the bug is fixed.
-        var sourceMax = Math.Max(current.SourceMax, newProgress.SourceMax);
+        var sourceMax = NullMax(current.SourceMax, newProgress.SourceMax);
         var enqueuedMax = Math.Max(current.EnqueuedMax, newProgress.EnqueuedMax);
         var processedMax = Math.Max(current.ProcessedMax, newProgress.ProcessedMax);
         return new() { SourceMax = sourceMax, EnqueuedMax = enqueuedMax, ProcessedMax = processedMax };
+
+        static ulong? NullMax(ulong? val1, ulong? val2)
+            => (val1, val2) switch
+            {
+                (null, null) => null,
+                (null, ulong u) => u,
+                (ulong u, null) => u,
+                (ulong u1, ulong u2) => Math.Max(u1, u2),
+            };
     }
 
     private static partial class Log

@@ -11,12 +11,27 @@
 /// </remarks>
 public readonly record struct ImportJobStatus
 {
+    private readonly ImportJobQueueStatus _queueStatus;
+    private readonly ImportJobProcessingStatus _processingStatus;
+
     /// <inheritdoc cref="ImportJobQueueStatus.EnqueuedMax"/>
-    public readonly required ulong EnqueuedMax { get; init; }
+    public readonly required ulong EnqueuedMax
+    {
+        get => _queueStatus.EnqueuedMax;
+        init => _queueStatus = _queueStatus with { EnqueuedMax = value };
+    }
 
     /// <inheritdoc cref="ImportJobQueueStatus.SourceMax"/>
-    public readonly required ulong SourceMax { get; init; }
+    public readonly required ulong? SourceMax
+    {
+        get => _queueStatus.SourceMax;
+        init => _queueStatus = _queueStatus with { SourceMax = value };
+    }
 
     /// <inheritdoc cref="ImportJobProcessingStatus.ProcessedMax"/>
-    public readonly required ulong ProcessedMax { get; init; }
+    public readonly required ulong ProcessedMax
+    {
+        get => _processingStatus.ProcessedMax;
+        init => _processingStatus = _processingStatus with { ProcessedMax = value };
+    }
 }
