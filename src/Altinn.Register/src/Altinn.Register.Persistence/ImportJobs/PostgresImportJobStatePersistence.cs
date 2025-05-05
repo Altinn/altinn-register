@@ -21,28 +21,23 @@ internal sealed class PostgresImportJobStatePersistence
     : IImportJobStatePersistence
 {
     private static readonly JsonSerializerOptions _options = JsonSerializerOptions.Web;
-    private static readonly JsonWriterOptions _writerOptions;
-    private static readonly JsonReaderOptions _readerOptions;
-
-    static PostgresImportJobStatePersistence()
+    
+    private static readonly JsonWriterOptions _writerOptions = new JsonWriterOptions
     {
-        _writerOptions = new JsonWriterOptions
-        {
-            Encoder = _options.Encoder,
-            Indented = _options.WriteIndented,
-            IndentCharacter = _options.IndentCharacter,
-            IndentSize = _options.IndentSize,
-            MaxDepth = _options.MaxDepth,
-            NewLine = _options.NewLine,
-        };
-
-        _readerOptions = new JsonReaderOptions
-        {
-            AllowTrailingCommas = _options.AllowTrailingCommas,
-            CommentHandling = _options.ReadCommentHandling,
-            MaxDepth = _options.MaxDepth,
-        };
-    }
+        Encoder = _options.Encoder,
+        Indented = _options.WriteIndented,
+        IndentCharacter = _options.IndentCharacter,
+        IndentSize = _options.IndentSize,
+        MaxDepth = _options.MaxDepth,
+        NewLine = _options.NewLine,
+    };
+    
+    private static readonly JsonReaderOptions _readerOptions = new JsonReaderOptions
+    {
+        AllowTrailingCommas = _options.AllowTrailingCommas,
+        CommentHandling = _options.ReadCommentHandling,
+        MaxDepth = _options.MaxDepth,
+    };
 
     private readonly IUnitOfWorkHandle _handle;
     private readonly NpgsqlConnection _connection;
@@ -62,7 +57,7 @@ internal sealed class PostgresImportJobStatePersistence
     }
 
     /// <inheritdoc/>
-    public async Task<FieldValue<T>> GetPartyState<T>(string jobId, Guid partyUuid, CancellationToken cancellationToken)
+    public async Task<FieldValue<T>> GetPartyState<T>(string jobId, Guid partyUuid, CancellationToken cancellationToken = default)
         where T : IImportJobState<T>
     {
         const string QUERY =
