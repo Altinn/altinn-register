@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace Altinn.Register.Core.ImportJobs;
 
@@ -12,6 +14,8 @@ namespace Altinn.Register.Core.ImportJobs;
 /// </remarks>
 public readonly record struct ImportJobQueueStatus
 {
+    private readonly long _sourceMax;
+
     /// <summary>
     /// Gets the highest enqueued item.
     /// </summary>
@@ -20,5 +24,24 @@ public readonly record struct ImportJobQueueStatus
     /// <summary>
     /// Gets the highest known item at the source.
     /// </summary>
-    public readonly required ulong SourceMax { get; init; }
+    public readonly required ulong? SourceMax
+    { 
+        get => _sourceMax switch
+        {
+            -1 => null,
+            > 0 => (ulong)_sourceMax,
+            _ => Unreachable<ulong?>(),
+        };
+
+        init => _sourceMax = value switch
+        {
+            null => -1,
+            ulong u => checked((long)u),
+        };
+    }
+
+    [DoesNotReturn]
+    [ExcludeFromCodeCoverage]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static T Unreachable<T>() => throw new UnreachableException();
 }
