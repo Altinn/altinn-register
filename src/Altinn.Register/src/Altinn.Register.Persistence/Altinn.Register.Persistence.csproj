@@ -14,6 +14,7 @@
     <PackageReference Include="Altinn.Authorization.ServiceDefaults.Npgsql.TestSeed" />
     <PackageReference Include="Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" />
+    <PackageReference Include="Nerdbank.Streams" />
     <PackageReference Include="Polly" />
     <PackageReference Include="System.Text.RegularExpressions" />
   </ItemGroup>
@@ -24,8 +25,8 @@
   </ItemGroup>
 
   <ItemGroup>
-		<InternalsVisibleTo Include="Altinn.Register.TestUtils.V2"/>
-		<InternalsVisibleTo Include="Altinn.Register.TestUtils.V3"/>
+		<InternalsVisibleTo Include="Altinn.Register.TestUtils.V2" />
+		<InternalsVisibleTo Include="Altinn.Register.TestUtils.V3" />
 	</ItemGroup>
 
 </Project>
