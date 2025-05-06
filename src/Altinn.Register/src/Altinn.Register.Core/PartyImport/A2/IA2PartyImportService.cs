@@ -33,4 +33,20 @@ public interface IA2PartyImportService
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="Party"/>.</returns>
     Task<Result<PartyRecord>> GetParty(Guid partyUuid, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets user information for a person.
+    /// </summary>
+    /// <param name="partyUuid">The party UUID of the person.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>User information for the party.</returns>
+    Task<Result<PartyUserRecord>> GetOrCreatePersonUser(Guid partyUuid, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets user information for a party.
+    /// </summary>
+    /// <param name="partyUuid">The party UUID.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>User information for the party.</returns>
+    Task<Result<PartyUserRecord>> GetPartyUser(Guid partyUuid, CancellationToken cancellationToken = default);
 }

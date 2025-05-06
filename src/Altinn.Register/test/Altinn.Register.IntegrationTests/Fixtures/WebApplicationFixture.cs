@@ -155,6 +155,8 @@ public sealed class WebApplicationFixture
                 services.AddFakeHttpHandlers();
                 services.AddOptions<GeneralSettings>()
                     .PostConfigure(s => s.BridgeApiEndpoint = FakeHttpMessageHandler.FakeBasePath.ToString());
+                services.AddOptions<A2PartyImportSettings>()
+                    .PostConfigure(s => s.BridgeApiEndpoint = FakeHttpMessageHandler.FakeBasePath);
 
                 AltinnServiceDefaultsMassTransitTestingExtensions.AddAltinnMassTransitTestHarness(
                     services,

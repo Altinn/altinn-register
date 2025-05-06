@@ -33,7 +33,7 @@ public class A2PartyImportServiceTests
         var partyUuid = party.PartyUuid!.Value;
 
         using var handler = new FakeHttpMessageHandler();
-        handler.Expect(HttpMethod.Get, "/parties")
+        handler.Expect(HttpMethod.Get, "/register/api/parties")
             .WithQuery("partyuuid", partyUuid.ToString())
             .Respond(() => TestDataParty(partyId));
 
@@ -84,7 +84,7 @@ public class A2PartyImportServiceTests
         var partyUuid = party.PartyUuid!.Value;
 
         using var handler = new FakeHttpMessageHandler();
-        handler.Expect(HttpMethod.Get, "/parties")
+        handler.Expect(HttpMethod.Get, "/register/api/parties")
             .WithQuery("partyuuid", partyUuid.ToString())
             .Respond(() => TestDataParty(partyId));
 
@@ -139,7 +139,7 @@ public class A2PartyImportServiceTests
         var partyUuid = party.PartyUuid!.Value;
 
         using var handler = new FakeHttpMessageHandler();
-        handler.Expect(HttpMethod.Get, "/parties")
+        handler.Expect(HttpMethod.Get, "/register/api/parties")
             .WithQuery("partyuuid", partyUuid.ToString())
             .Respond(() => httpStatus);
 
@@ -169,7 +169,7 @@ public class A2PartyImportServiceTests
         var partyUuid = party.PartyUuid!.Value;
 
         using var handler = new FakeHttpMessageHandler();
-        handler.Expect(HttpMethod.Get, "parties/partyroles/{fromPartyId}")
+        handler.Expect(HttpMethod.Get, "/register/api/parties/partyroles/{fromPartyId}")
             .WithRouteValue("fromPartyId", partyId.ToString())
             .Respond(() => new StringContent(
                 """
@@ -213,7 +213,7 @@ public class A2PartyImportServiceTests
         var partyUuid = party.PartyUuid!.Value;
 
         using var handler = new FakeHttpMessageHandler();
-        handler.Expect(HttpMethod.Get, "parties/partyroles/{fromPartyId}")
+        handler.Expect(HttpMethod.Get, "/register/api/parties/partyroles/{fromPartyId}")
             .WithRouteValue("fromPartyId", partyId.ToString())
             .Respond(() => new StringContent(
                 """
@@ -253,7 +253,7 @@ public class A2PartyImportServiceTests
     public async Task GetChanges_NoChanges()
     {
         using var handler = new FakeHttpMessageHandler();
-        handler.Expect(HttpMethod.Get, "/parties/partychanges/0")
+        handler.Expect(HttpMethod.Get, "/register/api/parties/partychanges/0")
             .Respond(
                 contentType: "application/json",
                 """
@@ -275,7 +275,7 @@ public class A2PartyImportServiceTests
     public async Task GetChanges_SinglePage()
     {
         using var handler = new FakeHttpMessageHandler();
-        handler.Expect(HttpMethod.Get, "/parties/partychanges/0")
+        handler.Expect(HttpMethod.Get, "/register/api/parties/partychanges/0")
             .Respond(
                 contentType: "application/json",
                 """
@@ -299,7 +299,7 @@ public class A2PartyImportServiceTests
                 }
                 """);
 
-        handler.Expect(HttpMethod.Get, "/parties/partychanges/2")
+        handler.Expect(HttpMethod.Get, "/register/api/parties/partychanges/2")
             .Respond(
                 contentType: "application/json",
                 """
@@ -334,7 +334,7 @@ public class A2PartyImportServiceTests
     public async Task GetChanges_MultiplePages()
     {
         using var handler = new FakeHttpMessageHandler();
-        handler.Expect(HttpMethod.Get, "/parties/partychanges/0")
+        handler.Expect(HttpMethod.Get, "/register/api/parties/partychanges/0")
             .Respond(
                 contentType: "application/json",
                 """
@@ -358,7 +358,7 @@ public class A2PartyImportServiceTests
                 }
                 """);
         
-        handler.Expect(HttpMethod.Get, "/parties/partychanges/2")
+        handler.Expect(HttpMethod.Get, "/register/api/parties/partychanges/2")
             .Respond(
                 contentType: "application/json",
                 """
@@ -382,7 +382,7 @@ public class A2PartyImportServiceTests
                 }
                 """);
 
-        handler.Expect(HttpMethod.Get, "/parties/partychanges/4")
+        handler.Expect(HttpMethod.Get, "/register/api/parties/partychanges/4")
             .Respond(
                 contentType: "application/json",
                 """
@@ -400,7 +400,7 @@ public class A2PartyImportServiceTests
                 }
                 """);
 
-        handler.Expect(HttpMethod.Get, "/parties/partychanges/5")
+        handler.Expect(HttpMethod.Get, "/register/api/parties/partychanges/5")
             .Respond(
                 contentType: "application/json",
                 """
