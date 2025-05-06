@@ -67,26 +67,9 @@ public partial class PartiesController
                 return Unauthorized();
             }
 
-            int? userId = GetUserId(HttpContext);
-            if (!userId.HasValue)
+            if (await AuthorizePartyLookup(party, cancellationToken) is { } result)
             {
-                Log.NoUserIdUnauthorized(_logger);
-                return Unauthorized();
-            }
-
-            if (!PartyIsCallingUser(partyId))
-            {
-                var validationResult = await _authorization.ValidateSelectedParty(userId.Value, partyId, cancellationToken);
-                if (!validationResult.IsSuccess)
-                {
-                    return validationResult.Problem.ToActionResult();
-                }
-
-                if (!validationResult.Value)
-                {
-                    Log.UserNotValidatedForParty(_logger, userId: userId.Value, partyId: partyId);
-                    return Unauthorized();
-                }
+                return result;
             }
         }
 
@@ -122,27 +105,9 @@ public partial class PartiesController
                 return Unauthorized();
             }
 
-            var partyId = party.PartyId;
-            int? userId = GetUserId(HttpContext);
-            if (!userId.HasValue)
+            if (await AuthorizePartyLookup(party, cancellationToken) is { } result)
             {
-                Log.NoUserIdUnauthorized(_logger);
-                return Unauthorized();
-            }
-
-            if (!PartyIsCallingUser(partyId))
-            {
-                var validationResult = await _authorization.ValidateSelectedParty(userId.Value, partyId, cancellationToken);
-                if (!validationResult.IsSuccess)
-                {
-                    return validationResult.Problem.ToActionResult();
-                }
-
-                if (!validationResult.Value)
-                {
-                    Log.UserNotValidatedForParty(_logger, userId: userId.Value, partyId: partyId);
-                    return Unauthorized();
-                }
+                return result;
             }
         }
 
@@ -360,9 +325,39 @@ public partial class PartiesController
         return Ok(all);
     }
 
+    [NonAction]
+    private async Task<ActionResult?> AuthorizePartyLookup(V1Models.Party party, CancellationToken cancellationToken)
+    {
+        var partyId = party.PartyId;
+        int? userId = GetUserId(HttpContext);
+        if (!userId.HasValue)
+        {
+            Log.NoUserIdUnauthorized(_logger);
+            return Unauthorized();
+        }
+
+        if (!PartyIsCallingUser(partyId))
+        {
+            var validationResult = await _authorization.ValidateSelectedParty(userId.Value, partyId, cancellationToken);
+            if (!validationResult.IsSuccess)
+            {
+                return validationResult.Problem.ToActionResult();
+            }
+
+            if (!validationResult.Value)
+            {
+                Log.UserNotValidatedForParty(_logger, userId: userId.Value, partyId: partyId);
+                return Unauthorized();
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>
     /// Check whether the party id is the user's party id
     /// </summary>
+    [NonAction]
     private bool PartyIsCallingUser(int partyId)
     {
         Claim? claim = HttpContext.User.Claims.FirstOrDefault(claim => claim.Type.Equals(AltinnCoreClaimTypes.PartyID));
@@ -372,6 +367,7 @@ public partial class PartiesController
     /// <summary>
     /// Validate if the authenticated identity is an org
     /// </summary>
+    [NonAction]
     private static bool IsOrg(HttpContext context)
     {
         return context.User.Claims.Any(claim => claim.Type.Equals(AltinnCoreClaimTypes.Org));
@@ -380,6 +376,7 @@ public partial class PartiesController
     /// <summary>
     /// Gets userId from httpContext
     /// </summary>
+    [NonAction]
     private static int? GetUserId(HttpContext context)
     {
         Claim? claim = context.User.Claims.FirstOrDefault(claim => claim.Type.Equals(AltinnCoreClaimTypes.UserId));

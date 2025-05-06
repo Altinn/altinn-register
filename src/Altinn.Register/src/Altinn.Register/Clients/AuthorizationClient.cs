@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Altinn.Authorization.ProblemDetails;
@@ -13,6 +14,7 @@ namespace Altinn.Register.Services.Implementation;
 /// <summary>
 /// App implementation of the authorization service where the app uses the Altinn platform api.
 /// </summary>
+[ExcludeFromCodeCoverage]
 internal sealed partial class AuthorizationClient 
     : IAuthorizationClient
 {
