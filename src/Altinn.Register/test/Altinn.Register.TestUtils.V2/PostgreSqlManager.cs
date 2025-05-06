@@ -123,6 +123,7 @@ public sealed class PostgreSqlManager
                 Username = user.Name,
                 Password = user.Pass,
                 Pooling = false,
+                CommandTimeout = 300,
             };
 
             return builder.ConnectionString;

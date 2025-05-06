@@ -313,6 +313,7 @@ public class PostgresServerFixture
                 Username = user.Name,
                 Password = user.Pass,
                 Pooling = false,
+                CommandTimeout = 300,
             };
 
             connectionString = builder.ConnectionString;
