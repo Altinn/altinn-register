@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
@@ -328,6 +329,22 @@ public static class PartyPersistenceExtensions
         return builder.MoveToImmutable();
     }
 
+    public static async Task ExecuteNonQueries(
+        this IUnitOfWork uow,
+        IEnumerable<string> queries,
+        CancellationToken cancellationToken = default)
+    {
+        var connection = uow.GetRequiredService<NpgsqlConnection>();
+        await using var batch = connection.CreateBatch();
+
+        foreach (var query in queries)
+        {
+            batch.CreateBatchCommand(query);
+        }
+
+        await batch.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     public static async Task<PersonRecord> CreatePerson(
         this IUnitOfWork uow,
         FieldValue<Guid> uuid = default,
@@ -407,7 +424,6 @@ public static class PartyPersistenceExtensions
             };
         }
 
-        // TODO: Generate user and historical user data
         var result = await uow.GetRequiredService<IPartyPersistence>().UpsertParty(
             new PersonRecord
             {
@@ -434,6 +450,86 @@ public static class PartyPersistenceExtensions
 
         Assert.True(result.IsSuccess);
         return (PersonRecord)result.Value;
+    }
+
+    public static async Task<ImmutableArray<PersonRecord>> CreatePeople(
+        this IUnitOfWork uow,
+        int count,
+        CancellationToken cancellationToken = default)
+    {
+        var builder = ImmutableArray.CreateBuilder<PersonRecord>(count);
+        for (var i = 0; i < count; i++)
+        {
+            builder.Add(await uow.CreatePerson(cancellationToken: cancellationToken));
+        }
+
+        return builder.MoveToImmutable();
+    }
+
+    public static async Task<SelfIdentifiedUserRecord> CreateSelfIdentifiedUser(
+        this IUnitOfWork uow,
+        FieldValue<Guid> uuid = default,
+        FieldValue<uint> id = default,
+        FieldValue<string> name = default,
+        FieldValue<DateTimeOffset> createdAt = default,
+        FieldValue<DateTimeOffset> modifiedAt = default,
+        FieldValue<bool> isDeleted = default,
+        FieldValue<PartyUserRecord> user = default,
+        CancellationToken cancellationToken = default)
+    {
+        var connection = uow.GetRequiredService<NpgsqlConnection>();
+
+        if (id.IsUnset)
+        {
+            id = await uow.GetNextPartyId(cancellationToken);
+        }
+
+        if (user.IsUnset)
+        {
+            var userIdsEnumerable = await uow.GetNewUserIds(3, cancellationToken);
+            user = new PartyUserRecord
+            {
+                UserIds = userIdsEnumerable.Select(static id => (uint)id).OrderByDescending(static id => id).ToImmutableValueArray(),
+            };
+        }
+
+        if (name.IsUnset)
+        {
+            name = $"si-user-{id.Value}";
+        }
+
+        var result = await uow.GetRequiredService<IPartyPersistence>().UpsertParty(
+            new SelfIdentifiedUserRecord
+            {
+                PartyUuid = uuid.HasValue ? uuid.Value : Guid.NewGuid(),
+                PartyId = id,
+                DisplayName = name,
+                PersonIdentifier = null,
+                OrganizationIdentifier = null,
+                CreatedAt = createdAt.HasValue ? createdAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
+                ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
+                User = user,
+                VersionId = FieldValue.Unset,
+                IsDeleted = isDeleted.OrDefault(defaultValue: false),
+            },
+            cancellationToken);
+
+        Assert.True(result.IsSuccess);
+        return (SelfIdentifiedUserRecord)result.Value;
+    }
+
+    public static async Task<ImmutableArray<SelfIdentifiedUserRecord>> CreateSelfIdentifiedUsers(
+        this IUnitOfWork uow,
+        int count,
+        CancellationToken cancellationToken = default)
+    {
+        var builder = ImmutableArray.CreateBuilder<SelfIdentifiedUserRecord>(count);
+        for (var i = 0; i < count; i++)
+        {
+            builder.Add(await uow.CreateSelfIdentifiedUser(cancellationToken: cancellationToken));
+        }
+
+        return builder.MoveToImmutable();
     }
 
     public static async Task AddRole(
