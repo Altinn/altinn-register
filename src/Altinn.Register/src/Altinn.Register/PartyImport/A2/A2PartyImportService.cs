@@ -1,7 +1,7 @@
 ﻿#nullable enable
 
 using System.Collections.Immutable;
-using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -61,7 +61,7 @@ internal sealed partial class A2PartyImportService
 
             yield return MapChangePage(response);
 
-            Debug.Assert(response.LastChangeInSegment > fromExclusive);
+            Assert(response.LastChangeInSegment > fromExclusive);
             fromExclusive = response.LastChangeInSegment;
         }
     }
@@ -69,7 +69,7 @@ internal sealed partial class A2PartyImportService
     /// <inheritdoc />
     public async Task<Result<PartyRecord>> GetParty(Guid partyUuid, CancellationToken cancellationToken = default)
     {
-        var url = $"parties?partyuuid={partyUuid}";
+        var url = $"register/api/parties?ignoreCache=true&partyuuid={partyUuid}";
 
         using var responseMessage = await _httpClient.GetAsync(url, cancellationToken);
         if (responseMessage.StatusCode == HttpStatusCode.Gone)
@@ -101,8 +101,64 @@ internal sealed partial class A2PartyImportService
             ]);
         }
 
-        Debug.Assert(response.PartyUuid == partyUuid, "Party UUID mismatch");
+        Assert(response.PartyUuid == partyUuid);
         return MapParty(response);
+    }
+
+    /// <inheritdoc />
+    public Task<Result<PartyUserRecord>> GetOrCreatePersonUser(Guid partyUuid, CancellationToken cancellationToken = default)
+    {
+        var url = $"profile/api/users/getorcreate/{partyUuid}";
+
+        return GetPartyUser(url, partyUuid, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<Result<PartyUserRecord>> GetPartyUser(Guid partyUuid, CancellationToken cancellationToken = default)
+    {
+        var url = $"profile/api/users?userUUID={partyUuid}";
+
+        return GetPartyUser(url, partyUuid, cancellationToken);
+    }
+
+    private async Task<Result<PartyUserRecord>> GetPartyUser(
+        string url,
+        Guid partyUuid,
+        CancellationToken cancellationToken)
+    {
+        using var responseMessage = await _httpClient.GetAsync(url, cancellationToken);
+        if (responseMessage.StatusCode == HttpStatusCode.Gone)
+        {
+            return Problems.PartyGone.Create([
+                new("partyUuid", partyUuid.ToString()),
+            ]);
+        }
+
+        if (responseMessage.StatusCode == HttpStatusCode.NotFound)
+        {
+            return Problems.PartyNotFound.Create([
+                new("partyUuid", partyUuid.ToString()),
+            ]);
+        }
+
+        if (!responseMessage.IsSuccessStatusCode)
+        {
+            return Problems.PartyFetchFailed.Create([
+                new("partyUuid", partyUuid.ToString()),
+            ]);
+        }
+
+        var response = await responseMessage.Content.ReadFromJsonAsync<PartyProfile>(_options, cancellationToken);
+        if (response is null)
+        {
+            return Problems.PartyFetchFailed.Create([
+                new("partyUuid", partyUuid.ToString()),
+            ]);
+        }
+
+        Assert(response.UserUuid == partyUuid);
+        Assert(response.Party.PartyUuid == partyUuid);
+        return MapPartyUser(response);
     }
 
     /// <inheritdoc />
@@ -111,7 +167,7 @@ internal sealed partial class A2PartyImportService
         Guid fromPartyUuid,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var url = $"parties/partyroles/{fromPartyId}";
+        var url = $"register/api/parties/partyroles/{fromPartyId}";
 
         using var response = await _httpClient.GetAsync(url, cancellationToken);
 
@@ -152,7 +208,7 @@ internal sealed partial class A2PartyImportService
 
     private async Task<PartyChangesResponse> GetChangesPage(uint fromExclusive, CancellationToken cancellationToken)
     {
-        var url = $"parties/partychanges/{fromExclusive}";
+        var url = $"register/api/parties/partychanges/{fromExclusive}";
 
         Log.FetchingPartyChangesPage(_logger, fromExclusive);
         var response = await _httpClient.GetFromJsonAsync<PartyChangesResponse>(url, _options, cancellationToken);
@@ -162,6 +218,13 @@ internal sealed partial class A2PartyImportService
         }
 
         return response;
+    }
+
+    private PartyUserRecord MapPartyUser(PartyProfile profile)
+    {
+        var userId = checked((uint)profile.UserId);
+
+        return new PartyUserRecord { UserIds = ImmutableValueArray.Create(userId) };
     }
 
     private A2PartyChangePage MapChangePage(PartyChangesResponse response)
@@ -555,6 +618,14 @@ internal sealed partial class A2PartyImportService
             || string.Equals(name, "Inserted By FReg Import", StringComparison.OrdinalIgnoreCase);
     }
 
+    private static void Assert([DoesNotReturnIf(false)] bool condition, [CallerArgumentExpression(nameof(condition))] string? conditionString = null)
+    {
+        if (!condition)
+        {
+            ThrowHelper.ThrowInvalidOperationException($"Assertion failed: {conditionString}");
+        }
+    }
+
     /// <summary>
     /// A2 party change model.
     /// </summary>
@@ -637,6 +708,41 @@ internal sealed partial class A2PartyImportService
         /// </summary>
         [JsonPropertyName("RoleCode")]
         public required string RoleCode { get; init; }
+    }
+
+    /// <summary>
+    /// Partial A2 party profile model.
+    /// </summary>
+    internal sealed class PartyProfile
+    {
+        /// <summary>
+        /// Gets the user id.
+        /// </summary>
+        [JsonPropertyName("UserId")]
+        public required int UserId { get; init; }
+
+        /// <summary>
+        /// Gets the user UUID (should be the same as the party UUID).
+        /// </summary>
+        [JsonPropertyName("UserUUID")]
+        public required Guid UserUuid { get; init; }
+
+        /// <summary>
+        /// Gets the party object.
+        /// </summary>
+        [JsonPropertyName("Party")]
+        public required PartyProfileParty Party { get; init; }
+    }
+
+    /// <summary>
+    /// Partial A2 party model.
+    /// </summary>
+    internal sealed class PartyProfileParty
+    {
+        /// <summary>
+        /// Gets the party UUID.
+        /// </summary>
+        public required Guid PartyUuid { get; init; }
     }
 
     private static partial class Log

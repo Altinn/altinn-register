@@ -101,6 +101,17 @@ internal static class RegisterHost
         services.Configure<PlatformSettings>(config.GetSection("PlatformSettings"));
         services.Configure<PersonLookupSettings>(config.GetSection("PersonLookupSettings"));
 
+        services.AddOptions<A2PartyImportSettings>()
+            .Configure((A2PartyImportSettings settings, IConfiguration config) =>
+            {
+                var ep = config.GetSection("Platform:SblBridge:Endpoint");
+                if (!string.IsNullOrEmpty(ep.Value))
+                {
+                    settings.BridgeApiEndpoint = ep.Get<Uri>();
+                }
+            })
+            .ValidateDataAnnotations();
+
         services.AddSingleton<IAuthorizationHandler, AccessTokenHandler>();
         services.AddScoped<IAuthorizationHandler, ScopeAccessHandler>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
@@ -158,10 +169,9 @@ internal static class RegisterHost
         services.AddHttpClient<IA2PartyImportService, A2PartyImportService>()
             .ConfigureHttpClient((s, c) =>
             {
-                var config = s.GetRequiredService<IOptions<GeneralSettings>>();
-                var baseAddress = new Uri(config.Value.BridgeApiEndpoint);
+                var config = s.GetRequiredService<IOptions<A2PartyImportSettings>>();
 
-                c.BaseAddress = baseAddress;
+                c.BaseAddress = config.Value.BridgeApiEndpoint;
             })
             .ReplaceResilienceHandler(c =>
             {
