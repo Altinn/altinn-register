@@ -78,9 +78,33 @@ namespace Altinn.Register.Tests.TestingControllers
         }
 
         [Fact]
-        public async Task GetParty_ValidTokenRequestForNonExistingParty_ReturnsNotFound()
+        public async Task GetParty_ValidUserTokenRequestForNonExistingParty_ReturnsUnauthorized()
         {
             string token = PrincipalUtil.GetToken(1);
+            int partyId = 6565;
+
+            // Arrange
+            _partiesClient.Setup(s => s.GetPartyById(It.Is<int>(o => o == partyId), It.IsAny<CancellationToken>())).ReturnsAsync((V1Models.Party)null);
+
+            HttpClient client = CreateClient();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/" + partyId);
+            httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
+
+            // Act
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+
+            // Assert
+            _partiesClient.VerifyAll();
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetParty_ValidOrgTokenRequestForNonExistingParty_ReturnsNotFound()
+        {
+            string token = PrincipalUtil.GetOrgToken("ttd");
             int partyId = 6565;
 
             // Arrange
@@ -320,7 +344,7 @@ namespace Altinn.Register.Tests.TestingControllers
         }
 
         [Fact]
-        public async Task GetPartyByUuid_FetchParty_ReturnsNotAuthorized()
+        public async Task GetPartyByUuid_UserToken_FetchNullParty_ReturnsNotAuthorized()
         {
             // Arrange
             string token = PrincipalUtil.GetToken(1);
@@ -340,6 +364,29 @@ namespace Altinn.Register.Tests.TestingControllers
             _partiesClient.VerifyAll();
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetPartyByUuid_OrgToken_FetchNullParty_ReturnsNotFound()
+        {
+            // Arrange
+            string token = PrincipalUtil.GetOrgToken("ttd");
+
+            _partiesClient.Setup(s => s.GetPartyById(It.Is<Guid>(g => g == new Guid("93630d41-ca61-4b5c-b8fb-3346b561f6ff")), It.IsAny<CancellationToken>())).ReturnsAsync((V1Models.Party)null);
+
+            HttpClient client = CreateClient();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/byuuid/93630d41-ca61-4b5c-b8fb-3346b561f6ff");
+            httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
+
+            // Act
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+
+            // Assert
+            _partiesClient.VerifyAll();
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
         [Fact]
