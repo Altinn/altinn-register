@@ -312,12 +312,7 @@ public class PostgresServerFixture
                 Database = _databaseName,
                 Username = user.Name,
                 Password = user.Pass,
-                Pooling = true,
-                MinPoolSize = 0,
-                MaxPoolSize = 4,
-                ConnectionIdleLifetime = 5,
-                ConnectionPruningInterval = 5,
-                ConnectionLifetime = 30,
+                Pooling = false,
             };
 
             connectionString = builder.ConnectionString;
