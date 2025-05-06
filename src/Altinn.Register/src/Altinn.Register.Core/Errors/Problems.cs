@@ -30,4 +30,8 @@ public static class Problems
     /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
     public static ProblemDescriptor PartyFetchFailed { get; }
         = _factory.Create(4, HttpStatusCode.InternalServerError, "Failed to fetch party");
+
+    /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
+    public static ProblemDescriptor PartyAuthorizeFailed { get; }
+        = _factory.Create(5, HttpStatusCode.InternalServerError, "Failed to authorize party");
 }
