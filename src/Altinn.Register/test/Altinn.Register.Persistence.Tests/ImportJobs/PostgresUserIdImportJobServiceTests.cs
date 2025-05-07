@@ -141,27 +141,11 @@ public class PostgresUserIdImportJobServiceTests
                 new ParallelOptions { MaxDegreeOfParallelism = 4 },
                 async (i, ct) =>
                 {
-                    for (var attempt = 0; true; attempt++)
-                    {
-                        try
-                        {
-                            await using var uow = await _manager!.CreateAsync(ct, activityName: $"setup {i}");
-                            await uow.CreatePeople(101, cancellationToken: ct);
-                            await uow.CreateSelfIdentifiedUsers(102, cancellationToken: ct);
-                            await uow.CreateOrgs(103, cancellationToken: ct);
-                            await uow.CommitAsync(ct);
-                            break;
-                        }
-                        catch (ProblemInstanceException ex) when (ex.Problem.ErrorCode == Problems.PartyConflict.ErrorCode)
-                        {
-                            if (attempt >= 2)
-                            {
-                                throw;
-                            }
-
-                            continue; // retry
-                        }
-                    }
+                    await using var uow = await _manager!.CreateAsync(ct, activityName: $"setup {i}");
+                    await uow.CreatePeople(101, idOffset: (uint)(5000 * i), cancellationToken: ct);
+                    await uow.CreateSelfIdentifiedUsers(102, cancellationToken: ct);
+                    await uow.CreateOrgs(103, cancellationToken: ct);
+                    await uow.CommitAsync(ct);
                 });
 
             await NewTransaction(commit: false);

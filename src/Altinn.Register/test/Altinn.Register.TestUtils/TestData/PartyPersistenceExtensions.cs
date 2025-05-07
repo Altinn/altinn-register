@@ -238,7 +238,7 @@ public static class PartyPersistenceExtensions
             SELECT COALESCE(MAX(id), 0) FROM register.party
             """;
 
-        return Convert.ToUInt32(await cmd.ExecuteScalarAsync(cancellationToken)) + (uint)Random.Shared.Next(1, 100_000);
+        return Convert.ToUInt32(await cmd.ExecuteScalarAsync(cancellationToken)) + 1;
     }
 
     public static async Task<IEnumerable<int>> GetNewUserIds(this IUnitOfWork uow, int count = 1, CancellationToken cancellationToken = default)
@@ -250,7 +250,7 @@ public static class PartyPersistenceExtensions
             SELECT COALESCE(MAX(user_id), 0) FROM register.user
             """;
 
-        var max = Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken)) + Random.Shared.Next(0, 100_000);
+        var max = Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken));
         return Enumerable.Range(max + 1, count);
     }
 
@@ -318,12 +318,22 @@ public static class PartyPersistenceExtensions
     public static async Task<ImmutableArray<OrganizationRecord>> CreateOrgs(
         this IUnitOfWork uow,
         int count,
+        FieldValue<uint> idOffset = default,
         CancellationToken cancellationToken = default)
     {
+        var nextPartyId = await uow.GetNextPartyId(cancellationToken);
+
+        if (idOffset.HasValue)
+        {
+            var offsetValue = idOffset.Value;
+            nextPartyId += offsetValue;
+        }
+
         var builder = ImmutableArray.CreateBuilder<OrganizationRecord>(count);
         for (var i = 0; i < count; i++)
         {
-            builder.Add(await uow.CreateOrg(cancellationToken: cancellationToken));
+            builder.Add(await uow.CreateOrg(id: nextPartyId, cancellationToken: cancellationToken));
+            nextPartyId += 1;
         }
 
         return builder.MoveToImmutable();
@@ -455,12 +465,27 @@ public static class PartyPersistenceExtensions
     public static async Task<ImmutableArray<PersonRecord>> CreatePeople(
         this IUnitOfWork uow,
         int count,
+        FieldValue<uint> idOffset = default,
         CancellationToken cancellationToken = default)
     {
-        var builder = ImmutableArray.CreateBuilder<PersonRecord>(count);
-        for (var i = 0; i < count; i++)
+        var nextPartyId = await uow.GetNextPartyId(cancellationToken);
+        var userIdsBuilder = ImmutableArray.CreateBuilder<uint>(3);
+        userIdsBuilder.AddRange((await uow.GetNewUserIds(3, cancellationToken)).Select(static i => (uint)i));
+        userIdsBuilder.Sort(static (a, b) => b.CompareTo(a)); // sort in descending order
+
+        if (idOffset.HasValue)
         {
-            builder.Add(await uow.CreatePerson(cancellationToken: cancellationToken));
+            var offsetValue = idOffset.Value;
+            nextPartyId += offsetValue;
+            IncrementUserIds(userIdsBuilder, offsetValue);
+        }
+
+        var builder = ImmutableArray.CreateBuilder<PersonRecord>(count);
+        for (uint i = 0; i < count; i++)
+        {
+            builder.Add(await uow.CreatePerson(id: nextPartyId, user: new PartyUserRecord { UserIds = userIdsBuilder.ToImmutableValueArray() }, cancellationToken: cancellationToken));
+            nextPartyId += 1;
+            IncrementUserIds(userIdsBuilder, (uint)userIdsBuilder.Count);
         }
 
         return builder.MoveToImmutable();
@@ -521,12 +546,27 @@ public static class PartyPersistenceExtensions
     public static async Task<ImmutableArray<SelfIdentifiedUserRecord>> CreateSelfIdentifiedUsers(
         this IUnitOfWork uow,
         int count,
+        FieldValue<uint> idOffset = default,
         CancellationToken cancellationToken = default)
     {
+        var nextPartyId = await uow.GetNextPartyId(cancellationToken);
+        var userIdsBuilder = ImmutableArray.CreateBuilder<uint>(3);
+        userIdsBuilder.AddRange((await uow.GetNewUserIds(3, cancellationToken)).Select(static i => (uint)i));
+        userIdsBuilder.Sort(static (a, b) => b.CompareTo(a)); // sort in descending order
+
+        if (idOffset.HasValue)
+        {
+            var offsetValue = idOffset.Value;
+            nextPartyId += offsetValue;
+            IncrementUserIds(userIdsBuilder, offsetValue);
+        }
+
         var builder = ImmutableArray.CreateBuilder<SelfIdentifiedUserRecord>(count);
         for (var i = 0; i < count; i++)
         {
-            builder.Add(await uow.CreateSelfIdentifiedUser(cancellationToken: cancellationToken));
+            builder.Add(await uow.CreateSelfIdentifiedUser(id: nextPartyId, user: new PartyUserRecord { UserIds = userIdsBuilder.ToImmutableValueArray() }, cancellationToken: cancellationToken));
+            nextPartyId += 1;
+            IncrementUserIds(userIdsBuilder, (uint)userIdsBuilder.Count);
         }
 
         return builder.MoveToImmutable();
@@ -622,5 +662,13 @@ public static class PartyPersistenceExtensions
         }
 
         return def;
+    }
+
+    private static void IncrementUserIds(ImmutableArray<uint>.Builder builder, uint offset)
+    {
+        for (int i = 0, l = builder.Count; i < l; i++)
+        {
+            builder[i] += offset;
+        }
     }
 }

@@ -28,7 +28,7 @@ public class StreamTests
     {
         var orgs = await Setup(async (uow, ct) =>
         {
-            return await uow.CreateOrgs(2, ct);
+            return await uow.CreateOrgs(2, cancellationToken: ct);
         });
 
         var response = await HttpClient.GetAsync("/register/api/v2/internal/parties/stream", TestContext.Current.CancellationToken);
@@ -59,7 +59,7 @@ public class StreamTests
     {
         var orgs = await Setup(async (uow, ct) =>
         {
-            return await uow.CreateOrgs((PartyController.PARTY_STREAM_PAGE_SIZE * 3) + (PartyController.PARTY_STREAM_PAGE_SIZE / 2), ct);
+            return await uow.CreateOrgs((PartyController.PARTY_STREAM_PAGE_SIZE * 3) + (PartyController.PARTY_STREAM_PAGE_SIZE / 2), cancellationToken: ct);
         });
 
         /*********************************************
