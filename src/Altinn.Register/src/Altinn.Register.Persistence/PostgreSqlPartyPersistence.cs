@@ -363,6 +363,17 @@ internal partial class PostgreSqlPartyPersistence
         return UpsertPartyQuery.UpsertParty(_connection, party, cancellationToken);
     }
 
+    /// <inheritdoc/>
+    public Task<Result<PartyUserRecord>> UpsertPartyUser(
+        Guid partyUuid,
+        PartyUserRecord user,
+        CancellationToken cancellationToken = default)
+    {
+        _handle.ThrowIfCompleted();
+
+        return UpsertPartyQuery.UpsertPartyUser(_connection, partyUuid, user, cancellationToken);
+    }
+
     private async IAsyncEnumerable<PartyRecord> PrepareAndReadPartiesAsync(
         NpgsqlCommand inCmd,
         PartyQuery query,

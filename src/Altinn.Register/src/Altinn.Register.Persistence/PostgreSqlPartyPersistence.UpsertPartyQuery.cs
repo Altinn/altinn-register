@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
+using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
@@ -36,6 +37,38 @@ internal partial class PostgreSqlPartyPersistence
             };
         }
 
+        public static async Task<Result<PartyUserRecord>> UpsertPartyUser(
+            NpgsqlConnection connection,
+            Guid partyUuid,
+            PartyUserRecord user,
+            CancellationToken cancellationToken)
+        {
+            const string QUERY =
+                /*strpsql*/"""
+                SELECT register.upsert_user(
+                    @uuid,
+                    @user_ids) p_user_ids
+                """;
+
+            await using var cmd = connection.CreateCommand(QUERY);
+
+            var userIds = user.UserIds.Select(static ids => ids.Select(static id => checked((int)id)).ToArray());
+            Debug.Assert(userIds.HasValue);
+            Debug.Assert(userIds.Value.Length > 0);
+
+            cmd.Parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = partyUuid;
+            cmd.Parameters.Add<int[]>("user_ids", NpgsqlDbType.Bigint | NpgsqlDbType.Array).TypedValue = userIds.Value;
+
+            await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow, cancellationToken);
+            var read = await reader.ReadAsync(cancellationToken);
+            Debug.Assert(read, "Expected a row from upsert_user");
+
+            var result = await ReadUser(reader, cancellationToken);
+            Debug.Assert(result.HasValue, "Expected a user record from upsert_user");
+
+            return result.Value;
+        }
+
         private const string DEFAULT_QUERY =
             /*strpsql*/"""
             SELECT (register.upsert_party(
@@ -50,6 +83,19 @@ internal partial class PostgreSqlPartyPersistence
                 @modified_at,
                 @is_deleted)).*
             """;
+
+        protected static async Task<FieldValue<PartyUserRecord>> ReadUser(NpgsqlDataReader reader, CancellationToken cancellationToken)
+        {
+            var fromDbUserIds = await reader.GetConditionalFieldValueAsync<int[]>("p_user_ids", cancellationToken);
+
+            if (!fromDbUserIds.HasValue)
+            {
+                return FieldValue.Unset;
+            }
+
+            var userIds = fromDbUserIds.Value.Select(static id => checked((uint)id)).ToImmutableValueArray();
+            return new PartyUserRecord { UserIds = userIds };
+        }
 
         private abstract class Typed<T>(PartyType type, string query = DEFAULT_QUERY)
             : UpsertPartyQuery
@@ -89,19 +135,6 @@ internal partial class PostgreSqlPartyPersistence
                 cmd.Parameters.Add<bool>("is_deleted", NpgsqlDbType.Boolean).TypedValue = party.IsDeleted.Value;
             }
 
-            protected async Task<FieldValue<PartyUserRecord>> ReadUser(NpgsqlDataReader reader, CancellationToken cancellationToken)
-            {
-                var fromDbUserIds = await reader.GetConditionalFieldValueAsync<int[]>("p_user_ids", cancellationToken);
-
-                if (!fromDbUserIds.HasValue)
-                {
-                    return FieldValue.Unset;
-                }
-
-                var userIds = fromDbUserIds.Value.Select(static id => checked((uint)id)).ToImmutableValueArray();
-                return new PartyUserRecord { UserIds = userIds };
-            }
-
             protected abstract Task<T> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken);
 
             public async Task<Result<PartyRecord>> UpsertParty(NpgsqlConnection connection, T party, CancellationToken cancellationToken)
@@ -110,8 +143,7 @@ internal partial class PostgreSqlPartyPersistence
 
                 try
                 {
-                    await using var cmd = connection.CreateCommand();
-                    cmd.CommandText = query;
+                    await using var cmd = connection.CreateCommand(query);
 
                     AddPartyParameters(cmd, party);
 
