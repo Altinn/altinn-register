@@ -53,6 +53,18 @@ public interface IPartyPersistence
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Attempts to upsert a party user.
+    /// </summary>
+    /// <param name="partyUuid">The party uuid.</param>
+    /// <param name="user">The <see cref="PartyUserRecord"/>.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>The updated party user.</returns>
+    public Task<Result<PartyUserRecord>> UpsertPartyUser(
+        Guid partyUuid,
+        PartyUserRecord user,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets a single organization (as a <see cref="IAsyncEnumerable{T}"/>
     /// of the organization and optionally it's direct child units if requested).
     /// </summary>

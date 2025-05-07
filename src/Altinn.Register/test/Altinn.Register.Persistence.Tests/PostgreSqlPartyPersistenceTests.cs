@@ -1678,6 +1678,54 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task Person_CanBeUpdated_WithHistoricalUserIds_Only()
+    {
+        var id = await UoW.GetNextPartyId();
+        var birthDate = UoW.GetRandomBirthDate();
+        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new PersonRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            DisplayName = "Test Mid Testson",
+            PersonIdentifier = personId,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            User = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
+            FirstName = "Test",
+            MiddleName = "Mid",
+            LastName = "Testson",
+            ShortName = "TESTSON Test Mid",
+            Address = null,
+            MailingAddress = null,
+            DateOfBirth = birthDate,
+            DateOfDeath = FieldValue.Null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue().Which.User.Should().BeUnset();
+
+        await NewTransaction();
+        var user = new PartyUserRecord { UserIds = ImmutableValueArray.Create(10U, 2U, 5U) };
+
+        var userResult = await Persistence.UpsertPartyUser(uuid, user);
+        var userIds = userResult.Should().HaveValue()
+            .Which.UserIds.Should().HaveValue()
+            .Which;
+
+        userIds.Should().HaveCount(3);
+        userIds.Should().HaveElementAt(0, 10);
+        userIds.Should().HaveElementAt(1, 5);
+        userIds.Should().HaveElementAt(2, 2);
+    }
+
+    [Fact]
     public async Task Person_CanBeInserted_WithHistoricalUserIds()
     {
         var id = await UoW.GetNextPartyId();
