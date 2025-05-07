@@ -24,4 +24,27 @@ public static class FieldValueShouldExtensions
     {
         actual.AssertAwesomely(static v => v.IsUnset, actual, FieldValue<T>.Unset, customMessage);
     }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [OverloadResolutionPriority(1)]
+    public static void ShouldBe<T>(this FieldValue<T> actual, T? expected, string? customMessage = null)
+        where T : notnull
+    {
+        if (expected is null)
+        {
+            actual.AssertAwesomely(v => v.IsNull, actual, expected, customMessage);
+        }
+        else
+        {
+            actual.AssertAwesomely(v => v.HasValue && v.Value.Equals(expected), actual, expected, customMessage);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [OverloadResolutionPriority(-1)]
+    public static void ShouldBe<T>(this FieldValue<T> actual, FieldValue<T> expected, string? customMessage = null)
+        where T : notnull
+    {
+        actual.AssertAwesomely(v => v.Equals(expected), actual, expected, customMessage);
+    }
 }

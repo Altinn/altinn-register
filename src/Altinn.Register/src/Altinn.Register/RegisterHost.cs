@@ -209,6 +209,16 @@ internal static class RegisterHost
             });
         }
 
+        if (config.GetValue<bool>("Altinn:register:PartyImport:A2:PartyUserId:Enable"))
+        {
+            services.AddRecurringJob<A2PartyUserIdImportJob>(settings =>
+            {
+                settings.LeaseName = LeaseNames.A2PartyUserIdImport;
+                settings.Interval = TimeSpan.FromMinutes(1);
+                settings.WaitForReady = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
+            });
+        }
+
         services.AddOpenApiExampleProvider();
         services.AddSwaggerFilterAttributeSupport();
         services.AddUrnSwaggerSupport();

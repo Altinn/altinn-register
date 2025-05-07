@@ -1,9 +1,12 @@
 ﻿#nullable enable
 
 using System.Diagnostics.Metrics;
+using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Core;
 using Altinn.Register.Core.Errors;
+using Altinn.Register.Core.Parties;
+using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
 using MassTransit;
 
@@ -15,6 +18,7 @@ namespace Altinn.Register.PartyImport.A2;
 public sealed partial class A2PartyImportConsumer
     : IConsumer<ImportA2PartyCommand>
     , IConsumer<ImportA2CCRRolesCommand>
+    , IConsumer<ImportA2UserIdForPartyCommand>
 {
     private readonly IA2PartyImportService _importService;
     private readonly ICommandSender _sender;
@@ -75,6 +79,34 @@ public sealed partial class A2PartyImportConsumer
         _meters.RoleAssignmentsPerParty.Record(externalRoleAssignments.Count);
     }
 
+    /// <inheritdoc />
+    public async Task Consume(ConsumeContext<ImportA2UserIdForPartyCommand> context)
+    {
+        var partyUuid = context.Message.PartyUuid;
+        var partyType = context.Message.PartyType;
+
+        Result<PartyUserRecord> userRecordResult;
+        if (partyType is PartyType.Person)
+        {
+            userRecordResult = await _importService.GetOrCreatePersonUser(partyUuid, context.CancellationToken);
+        }
+        else
+        {
+            userRecordResult = await _importService.GetPartyUser(partyUuid, context.CancellationToken);
+        }
+
+        userRecordResult.EnsureSuccess();
+        var cmd = new UpsertPartyUserCommand
+        {
+            PartyUuid = partyUuid,
+            User = userRecordResult.Value,
+            Tracking = context.Message.Tracking,
+        };
+
+        await _sender.Send(cmd, context.CancellationToken);
+        _meters.UserIdsFetched.Add(1, [new("party.type", partyType)]);
+    }
+
     /// <summary>
     /// Meters for <see cref="A2PartyImportConsumer"/>.
     /// </summary>
@@ -92,6 +124,12 @@ public sealed partial class A2PartyImportConsumer
         /// </summary>
         public Counter<int> RoleAssignmentsFetched { get; }
             = telemetry.CreateCounter<int>("register.party-import.a2.role-assignments.fetched", "The number of role assignments fetched from A2.");
+
+        /// <summary>
+        /// Gets a counter for the number of user ids fetched from A2.
+        /// </summary>
+        public Counter<int> UserIdsFetched { get; }
+            = telemetry.CreateCounter<int>("register.party-import.a2.user-ids.fetched", "The number of user ids fetched from A2.");
 
         /// <summary>
         /// Gets a histogram for the number of role assignments fetched from A2 per party.

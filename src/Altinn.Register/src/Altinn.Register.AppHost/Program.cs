@@ -26,6 +26,7 @@ var rabbitMqUsername = builder.CreateResourceBuilder(new ParameterResource("rabb
 var rabbitMq = builder.AddRabbitMQ("rabbitmq", userName: rabbitMqUsername, port: rabbitMqPort)
     .WithDataVolume()
     .WithManagementPlugin(port: rabbitMqMgmtPort)
+    .WithContainerFiles("/etc/rabbitmq", [new ContainerFile { Name = "enabled_plugins", Contents = "[rabbitmq_management,rabbitmq_prometheus,rabbitmq_shovel_management,rabbitmq_shovel].\n" }])
     .WithLifetime(ContainerLifetime.Persistent)
     .WithPublicEndpoints();
 
@@ -51,6 +52,7 @@ var registerApi = builder.AddProject<Projects.Altinn_Register>("register")
     })
     .WithEnvironment("Altinn__Npgsql__register__Enable", "true")
     .WithEnvironment("Altinn__register__PartyImport__A2__Enable", "false")
+    .WithEnvironment("Altinn__register__PartyImport__A2__PartyUserId__Enable", "false")
     .WithHttpHealthCheck("/health");
 
 await builder.Build().RunAsync();

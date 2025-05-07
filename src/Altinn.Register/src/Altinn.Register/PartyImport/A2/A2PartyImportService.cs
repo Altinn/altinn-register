@@ -148,7 +148,19 @@ internal sealed partial class A2PartyImportService
             ]);
         }
 
-        var response = await responseMessage.Content.ReadFromJsonAsync<PartyProfile>(_options, cancellationToken);
+        PartyProfile? response;
+        var contentAsString = await responseMessage.Content.ReadAsStringAsync(cancellationToken);
+        try
+        {
+            response = JsonSerializer.Deserialize<PartyProfile>(contentAsString, _options);
+        }
+        catch (JsonException)
+        {
+            return Problems.PartyFetchFailed.Create([
+                new("partyUuid", partyUuid.ToString()),
+            ]);
+        }
+        
         if (response is null)
         {
             return Problems.PartyFetchFailed.Create([
@@ -742,6 +754,7 @@ internal sealed partial class A2PartyImportService
         /// <summary>
         /// Gets the party UUID.
         /// </summary>
+        [JsonPropertyName("PartyUUID")]
         public required Guid PartyUuid { get; init; }
     }
 
