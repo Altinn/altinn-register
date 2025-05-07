@@ -127,7 +127,9 @@ internal partial class PostgreSqlPartyPersistence
                 }
                 catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.UniqueViolation)
                 {
-                    return Problems.PartyConflict;
+                    return Problems.PartyConflict.Create([
+                        new("constraint", e.ConstraintName ?? "<unknown>"),
+                    ]);
                 }
                 catch (PostgresException e) when (e.SqlState == "ZZ001")
                 {

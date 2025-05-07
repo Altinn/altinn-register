@@ -238,7 +238,7 @@ public static class PartyPersistenceExtensions
             SELECT COALESCE(MAX(id), 0) FROM register.party
             """;
 
-        return Convert.ToUInt32(await cmd.ExecuteScalarAsync(cancellationToken)) + 1;
+        return Convert.ToUInt32(await cmd.ExecuteScalarAsync(cancellationToken)) + (uint)Random.Shared.Next(1, 100_000);
     }
 
     public static async Task<IEnumerable<int>> GetNewUserIds(this IUnitOfWork uow, int count = 1, CancellationToken cancellationToken = default)
@@ -250,7 +250,7 @@ public static class PartyPersistenceExtensions
             SELECT COALESCE(MAX(user_id), 0) FROM register.user
             """;
 
-        var max = Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken));
+        var max = Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken)) + Random.Shared.Next(0, 100_000);
         return Enumerable.Range(max + 1, count);
     }
 
@@ -311,7 +311,7 @@ public static class PartyPersistenceExtensions
             },
             cancellationToken);
 
-        Assert.True(result.IsSuccess);
+        result.EnsureSuccess();
         return (OrganizationRecord)result.Value;
     }
 
@@ -448,7 +448,7 @@ public static class PartyPersistenceExtensions
             },
             cancellationToken);
 
-        Assert.True(result.IsSuccess);
+        result.EnsureSuccess();
         return (PersonRecord)result.Value;
     }
 
@@ -514,7 +514,7 @@ public static class PartyPersistenceExtensions
             },
             cancellationToken);
 
-        Assert.True(result.IsSuccess);
+        result.EnsureSuccess();
         return (SelfIdentifiedUserRecord)result.Value;
     }
 
