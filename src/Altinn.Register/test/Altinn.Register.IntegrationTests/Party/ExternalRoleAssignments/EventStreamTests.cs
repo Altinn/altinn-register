@@ -31,7 +31,7 @@ public class EventStreamTests
     {
         var evts = await Setup(async (uow, ct) =>
         {
-            var orgs = await uow.CreateOrgs(2, ct);
+            var orgs = await uow.CreateOrgs(2, cancellationToken: ct);
             var roles = await uow.CreateFakeRoleDefinitions(ExternalRoleSource.CentralCoordinatingRegister, ct);
 
             var persistence = uow.GetPartyExternalRolePersistence();
@@ -85,7 +85,7 @@ public class EventStreamTests
 
         var evts = await Setup(async (uow, ct) =>
         {
-            var orgs = await uow.CreateOrgs(2, ct);
+            var orgs = await uow.CreateOrgs(2, cancellationToken: ct);
             var allRoles = await uow.CreateFakeRoleDefinitions(ct);
 
             var evts = new List<ExternalRoleAssignmentEvent>();

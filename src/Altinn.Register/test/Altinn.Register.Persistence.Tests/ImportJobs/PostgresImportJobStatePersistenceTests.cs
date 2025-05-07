@@ -1,6 +1,5 @@
 ﻿using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.UnitOfWork;
-using Altinn.Register.Persistence.ImportJobs;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.TestData;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,7 +13,7 @@ public class PostgresImportJobStatePersistenceTests
 
     private IUnitOfWorkManager? _manager;
     private IUnitOfWork? _uow;
-    private PostgresImportJobStatePersistence? _persistence;
+    private IImportJobStatePersistence? _persistence;
 
     protected override async ValueTask InitializeAsync()
     {
@@ -22,7 +21,7 @@ public class PostgresImportJobStatePersistenceTests
 
         _manager = GetRequiredService<IUnitOfWorkManager>();
         _uow = await _manager.CreateAsync(activityName: "test");
-        _persistence = _uow!.GetRequiredService<PostgresImportJobStatePersistence>();
+        _persistence = _uow.GetRequiredService<IImportJobStatePersistence>();
     }
 
     protected override async ValueTask DisposeAsync()

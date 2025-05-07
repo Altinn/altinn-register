@@ -1,18 +1,19 @@
 ﻿using System.Text.Json.Serialization;
+using Altinn.Authorization.ModelUtils;
 
 namespace Altinn.Register.Core.Parties;
 
 /// <summary>
 /// Represents a party type.
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter<PartyType>))]
+[StringEnumConverter]
 public enum PartyType
 {
     /// <summary>
     /// Person party type.
     /// </summary>
     [JsonStringEnumMemberName("person")]
-    Person,
+    Person = 1,
 
     /// <summary>
     /// Organization party type.
