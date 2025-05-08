@@ -26,7 +26,6 @@ public static class FieldValueShouldExtensions
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [OverloadResolutionPriority(1)]
     public static void ShouldBe<T>(this FieldValue<T> actual, T? expected, string? customMessage = null)
         where T : notnull
     {
@@ -41,7 +40,6 @@ public static class FieldValueShouldExtensions
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [OverloadResolutionPriority(-1)]
     public static void ShouldBe<T>(this FieldValue<T> actual, FieldValue<T> expected, string? customMessage = null)
         where T : notnull
     {

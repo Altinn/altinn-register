@@ -24,5 +24,5 @@ public sealed record UpsertPartyUserCommand
     /// <summary>
     /// Gets the tracking information for the import.
     /// </summary>
-    public UpsertPartyTracking Tracking { get; init; }
+    public required UpsertPartyTracking Tracking { get; init; }
 }

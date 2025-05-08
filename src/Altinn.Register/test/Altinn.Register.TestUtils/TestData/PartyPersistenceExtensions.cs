@@ -433,6 +433,10 @@ public static class PartyPersistenceExtensions
                 UserIds = userIdsEnumerable.Select(static id => (uint)id).OrderByDescending(static id => id).ToImmutableValueArray(),
             };
         }
+        else if (user.IsNull)
+        {
+            user = FieldValue.Unset;
+        }
 
         var result = await uow.GetRequiredService<IPartyPersistence>().UpsertParty(
             new PersonRecord
