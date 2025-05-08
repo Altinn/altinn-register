@@ -154,8 +154,9 @@ internal sealed partial class A2PartyImportService
         {
             response = JsonSerializer.Deserialize<PartyProfile>(contentAsString, _options);
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
+            Log.FailedToDeserializePartyProfile(_logger, url, ex);
             return Problems.PartyFetchFailed.Create([
                 new("partyUuid", partyUuid.ToString()),
             ]);
@@ -762,5 +763,8 @@ internal sealed partial class A2PartyImportService
     {
         [LoggerMessage(1, LogLevel.Debug, "Fetching party changes from {FromExclusive}.")]
         public static partial void FetchingPartyChangesPage(ILogger logger, uint fromExclusive);
+
+        [LoggerMessage(2, LogLevel.Error, "Failed to deserialize party profile from {Url}.")]
+        public static partial void FailedToDeserializePartyProfile(ILogger logger, string url, Exception exception);
     }
 }
