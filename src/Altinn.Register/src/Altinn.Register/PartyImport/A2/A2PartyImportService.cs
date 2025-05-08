@@ -148,7 +148,20 @@ internal sealed partial class A2PartyImportService
             ]);
         }
 
-        var response = await responseMessage.Content.ReadFromJsonAsync<PartyProfile>(_options, cancellationToken);
+        PartyProfile? response;
+        var contentAsString = await responseMessage.Content.ReadAsStringAsync(cancellationToken);
+        try
+        {
+            response = JsonSerializer.Deserialize<PartyProfile>(contentAsString, _options);
+        }
+        catch (JsonException ex)
+        {
+            Log.FailedToDeserializePartyProfile(_logger, url, ex);
+            return Problems.PartyFetchFailed.Create([
+                new("partyUuid", partyUuid.ToString()),
+            ]);
+        }
+        
         if (response is null)
         {
             return Problems.PartyFetchFailed.Create([
@@ -742,6 +755,7 @@ internal sealed partial class A2PartyImportService
         /// <summary>
         /// Gets the party UUID.
         /// </summary>
+        [JsonPropertyName("PartyUUID")]
         public required Guid PartyUuid { get; init; }
     }
 
@@ -749,5 +763,8 @@ internal sealed partial class A2PartyImportService
     {
         [LoggerMessage(1, LogLevel.Debug, "Fetching party changes from {FromExclusive}.")]
         public static partial void FetchingPartyChangesPage(ILogger logger, uint fromExclusive);
+
+        [LoggerMessage(2, LogLevel.Error, "Failed to deserialize party profile from {Url}.")]
+        public static partial void FailedToDeserializePartyProfile(ILogger logger, string url, Exception exception);
     }
 }

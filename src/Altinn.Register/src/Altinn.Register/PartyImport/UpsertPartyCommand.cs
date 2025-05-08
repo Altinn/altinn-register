@@ -6,7 +6,7 @@ using Altinn.Register.Core.Parties.Records;
 namespace Altinn.Register.PartyImport;
 
 /// <summary>
-/// A command for importing a party from A2.
+/// A command for upserting a party.
 /// </summary>
 public sealed record UpsertPartyCommand
     : CommandBase

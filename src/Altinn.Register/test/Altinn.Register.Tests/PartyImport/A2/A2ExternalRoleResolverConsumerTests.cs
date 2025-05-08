@@ -87,7 +87,7 @@ public class A2ExternalRoleResolverConsumerTests(ITestOutputHelper output)
 
     private async Task<T> Setup<T>(Func<IUnitOfWork, Task<T>> setup)
     {
-        await using var uow = await GetRequiredService<IUnitOfWorkManager>().CreateAsync(activityName: $"{nameof(PartyImportBatchConsumerTests)}.{nameof(Setup)}");
+        await using var uow = await GetRequiredService<IUnitOfWorkManager>().CreateAsync(activityName: $"{GetType().Name}.{nameof(Setup)}");
         var result = await setup(uow);
         await uow.CommitAsync();
 

@@ -23,6 +23,7 @@ namespace Altinn.Register.PartyImport;
 /// </summary>
 public sealed class PartyImportBatchConsumer
     : IConsumer<UpsertValidatedPartyCommand>
+    , IConsumer<UpsertPartyUserCommand>
     , IConsumer<UpsertExternalRoleAssignmentsCommand>
 {
     private const int BATCH_SIZE = 10;
@@ -41,19 +42,19 @@ public sealed class PartyImportBatchConsumer
         _meters = telemetry.GetServiceMeters<ImportMeters>();
     }
 
-    /// <summary>
-    /// Consumes a batch of upsert party commands.
-    /// </summary>
-    /// <param name="context">The consume context.</param>
+    /// <inheritdoc/>
     public async Task Consume(ConsumeContext<UpsertValidatedPartyCommand> context)
     {
         await UpsertParties([context], context.CancellationToken);
     }
 
-    /// <summary>
-    /// Consumes a batch of upsert external role assignments commands.
-    /// </summary>
-    /// <param name="context">The consume context.</param>
+    /// <inheritdoc/>
+    public async Task Consume(ConsumeContext<UpsertPartyUserCommand> context)
+    {
+        await UpsertPartyUsers([context], context.CancellationToken);
+    }
+
+    /// <inheritdoc/>
     public async Task Consume(ConsumeContext<UpsertExternalRoleAssignmentsCommand> context)
     {
         await UpsertExternalRoleAssignments([context], context.CancellationToken);
@@ -91,6 +92,45 @@ public sealed class PartyImportBatchConsumer
                     new PartyUpdatedEvent
                     {
                         Party = result.Value.PartyUuid.Value.ToPartyReferenceContract(),
+                    },
+                    cancellationToken);
+            }
+
+            await uow.CommitAsync(cancellationToken);
+        }
+
+        foreach (var info in tracking)
+        {
+            await _tracker.TrackProcessedStatus(info.JobName, new ImportJobProcessingStatus { ProcessedMax = info.Progress }, cancellationToken);
+        }
+
+        _meters.PartiesUpserted.Add(upserts.Count);
+        _meters.PartyBatchesSucceeded.Add(1);
+        _meters.PartyBatchSize.Record(upserts.Count);
+    }
+
+    private async Task UpsertPartyUsers(
+        IReadOnlyList<ConsumeContext<UpsertPartyUserCommand>> upserts,
+        CancellationToken cancellationToken)
+    {
+        using var tracking = TrackingHelper.Create(BATCH_SIZE);
+        {
+            await using var uow = await _uow.CreateAsync(cancellationToken);
+            var persistence = uow.GetPartyPersistence();
+
+            foreach (var context in upserts)
+            {
+                var partyUuid = context.Message.PartyUuid;
+                var user = context.Message.User;
+
+                var result = await persistence.UpsertPartyUser(partyUuid, user, cancellationToken);
+                result.EnsureSuccess();
+
+                tracking.Update(context.Message.Tracking);
+                await context.Publish(
+                    new PartyUpdatedEvent
+                    {
+                        Party = partyUuid.ToPartyReferenceContract(),
                     },
                     cancellationToken);
             }

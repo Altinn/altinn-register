@@ -66,6 +66,7 @@ internal sealed class PostgresImportJobStatePersistence
               FROM register.import_job_party_state
              WHERE job_id = @jobId
                AND party_uuid = @partyUuid
+            FOR NO KEY UPDATE
             """;
 
         _handle.ThrowIfCompleted();

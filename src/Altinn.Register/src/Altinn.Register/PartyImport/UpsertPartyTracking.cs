@@ -16,7 +16,7 @@ public readonly record struct UpsertPartyTracking
     /// <param name="jobName">The job name.</param>
     /// <param name="progress">The progress.</param>
     [SetsRequiredMembers]
-    public UpsertPartyTracking(string jobName, uint progress)
+    public UpsertPartyTracking(string jobName, ulong progress)
     {
         Guard.IsNotNull(jobName);
         Guard.IsGreaterThan(progress, 0);
@@ -33,5 +33,5 @@ public readonly record struct UpsertPartyTracking
     /// <summary>
     /// The change ID of the party.
     /// </summary>
-    public required uint Progress { get; init; }
+    public required ulong Progress { get; init; }
 }
