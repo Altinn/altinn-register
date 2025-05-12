@@ -66,7 +66,7 @@ internal sealed partial class A2PartyUserIdImportJob
             if (messages.Count >= CHUNK_SIZE)
             {
                 (progress, _) = await _tracker.TrackQueueStatus(JobNames.A2PartyUserIdImport, new ImportJobQueueStatus { EnqueuedMax = enqueuedMax, SourceMax = null }, cancellationToken);
-                await _sender.Send(messages, cancellationToken);
+                await SendAndUpdateState(messages, cancellationToken);
                 messages.Clear();
 
                 if (enqueuedMax - progress.ProcessedMax > 50_000)
@@ -80,8 +80,22 @@ internal sealed partial class A2PartyUserIdImportJob
         await _tracker.TrackQueueStatus(JobNames.A2PartyUserIdImport, new ImportJobQueueStatus { EnqueuedMax = enqueuedMax, SourceMax = null }, cancellationToken);
         if (messages.Count > 0)
         {
-            await _sender.Send(messages, cancellationToken);
+            await SendAndUpdateState(messages, cancellationToken);
         }
+    }
+
+    private async Task SendAndUpdateState(IEnumerable<ImportA2UserIdForPartyCommand> messages, CancellationToken cancellationToken)
+    {
+        await using var uow = await _uowManager.CreateAsync(cancellationToken);
+        var persistence = uow.GetRequiredService<IImportJobStatePersistence>();
+
+        foreach (var msg in messages)
+        {
+            await persistence.SetPartyState(JobNames.A2PartyUserIdImport, msg.PartyUuid, new ImportPartyUserIdJobState { }, cancellationToken);
+        }
+
+        await _sender.Send(messages, cancellationToken);
+        await uow.CommitAsync(cancellationToken);
     }
 
     private static partial class Log
