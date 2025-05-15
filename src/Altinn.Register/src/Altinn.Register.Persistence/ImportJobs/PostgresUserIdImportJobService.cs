@@ -50,7 +50,7 @@ internal class PostgresUserIdImportJobService
               AND p."party_type" = ANY(@partyTypes)
               AND (@from IS NULL OR p."uuid" > @from)
             ORDER BY p."uuid"
-            LIMIT 1000
+            LIMIT 10000
             """;
 
         Guard.IsNotNullOrEmpty(jobId);
