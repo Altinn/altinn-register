@@ -20,7 +20,7 @@ public class CustomersTests
         });
 
         var response = await HttpClient.GetAsync($"register/api/{apiVersion}/internal/parties/{org.PartyUuid.Value}/customers/ccr/{roleIdentifier}", TestContext.Current.CancellationToken);
-        await response.ShouldHaveStatusCode(HttpStatusCode.NoContent);
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
 
         var content = await response.ShouldHaveJsonContent<ListObject<PartyRecord>>();
         content.Items.ShouldBeEmpty();
