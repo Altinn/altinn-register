@@ -143,6 +143,7 @@ internal sealed partial class A2PartyImportService
 
         if (!responseMessage.IsSuccessStatusCode)
         {
+            Log.FailedToFetchPartyProfile(_logger, url, responseMessage.StatusCode);
             return Problems.PartyFetchFailed.Create([
                 new("partyUuid", partyUuid.ToString()),
             ]);
@@ -766,5 +767,8 @@ internal sealed partial class A2PartyImportService
 
         [LoggerMessage(2, LogLevel.Error, "Failed to deserialize party profile from {Url}.")]
         public static partial void FailedToDeserializePartyProfile(ILogger logger, string url, Exception exception);
+
+        [LoggerMessage(3, LogLevel.Error, "Failed to fetch party profile from {Url}. Status code: {StatusCode}.")]
+        public static partial void FailedToFetchPartyProfile(ILogger logger, string url, HttpStatusCode statusCode);
     }
 }
