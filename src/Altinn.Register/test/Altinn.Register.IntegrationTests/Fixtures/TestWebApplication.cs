@@ -3,6 +3,8 @@ using Altinn.Register.IntegrationTests.TestServices;
 using Altinn.Register.IntegrationTests.Tracing;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Database;
+using Altinn.Register.TestUtils.MassTransit;
+using MassTransit.Testing;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Mvc.Testing.Handlers;
 using Microsoft.Extensions.DependencyInjection;
@@ -49,6 +51,20 @@ public sealed class TestWebApplication
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
+        if (TestContext.Current.TestOutputHelper is { } output)
+        {
+            var busHarness = Services.GetRequiredService<ITestHarness>();
+            var faults = await busHarness.Consumed.SelectExisting(static m => m.Exception is not null).ToListAsync(CancellationToken.None);
+
+            foreach (var fault in faults)
+            {
+                output.WriteLine($"### FAULTED MESSAGE ###");
+                output.WriteLine($"Message type: {fault.Context.SupportedMessageTypes.First()}");
+                output.WriteLine($"Message destination: {fault.Context.DestinationAddress}");
+                output.WriteLine(fault.Exception.ToString());
+            }
+        }
+
         await _factory.DisposeAsync();
         await ((IAsyncDisposable)_db).DisposeAsync();
     }
