@@ -15,7 +15,7 @@ public class QueryTests
     {
         var response = await HttpClient.PostAsJsonAsync("register/api/v2/internal/parties/query", ListObject.Create<PartyUrn>([]), JsonOptions, TestContext.Current.CancellationToken);
 
-        await response.ShouldHaveStatusCode(HttpStatusCode.NoContent);
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
         var content = await response.ShouldHaveJsonContent<ListObject<PartyRecord>>();
 
         content.Items.ShouldBeEmpty();
@@ -26,7 +26,7 @@ public class QueryTests
     {
         var response = await HttpClient.PostAsJsonAsync("register/api/v2/internal/parties/query", ListObject.Create<PartyUrn>([PartyUrn.PartyId.Create(1)]), JsonOptions, TestContext.Current.CancellationToken);
 
-        await response.ShouldHaveStatusCode(HttpStatusCode.NoContent);
+        await response.ShouldHaveStatusCode(HttpStatusCode.PartialContent);
         var content = await response.ShouldHaveJsonContent<ListObject<PartyRecord>>();
 
         content.Items.ShouldBeEmpty();

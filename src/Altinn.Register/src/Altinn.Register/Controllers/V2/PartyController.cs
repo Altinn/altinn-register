@@ -180,7 +180,6 @@ public class PartyController
     [ApiVersion(2.0)]
     [HttpGet("{partyUuid:guid}/customers/ccr/revisor")]
     [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status200OK)]
-    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status204NoContent)]
     public Task<ActionResult<ListObject<PartyRecord>>> GetRevisorCustomers(
         [FromRoute] Guid partyUuid,
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
@@ -200,7 +199,6 @@ public class PartyController
     [ApiVersion(2.0)]
     [HttpGet("{partyUuid:guid}/customers/ccr/regnskapsforer")]
     [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status200OK)]
-    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status204NoContent)]
     public Task<ActionResult<ListObject<PartyRecord>>> GetRegnskapsforerCustomers(
         [FromRoute] Guid partyUuid, 
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
@@ -220,7 +218,6 @@ public class PartyController
     [ApiVersion(2.0)]
     [HttpGet("{partyUuid:guid}/customers/ccr/forretningsforer")]
     [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status200OK)]
-    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status204NoContent)]
     public Task<ActionResult<ListObject<PartyRecord>>> GetForretningsforerCustomers(
         [FromRoute] Guid partyUuid,
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
@@ -254,7 +251,7 @@ public class PartyController
 
         if (customerPartyUuids.Count == 0)
         {
-            return StatusCode(StatusCodes.Status204NoContent, ListObject.Create<PartyRecord>([]));
+            return StatusCode(StatusCodes.Status200OK, ListObject.Create<PartyRecord>([]));
         }
 
         List<PartyRecord> customers;
@@ -267,11 +264,6 @@ public class PartyController
                 include: fields,
                 cancellationToken: cancellationToken)
                 .ToListAsync(cancellationToken);
-        }
-
-        if (customers.Count == 0)
-        {
-            return StatusCode(StatusCodes.Status204NoContent, ListObject.Create<PartyRecord>([]));
         }
 
         return ListObject.Create(customers);
@@ -290,7 +282,6 @@ public class PartyController
     [ApiVersion(2.0)]
     [HttpGet("{partyUuid:guid}/holders/ccr/daglig-leder")]
     [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status200OK)]
-    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status204NoContent)]
     public Task<ActionResult<ListObject<PartyRecord>>> GetDagligLedere(
         [FromRoute] Guid partyUuid,
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
@@ -334,11 +325,6 @@ public class PartyController
                 .ToListAsync(cancellationToken);
         }
 
-        if (holders.Count == 0)
-        {
-            return StatusCode(StatusCodes.Status204NoContent, ListObject.Create<PartyRecord>([]));
-        }
-
         return ListObject.Create(holders);
     }
 
@@ -360,7 +346,6 @@ public class PartyController
     /// </remarks>
     [HttpPost("query")]
     [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status200OK)]
-    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status206PartialContent)]
     public async Task<ActionResult<ListObject<PartyRecord>>> Query(
         [FromBody] ListObject<PartyUrn> parties,
@@ -426,7 +411,7 @@ public class PartyController
 
         if (count == 0)
         {
-            return StatusCode(StatusCodes.Status204NoContent, ListObject.Create<PartyRecord>([]));
+            return StatusCode(StatusCodes.Status200OK, ListObject.Create<PartyRecord>([]));
         }
 
         if (count > MAX_ITEMS)
@@ -453,21 +438,15 @@ public class PartyController
             .ToListAsync(cancellationToken);
 
         var statusCode = StatusCodes.Status200OK;
-        if (result.Count == 0)
-        {
-            statusCode = StatusCodes.Status204NoContent;
-        }
-        else
-        {
-            var anyMissing = ids.OrEmpty().Any(id => !result.Any(p => p.PartyId.Value == id)) 
-                || uuids.OrEmpty().Any(uuid => !result.Any(p => p.PartyUuid.Value == uuid)) 
-                || orgIds.OrEmpty().Any(orgId => !result.Any(p => p.OrganizationIdentifier.Value == orgId)) 
-                || personIds.OrEmpty().Any(personId => !result.Any(p => p.PersonIdentifier.Value == personId));
+        var anyMissing = ids.OrEmpty().Any(id => !result.Any(p => p.PartyId.Value == id)) 
+            || uuids.OrEmpty().Any(uuid => !result.Any(p => p.PartyUuid.Value == uuid)) 
+            || orgIds.OrEmpty().Any(orgId => !result.Any(p => p.OrganizationIdentifier.Value == orgId)) 
+            || personIds.OrEmpty().Any(personId => !result.Any(p => p.PersonIdentifier.Value == personId))
+            || userIds.OrEmpty().Any(uid => !result.Any(p => p.User.HasValue && p.User.Value.UserIds.HasValue && p.User.Value.UserIds.Value.Contains(uid)));
 
-            if (anyMissing)
-            {
-                statusCode = StatusCodes.Status206PartialContent;
-            }
+        if (anyMissing)
+        {
+            statusCode = StatusCodes.Status206PartialContent;
         }
 
         return StatusCode(statusCode,  ListObject.Create(result));
