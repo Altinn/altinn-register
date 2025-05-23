@@ -142,7 +142,7 @@ public class PostgresUserIdImportJobServiceTests
                 async (i, ct) =>
                 {
                     await using var uow = await _manager!.CreateAsync(ct, activityName: $"setup {i}");
-                    await uow.CreatePeople(101, idOffset: (uint)(5000 * i), cancellationToken: ct);
+                    await uow.CreatePeople(101, idOffset: (uint)(100_000 + (5000 * i)), cancellationToken: ct);
                     await uow.CreateSelfIdentifiedUsers(102, cancellationToken: ct);
                     await uow.CreateOrgs(103, cancellationToken: ct);
                     await uow.CommitAsync(ct);
