@@ -94,7 +94,8 @@ internal partial class PostgreSqlPartyPersistence
             }
 
             var userIds = fromDbUserIds.Value.Select(static id => checked((uint)id)).ToImmutableValueArray();
-            return new PartyUserRecord { UserIds = userIds };
+            var userId = userIds[0];
+            return new PartyUserRecord(userId: userId, username: FieldValue.Unset, userIds: userIds);
         }
 
         private abstract class Typed<T>(PartyType type, string query = DEFAULT_QUERY)

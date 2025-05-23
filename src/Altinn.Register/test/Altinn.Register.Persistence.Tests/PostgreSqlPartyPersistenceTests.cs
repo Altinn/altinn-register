@@ -184,7 +184,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         party.DisplayName.Should().Be(person.DisplayName);
         party.PersonIdentifier.Should().Be(person.PersonIdentifier);
         party.OrganizationIdentifier.Should().Be(person.OrganizationIdentifier);
-        party.User.Should().Be(new PartyUserRecord { UserIds = ImmutableValueArray.Create(personUserId) });
+        party.User.Should().Be(new PartyUserRecord(userId: personUserId, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(personUserId)));
     }
 
     [Fact]
@@ -211,7 +211,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             party.DisplayName.Should().Be(person.DisplayName);
             party.PersonIdentifier.Should().Be(person.PersonIdentifier);
             party.OrganizationIdentifier.Should().Be(person.OrganizationIdentifier);
-            party.User.Should().Be(new PartyUserRecord { UserIds = ImmutableValueArray.Create(personUserId, historicalUserId1) });
+            party.User.Should().Be(new PartyUserRecord(userId: personUserId, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(personUserId, historicalUserId1)));
         }
 
         {
@@ -227,7 +227,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             party.DisplayName.Should().Be(person.DisplayName);
             party.PersonIdentifier.Should().Be(person.PersonIdentifier);
             party.OrganizationIdentifier.Should().Be(person.OrganizationIdentifier);
-            party.User.Should().Be(new PartyUserRecord { UserIds = ImmutableValueArray.Create(personUserId, historicalUserId2) });
+            party.User.Should().Be(new PartyUserRecord(userId: personUserId, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(personUserId, historicalUserId2)));
         }
     }
 
@@ -438,23 +438,23 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         result.Should().HaveCount(6);
 
-        result[0].PartyUuid.Should().HaveValue().Which.Should().Be("b6368d0a-bce4-4798-8460-f4f86fc354c2");
+        result[0].PartyUuid.Should().HaveValue().Which.Should().Be("e2081abd-a16f-4302-93b0-05aaa42023e8");
         result[0].ParentOrganizationUuid.Should().BeUnset();
 
-        result[1].PartyUuid.Should().HaveValue().Which.Should().Be("08cb91ff-75a4-45a4-b141-3c6be1bf8728");
-        result[1].ParentOrganizationUuid.Should().HaveValue().Which.Should().Be("b6368d0a-bce4-4798-8460-f4f86fc354c2");
+        result[1].PartyUuid.Should().HaveValue().Which.Should().Be("4b28742a-5cd0-400e-a096-bd9817d12dca");
+        result[1].ParentOrganizationUuid.Should().HaveValue().Which.Should().Be("e2081abd-a16f-4302-93b0-05aaa42023e8");
 
-        result[2].PartyUuid.Should().HaveValue().Which.Should().Be("e2081abd-a16f-4302-93b0-05aaa42023e8");
-        result[2].ParentOrganizationUuid.Should().BeUnset();
+        result[2].PartyUuid.Should().HaveValue().Which.Should().Be("ad18578d-94cb-4774-8f37-5b24801c219b");
+        result[2].ParentOrganizationUuid.Should().HaveValue().Which.Should().Be("e2081abd-a16f-4302-93b0-05aaa42023e8");
 
-        result[3].PartyUuid.Should().HaveValue().Which.Should().Be("4b28742a-5cd0-400e-a096-bd9817d12dca");
+        result[3].PartyUuid.Should().HaveValue().Which.Should().Be("ec09feda-5dba-4b84-ad0b-f7886e6082cd");
         result[3].ParentOrganizationUuid.Should().HaveValue().Which.Should().Be("e2081abd-a16f-4302-93b0-05aaa42023e8");
 
-        result[4].PartyUuid.Should().HaveValue().Which.Should().Be("ad18578d-94cb-4774-8f37-5b24801c219b");
-        result[4].ParentOrganizationUuid.Should().HaveValue().Which.Should().Be("e2081abd-a16f-4302-93b0-05aaa42023e8");
+        result[4].PartyUuid.Should().HaveValue().Which.Should().Be("b6368d0a-bce4-4798-8460-f4f86fc354c2");
+        result[4].ParentOrganizationUuid.Should().BeUnset();
 
-        result[5].PartyUuid.Should().HaveValue().Which.Should().Be("ec09feda-5dba-4b84-ad0b-f7886e6082cd");
-        result[5].ParentOrganizationUuid.Should().HaveValue().Which.Should().Be("e2081abd-a16f-4302-93b0-05aaa42023e8");
+        result[5].PartyUuid.Should().HaveValue().Which.Should().Be("08cb91ff-75a4-45a4-b141-3c6be1bf8728");
+        result[5].ParentOrganizationUuid.Should().HaveValue().Which.Should().Be("b6368d0a-bce4-4798-8460-f4f86fc354c2");
     }
 
     [Fact]
@@ -1614,7 +1614,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         await NewTransaction();
         var toUpdate = toInsert with 
         {
-            User = new PartyUserRecord { UserIds = ImmutableValueArray.Create(1U) },
+            User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
         };
 
         result = await Persistence.UpsertParty(toUpdate);
@@ -1662,7 +1662,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         await NewTransaction();
         var toUpdate = toInsert with
         {
-            User = new PartyUserRecord { UserIds = ImmutableValueArray.Create(10U, 2U, 5U) },
+            User = new PartyUserRecord(userId: 10U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
         };
 
         result = await Persistence.UpsertParty(toUpdate);
@@ -1712,7 +1712,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         result.Should().HaveValue().Which.User.Should().BeUnset();
 
         await NewTransaction();
-        var user = new PartyUserRecord { UserIds = ImmutableValueArray.Create(10U, 2U, 5U) };
+        var user = new PartyUserRecord(userId: 10U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(10U, 2U, 5U));
 
         var userResult = await Persistence.UpsertPartyUser(uuid, user);
         var userIds = userResult.Should().HaveValue()
@@ -1744,7 +1744,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
-            User = new PartyUserRecord { UserIds = ImmutableValueArray.Create(10U, 2U, 5U) },
+            User = new PartyUserRecord(userId: 10U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
             VersionId = FieldValue.Unset,
             FirstName = "Test",
             MiddleName = "Mid",
@@ -1787,7 +1787,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
-            User = new PartyUserRecord { UserIds = ImmutableValueArray.Create(10U, 2U, 5U) },
+            User = new PartyUserRecord(userId: 10U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
             VersionId = FieldValue.Unset,
             FirstName = "Test",
             MiddleName = "Mid",
@@ -1856,7 +1856,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
-            User = new PartyUserRecord { UserIds = ImmutableValueArray.Create(10U, 2U, 5U) },
+            User = new PartyUserRecord(userId: 10U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
             VersionId = FieldValue.Unset,
             FirstName = "Test",
             MiddleName = "Mid",
@@ -1875,7 +1875,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         var toUpdate = toInsert with
         {
-            User = new PartyUserRecord { UserIds = ImmutableValueArray.Create(12U, 10U, 2U, 5U) },
+            User = new PartyUserRecord(userId: 12U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(12U, 10U, 2U, 5U)),
         };
 
         result = await Persistence.UpsertParty(toUpdate);

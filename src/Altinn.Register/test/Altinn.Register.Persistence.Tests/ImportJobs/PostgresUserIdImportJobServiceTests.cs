@@ -201,10 +201,7 @@ public class PostgresUserIdImportJobServiceTests
 
             await Party.UpsertParty(users[0] with
             {
-                User = new PartyUserRecord
-                {
-                    UserIds = ImmutableValueArray.Create(1U),
-                },
+                User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
             });
             await JobState.SetPartyState("test", users[1].PartyUuid.Value, new EmptyState());
             await NewTransaction(commit: true);

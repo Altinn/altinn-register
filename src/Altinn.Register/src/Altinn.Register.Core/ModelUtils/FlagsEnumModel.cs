@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 using Altinn.Register.Core.Utils;
 using CommunityToolkit.Diagnostics;
 
-namespace Altinn.Register.ModelBinding;
+namespace Altinn.Register.Core.ModelUtils;
 
 /// <summary>
 /// Static helpers for <see cref="FlagsEnumModel{TEnum}"/>.

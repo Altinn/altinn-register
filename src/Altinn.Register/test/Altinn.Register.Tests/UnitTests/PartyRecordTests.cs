@@ -53,10 +53,7 @@ public class PartyRecordTests
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
-            User = new PartyUserRecord
-            {
-                UserIds = ImmutableValueArray.Create(1U, 2U),
-            },
+            User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U, 2U)),
             VersionId = 50,
         };
 
@@ -96,10 +93,7 @@ public class PartyRecordTests
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = true,
-            User = new PartyUserRecord
-            {
-                UserIds = FieldValue.Unset,
-            },
+            User = new PartyUserRecord(userId: FieldValue.Unset, username: FieldValue.Unset, userIds: FieldValue.Unset),
             VersionId = 42,
         };
 
@@ -138,10 +132,7 @@ public class PartyRecordTests
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
-            User = new PartyUserRecord
-            {
-                UserIds = FieldValue.Unset,
-            },
+            User = new PartyUserRecord(userId: FieldValue.Unset, username: FieldValue.Unset, userIds: FieldValue.Unset),
             VersionId = 42,
         };
 
@@ -180,10 +171,7 @@ public class PartyRecordTests
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = true,
-            User = new PartyUserRecord
-            {
-                UserIds = ImmutableValueArray.Create(1U),
-            },
+            User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
             VersionId = 42,
         };
 
@@ -264,10 +252,7 @@ public class PartyRecordTests
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
-            User = new PartyUserRecord
-            {
-                UserIds = FieldValue.Unset,
-            },
+            User = new PartyUserRecord(userId: FieldValue.Unset, username: FieldValue.Unset, userIds: FieldValue.Unset),
             VersionId = 42,
 
             FirstName = FieldValue.Unset,
@@ -315,10 +300,7 @@ public class PartyRecordTests
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow() + TimeSpan.FromDays(1),
             IsDeleted = true,
-            User = new PartyUserRecord
-            {
-                UserIds = ImmutableValueArray.Create(1U),
-            },
+            User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
             VersionId = 42,
 
             FirstName = "First",
@@ -567,10 +549,7 @@ public class PartyRecordTests
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
-            User = new PartyUserRecord
-            {
-                UserIds = ImmutableValueArray.Create(1U),
-            },
+            User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
             VersionId = 42,
         };
 
