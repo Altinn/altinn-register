@@ -460,7 +460,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [Fact]
     public async Task LookupParties_Shared_SubUnit()
     {
-        var child = await UoW.CreateOrg(unitType: "hovedenhet");
+        var child = await UoW.CreateOrg(unitType: "BEDR");
         var parent1 = await UoW.CreateOrg(unitType: "AS");
         var parent2 = await UoW.CreateOrg(unitType: "AS");
 
@@ -475,20 +475,20 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         result.Should().HaveCount(4);
 
-        List<Guid> parentIds = [result[0].PartyUuid.Value, result[2].PartyUuid.Value];
-        parentIds.Sort();
+        List<OrganizationRecord> parents = [result[0], result[2]];
+        parents.Sort(static (a, b) => a.VersionId.Value.CompareTo(b.VersionId.Value));
 
-        result[0].PartyUuid.Should().Be(parentIds[0]);
+        result[0].PartyUuid.Should().Be(parents[0].PartyUuid);
         result[0].ParentOrganizationUuid.Should().BeUnset();
 
         result[1].PartyUuid.Should().Be(child.PartyUuid);
-        result[1].ParentOrganizationUuid.Should().Be(parentIds[0]);
+        result[1].ParentOrganizationUuid.Should().Be(parents[0].PartyUuid);
 
-        result[2].PartyUuid.Should().Be(parentIds[1]);
+        result[2].PartyUuid.Should().Be(parents[1].PartyUuid);
         result[2].ParentOrganizationUuid.Should().BeUnset();
 
         result[3].PartyUuid.Should().Be(child.PartyUuid);
-        result[3].ParentOrganizationUuid.Should().Be(parentIds[1]);
+        result[3].ParentOrganizationUuid.Should().Be(parents[1].PartyUuid);
     }
 
     [Fact]
