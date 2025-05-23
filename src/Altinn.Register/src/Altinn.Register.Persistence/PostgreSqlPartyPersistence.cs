@@ -382,33 +382,6 @@ internal partial class PostgreSqlPartyPersistence
         Guard.IsNotNull(cmd);
         Guard.IsNotNull(query);
 
-        ////await using var cmd = inCmd;
-
-        ////await cmd.PrepareAsync(cancellationToken);
-        ////await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-
-        ////var includeSubunits = query.HasSubUnits;
-        ////Guid lastParent = default;
-        ////while (await reader.ReadAsync(cancellationToken))
-        ////{
-        ////    var parentUuid = await query.ReadParentUuid(reader, cancellationToken);
-        ////    if (parentUuid != lastParent)
-        ////    {
-        ////        lastParent = parentUuid;
-        ////        var parent = await query.ReadParentParty(reader, cancellationToken);
-        ////        yield return parent;
-        ////    }
-
-        ////    if (includeSubunits)
-        ////    {
-        ////        var childUuid = await query.ReadChildUuid(reader, cancellationToken);
-        ////        if (childUuid.HasValue)
-        ////        {
-        ////            var child = await query.ReadChildParty(reader, parentUuid, cancellationToken);
-        ////            yield return child;
-        ////        }
-        ////    }
-        ////}
         return query.PrepareAndReadPartiesAsync(cmd, cancellationToken);
     }
 
