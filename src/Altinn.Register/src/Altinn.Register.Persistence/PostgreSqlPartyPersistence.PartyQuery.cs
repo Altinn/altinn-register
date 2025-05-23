@@ -199,7 +199,6 @@ internal partial class PostgreSqlPartyPersistence
 
             await cmd.PrepareAsync(cancellationToken);
             await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-            var includeSubunits = HasSubUnits;
 
             if (!await reader.ReadAsync(cancellationToken))
             {
@@ -420,7 +419,7 @@ internal partial class PostgreSqlPartyPersistence
                 }
 
                 // aggregate user-ids
-                do
+                while (true)
                 {
                     hasMore = await reader.ReadAsync(cancellationToken);
                     if (!hasMore)
@@ -441,7 +440,6 @@ internal partial class PostgreSqlPartyPersistence
                         userIdsBuilder.Add(currentRowUserId.Value);
                     }
                 }
-                while (hasMore);
 
                 FieldValue<PartyUserRecord> user;
                 if (userIdsBuilder.Count == 0 && !userId.HasValue && !username.HasValue)
@@ -975,19 +973,6 @@ internal partial class PostgreSqlPartyPersistence
                 _builder.Append("    ").Append(sourceSql).Append(' ').Append(fieldAlias);
 
                 return _fieldIndex++;
-            }
-
-            private void AddFilterPrefix(ref bool first)
-            {
-                if (first)
-                {
-                    _builder.AppendLine().AppendLine(/*strpsql*/"WHERE (").Append("       ");
-                    first = false;
-                }
-                else
-                {
-                    _builder.AppendLine().Append(/*strpsql*/"    OR ");
-                }
             }
         }
 
