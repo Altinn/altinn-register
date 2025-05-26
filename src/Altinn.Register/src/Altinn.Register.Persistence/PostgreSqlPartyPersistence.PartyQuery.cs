@@ -1,6 +1,8 @@
 ﻿using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Core.Parties;
@@ -17,13 +19,27 @@ namespace Altinn.Register.Persistence;
 /// </content>
 internal partial class PostgreSqlPartyPersistence
 {
+    /// <summary>
+    /// Query for party records.
+    /// </summary>
     [SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1516:Elements should be separated by blank line", Justification = "This class is long enough already")]
-    private sealed class PartyQuery
+    internal sealed class PartyQuery
     {
-        private static ConcurrentDictionary<(PartyFieldIncludes Includes, PartyFilters FilterBy), PartyQuery> _queries = new();
+        private static ConcurrentDictionary<(PartyFieldIncludes Includes, PartyQueryFilters FilterBy), PartyQuery> _queries = new();
 
-        public static PartyQuery Get(PartyFieldIncludes includes, PartyFilters filterBy)
+        /// <summary>
+        /// Gets a cached query for the given includes and filters.
+        /// </summary>
+        /// <param name="includes">What fields to include.</param>
+        /// <param name="filterBy">What to filter by.</param>
+        /// <returns>A <see cref="PartyQuery"/>.</returns>
+        internal static PartyQuery Get(PartyFieldIncludes includes, PartyQueryFilters filterBy)
         {
+            if (filterBy is PartyQueryFilters.None)
+            {
+                ThrowHelper.ThrowArgumentException(nameof(filterBy), "Filter cannot be none");
+            }
+
             includes |= PartyFieldIncludes.PartyUuid | PartyFieldIncludes.PartyType; // always include the UUID and type
 
             return _queries.GetOrAdd((Includes: includes, FilterBy: filterBy), static (key) => Builder.Create(key.Includes, key.FilterBy));
@@ -31,8 +47,7 @@ internal partial class PostgreSqlPartyPersistence
 
         private PartyQuery(
             string commandText,
-            PartyFields parentFields,
-            PartyFields? childField,
+            PartyFields fields,
             FilterParameter paramPartyUuid,
             FilterParameter paramPartyId,
             FilterParameter paramPersonIdentifier,
@@ -47,8 +62,7 @@ internal partial class PostgreSqlPartyPersistence
             FilterParameter paramStreamLimit)
         {
             CommandText = commandText;
-            _parentFields = parentFields;
-            _childFields = childField;
+            _fields = fields;
             _paramPartyUuid = paramPartyUuid;
             _paramPartyId = paramPartyId;
             _paramPersonIdentifier = paramPersonIdentifier;
@@ -62,11 +76,10 @@ internal partial class PostgreSqlPartyPersistence
             _paramStreamFromExlusive = paramStreamFrom;
             _paramStreamLimit = paramStreamLimit;
 
-            HasSubUnits = childField is not null;
+            HasSubUnits = _fields.ParentUuid != -1;
         }
 
-        private readonly PartyFields _parentFields;
-        private readonly PartyFields? _childFields;
+        private readonly PartyFields _fields;
         private readonly FilterParameter _paramPartyUuid;
         private readonly FilterParameter _paramPartyId;
         private readonly FilterParameter _paramPersonIdentifier;
@@ -80,41 +93,79 @@ internal partial class PostgreSqlPartyPersistence
         private readonly FilterParameter _paramStreamFromExlusive;
         private readonly FilterParameter _paramStreamLimit;
 
+        /// <summary>
+        /// Gets the command text for the query.
+        /// </summary>
         public string CommandText { get; }
 
-        [MemberNotNullWhen(true, nameof(_childFields))]
+        /// <summary>
+        /// Gets whether or not the query has sub-units.
+        /// </summary>
         public bool HasSubUnits { get; }
 
+        /// <summary>
+        /// Adds a party UUID parameter to the command.
+        /// </summary>
         public NpgsqlParameter<Guid> AddPartyUuidParameter(NpgsqlCommand cmd, Guid value)
             => AddParameter(cmd, in _paramPartyUuid, value);
 
-        public NpgsqlParameter<int> AddPartyIdParameter(NpgsqlCommand cmd, int value)
+        /// <summary>
+        /// Adds a party id parameter to the command.
+        /// </summary>
+        public NpgsqlParameter<long> AddPartyIdParameter(NpgsqlCommand cmd, long value)
             => AddParameter(cmd, in _paramPartyId, value);
 
+        /// <summary>
+        /// Adds a person identifier parameter to the command.
+        /// </summary>
         public NpgsqlParameter<string> AddPersonIdentifierParameter(NpgsqlCommand cmd, string value)
             => AddParameter(cmd, in _paramPersonIdentifier, value);
 
+        /// <summary>
+        /// Adds a organization identifier parameter to the command.
+        /// </summary>
         public NpgsqlParameter<string> AddOrganizationIdentifierParameter(NpgsqlCommand cmd, string value)
             => AddParameter(cmd, in _paramOrganizationIdentifier, value);
 
-        public NpgsqlParameter<int> AddUserIdParameter(NpgsqlCommand cmd, int value)
+        /// <summary>
+        /// Adds a user id parameter to the command.
+        /// </summary>
+        public NpgsqlParameter<long> AddUserIdParameter(NpgsqlCommand cmd, long value)
             => AddParameter(cmd, in _paramUserId, value);
 
+        /// <summary>
+        /// Adds a party UUID list parameter to the command.
+        /// </summary>
         public NpgsqlParameter<IList<Guid>> AddPartyUuidListParameter(NpgsqlCommand cmd, IList<Guid> value)
             => AddParameter(cmd, in _paramPartyUuidList, value);
 
-        public NpgsqlParameter<IList<int>> AddPartyIdListParameter(NpgsqlCommand cmd, IList<int> value)
+        /// <summary>
+        /// Adds a party id list parameter to the command.
+        /// </summary>
+        public NpgsqlParameter<IList<long>> AddPartyIdListParameter(NpgsqlCommand cmd, IList<long> value)
             => AddParameter(cmd, in _paramPartyIdList, value);
 
+        /// <summary>
+        /// Adds a person identifier list parameter to the command.
+        /// </summary>
         public NpgsqlParameter<IList<string>> AddPersonIdentifierListParameter(NpgsqlCommand cmd, IList<string> value)
             => AddParameter(cmd, in _paramPersonIdentifierList, value);
 
+        /// <summary>
+        /// Adds a organization identifier list parameter to the command.
+        /// </summary>
         public NpgsqlParameter<IList<string>> AddOrganizationIdentifierListParameter(NpgsqlCommand cmd, IList<string> value)
             => AddParameter(cmd, in _paramOrganizationIdentifierList, value);
 
-        public NpgsqlParameter<IList<int>> AddUserIdListParameter(NpgsqlCommand cmd, IList<int> value)
+        /// <summary>
+        /// Adds a user id list parameter to the command.
+        /// </summary>
+        public NpgsqlParameter<IList<long>> AddUserIdListParameter(NpgsqlCommand cmd, IList<long> value)
             => AddParameter(cmd, in _paramUserIdList, value);
 
+        /// <summary>
+        /// Adds stream page parameters to the command.
+        /// </summary>
         public (NpgsqlParameter<long> From, NpgsqlParameter<int> Limit) AddStreamPageParameters(NpgsqlCommand cmd, ulong fromExclusive, ushort limit)
         {
             var fromParam = AddParameter(cmd, in _paramStreamFromExlusive, (long)fromExclusive);
@@ -134,62 +185,52 @@ internal partial class PostgreSqlPartyPersistence
             return param;
         }
 
-        public Task<Guid> ReadParentUuid(NpgsqlDataReader reader, CancellationToken cancellationToken)
-            => reader.GetFieldValueAsync<Guid>(_parentFields.PartyUuid, cancellationToken);
-
-        public ValueTask<FieldValue<Guid>> ReadChildUuid(NpgsqlDataReader reader, CancellationToken cancellationToken)
+        /// <summary>
+        /// Reads the parties from a <see cref="NpgsqlCommand"/> asynchronously.
+        /// </summary>
+        /// <param name="inCmd">The command.</param>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+        /// <returns>An async enumerable of <see cref="PartyRecord"/>.</returns>
+        public async IAsyncEnumerable<PartyRecord> PrepareAndReadPartiesAsync(NpgsqlCommand inCmd, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            Debug.Assert(HasSubUnits);
+            Guard.IsNotNull(inCmd);
 
-            return reader.GetConditionalFieldValueAsync<Guid>(_childFields.PartyUuid, cancellationToken);
+            await using var cmd = inCmd;
+
+            await cmd.PrepareAsync(cancellationToken);
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+
+            if (!await reader.ReadAsync(cancellationToken))
+            {
+                yield break;
+            }
+
+            PartyRecord party;
+            bool hasMore;
+            do
+            {
+                (party, hasMore) = await ReadParty(reader, cancellationToken);
+                yield return party;
+            } 
+            while (hasMore);
         }
 
-        public ValueTask<PartyRecord> ReadParentParty(NpgsqlDataReader reader, CancellationToken cancellationToken)
-            => ReadParty(reader, _parentFields, cancellationToken: cancellationToken);
-
-        public ValueTask<PartyRecord> ReadChildParty(NpgsqlDataReader reader, Guid parentPartyUuid, CancellationToken cancellationToken)
+        private async ValueTask<(PartyRecord Party, bool HasMore)> ReadParty(NpgsqlDataReader reader, CancellationToken cancellationToken = default)
         {
-            Debug.Assert(HasSubUnits);
+            var partyType = await reader.GetConditionalFieldValueAsync<PartyType>(_fields.PartyType, cancellationToken);
 
-            return ReadParty(reader, _childFields, parentPartyUuid, cancellationToken: cancellationToken);
-        }
-
-        private static ValueTask<PartyRecord> ReadParty(NpgsqlDataReader reader, PartyFields fields, FieldValue<Guid> parentPartyUuid = default, CancellationToken cancellationToken = default)
-        {
-            Guard.IsNotNull(reader);
-            Guard.IsNotNull(fields);
-
-            var partyTypeTask = reader.GetConditionalFieldValueAsync<PartyType>(fields.PartyType, cancellationToken);
-            if (!partyTypeTask.IsCompletedSuccessfully)
+            return partyType switch
             {
-                return WaitForPartyTask(partyTypeTask, reader, fields, parentPartyUuid, cancellationToken);
-            }
+                { HasValue: false } => await ReadBaseParty(reader, _fields, partyType, cancellationToken),
+                { Value: PartyType.Person } => await ReadPersonParty(reader, _fields, cancellationToken),
+                { Value: PartyType.Organization } => await ReadOrganizationParty(reader, _fields, cancellationToken),
+                { Value: PartyType.SelfIdentifiedUser } => await ReadSelfIdentifiedUserParty(reader, _fields, cancellationToken),
+                _ => Unreachable<(PartyRecord Party, bool HasMore)>(),
+            };
 
-            var partyType = partyTypeTask.GetAwaiter().GetResult();
-            return ReadParty(partyType, reader, fields, parentPartyUuid, cancellationToken);
-
-            static async ValueTask<PartyRecord> WaitForPartyTask(ValueTask<FieldValue<PartyType>> partyTypeTask, NpgsqlDataReader reader, PartyFields fields, FieldValue<Guid> parentPartyUuid, CancellationToken cancellationToken)
+            static async ValueTask<PartyRecord> ReadCommonFields(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
             {
-                var partyType = await partyTypeTask;
-
-                return await ReadParty(partyType, reader, fields, parentPartyUuid, cancellationToken);
-            }
-
-            static ValueTask<PartyRecord> ReadParty(FieldValue<PartyType> partyType, NpgsqlDataReader reader, PartyFields fields, FieldValue<Guid> parentPartyUuid, CancellationToken cancellationToken)
-            {
-                return partyType switch
-                {
-                    { HasValue: false } => ReadBaseParty(reader, fields, partyType, cancellationToken),
-                    { Value: PartyType.Person } => ReadPersonParty(reader, fields, cancellationToken),
-                    { Value: PartyType.SelfIdentifiedUser } => ReadSelfIdentifiedUserParty(reader, fields, cancellationToken),
-                    { Value: PartyType.Organization } => ReadOrganizationParty(reader, fields, parentPartyUuid, cancellationToken),
-                    _ => Unreachable(),
-                };
-            }
-
-            static async ValueTask<PartyRecord> ReadBaseParty(NpgsqlDataReader reader, PartyFields fields, FieldValue<PartyType> partyType, CancellationToken cancellationToken)
-            {
-                return new PartyRecord(partyType)
+                return new PartyRecord(FieldValue.Unset)
                 {
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>(fields.PartyUuid, cancellationToken),
                     PartyId = await reader.GetConditionalFieldValueAsync<int>(fields.PartyId, cancellationToken).Select(static id => checked((uint)id)),
@@ -199,100 +240,239 @@ internal partial class PostgreSqlPartyPersistence
                     CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyCreated, cancellationToken),
                     ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyUpdated, cancellationToken),
                     IsDeleted = await reader.GetConditionalFieldValueAsync<bool>(fields.PartyIsDeleted, cancellationToken),
-                    User = await ReadUser(reader, fields, cancellationToken),
                     VersionId = await reader.GetConditionalFieldValueAsync<long>(fields.PartyVersionId, cancellationToken).Select(static v => (ulong)v),
+
+                    // has to be read last as it can be spread over multiple rows
+                    User = FieldValue.Unset,
                 };
             }
 
-            static async ValueTask<PartyRecord> ReadPersonParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
+            static async ValueTask<(PartyRecord Party, bool HasMore)> ReadBaseParty(NpgsqlDataReader reader, PartyFields fields, FieldValue<PartyType> partyType, CancellationToken cancellationToken)
             {
-                return new PersonRecord
+                var common = await ReadCommonFields(reader, fields, cancellationToken);
+
+                // must be the last read-access to the reader
+                Debug.Assert(common.PartyUuid.HasValue);
+                var partyUuid = common.PartyUuid.Value;
+                var (user, hasMore) = await ReadUser(reader, partyUuid, fields, cancellationToken);
+
+                var party = new PartyRecord(partyType)
                 {
-                    PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>(fields.PartyUuid, cancellationToken),
-                    PartyId = await reader.GetConditionalFieldValueAsync<int>(fields.PartyId, cancellationToken).Select(static id => checked((uint)id)),
-                    DisplayName = await reader.GetConditionalFieldValueAsync<string>(fields.PartyDisplayName, cancellationToken),
-                    PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>(fields.PartyPersonIdentifier, cancellationToken),
-                    OrganizationIdentifier = await reader.GetConditionalParsableFieldValueAsync<OrganizationIdentifier>(fields.PartyOrganizationIdentifier, cancellationToken),
-                    CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyCreated, cancellationToken),
-                    ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyUpdated, cancellationToken),
-                    IsDeleted = await reader.GetConditionalFieldValueAsync<bool>(fields.PartyIsDeleted, cancellationToken),
-                    User = await ReadUser(reader, fields, cancellationToken),
-                    VersionId = await reader.GetConditionalFieldValueAsync<long>(fields.PartyVersionId, cancellationToken).Select(static v => (ulong)v),
-                    FirstName = await reader.GetConditionalFieldValueAsync<string>(fields.PersonFirstName, cancellationToken),
-                    MiddleName = await reader.GetConditionalFieldValueAsync<string>(fields.PersonMiddleName, cancellationToken),
-                    LastName = await reader.GetConditionalFieldValueAsync<string>(fields.PersonLastName, cancellationToken),
-                    ShortName = await reader.GetConditionalFieldValueAsync<string>(fields.PersonShortName, cancellationToken),
-                    DateOfBirth = await reader.GetConditionalFieldValueAsync<DateOnly>(fields.PersonDateOfBirth, cancellationToken),
-                    DateOfDeath = await reader.GetConditionalFieldValueAsync<DateOnly>(fields.PersonDateOfDeath, cancellationToken),
-                    Address = await reader.GetConditionalFieldValueAsync<StreetAddress>(fields.PersonAddress, cancellationToken),
-                    MailingAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>(fields.PersonMailingAddress, cancellationToken),
+                    PartyUuid = common.PartyUuid,
+                    PartyId = common.PartyId,
+                    DisplayName = common.DisplayName,
+                    PersonIdentifier = common.PersonIdentifier,
+                    OrganizationIdentifier = common.OrganizationIdentifier,
+                    CreatedAt = common.CreatedAt,
+                    ModifiedAt = common.ModifiedAt,
+                    IsDeleted = common.IsDeleted,
+                    VersionId = common.VersionId,
+                    User = user,
                 };
+
+                return (party, hasMore);
             }
 
-            static async ValueTask<PartyRecord> ReadSelfIdentifiedUserParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
+            static async ValueTask<(PartyRecord Party, bool HasMore)> ReadPersonParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
             {
-                return new SelfIdentifiedUserRecord
+                var common = await ReadCommonFields(reader, fields, cancellationToken);
+                var firstName = await reader.GetConditionalFieldValueAsync<string>(fields.PersonFirstName, cancellationToken);
+                var middleName = await reader.GetConditionalFieldValueAsync<string>(fields.PersonMiddleName, cancellationToken);
+                var lastName = await reader.GetConditionalFieldValueAsync<string>(fields.PersonLastName, cancellationToken);
+                var shortName = await reader.GetConditionalFieldValueAsync<string>(fields.PersonShortName, cancellationToken);
+                var dateOfBirth = await reader.GetConditionalFieldValueAsync<DateOnly>(fields.PersonDateOfBirth, cancellationToken);
+                var dateOfDeath = await reader.GetConditionalFieldValueAsync<DateOnly>(fields.PersonDateOfDeath, cancellationToken);
+                var address = await reader.GetConditionalFieldValueAsync<StreetAddress>(fields.PersonAddress, cancellationToken);
+                var mailingAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>(fields.PersonMailingAddress, cancellationToken);
+
+                // must be the last read-access to the reader
+                Debug.Assert(common.PartyUuid.HasValue);
+                var partyUuid = common.PartyUuid.Value;
+                var (user, hasMore) = await ReadUser(reader, partyUuid, fields, cancellationToken);
+
+                var party = new PersonRecord
                 {
-                    PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>(fields.PartyUuid, cancellationToken),
-                    PartyId = await reader.GetConditionalFieldValueAsync<int>(fields.PartyId, cancellationToken).Select(static id => checked((uint)id)),
-                    DisplayName = await reader.GetConditionalFieldValueAsync<string>(fields.PartyDisplayName, cancellationToken),
-                    PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>(fields.PartyPersonIdentifier, cancellationToken),
-                    OrganizationIdentifier = await reader.GetConditionalParsableFieldValueAsync<OrganizationIdentifier>(fields.PartyOrganizationIdentifier, cancellationToken),
-                    CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyCreated, cancellationToken),
-                    ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyUpdated, cancellationToken),
-                    IsDeleted = await reader.GetConditionalFieldValueAsync<bool>(fields.PartyIsDeleted, cancellationToken),
-                    User = await ReadUser(reader, fields, cancellationToken),
-                    VersionId = await reader.GetConditionalFieldValueAsync<long>(fields.PartyVersionId, cancellationToken).Select(static v => (ulong)v),
+                    PartyUuid = common.PartyUuid,
+                    PartyId = common.PartyId,
+                    DisplayName = common.DisplayName,
+                    PersonIdentifier = common.PersonIdentifier,
+                    OrganizationIdentifier = common.OrganizationIdentifier,
+                    CreatedAt = common.CreatedAt,
+                    ModifiedAt = common.ModifiedAt,
+                    IsDeleted = common.IsDeleted,
+                    VersionId = common.VersionId,
+                    User = user,
+                    FirstName = firstName,
+                    MiddleName = middleName,
+                    LastName = lastName,
+                    ShortName = shortName,
+                    DateOfBirth = dateOfBirth,
+                    DateOfDeath = dateOfDeath,
+                    Address = address,
+                    MailingAddress = mailingAddress,
                 };
+
+                return (party, hasMore);
             }
 
-            static async ValueTask<PartyRecord> ReadOrganizationParty(NpgsqlDataReader reader, PartyFields fields, FieldValue<Guid> parentPartyUuid, CancellationToken cancellationToken)
+            static async ValueTask<(PartyRecord Party, bool HasMore)> ReadOrganizationParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
             {
-                return new OrganizationRecord
+                var common = await ReadCommonFields(reader, fields, cancellationToken);
+                var parentOrganizationUuid = await reader.GetConditionalFieldValueAsync<Guid>(fields.ParentUuid, cancellationToken);
+                var unitStatus = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationUnitStatus, cancellationToken);
+                var unitType = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationUnitType, cancellationToken);
+                var telephoneNumber = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationTelephoneNumber, cancellationToken);
+                var mobileNumber = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationMobileNumber, cancellationToken);
+                var faxNumber = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationFaxNumber, cancellationToken);
+                var emailAddress = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationEmailAddress, cancellationToken);
+                var internetAddress = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationInternetAddress, cancellationToken);
+                var mailingAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>(fields.OrganizationMailingAddress, cancellationToken);
+                var businessAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>(fields.OrganizationBusinessAddress, cancellationToken);
+
+                if (parentOrganizationUuid.IsNull)
                 {
-                    PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>(fields.PartyUuid, cancellationToken),
-                    PartyId = await reader.GetConditionalFieldValueAsync<int>(fields.PartyId, cancellationToken).Select(static id => checked((uint)id)),
-                    DisplayName = await reader.GetConditionalFieldValueAsync<string>(fields.PartyDisplayName, cancellationToken),
-                    PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>(fields.PartyPersonIdentifier, cancellationToken),
-                    OrganizationIdentifier = await reader.GetConditionalParsableFieldValueAsync<OrganizationIdentifier>(fields.PartyOrganizationIdentifier, cancellationToken),
-                    CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyCreated, cancellationToken),
-                    ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyUpdated, cancellationToken),
-                    IsDeleted = await reader.GetConditionalFieldValueAsync<bool>(fields.PartyIsDeleted, cancellationToken),
-                    User = await ReadUser(reader, fields, cancellationToken),
-                    VersionId = await reader.GetConditionalFieldValueAsync<long>(fields.PartyVersionId, cancellationToken).Select(static v => (ulong)v),
-                    UnitStatus = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationUnitStatus, cancellationToken),
-                    UnitType = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationUnitType, cancellationToken),
-                    TelephoneNumber = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationTelephoneNumber, cancellationToken),
-                    MobileNumber = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationMobileNumber, cancellationToken),
-                    FaxNumber = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationFaxNumber, cancellationToken),
-                    EmailAddress = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationEmailAddress, cancellationToken),
-                    InternetAddress = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationInternetAddress, cancellationToken),
-                    MailingAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>(fields.OrganizationMailingAddress, cancellationToken),
-                    BusinessAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>(fields.OrganizationBusinessAddress, cancellationToken),
-                    ParentOrganizationUuid = parentPartyUuid,
+                    parentOrganizationUuid = FieldValue.Unset;
+                }
+
+                // must be the last read-access to the reader
+                Debug.Assert(common.PartyUuid.HasValue);
+                var partyUuid = common.PartyUuid.Value;
+                var (user, hasMore) = await ReadUser(reader, partyUuid, fields, cancellationToken);
+
+                var party = new OrganizationRecord
+                {
+                    PartyUuid = common.PartyUuid,
+                    PartyId = common.PartyId,
+                    DisplayName = common.DisplayName,
+                    PersonIdentifier = common.PersonIdentifier,
+                    OrganizationIdentifier = common.OrganizationIdentifier,
+                    CreatedAt = common.CreatedAt,
+                    ModifiedAt = common.ModifiedAt,
+                    IsDeleted = common.IsDeleted,
+                    VersionId = common.VersionId,
+                    User = user,
+                    UnitStatus = unitStatus,
+                    UnitType = unitType,
+                    TelephoneNumber = telephoneNumber,
+                    MobileNumber = mobileNumber,
+                    FaxNumber = faxNumber,
+                    EmailAddress = emailAddress,
+                    InternetAddress = internetAddress,
+                    MailingAddress = mailingAddress,
+                    BusinessAddress = businessAddress,
+                    ParentOrganizationUuid = parentOrganizationUuid,
                 };
+
+                return (party, hasMore);
             }
 
-            static async ValueTask<FieldValue<PartyUserRecord>> ReadUser(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
+            static async ValueTask<(PartyRecord Party, bool HasMore)> ReadSelfIdentifiedUserParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
             {
-                var userIds = await reader.GetConditionalFieldValueAsync<List<int>>(fields.UserIds, cancellationToken)
-                    .Select(static ids => ids.Select(static id => checked((uint)id)).ToImmutableValueArray());
+                var common = await ReadCommonFields(reader, fields, cancellationToken);
 
-                return userIds.Select(static ids => new PartyUserRecord { UserIds = ids });
+                // must be the last read-access to the reader
+                Debug.Assert(common.PartyUuid.HasValue);
+                var partyUuid = common.PartyUuid.Value;
+                var (user, hasMore) = await ReadUser(reader, partyUuid, fields, cancellationToken);
+
+                var party = new SelfIdentifiedUserRecord
+                {
+                    PartyUuid = common.PartyUuid,
+                    PartyId = common.PartyId,
+                    DisplayName = common.DisplayName,
+                    PersonIdentifier = common.PersonIdentifier,
+                    OrganizationIdentifier = common.OrganizationIdentifier,
+                    CreatedAt = common.CreatedAt,
+                    ModifiedAt = common.ModifiedAt,
+                    IsDeleted = common.IsDeleted,
+                    VersionId = common.VersionId,
+                    User = user,
+                };
+    
+                return (party, hasMore);
             }
 
-            static ValueTask<PartyRecord> Unreachable()
+            static async ValueTask<(FieldValue<PartyUserRecord> User, bool HasMore)> ReadUser(NpgsqlDataReader reader, Guid partyUuid, PartyFields fields, CancellationToken cancellationToken)
+            {
+                bool hasMore;
+                var isActive = await reader.GetConditionalFieldValueAsync<bool>(fields.UserIsActive, cancellationToken);
+                if (!isActive.HasValue)
+                {
+                    // no user-information available for this party, or user-information not requested
+                    // this means we don't have to aggregate up user-ids
+                    hasMore = await reader.ReadAsync(cancellationToken);
+                    return (isActive.IsNull ? FieldValue.Null : FieldValue.Unset, hasMore);
+                }
+
+                FieldValue<uint> userId = FieldValue.Unset;
+                FieldValue<string> username = FieldValue.Unset;
+                var userIdsBuilder = ImmutableArray.CreateBuilder<uint>(1);
+                if (isActive.Value)
+                {
+                    // TODO: read userName too
+                    userId = await reader.GetConditionalFieldValueAsync<long>(fields.UserId, cancellationToken).Select(static id => checked((uint)id));
+                    
+                    if (userId.HasValue)
+                    {
+                        userIdsBuilder.Add(userId.Value);
+                    }
+                }
+
+                // aggregate user-ids
+                while (true)
+                {
+                    hasMore = await reader.ReadAsync(cancellationToken);
+                    if (!hasMore)
+                    {
+                        break;
+                    }
+
+                    var currentRowPartyUuid = await reader.GetFieldValueAsync<Guid>(fields.PartyUuid, cancellationToken);
+                    if (currentRowPartyUuid != partyUuid)
+                    {
+                        // we are done with this party, move on to the next one
+                        break;
+                    }
+
+                    var currentRowUserId = await reader.GetConditionalFieldValueAsync<long>(fields.UserId, cancellationToken).Select(static id => checked((uint)id));
+                    if (currentRowUserId.HasValue)
+                    {
+                        userIdsBuilder.Add(currentRowUserId.Value);
+                    }
+                }
+
+                FieldValue<PartyUserRecord> user;
+                if (userIdsBuilder.Count == 0 && !userId.HasValue && !username.HasValue)
+                {
+                    user = FieldValue.Null;
+                }
+                else
+                {
+                    var userIds = userIdsBuilder.DrainToImmutableValueArray();
+                    user = new PartyUserRecord(
+                        userId: userId,
+                        username: username,
+                        userIds: userIds);
+                }
+
+                return (user, hasMore);
+            }
+
+            [DoesNotReturn]
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            static T Unreachable<T>()
                 => throw new UnreachableException();
         }
 
         private sealed class Builder
         {
-            public static PartyQuery Create(PartyFieldIncludes includes, PartyFilters filterBy)
+            public static PartyQuery Create(PartyFieldIncludes includes, PartyQueryFilters filterBy)
             {
                 Builder builder = new();
                 builder.Populate(includes, filterBy);
 
-                PartyFields parentFields = new(
+                PartyFields fields = new(
+                    parentUuid: builder._parentUuid,
                     partyUuid: builder._partyUuid,
                     partyId: builder._partyId,
                     partyType: builder._partyType,
@@ -320,44 +500,13 @@ internal partial class PostgreSqlPartyPersistence
                     organizationInternetAddress: builder._organizationInternetAddress,
                     organizationMailingAddress: builder._organizationMailingAddress,
                     organizationBusinessAddress: builder._organizationBusinessAddress,
-                    userIds: builder._userIds);
-
-                PartyFields? childFields = !builder._hasSubUnits ? null
-                    : new(
-                        partyUuid: builder._childPartyUuid,
-                        partyId: builder._childPartyId,
-                        partyType: builder._childPartyType,
-                        partyDisplayName: builder._childPartyDisplayName,
-                        partyPersonIdentifier: builder._childPartyPersonIdentifier,
-                        partyOrganizationIdentifier: builder._childPartyOrganizationIdentifier,
-                        partyCreated: builder._childPartyCreated,
-                        partyUpdated: builder._childPartyUpdated,
-                        partyIsDeleted: builder._childPartyIsDeleted,
-                        partyVersionId: builder._childPartyVersionId,
-                        personFirstName: -1,
-                        personMiddleName: -1,
-                        personLastName: -1,
-                        personShortName: -1,
-                        personDateOfBirth: -1,
-                        personDateOfDeath: -1,
-                        personAddress: -1,
-                        personMailingAddress: -1,
-                        organizationUnitStatus: builder._childOrganizationUnitStatus,
-                        organizationUnitType: builder._childOrganizationUnitType,
-                        organizationTelephoneNumber: builder._childOrganizationTelephoneNumber,
-                        organizationMobileNumber: builder._childOrganizationMobileNumber,
-                        organizationFaxNumber: builder._childOrganizationFaxNumber,
-                        organizationEmailAddress: builder._childOrganizationEmailAddress,
-                        organizationInternetAddress: builder._childOrganizationInternetAddress,
-                        organizationMailingAddress: builder._childOrganizationMailingAddress,
-                        organizationBusinessAddress: builder._childOrganizationBusinessAddress,
-                        userIds: -1);
+                    userIsActive: builder._userIsActive,
+                    userId: builder._userId);
 
                 var commandText = builder._builder.ToString();
                 return new(
                     commandText,
-                    parentFields,
-                    childFields,
+                    fields,
                     paramPartyUuid: builder._paramPartyUuid,
                     paramPartyId: builder._paramPartyId,
                     paramPersonIdentifier: builder._paramPersonIdentifier,
@@ -390,9 +539,11 @@ internal partial class PostgreSqlPartyPersistence
 
             // fields
             private sbyte _fieldIndex = 0;
-            private bool _hasSubUnits = false;
 
-            // parent register.party
+            // meta fields
+            private sbyte _parentUuid = -1;
+
+            // register.party
             private sbyte _partyUuid = -1;
             private sbyte _partyId = -1;
             private sbyte _partyType = -1;
@@ -404,7 +555,7 @@ internal partial class PostgreSqlPartyPersistence
             private sbyte _partyIsDeleted = -1;
             private sbyte _partyVersionId = -1;
 
-            // parent register.person
+            // register.person
             private sbyte _personFirstName = -1;
             private sbyte _personMiddleName = -1;
             private sbyte _personLastName = -1;
@@ -414,7 +565,7 @@ internal partial class PostgreSqlPartyPersistence
             private sbyte _personAddress = -1;
             private sbyte _personMailingAddress = -1;
 
-            // parent register.organization
+            // register.organization
             private sbyte _organizationUnitStatus = -1;
             private sbyte _organizationUnitType = -1;
             private sbyte _organizationTelephoneNumber = -1;
@@ -425,285 +576,385 @@ internal partial class PostgreSqlPartyPersistence
             private sbyte _organizationMailingAddress = -1;
             private sbyte _organizationBusinessAddress = -1;
 
-            // parent register.user
-            private sbyte _userIds = -1;
+            // register.user
+            private sbyte _userIsActive = -1;
+            private sbyte _userId = -1;
 
-            // child register.party
-            private sbyte _childPartyUuid = -1;
-            private sbyte _childPartyId = -1;
-            private sbyte _childPartyType = -1;
-            private sbyte _childPartyDisplayName = -1;
-            private sbyte _childPartyPersonIdentifier = -1;
-            private sbyte _childPartyOrganizationIdentifier = -1;
-            private sbyte _childPartyCreated = -1;
-            private sbyte _childPartyUpdated = -1;
-            private sbyte _childPartyIsDeleted = -1;
-            private sbyte _childPartyVersionId = -1;
-
-            // child register.organization
-            private sbyte _childOrganizationUnitStatus = -1;
-            private sbyte _childOrganizationUnitType = -1;
-            private sbyte _childOrganizationTelephoneNumber = -1;
-            private sbyte _childOrganizationMobileNumber = -1;
-            private sbyte _childOrganizationFaxNumber = -1;
-            private sbyte _childOrganizationEmailAddress = -1;
-            private sbyte _childOrganizationInternetAddress = -1;
-            private sbyte _childOrganizationMailingAddress = -1;
-            private sbyte _childOrganizationBusinessAddress = -1;
-
-            public void Populate(PartyFieldIncludes includes, PartyFilters filterBy)
+            public void Populate(PartyFieldIncludes includes, PartyQueryFilters filterBy)
             {
+                PopulateCommonTableExpressions(includes, filterBy);
+
                 _builder.Append(/*strpsql*/"SELECT");
 
-                _partyUuid = AddField("p.uuid", "p_uuid", includes.HasFlag(PartyFieldIncludes.PartyUuid));
-                _partyId = AddField("p.id", "p_id", includes.HasFlag(PartyFieldIncludes.PartyId));
-                _partyType = AddField("p.party_type", "p_party_type", includes.HasFlag(PartyFieldIncludes.PartyType));
-                _partyDisplayName = AddField("p.display_name", "p_display_name", includes.HasFlag(PartyFieldIncludes.PartyDisplayName));
-                _partyPersonIdentifier = AddField("p.person_identifier", "p_person_identifier", includes.HasFlag(PartyFieldIncludes.PartyPersonIdentifier));
-                _partyOrganizationIdentifier = AddField("p.organization_identifier", "p_organization_identifier", includes.HasFlag(PartyFieldIncludes.PartyOrganizationIdentifier));
-                _partyCreated = AddField("p.created", "p_created", includes.HasFlag(PartyFieldIncludes.PartyCreatedAt));
-                _partyUpdated = AddField("p.updated", "p_updated", includes.HasFlag(PartyFieldIncludes.PartyModifiedAt));
-                _partyIsDeleted = AddField("p.is_deleted", "p_is_deleted", includes.HasFlag(PartyFieldIncludes.PartyIsDeleted));
-                _partyVersionId = AddField("p.version_id", "p_version_id", includes.HasFlag(PartyFieldIncludes.PartyVersionId));
+                _parentUuid = AddField("uuids.parent_uuid", "p_parent_uuid", include: includes.HasFlag(PartyFieldIncludes.SubUnits));
 
-                _personFirstName = AddField("f.first_name", "p_first_name", includes.HasFlag(PartyFieldIncludes.PersonFirstName));
-                _personMiddleName = AddField("f.middle_name", "p_middle_name", includes.HasFlag(PartyFieldIncludes.PersonMiddleName));
-                _personLastName = AddField("f.last_name", "p_last_name", includes.HasFlag(PartyFieldIncludes.PersonLastName));
-                _personShortName = AddField("f.short_name", "p_short_name", includes.HasFlag(PartyFieldIncludes.PersonShortName));
-                _personDateOfBirth = AddField("f.date_of_birth", "p_date_of_birth", includes.HasFlag(PartyFieldIncludes.PersonDateOfBirth));
-                _personDateOfDeath = AddField("f.date_of_death", "p_date_of_death", includes.HasFlag(PartyFieldIncludes.PersonDateOfDeath));
-                _personAddress = AddField("f.address", "p_address", includes.HasFlag(PartyFieldIncludes.PersonAddress));
-                _personMailingAddress = AddField("f.mailing_address", "p_person_mailing_address", includes.HasFlag(PartyFieldIncludes.PersonMailingAddress));
+                _partyUuid = AddField("party.uuid", "p_uuid", includes.HasFlag(PartyFieldIncludes.PartyUuid));
+                _partyId = AddField("party.id", "p_id", includes.HasFlag(PartyFieldIncludes.PartyId));
+                _partyType = AddField("party.party_type", "p_party_type", includes.HasFlag(PartyFieldIncludes.PartyType));
+                _partyDisplayName = AddField("party.display_name", "p_display_name", includes.HasFlag(PartyFieldIncludes.PartyDisplayName));
+                _partyPersonIdentifier = AddField("party.person_identifier", "p_person_identifier", includes.HasFlag(PartyFieldIncludes.PartyPersonIdentifier));
+                _partyOrganizationIdentifier = AddField("party.organization_identifier", "p_organization_identifier", includes.HasFlag(PartyFieldIncludes.PartyOrganizationIdentifier));
+                _partyCreated = AddField("party.created", "p_created", includes.HasFlag(PartyFieldIncludes.PartyCreatedAt));
+                _partyUpdated = AddField("party.updated", "p_updated", includes.HasFlag(PartyFieldIncludes.PartyModifiedAt));
+                _partyIsDeleted = AddField("party.is_deleted", "p_is_deleted", includes.HasFlag(PartyFieldIncludes.PartyIsDeleted));
+                _partyVersionId = AddField("party.version_id", "p_version_id", includes.HasFlag(PartyFieldIncludes.PartyVersionId));
 
-                _organizationUnitStatus = AddField("o.unit_status", "p_unit_status", includes.HasFlag(PartyFieldIncludes.OrganizationUnitStatus));
-                _organizationUnitType = AddField("o.unit_type", "p_unit_type", includes.HasFlag(PartyFieldIncludes.OrganizationUnitType));
-                _organizationTelephoneNumber = AddField("o.telephone_number", "p_telephone_number", includes.HasFlag(PartyFieldIncludes.OrganizationTelephoneNumber));
-                _organizationMobileNumber = AddField("o.mobile_number", "p_mobile_number", includes.HasFlag(PartyFieldIncludes.OrganizationMobileNumber));
-                _organizationFaxNumber = AddField("o.fax_number", "p_fax_number", includes.HasFlag(PartyFieldIncludes.OrganizationFaxNumber));
-                _organizationEmailAddress = AddField("o.email_address", "p_email_address", includes.HasFlag(PartyFieldIncludes.OrganizationEmailAddress));
-                _organizationInternetAddress = AddField("o.internet_address", "p_internet_address", includes.HasFlag(PartyFieldIncludes.OrganizationInternetAddress));
-                _organizationMailingAddress = AddField("o.mailing_address", "p_org_mailing_address", includes.HasFlag(PartyFieldIncludes.OrganizationMailingAddress));
-                _organizationBusinessAddress = AddField("o.business_address", "p_business_address", includes.HasFlag(PartyFieldIncludes.OrganizationBusinessAddress));
+                _personFirstName = AddField("person.first_name", "p_first_name", includes.HasFlag(PartyFieldIncludes.PersonFirstName));
+                _personMiddleName = AddField("person.middle_name", "p_middle_name", includes.HasFlag(PartyFieldIncludes.PersonMiddleName));
+                _personLastName = AddField("person.last_name", "p_last_name", includes.HasFlag(PartyFieldIncludes.PersonLastName));
+                _personShortName = AddField("person.short_name", "p_short_name", includes.HasFlag(PartyFieldIncludes.PersonShortName));
+                _personDateOfBirth = AddField("person.date_of_birth", "p_date_of_birth", includes.HasFlag(PartyFieldIncludes.PersonDateOfBirth));
+                _personDateOfDeath = AddField("person.date_of_death", "p_date_of_death", includes.HasFlag(PartyFieldIncludes.PersonDateOfDeath));
+                _personAddress = AddField("person.address", "p_address", includes.HasFlag(PartyFieldIncludes.PersonAddress));
+                _personMailingAddress = AddField("person.mailing_address", "p_person_mailing_address", includes.HasFlag(PartyFieldIncludes.PersonMailingAddress));
 
-                _userIds = AddField("ua.user_ids", "u_user_ids", includes.HasFlag(PartyFieldIncludes.UserId));
+                _organizationUnitStatus = AddField("org.unit_status", "p_unit_status", includes.HasFlag(PartyFieldIncludes.OrganizationUnitStatus));
+                _organizationUnitType = AddField("org.unit_type", "p_unit_type", includes.HasFlag(PartyFieldIncludes.OrganizationUnitType));
+                _organizationTelephoneNumber = AddField("org.telephone_number", "p_telephone_number", includes.HasFlag(PartyFieldIncludes.OrganizationTelephoneNumber));
+                _organizationMobileNumber = AddField("org.mobile_number", "p_mobile_number", includes.HasFlag(PartyFieldIncludes.OrganizationMobileNumber));
+                _organizationFaxNumber = AddField("org.fax_number", "p_fax_number", includes.HasFlag(PartyFieldIncludes.OrganizationFaxNumber));
+                _organizationEmailAddress = AddField("org.email_address", "p_email_address", includes.HasFlag(PartyFieldIncludes.OrganizationEmailAddress));
+                _organizationInternetAddress = AddField("org.internet_address", "p_internet_address", includes.HasFlag(PartyFieldIncludes.OrganizationInternetAddress));
+                _organizationMailingAddress = AddField("org.mailing_address", "p_org_mailing_address", includes.HasFlag(PartyFieldIncludes.OrganizationMailingAddress));
+                _organizationBusinessAddress = AddField("org.business_address", "p_business_address", includes.HasFlag(PartyFieldIncludes.OrganizationBusinessAddress));
 
-                if (includes.HasFlag(PartyFieldIncludes.SubUnits))
-                {
-                    _childPartyUuid = AddField("cp.uuid", "cp_uuid", includes.HasFlag(PartyFieldIncludes.PartyUuid));
-                    _childPartyId = AddField("cp.id", "cp_id", includes.HasFlag(PartyFieldIncludes.PartyId));
-                    _childPartyType = AddField("cp.party_type", "cp_party_type", includes.HasFlag(PartyFieldIncludes.PartyType));
-                    _childPartyDisplayName = AddField("cp.display_name", "cp_display_name", includes.HasFlag(PartyFieldIncludes.PartyDisplayName));
-                    _childPartyPersonIdentifier = AddField("cp.person_identifier", "cp_person_identifier", includes.HasFlag(PartyFieldIncludes.PartyPersonIdentifier));
-                    _childPartyOrganizationIdentifier = AddField("cp.organization_identifier", "cp_organization_identifier", includes.HasFlag(PartyFieldIncludes.PartyOrganizationIdentifier));
-                    _childPartyCreated = AddField("cp.created", "cp_created", includes.HasFlag(PartyFieldIncludes.PartyCreatedAt));
-                    _childPartyUpdated = AddField("cp.updated", "cp_updated", includes.HasFlag(PartyFieldIncludes.PartyModifiedAt));
-                    _childPartyIsDeleted = AddField("cp.is_deleted", "cp_is_deleted", includes.HasFlag(PartyFieldIncludes.PartyIsDeleted));
-                    _childPartyVersionId = AddField("cp.version_id", "cp_version_id", includes.HasFlag(PartyFieldIncludes.PartyVersionId));
+                _userIsActive = AddField("\"user\".is_active", "u_is_active", includes.HasAnyFlags(PartyFieldIncludes.User));
+                _userId = AddField("\"user\".user_id", "u_user_id", includes.HasFlag(PartyFieldIncludes.UserId));
 
-                    _childOrganizationUnitStatus = AddField("cp.unit_status", "cp_unit_status", includes.HasFlag(PartyFieldIncludes.OrganizationUnitStatus));
-                    _childOrganizationUnitType = AddField("cp.unit_type", "cp_unit_type", includes.HasFlag(PartyFieldIncludes.OrganizationUnitType));
-                    _childOrganizationTelephoneNumber = AddField("cp.telephone_number", "cp_telephone_number", includes.HasFlag(PartyFieldIncludes.OrganizationTelephoneNumber));
-                    _childOrganizationMobileNumber = AddField("cp.mobile_number", "cp_mobile_number", includes.HasFlag(PartyFieldIncludes.OrganizationMobileNumber));
-                    _childOrganizationFaxNumber = AddField("cp.fax_number", "cp_fax_number", includes.HasFlag(PartyFieldIncludes.OrganizationFaxNumber));
-                    _childOrganizationEmailAddress = AddField("cp.email_address", "cp_email_address", includes.HasFlag(PartyFieldIncludes.OrganizationEmailAddress));
-                    _childOrganizationInternetAddress = AddField("cp.internet_address", "cp_internet_address", includes.HasFlag(PartyFieldIncludes.OrganizationInternetAddress));
-                    _childOrganizationMailingAddress = AddField("cp.mailing_address", "cp_org_mailing_address", includes.HasFlag(PartyFieldIncludes.OrganizationMailingAddress));
-                    _childOrganizationBusinessAddress = AddField("cp.business_address", "cp_business_address", includes.HasFlag(PartyFieldIncludes.OrganizationBusinessAddress));
-
-                    _hasSubUnits = true;
-                }
-
-                _builder.AppendLine().Append(/*strpsql*/"FROM register.party p");
+                _builder.AppendLine().Append(/*strpsql*/"FROM uuids AS uuids");
+                _builder.AppendLine().Append(/*strpsql*/"INNER JOIN register.party AS party USING (uuid)");
 
                 if (includes.HasAnyFlags(PartyFieldIncludes.Person))
                 {
-                    _builder.AppendLine().Append(/*strpsql*/"FULL JOIN register.person f USING (uuid)");
+                    _builder.AppendLine().Append(/*strpsql*/"LEFT JOIN register.person AS person USING (uuid)");
                 }
 
                 if (includes.HasAnyFlags(PartyFieldIncludes.Organization))
                 {
-                    _builder.AppendLine().Append(/*strpsql*/"FULL JOIN register.organization o USING (uuid)");
+                    _builder.AppendLine().Append(/*strpsql*/"LEFT JOIN register.organization AS org USING (uuid)");
                 }
 
-                if (includes.HasFlag(PartyFieldIncludes.UserId))
+                if (includes.HasAnyFlags(PartyFieldIncludes.User))
                 {
-                    _builder.AppendLine().Append(/*strpsql*/"LEFT JOIN (");
-                    _builder.AppendLine().Append(/*strpsql*/"    SELECT");
-                    _builder.AppendLine().Append(/*strpsql*/"        u.uuid,");
-                    _builder.AppendLine().Append(/*strpsql*/"        array_agg(u.user_id ORDER BY u.is_active DESC, u.user_id DESC) AS user_ids");
-                    _builder.AppendLine().Append(/*strpsql*/"    FROM register.user u");
-                    _builder.AppendLine().Append(/*strpsql*/"    WHERE u.is_active");
-
-                    if (filterBy.HasFlag(PartyFilters.UserId))
-                    {
-                        if (filterBy.HasFlag(PartyFilters.Multiple))
-                        {
-                            // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
-                            _paramUserIdList = new(typeof(IList<int>), "userIds", NpgsqlDbType.Array | NpgsqlDbType.Bigint);
-                            _builder.Append(/*strpsql*/" OR u.user_id = ANY (@userIds)");
-                        }
-                        else
-                        {
-                            _paramUserId = new(typeof(int), "userId", NpgsqlDbType.Bigint);
-                            _builder.Append(/*strpsql*/" OR u.user_id = @userId");
-                        }
-                    }
-
-                    _builder.AppendLine().Append(/*strpsql*/"    GROUP BY u.uuid");
-                    _builder.AppendLine().Append(/*strpsql*/") ua USING (uuid)");
+                    _builder.AppendLine().Append(/*strpsql*/"""LEFT JOIN filtered_users AS "user" USING (uuid)""");
                 }
 
-                // TODO: join in user again for active username
-
-                if (_hasSubUnits)
+                _builder.AppendLine().AppendLine(/*strpsql*/"ORDER BY").Append(/*strpsql*/"    uuids.sort_first");
+                _builder.AppendLine(",").Append(/*strpsql*/"    uuids.sort_second NULLS FIRST");
+                if (includes.HasAnyFlags(PartyFieldIncludes.User))
                 {
-                    _builder.AppendLine().Append(/*strpsql*/"LEFT JOIN (");
-                    _builder.AppendLine().Append(/*strpsql*/"    SELECT");
-
-                    var first = true;
-                    AddJoinField("cp.uuid", includes.HasFlag(PartyFieldIncludes.PartyUuid), ref first);
-                    AddJoinField("cp.id", includes.HasFlag(PartyFieldIncludes.PartyId), ref first);
-                    AddJoinField("cp.party_type", includes.HasFlag(PartyFieldIncludes.PartyType), ref first);
-                    AddJoinField("cp.display_name", includes.HasFlag(PartyFieldIncludes.PartyDisplayName), ref first);
-                    AddJoinField("cp.person_identifier", includes.HasFlag(PartyFieldIncludes.PartyPersonIdentifier), ref first);
-                    AddJoinField("cp.organization_identifier", includes.HasFlag(PartyFieldIncludes.PartyOrganizationIdentifier), ref first);
-                    AddJoinField("cp.created", includes.HasFlag(PartyFieldIncludes.PartyCreatedAt), ref first);
-                    AddJoinField("cp.updated", includes.HasFlag(PartyFieldIncludes.PartyModifiedAt), ref first);
-                    AddJoinField("cp.is_deleted", includes.HasFlag(PartyFieldIncludes.PartyIsDeleted), ref first);
-                    AddJoinField("cp.version_id", includes.HasFlag(PartyFieldIncludes.PartyVersionId), ref first);
-
-                    AddJoinField("co.unit_status", includes.HasFlag(PartyFieldIncludes.OrganizationUnitStatus), ref first);
-                    AddJoinField("co.unit_type", includes.HasFlag(PartyFieldIncludes.OrganizationUnitType), ref first);
-                    AddJoinField("co.telephone_number", includes.HasFlag(PartyFieldIncludes.OrganizationTelephoneNumber), ref first);
-                    AddJoinField("co.mobile_number", includes.HasFlag(PartyFieldIncludes.OrganizationMobileNumber), ref first);
-                    AddJoinField("co.fax_number", includes.HasFlag(PartyFieldIncludes.OrganizationFaxNumber), ref first);
-                    AddJoinField("co.email_address", includes.HasFlag(PartyFieldIncludes.OrganizationEmailAddress), ref first);
-                    AddJoinField("co.internet_address", includes.HasFlag(PartyFieldIncludes.OrganizationInternetAddress), ref first);
-                    AddJoinField("co.mailing_address", includes.HasFlag(PartyFieldIncludes.OrganizationMailingAddress), ref first);
-                    AddJoinField("co.business_address", includes.HasFlag(PartyFieldIncludes.OrganizationBusinessAddress), ref first);
-
-                    AddJoinField("r.to_party parent_uuid", true, ref first);
-                    _builder.AppendLine().Append(/*strpsql*/"    FROM register.external_role_assignment r");
-                    _builder.AppendLine().Append(/*strpsql*/"    FULL JOIN register.party cp ON cp.uuid = r.from_party");
-
-                    if (includes.HasAnyFlags(PartyFieldIncludes.Organization))
-                    {
-                        _builder.AppendLine().Append(/*strpsql*/"    FULL JOIN register.organization co USING (uuid)");
-                    }
-
-                    _builder.AppendLine().Append(/*strpsql*/"    WHERE r.source = 'ccr' AND (r.identifier = 'ikke-naeringsdrivende-hovedenhet' OR r.identifier = 'hovedenhet')");
-                    _builder.AppendLine().Append(/*strpsql*/") cp ON cp.parent_uuid = p.uuid");
+                    _builder.AppendLine(",").Append(/*strpsql*/"""    "user".is_active DESC""");
+                    _builder.AppendLine(",").Append(/*strpsql*/"""    "user".user_id DESC""");
                 }
+            }
 
-                var firstFilter = true;
-                if (!filterBy.HasFlag(PartyFilters.Multiple))
+            private void PopulateCommonTableExpressions(PartyFieldIncludes includes, PartyQueryFilters filterBy)
+            {
+                var firstExpression = true;
+                if (!filterBy.HasFlag(PartyQueryFilters.Multiple))
                 {
                     // if we are not filtering on multiple values, we only allow a single filter type
                     switch (filterBy)
                     {
-                        case PartyFilters.PartyUuid:
-                            _paramPartyUuid = AddFilter(typeof(Guid), "partyUuid", /*strpsql*/"p.uuid =", NpgsqlDbType.Uuid, ref firstFilter);
+                        case PartyQueryFilters.PartyUuid:
+                            _paramPartyUuid = new(typeof(Guid), "partyUuid", NpgsqlDbType.Uuid);
+                            AddCommonTableExpression(
+                                ref firstExpression,
+                                "top_level_uuids",
+                                /*strpsql*/"""
+                                SELECT party."uuid", party.version_id
+                                FROM register.party AS party
+                                WHERE party."uuid" = @partyUuid
+                                """);
                             break;
 
-                        case PartyFilters.PartyId:
-                            _paramPartyId = AddFilter(typeof(int), "partyId", /*strpsql*/"p.id =", NpgsqlDbType.Integer, ref firstFilter);
+                        case PartyQueryFilters.PartyId:
+                            _paramPartyId = new(typeof(long), "partyId", NpgsqlDbType.Bigint);
+                            AddCommonTableExpression(
+                                ref firstExpression,
+                                "top_level_uuids",
+                                /*strpsql*/"""
+                                SELECT party."uuid", party.version_id
+                                FROM register.party AS party
+                                WHERE party."id" = @partyId
+                                """);
                             break;
 
-                        case PartyFilters.PersonIdentifier:
-                            _paramPersonIdentifier = AddFilter(typeof(string), "personIdentifier", /*strpsql*/"p.person_identifier =", NpgsqlDbType.Text, ref firstFilter);
+                        case PartyQueryFilters.PersonIdentifier:
+                            _paramPersonIdentifier = new(typeof(string), "personIdentifier", NpgsqlDbType.Text);
+                            AddCommonTableExpression(
+                                ref firstExpression,
+                                "top_level_uuids",
+                                /*strpsql*/"""
+                                SELECT party."uuid", party.version_id
+                                FROM register.party AS party
+                                WHERE party."person_identifier" = @personIdentifier
+                                """);
                             break;
 
-                        case PartyFilters.OrganizationIdentifier:
-                            _paramOrganizationIdentifier = AddFilter(typeof(string), "organizationIdentifier", /*strpsql*/"p.organization_identifier =", NpgsqlDbType.Text, ref firstFilter);
+                        case PartyQueryFilters.OrganizationIdentifier:
+                            _paramOrganizationIdentifier = new(typeof(string), "organizationIdentifier", NpgsqlDbType.Text);
+                            AddCommonTableExpression(
+                                ref firstExpression,
+                                "top_level_uuids",
+                                /*strpsql*/"""
+                                SELECT party."uuid", party.version_id
+                                FROM register.party AS party
+                                WHERE party."organization_identifier" = @organizationIdentifier
+                                """);
                             break;
 
-                        case PartyFilters.UserId:
-                            // parameter already created
-                            AddFilterPrefix(ref firstFilter);
-                            _builder.Append(/*strpsql*/"@userId = ANY (ua.user_ids)");
+                        case PartyQueryFilters.UserId:
+                            _paramUserId = new(typeof(long), "userId", NpgsqlDbType.Bigint);
+                            AddCommonTableExpression(
+                                ref firstExpression,
+                                "top_level_uuids",
+                                /*strpsql*/"""
+                                SELECT "user"."uuid", party.version_id
+                                FROM register."user" AS "user"
+                                INNER JOIN register.party AS party USING (uuid)
+                                WHERE "user".user_id = @userId
+                                """);
                             break;
 
-                        case PartyFilters.StreamPage:
-                            // handled later, but legal
+                        case PartyQueryFilters.StreamPage:
+                            Debug.Assert(!includes.HasFlag(PartyFieldIncludes.SubUnits), "A query cannot get both a stream page and subunits");
+                            _paramStreamFromExclusive = new(typeof(long), "streamFromExlusive", NpgsqlDbType.Bigint);
+                            _paramStreamLimit = new(typeof(int), "streamLimit", NpgsqlDbType.Integer);
+                            AddCommonTableExpression(
+                                ref firstExpression,
+                                "top_level_uuids",
+                                /*strpsql*/"""
+                                SELECT party."uuid", party.version_id
+                                FROM register.party AS party
+                                WHERE party.version_id > @streamFromExlusive
+                                  AND party.version_id <= register.tx_max_safeval('register.party_version_id_seq')
+                                ORDER BY party.version_id ASC
+                                LIMIT @streamLimit
+                                """);
                             break;
 
                         default:
-                            ThrowHelper.ThrowArgumentOutOfRangeException(nameof(filterBy), $"Unhandled {nameof(PartyFilters)} value: {filterBy}");
+                            ThrowHelper.ThrowArgumentOutOfRangeException(nameof(filterBy), $"Unhandled {nameof(PartyQueryFilters)} value: {filterBy}");
                             break;
                     }
                 }
+                else if (!filterBy.HasFlag(PartyQueryFilters.StreamPage))
+                {
+                    var idSets = new List<string>();
+
+                    if (filterBy.HasFlag(PartyQueryFilters.PartyUuid))
+                    {
+                        // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
+                        _paramPartyUuidList = new(typeof(IList<Guid>), "partyUuids", NpgsqlDbType.Array | NpgsqlDbType.Uuid);
+                        idSets.Add("uuids_by_party_uuid");
+                        AddCommonTableExpression(
+                            ref firstExpression,
+                            "uuids_by_party_uuid",
+                            /*strpsql*/"""
+                            SELECT party."uuid", party.version_id
+                            FROM register.party AS party
+                            WHERE party."uuid" = ANY (@partyUuids)
+                            """);
+                    }
+
+                    if (filterBy.HasFlag(PartyQueryFilters.PartyId))
+                    {
+                        // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
+                        _paramPartyIdList = new(typeof(IList<long>), "partyIds", NpgsqlDbType.Array | NpgsqlDbType.Bigint);
+                        idSets.Add("uuids_by_party_id");
+                        AddCommonTableExpression(
+                            ref firstExpression,
+                            "uuids_by_party_id",
+                            /*strpsql*/"""
+                            SELECT party."uuid", party.version_id
+                            FROM register.party AS party
+                            WHERE party."id" = ANY (@partyIds)
+                            """);
+                    }
+
+                    if (filterBy.HasFlag(PartyQueryFilters.PersonIdentifier))
+                    {
+                        // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
+                        _paramPersonIdentifierList = new(typeof(IList<string>), "personIdentifiers", NpgsqlDbType.Array | NpgsqlDbType.Text);
+                        idSets.Add("uuids_by_person_identifier");
+                        AddCommonTableExpression(
+                            ref firstExpression,
+                            "uuids_by_person_identifier",
+                            /*strpsql*/"""
+                            SELECT party."uuid", party.version_id
+                            FROM register.party AS party
+                            WHERE party."person_identifier" = ANY (@personIdentifiers)
+                            """);
+                    }
+
+                    if (filterBy.HasFlag(PartyQueryFilters.OrganizationIdentifier))
+                    {
+                        // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
+                        _paramOrganizationIdentifierList = new(typeof(IList<string>), "organizationIdentifiers", NpgsqlDbType.Array | NpgsqlDbType.Text);
+                        idSets.Add("uuids_by_organization_identifier");
+                        AddCommonTableExpression(
+                            ref firstExpression,
+                            "uuids_by_organization_identifier",
+                            /*strpsql*/"""
+                            SELECT party."uuid", party.version_id
+                            FROM register.party AS party
+                            WHERE party."organization_identifier" = ANY (@organizationIdentifiers)
+                            """);
+                    }
+
+                    if (filterBy.HasFlag(PartyQueryFilters.UserId))
+                    {
+                        // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
+                        _paramUserIdList = new(typeof(IList<long>), "userIds", NpgsqlDbType.Array | NpgsqlDbType.Bigint);
+                        idSets.Add("uuids_by_user_id");
+                        AddCommonTableExpression(
+                            ref firstExpression,
+                            "uuids_by_user_id",
+                            /*strpsql*/"""
+                            SELECT "user"."uuid", party.version_id
+                            FROM register."user" AS "user"
+                            INNER JOIN register.party AS party USING (uuid)
+                            WHERE "user".user_id = ANY (@userIds)
+                            """);
+                    }
+
+                    Debug.Assert(idSets.Count > 0, "No filters were added, but multiple filters were requested");
+
+                    _builder.AppendLine(",").AppendLine(/*strpsql*/"top_level_uuids AS (");
+                    for (int i = 0, l = idSets.Count; i < l; i++)
+                    {
+                        if (i != 0)
+                        {
+                            _builder.AppendLine(/*strpsql*/"    UNION");
+                        }
+
+                        _builder.Append(/*strpsql*/"""    SELECT "uuid", version_id FROM """).AppendLine(idSets[i]);
+                    }
+
+                    _builder.Append(')');
+                }
                 else
                 {
-                    if (filterBy.HasFlag(PartyFilters.PartyUuid))
-                    {
-                        // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
-                        _paramPartyUuidList = AddFilter(typeof(IList<Guid>), "partyUuids", /*strpsql*/"p.uuid = ANY", NpgsqlDbType.Array | NpgsqlDbType.Uuid, ref firstFilter);
-                    }
-
-                    if (filterBy.HasFlag(PartyFilters.PartyId))
-                    {
-                        // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
-                        _paramPartyIdList = AddFilter(typeof(IList<int>), "partyIds", /*strpsql*/"p.id = ANY", NpgsqlDbType.Array | NpgsqlDbType.Integer, ref firstFilter);
-                    }
-
-                    if (filterBy.HasFlag(PartyFilters.PersonIdentifier))
-                    {
-                        // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
-                        _paramPersonIdentifierList = AddFilter(typeof(IList<string>), "personIdentifiers", /*strpsql*/"p.person_identifier = ANY", NpgsqlDbType.Array | NpgsqlDbType.Text, ref firstFilter);
-                    }
-
-                    if (filterBy.HasFlag(PartyFilters.OrganizationIdentifier))
-                    {
-                        // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
-                        _paramOrganizationIdentifierList = AddFilter(typeof(IList<string>), "organizationIdentifiers", /*strpsql*/"p.organization_identifier = ANY", NpgsqlDbType.Array | NpgsqlDbType.Text, ref firstFilter);
-                    }
-
-                    if (filterBy.HasFlag(PartyFilters.UserId))
-                    {
-                        // parameter already created
-                        AddFilterPrefix(ref firstFilter);
-                        _builder.Append(/*strpsql*/"@userIds && ua.user_ids");
-                    }
-
-                    Debug.Assert(!firstFilter, "No filters were added, but multiple filters were requested");
+                    // stream-page + filters is illegal
+                    ThrowHelper.ThrowArgumentException(nameof(filterBy), $"Cannot use {nameof(PartyQueryFilters.StreamPage)} with other filters");
                 }
 
-                if (!firstFilter)
+                // There should always have been added at least 1 CTE by this point
+                Debug.Assert(!firstExpression);
+
+                if (includes.HasAnyFlags(PartyFieldIncludes.User))
                 {
-                    _builder.AppendLine().Append(/*strpsql*/")");
-                }
-
-                if (filterBy.HasFlag(PartyFilters.StreamPage))
-                {
-                    Debug.Assert(!_hasSubUnits, "A query cannot get both a stream page and subunits");
-
-                    _paramStreamFromExclusive = new(typeof(long), "streamFromExlusive", NpgsqlDbType.Bigint);
-                    _paramStreamLimit = new(typeof(int), "streamLimit", NpgsqlDbType.Integer);
-
-                    if (firstFilter)
+                    if (filterBy.HasFlag(PartyQueryFilters.UserId | PartyQueryFilters.Multiple))
                     {
-                        firstFilter = false;
-                        _builder.AppendLine().Append(/*strpsql*/"WHERE ");
+                        AddCommonTableExpression(
+                            ref firstExpression,
+                            "filtered_users",
+                            /*strpsql*/"""
+                            SELECT "user".*
+                            FROM register."user" AS "user"
+                            WHERE "user".is_active
+                               OR "user".user_id = ANY (@userIds)
+                            """);
+                    }
+                    else if (filterBy.HasFlag(PartyQueryFilters.UserId))
+                    {
+                        AddCommonTableExpression(
+                            ref firstExpression,
+                            "filtered_users",
+                            /*strpsql*/"""
+                            SELECT "user".*
+                            FROM register."user" AS "user"
+                            WHERE "user".is_active
+                               OR "user".user_id = @userId
+                            """);
                     }
                     else
                     {
-                        _builder.AppendLine().Append(/*strpsql*/"    AND ");
+                        AddCommonTableExpression(
+                            ref firstExpression,
+                            "filtered_users",
+                            /*strpsql*/"""
+                            SELECT "user".*
+                            FROM register."user" AS "user"
+                            WHERE "user".is_active
+                            """);
                     }
+                }
 
-                    _builder.Append(/*strpsql*/"p.version_id > @streamFromExlusive");
-                    _builder.AppendLine().Append(/*strpsql*/"    AND p.version_id <= register.tx_max_safeval('register.party_version_id_seq')");
-                    _builder.AppendLine().Append(/*strpsql*/"ORDER BY p.version_id ASC");
-                    _builder.AppendLine().Append(/*strpsql*/"LIMIT @streamLimit");
+                if (includes.HasFlag(PartyFieldIncludes.SubUnits))
+                {
+                    AddCommonTableExpression(
+                        ref firstExpression,
+                        "sub_units",
+                        /*strpsql*/"""
+                        SELECT
+                            parent."uuid" AS parent_uuid,
+                            parent.version_id AS parent_version_id,
+                            ra."from_party" AS child_uuid
+                        FROM top_level_uuids AS parent
+                        JOIN register.external_role_assignment ra
+                             ON ra.to_party = parent."uuid"
+                            AND ra.source = 'ccr'
+                            AND (ra.identifier = 'ikke-naeringsdrivende-hovedenhet' OR ra.identifier = 'hovedenhet')
+                        """);
+
+                    AddCommonTableExpression(
+                        ref firstExpression,
+                        "uuids",
+                        /*strpsql*/"""
+                        SELECT
+                            "uuid" AS "uuid",
+                            NULL::uuid AS parent_uuid,
+                            version_id AS sort_first,
+                            NULL::uuid AS sort_second
+                        FROM top_level_uuids
+                        UNION
+                        SELECT 
+                            child_uuid AS "uuid",
+                            parent_uuid,
+                            parent_version_id AS sort_first,
+                            child_uuid AS sort_second
+                        FROM sub_units
+                        """);
                 }
                 else
                 {
-                    _builder.AppendLine().Append(/*strpsql*/"ORDER BY p.uuid");
-
-                    if (_hasSubUnits)
-                    {
-                        _builder.AppendLine(",").Append(/*strpsql*/"    cp.uuid");
-                    }
+                    AddCommonTableExpression(
+                        ref firstExpression,
+                        "uuids",
+                        /*strpsql*/"""
+                        SELECT
+                            "uuid" AS "uuid",
+                            NULL::uuid AS parent_uuid,
+                            version_id AS sort_first,
+                            NULL::uuid AS sort_second
+                        FROM top_level_uuids
+                        """);
                 }
+
+                _builder.AppendLine();
+            }
+
+            private void AddCommonTableExpression(ref bool firstExpression, string name, string query)
+            {
+                if (firstExpression)
+                {
+                    _builder.Append(/*strpsql*/"WITH ");
+                    firstExpression = false;
+                }
+                else
+                {
+                    _builder.AppendLine(/*strpsql*/",");
+                }
+
+                _builder.Append(name).AppendLine(/*strpsql*/" AS (");
+                foreach (var line in query.AsSpan().EnumerateLines())
+                {
+                    _builder.Append("    ").Append(line).AppendLine();
+                }
+
+                _builder.Append(')');
             }
 
             private sbyte AddField(string sourceSql, string fieldAlias, bool include)
@@ -722,64 +973,6 @@ internal partial class PostgreSqlPartyPersistence
                 _builder.Append("    ").Append(sourceSql).Append(' ').Append(fieldAlias);
 
                 return _fieldIndex++;
-            }
-
-            private void AddJoinField(string sourceSql, bool include, ref bool first)
-            {
-                if (!include)
-                {
-                    return;
-                }
-
-                if (first)
-                {
-                    first = false;
-                }
-                else
-                {
-                    _builder.Append(',');
-                }
-
-                _builder.AppendLine();
-                _builder.Append("            ").Append(sourceSql);
-            }
-
-            private void AddFilterPrefix(ref bool first)
-            {
-                if (first)
-                {
-                    _builder.AppendLine().AppendLine(/*strpsql*/"WHERE (").Append("       ");
-                    first = false;
-                }
-                else
-                {
-                    _builder.AppendLine().Append(/*strpsql*/"    OR ");
-                }
-            }
-
-            private FilterParameter AddFilter(Type type, string name, string sourceSql, NpgsqlDbType dbType, ref bool first)
-            {
-                AddFilterPrefix(ref first);
-
-                _builder.Append(sourceSql);
-                
-                if (dbType.HasFlag(NpgsqlDbType.Array))
-                {
-                    _builder.Append('(');
-                }
-                else
-                {
-                    _builder.Append(' ');
-                }
-
-                _builder.Append('@').Append(name);
-
-                if (dbType.HasFlag(NpgsqlDbType.Array))
-                {
-                    _builder.Append(')');
-                }
-
-                return new(type, name, dbType);
             }
         }
 
@@ -801,6 +994,9 @@ internal partial class PostgreSqlPartyPersistence
 
         [SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1515:Single-line comment should be preceded by blank line", Justification = "This rule makes no sense here")]
         private class PartyFields(
+            // meta fields
+            sbyte parentUuid,
+
             // register.party
             sbyte partyUuid,
             sbyte partyId,
@@ -835,8 +1031,12 @@ internal partial class PostgreSqlPartyPersistence
             sbyte organizationBusinessAddress,
             
             // register.user
-            sbyte userIds)
+            sbyte userIsActive,
+            sbyte userId)
         {
+            // meta field
+            public int ParentUuid => parentUuid;
+
             // register.party
             public int PartyUuid => partyUuid;
             public int PartyId => partyId;
@@ -871,7 +1071,8 @@ internal partial class PostgreSqlPartyPersistence
             public int OrganizationBusinessAddress => organizationBusinessAddress;
 
             // register.user
-            public int UserIds => userIds;
+            public int UserIsActive => userIsActive;
+            public int UserId => userId;
         }
     }
 }

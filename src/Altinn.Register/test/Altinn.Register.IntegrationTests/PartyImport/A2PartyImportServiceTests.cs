@@ -138,10 +138,7 @@ public class A2PartyImportServiceTests
 
             result.IsProblem.ShouldBeFalse();
             result.Value.ShouldNotBeNull();
-            result.Value.ShouldBe(new PartyUserRecord
-            {
-                UserIds = ImmutableValueArray.Create(20002571U),
-            });
+            result.Value.ShouldBe(new PartyUserRecord(userId: 20002571U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(20002571U)));
         }
     }
 

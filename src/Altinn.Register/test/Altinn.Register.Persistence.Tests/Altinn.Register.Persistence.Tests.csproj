@@ -8,13 +8,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference
-      Include="..\..\src\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
     <ProjectReference Include="..\Altinn.Register.TestUtils.V2\Altinn.Register.TestUtils.V2.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Utils\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Verify.Xunit" />
   </ItemGroup>
 
 </Project>

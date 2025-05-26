@@ -237,8 +237,9 @@ internal sealed partial class A2PartyImportService
     private PartyUserRecord MapPartyUser(PartyProfile profile)
     {
         var userId = checked((uint)profile.UserId);
+        var userIds = ImmutableValueArray.Create(userId);
 
-        return new PartyUserRecord { UserIds = ImmutableValueArray.Create(userId) };
+        return new PartyUserRecord(userId: userId, username: FieldValue.Unset, userIds: userIds);
     }
 
     private A2PartyChangePage MapChangePage(PartyChangesResponse response)

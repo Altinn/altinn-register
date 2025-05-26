@@ -1,5 +1,6 @@
 ﻿#nullable enable
 
+using Altinn.Register.Core.ModelUtils;
 using Altinn.Register.Core.Utils;
 using Altinn.Register.Model.Extensions;
 using Microsoft.AspNetCore.Mvc.ModelBinding;

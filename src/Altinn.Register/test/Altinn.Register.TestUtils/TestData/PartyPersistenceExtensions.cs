@@ -10,7 +10,6 @@ using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
-using Altinn.Register.Core.Utils;
 using Altinn.Register.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
@@ -428,10 +427,10 @@ public static class PartyPersistenceExtensions
         if (user.IsUnset)
         {
             var userIdsEnumerable = await uow.GetNewUserIds(3, cancellationToken);
-            user = new PartyUserRecord
-            {
-                UserIds = userIdsEnumerable.Select(static id => (uint)id).OrderByDescending(static id => id).ToImmutableValueArray(),
-            };
+            var userIds = userIdsEnumerable.Select(static id => (uint)id).OrderByDescending(static id => id).ToImmutableValueArray();
+            var userId = userIds[0];
+
+            user = new PartyUserRecord(userId: userId, username: FieldValue.Unset, userIds: userIds);
         }
         else if (user.IsNull)
         {
@@ -487,7 +486,11 @@ public static class PartyPersistenceExtensions
         var builder = ImmutableArray.CreateBuilder<PersonRecord>(count);
         for (uint i = 0; i < count; i++)
         {
-            builder.Add(await uow.CreatePerson(id: nextPartyId, user: new PartyUserRecord { UserIds = userIdsBuilder.ToImmutableValueArray() }, cancellationToken: cancellationToken));
+            var userIds = userIdsBuilder.ToImmutableValueArray();
+            var userId = userIds[0];
+            var user = new PartyUserRecord(userId: userId, username: FieldValue.Unset, userIds: userIds);
+
+            builder.Add(await uow.CreatePerson(id: nextPartyId, user: user, cancellationToken: cancellationToken));
             nextPartyId += 1;
             IncrementUserIds(userIdsBuilder, (uint)userIdsBuilder.Count);
         }
@@ -516,10 +519,10 @@ public static class PartyPersistenceExtensions
         if (user.IsUnset)
         {
             var userIdsEnumerable = await uow.GetNewUserIds(3, cancellationToken);
-            user = new PartyUserRecord
-            {
-                UserIds = userIdsEnumerable.Select(static id => (uint)id).OrderByDescending(static id => id).ToImmutableValueArray(),
-            };
+            var userIds = userIdsEnumerable.Select(static id => (uint)id).OrderByDescending(static id => id).ToImmutableValueArray();
+            var userId = userIds[0];
+
+            user = new PartyUserRecord(userId: userId, username: FieldValue.Unset, userIds: userIds);
         }
 
         if (name.IsUnset)
@@ -568,7 +571,11 @@ public static class PartyPersistenceExtensions
         var builder = ImmutableArray.CreateBuilder<SelfIdentifiedUserRecord>(count);
         for (var i = 0; i < count; i++)
         {
-            builder.Add(await uow.CreateSelfIdentifiedUser(id: nextPartyId, user: new PartyUserRecord { UserIds = userIdsBuilder.ToImmutableValueArray() }, cancellationToken: cancellationToken));
+            var userIds = userIdsBuilder.ToImmutableValueArray();
+            var userId = userIds[0];
+            var user = new PartyUserRecord(userId: userId, username: FieldValue.Unset, userIds: userIds);
+
+            builder.Add(await uow.CreateSelfIdentifiedUser(id: nextPartyId, user: user, cancellationToken: cancellationToken));
             nextPartyId += 1;
             IncrementUserIds(userIdsBuilder, (uint)userIdsBuilder.Count);
         }

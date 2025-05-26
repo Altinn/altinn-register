@@ -142,7 +142,7 @@ public class PostgresUserIdImportJobServiceTests
                 async (i, ct) =>
                 {
                     await using var uow = await _manager!.CreateAsync(ct, activityName: $"setup {i}");
-                    await uow.CreatePeople(101, idOffset: (uint)(5000 * i), cancellationToken: ct);
+                    await uow.CreatePeople(101, idOffset: (uint)(100_000 + (5000 * i)), cancellationToken: ct);
                     await uow.CreateSelfIdentifiedUsers(102, cancellationToken: ct);
                     await uow.CreateOrgs(103, cancellationToken: ct);
                     await uow.CommitAsync(ct);
@@ -201,10 +201,7 @@ public class PostgresUserIdImportJobServiceTests
 
             await Party.UpsertParty(users[0] with
             {
-                User = new PartyUserRecord
-                {
-                    UserIds = ImmutableValueArray.Create(1U),
-                },
+                User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
             });
             await JobState.SetPartyState("test", users[1].PartyUuid.Value, new EmptyState());
             await NewTransaction(commit: true);

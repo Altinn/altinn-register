@@ -95,7 +95,7 @@ public class PartyImportBatchConsumerTests
         var msg = new UpsertPartyUserCommand
         {
             PartyUuid = partyUuid,
-            User = new PartyUserRecord { UserIds = ImmutableValueArray.Create(1U) },
+            User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
             Tracking = new("test", 1),
         };
 

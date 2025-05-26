@@ -1,6 +1,7 @@
 ﻿#nullable enable
 
 using System.Text.Json;
+using Altinn.Register.Core.ModelUtils;
 using Altinn.Register.Core.Parties;
 
 namespace Altinn.Register.ModelBinding;

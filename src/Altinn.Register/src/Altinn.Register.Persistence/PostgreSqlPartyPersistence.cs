@@ -54,7 +54,7 @@ internal partial class PostgreSqlPartyPersistence
         // always include by-field in the result
         include |= PartyFieldIncludes.PartyUuid;
 
-        var query = PartyQuery.Get(include, PartyFilters.PartyUuid);
+        var query = PartyQuery.Get(include, PartyQueryFilters.PartyUuid);
 
         NpgsqlCommand? cmd = null;
         try
@@ -83,7 +83,7 @@ internal partial class PostgreSqlPartyPersistence
         // always include by-field in the result
         include |= PartyFieldIncludes.PartyId;
 
-        var query = PartyQuery.Get(include, PartyFilters.PartyId);
+        var query = PartyQuery.Get(include, PartyQueryFilters.PartyId);
 
         NpgsqlCommand? cmd = null;
         try
@@ -115,7 +115,7 @@ internal partial class PostgreSqlPartyPersistence
         // filter out person fields as result is guaranteed to be an organization
         include &= ~PartyFieldIncludes.Person;
 
-        var query = PartyQuery.Get(include, PartyFilters.OrganizationIdentifier);
+        var query = PartyQuery.Get(include, PartyQueryFilters.OrganizationIdentifier);
         NpgsqlCommand? cmd = null;
         try
         {
@@ -146,7 +146,7 @@ internal partial class PostgreSqlPartyPersistence
         // filter out organization fields as result is guaranteed to be a person
         include &= ~(PartyFieldIncludes.Organization & PartyFieldIncludes.SubUnits);
 
-        var query = PartyQuery.Get(include, PartyFilters.PersonIdentifier);
+        var query = PartyQuery.Get(include, PartyQueryFilters.PersonIdentifier);
         NpgsqlCommand? cmd = null;
         try
         {
@@ -174,7 +174,7 @@ internal partial class PostgreSqlPartyPersistence
         // always include by-field in the result
         include |= PartyFieldIncludes.UserId;
 
-        var query = PartyQuery.Get(include, PartyFilters.UserId);
+        var query = PartyQuery.Get(include, PartyQueryFilters.UserId);
         NpgsqlCommand? cmd = null;
         try
         {
@@ -204,40 +204,40 @@ internal partial class PostgreSqlPartyPersistence
         _handle.ThrowIfCompleted();
 
         bool any = false, orgs = false, persons = false;
-        PartyFilters filters = PartyFilters.Multiple;
+        PartyQueryFilters filters = PartyQueryFilters.Multiple;
         
         if (partyUuids is { Count: > 0 })
         {
             any = orgs = persons = true;
-            filters |= PartyFilters.PartyUuid;
+            filters |= PartyQueryFilters.PartyUuid;
             include |= PartyFieldIncludes.PartyUuid;
         }
 
         if (partyIds is { Count: > 0 })
         {
             any = orgs = persons = true;
-            filters |= PartyFilters.PartyId;
+            filters |= PartyQueryFilters.PartyId;
             include |= PartyFieldIncludes.PartyId;
         }
 
         if (organizationIdentifiers is { Count: > 0 })
         {
             any = orgs = true;
-            filters |= PartyFilters.OrganizationIdentifier;
+            filters |= PartyQueryFilters.OrganizationIdentifier;
             include |= PartyFieldIncludes.PartyOrganizationIdentifier;
         }
 
         if (personIdentifiers is { Count: > 0 })
         {
             any = persons = true;
-            filters |= PartyFilters.PersonIdentifier;
+            filters |= PartyQueryFilters.PersonIdentifier;
             include |= PartyFieldIncludes.PartyPersonIdentifier;
         }
 
         if (userIds is { Count: > 0 })
         {
             any = persons = true;
-            filters |= PartyFilters.UserId;
+            filters |= PartyQueryFilters.UserId;
             include |= PartyFieldIncludes.UserId;
         }
 
@@ -308,7 +308,7 @@ internal partial class PostgreSqlPartyPersistence
         _handle.ThrowIfCompleted();
         Guard.IsFalse(include.HasFlag(PartyFieldIncludes.SubUnits), nameof(include), $"{nameof(PartyFieldIncludes)}.{nameof(PartyFieldIncludes.SubUnits)} is not allowed");
 
-        var query = PartyQuery.Get(include, PartyFilters.StreamPage);
+        var query = PartyQuery.Get(include, PartyQueryFilters.StreamPage);
         NpgsqlCommand? cmd = null;
         try
         {
@@ -374,56 +374,15 @@ internal partial class PostgreSqlPartyPersistence
         return UpsertPartyQuery.UpsertPartyUser(_connection, partyUuid, user, cancellationToken);
     }
 
-    private async IAsyncEnumerable<PartyRecord> PrepareAndReadPartiesAsync(
-        NpgsqlCommand inCmd,
+    private IAsyncEnumerable<PartyRecord> PrepareAndReadPartiesAsync(
+        NpgsqlCommand cmd,
         PartyQuery query,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+        CancellationToken cancellationToken)
     {
-        Guard.IsNotNull(inCmd);
+        Guard.IsNotNull(cmd);
         Guard.IsNotNull(query);
 
-        await using var cmd = inCmd;
-
-        await cmd.PrepareAsync(cancellationToken);
-        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-
-        var includeSubunits = query.HasSubUnits;
-        Guid lastParent = default;
-        while (await reader.ReadAsync(cancellationToken))
-        {
-            var parentUuid = await query.ReadParentUuid(reader, cancellationToken);
-            if (parentUuid != lastParent)
-            {
-                lastParent = parentUuid;
-                var parent = await query.ReadParentParty(reader, cancellationToken);
-                yield return parent;
-            }
-
-            if (includeSubunits)
-            {
-                var childUuid = await query.ReadChildUuid(reader, cancellationToken);
-                if (childUuid.HasValue)
-                {
-                    var child = await query.ReadChildParty(reader, parentUuid, cancellationToken);
-                    yield return child;
-                }
-            }
-        }
-    }
-
-    [Flags]
-    private enum PartyFilters
-        : byte
-    {
-        None = 0,
-        PartyId = 1 << 0,
-        PartyUuid = 1 << 1,
-        PersonIdentifier = 1 << 2,
-        OrganizationIdentifier = 1 << 3,
-        UserId = 1 << 4,
-        StreamPage = 1 << 5,
-
-        Multiple = 1 << 7,
+        return query.PrepareAndReadPartiesAsync(cmd, cancellationToken);
     }
 
     #endregion
