@@ -24,6 +24,26 @@ public abstract record ListObject
         => new(items);
 
     /// <summary>
+    /// Creates a new <see cref="ListObject{T}"/> from a list of items.
+    /// </summary>
+    /// <typeparam name="T">The list type.</typeparam>
+    /// <param name="items">The list of items.</param>
+    /// <returns>A <see cref="ListObject{T}"/>.</returns>
+    public static ListObject<T> Create<T>(IReadOnlyCollection<T> items)
+        => items.Count == 0
+            ? ListObject<T>.Empty
+            : new(items);
+
+    /// <summary>
+    /// Gets a empty <see cref="ListObject{T}"/> instance.
+    /// </summary>
+    /// <typeparam name="T">The list type.</typeparam>
+    /// <returns>A <see cref="ListObject{T}"/>.</returns>
+    public static ListObject<T> Empty<T>()
+        where T : notnull
+        => ListObject<T>.Empty;
+
+    /// <summary>
     /// Default schema filter for <see cref="ListObject"/>.
     /// </summary>
     protected class SchemaFilter : ISchemaFilter
@@ -49,4 +69,10 @@ public abstract record ListObject
 public record ListObject<T>(
     [property: JsonPropertyName("data")]
     IEnumerable<T> Items)
-    : ListObject;
+    : ListObject
+{
+    /// <summary>
+    /// Gets a empty <see cref="ListObject{T}"/> instance.
+    /// </summary>
+    public static readonly ListObject<T> Empty = new([]);
+}

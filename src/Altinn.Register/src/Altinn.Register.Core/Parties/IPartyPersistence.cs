@@ -38,7 +38,7 @@ public interface IPartyPersistence
     /// amount of child units if requested.
     /// </returns>
     public IAsyncEnumerable<PartyRecord> GetPartyById(
-        int partyId,
+        uint partyId,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default);
 
@@ -90,7 +90,7 @@ public interface IPartyPersistence
     /// <returns>
     /// A <see cref="IAsyncEnumerable{T}"/> containing 0 or 1 <see cref="PersonRecord"/>.
     /// </returns>
-    public IAsyncEnumerable<PersonRecord> GetPartyByPersonIdentifier(
+    public IAsyncEnumerable<PersonRecord> GetPersonByIdentifier(
         PersonIdentifier identifier,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default);

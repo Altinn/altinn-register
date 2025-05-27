@@ -104,7 +104,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [Fact]
     public async Task GetPartyById_NoneExistingId_ReturnsEmpty()
     {
-        var partyId = 0;
+        var partyId = 0U;
         var result = await Persistence.GetPartyById(partyId).ToListAsync();
 
         result.Should().BeEmpty();
@@ -286,7 +286,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [Fact]
     public async Task GetPartyByPersonIdentifier_CanGet_PersonData()
     {
-        var result = await Persistence.GetPartyByPersonIdentifier(PersonIdentifier, include: PartyFieldIncludes.Party | PartyFieldIncludes.Person).ToListAsync();
+        var result = await Persistence.GetPersonByIdentifier(PersonIdentifier, include: PartyFieldIncludes.Party | PartyFieldIncludes.Person).ToListAsync();
 
         var party = result.Should().ContainSingle().Which.Should().BeOfType<PersonRecord>().Which;
 

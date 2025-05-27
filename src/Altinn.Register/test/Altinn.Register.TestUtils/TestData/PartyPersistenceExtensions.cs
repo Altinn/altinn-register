@@ -588,7 +588,8 @@ public static class PartyPersistenceExtensions
         ExternalRoleSource roleSource,
         string roleIdentifier,
         Guid from,
-        Guid to)
+        Guid to,
+        CancellationToken cancellationToken = default)
     {
         var connection = uow.GetRequiredService<NpgsqlConnection>();
         await using var cmd = connection.CreateCommand();
@@ -603,8 +604,8 @@ public static class PartyPersistenceExtensions
         cmd.Parameters.Add<Guid>("from", NpgsqlDbType.Uuid).TypedValue = from;
         cmd.Parameters.Add<Guid>("to", NpgsqlDbType.Uuid).TypedValue = to;
 
-        await cmd.PrepareAsync();
-        await cmd.ExecuteNonQueryAsync();
+        await cmd.PrepareAsync(cancellationToken);
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
     public static async Task<ImmutableDictionary<ExternalRoleSource, ImmutableArray<ExternalRoleDefinition>>> CreateFakeRoleDefinitions(

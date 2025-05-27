@@ -1,5 +1,7 @@
 ﻿#nullable enable
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core;
@@ -450,5 +452,89 @@ public class PartyController
         }
 
         return StatusCode(statusCode,  ListObject.Create(result));
+    }
+
+    private static ExternalRoleReference _hovedenhetRole = new(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet");
+    private static ExternalRoleReference _ikkeNaeringsdrivendeHovedenhetRole = new(ExternalRoleSource.CentralCoordinatingRegister, "ikke-naeringsdrivende-hovedenhet");
+
+    /// <summary>
+    /// Gets the main units of an organization (if any).
+    /// </summary>
+    /// <param name="request">The request body.</param>
+    /// <param name="fields">The fields to include in the response.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>All organizations that are the main-units of the input organization.</returns>
+    [HttpPost("main-units")]
+    [ProducesResponseType<ListObject<OrganizationRecord>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ListObject<OrganizationRecord>>> GetMainUnits(
+        [FromBody] DataObject<OrgUrn> request,
+        [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
+        CancellationToken cancellationToken = default)
+    {
+        ValidationErrorBuilder errors = default;
+        if (fields.HasFlag(PartyFieldIncludes.SubUnits))
+        {
+            errors.Add(ValidationErrors.PartyFields_SubUnits_Forbidden, "/$QUERY/fields");
+        }
+
+        if (errors.TryToActionResult(out var actionResult))
+        {
+            return actionResult;
+        }
+
+        await using var uow = await _uowManager.CreateAsync(cancellationToken);
+        var partyPersistence = uow.GetPartyPersistence();
+        var rolePersistence = uow.GetPartyExternalRolePersistence();
+
+        if (!request.Item.IsPartyUuid(out var partyUuid))
+        {
+            PartyRecord? party = request.Item switch
+            {
+                OrgUrn.PartyId { Value: var partyId } => await partyPersistence
+                    .GetPartyById(partyId, PartyFieldIncludes.PartyUuid | PartyFieldIncludes.PartyType, cancellationToken)
+                    .FirstOrDefaultAsync(cancellationToken),
+                OrgUrn.OrganizationId { Value: var orgId } => await partyPersistence
+                    .GetOrganizationByIdentifier(orgId, PartyFieldIncludes.PartyUuid, cancellationToken)
+                    .FirstOrDefaultAsync(cancellationToken),
+                _ => Unreachable<PartyRecord>(),
+            };
+
+            if (party is not OrganizationRecord { PartyUuid.HasValue: true })
+            {
+                // only organizations can have main units
+                return ListObject.Create<OrganizationRecord>([]);
+            }
+
+            partyUuid = party.PartyUuid.Value;
+        }
+
+        var mainUnitIds = await rolePersistence.GetExternalRoleAssignmentsFromParty(
+            partyUuid,
+            [_hovedenhetRole, _ikkeNaeringsdrivendeHovedenhetRole],
+            PartyExternalRoleAssignmentFieldIncludes.RoleToParty,
+            cancellationToken)
+            .Select(static r => r.ToParty.Value)
+            .ToListAsync(cancellationToken);
+
+        if (mainUnitIds.Count == 0)
+        {
+            return ListObject.Create<OrganizationRecord>([]);
+        }
+
+        var mainUnits = await partyPersistence.LookupParties(
+            partyUuids: mainUnitIds,
+            include: fields | PartyFieldIncludes.PartyType,
+            cancellationToken: cancellationToken)
+            .OfType<OrganizationRecord>()
+            .ToListAsync(cancellationToken);
+
+        return ListObject.Create(mainUnits);
+    }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static T Unreachable<T>()
+    {
+        throw new InvalidOperationException("This code should never be reached.");
     }
 }

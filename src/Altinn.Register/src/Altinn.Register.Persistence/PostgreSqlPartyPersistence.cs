@@ -74,7 +74,7 @@ internal partial class PostgreSqlPartyPersistence
 
     /// <inheritdoc/>
     public IAsyncEnumerable<PartyRecord> GetPartyById(
-        int partyId,
+        uint partyId,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default)
     {
@@ -133,7 +133,7 @@ internal partial class PostgreSqlPartyPersistence
     }
 
     /// <inheritdoc/>
-    public IAsyncEnumerable<PersonRecord> GetPartyByPersonIdentifier(
+    public IAsyncEnumerable<PersonRecord> GetPersonByIdentifier(
         PersonIdentifier identifier,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default)
@@ -403,6 +403,23 @@ internal partial class PostgreSqlPartyPersistence
         PartyExternalRoleAssignmentFieldIncludes include,
         CancellationToken cancellationToken)
         => GetExternalRoleAssignmentsFromParty(partyUuid, role, include, cancellationToken);
+
+    /// <inheritdoc/>
+    async IAsyncEnumerable<PartyExternalRoleAssignmentRecord> IPartyExternalRolePersistence.GetExternalRoleAssignmentsFromParty(
+        Guid partyUuid,
+        IReadOnlyList<ExternalRoleReference> roles,
+        PartyExternalRoleAssignmentFieldIncludes include,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        // TODO: Update the method below to support multiple roles instead of looping
+        foreach (var role in roles.Distinct())
+        {
+            await foreach (var assignment in GetExternalRoleAssignmentsFromParty(partyUuid, role, include, cancellationToken))
+            {
+                yield return assignment;
+            }
+        }
+    }
 
     /// <inheritdoc cref="IPartyExternalRolePersistence.GetExternalRoleAssignmentsFromParty(Guid, ExternalRoleReference, PartyExternalRoleAssignmentFieldIncludes, CancellationToken)"/>
     public IAsyncEnumerable<PartyExternalRoleAssignmentRecord> GetExternalRoleAssignmentsFromParty(
