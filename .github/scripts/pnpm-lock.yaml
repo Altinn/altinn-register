@@ -13,7 +13,7 @@ importers:
         version: 7.0.2
       '@types/node':
         specifier: ^22.0.0
-        version: 22.15.3
+        version: 22.15.23
       chalk:
         specifier: ^5.3.0
         version: 5.4.1
@@ -28,7 +28,7 @@ importers:
         version: 5.8.3
       zx:
         specifier: ^8.0.0
-        version: 8.5.3
+        version: 8.5.4
 
 packages:
 
@@ -248,8 +248,8 @@ packages:
     resolution: {integrity: sha512-LtoMMhxAlorcGhmFYI+LhPgbPZCkgP6ra1YL604EeF6U98pLlQ3iWIGMdWSC+vWmPBWBNgmDBAhnAobLROJmwg==}
     engines: {node: '>=18'}
 
-  '@types/node@22.15.3':
-    resolution: {integrity: sha512-lX7HFZeHf4QG/J7tBZqrCAXwz9J5RD56Y6MpP0eJkka8p+K0RY/yBTW7CYFJ4VGCclxqOLKmiGP5juQc6MKgcw==}
+  '@types/node@22.15.23':
+    resolution: {integrity: sha512-7Ec1zaFPF4RJ0eXu1YT/xgiebqwqoJz8rYPDi/O2BcZ++Wpt0Kq9cl0eg6NN6bYbPnR67ZLo7St5Q3UK0SnARw==}
 
   before-after-hook@3.0.2:
     resolution: {integrity: sha512-Nik3Sc0ncrMK4UUdXQmAnRtzmNQTAAXmXIopizwZ1W1t8QmfJj+zL4OA2I7XPTPW5z5TDqv4hRo/JzouDJnX3A==}
@@ -374,8 +374,8 @@ packages:
   universal-user-agent@7.0.2:
     resolution: {integrity: sha512-0JCqzSKnStlRRQfCdowvqy3cy0Dvtlb8xecj/H8JFZuCze4rwjPZQOgvFvn0Ws/usCHQFGpyr+pB9adaGwXn4Q==}
 
-  zx@8.5.3:
-    resolution: {integrity: sha512-TsGLAt8Ngr4wDXLZmN9BT+6FWVLFbqdQ0qpXkV3tIfH7F+MgN/WUeSY7W4nNqAntjWunmnRaznpyxtJRPhCbUQ==}
+  zx@8.5.4:
+    resolution: {integrity: sha512-44oKea9Sa8ZnOkTnS6fRJpg3quzgnbB43nLrVfYnqE86J4sxgZMUDLezzKET/FdOAVkF4X+Alm9Bume+W+RW9Q==}
     engines: {node: '>= 12.17.0'}
     hasBin: true
 
@@ -535,7 +535,7 @@ snapshots:
 
   '@sindresorhus/merge-streams@2.3.0': {}
 
-  '@types/node@22.15.3':
+  '@types/node@22.15.23':
     dependencies:
       undici-types: 6.21.0
 
@@ -667,4 +667,4 @@ snapshots:
 
   universal-user-agent@7.0.2: {}
 
-  zx@8.5.3: {}
+  zx@8.5.4: {}
