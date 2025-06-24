@@ -1,6 +1,4 @@
-﻿using System.Text;
-using System.Text.Json.Serialization;
-using Altinn.Authorization.ServiceDefaults;
+﻿using Altinn.Authorization.ServiceDefaults;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Common.AccessToken;
 using Altinn.Common.AccessToken.Configuration;
@@ -246,8 +244,6 @@ internal static class RegisterHost
             c.EnableAnnotations();
             c.SupportNonNullableReferenceTypes();
             c.SchemaFilter<PartyComponentOptionSchemaFilter>();
-            c.SchemaFilter<FieldValueSchemaFilter>();
-            c.SchemaFilter<PartyRecordSchemaFilter>();
             c.SchemaFilter<PartyFieldIncludesSchemaFilter>();
 
             var originalIdSelector = c.SchemaGeneratorOptions.SchemaIdSelector;

@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using Altinn.Register.Core.ModelUtils;
+﻿using Altinn.Authorization.ModelUtils.EnumUtils;
 using Altinn.Register.Core.Parties;
 using static Altinn.Register.Persistence.PostgreSqlPartyPersistence;
 
@@ -7,8 +6,8 @@ namespace Altinn.Register.Persistence.Tests;
 
 public class PartyQueryTests 
 {
-    private static FlagsEnumModel<PartyFieldIncludes> _includesModel = FlagsEnumModel.Create<PartyFieldIncludes>(JsonNamingPolicy.KebabCaseLower, StringComparison.Ordinal);
-    private static FlagsEnumModel<PartyQueryFilters> _filtersModel = FlagsEnumModel.Create<PartyQueryFilters>(JsonNamingPolicy.KebabCaseLower, StringComparison.Ordinal);
+    private static FlagsEnumModel<PartyFieldIncludes> _includesModel = FlagsEnumModel.Create<PartyFieldIncludes>();
+    private static FlagsEnumModel<PartyQueryFilters> _filtersModel = FlagsEnumModel.Create<PartyQueryFilters>();
 
     [Theory]
     [MemberData(nameof(QueryVariants))]

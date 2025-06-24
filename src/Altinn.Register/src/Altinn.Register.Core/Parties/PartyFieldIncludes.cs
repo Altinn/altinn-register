@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Core.Parties.Records;
 
 namespace Altinn.Register.Core.Parties;
@@ -7,6 +8,7 @@ namespace Altinn.Register.Core.Parties;
 /// Fields to include when fetching a <see cref="PartyRecord"/>.
 /// </summary>
 [Flags]
+[StringEnumConverter]
 public enum PartyFieldIncludes
     : uint
 {
