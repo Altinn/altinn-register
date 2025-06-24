@@ -2,7 +2,6 @@
 using Altinn.Authorization.ServiceDefaults.MassTransit.Commands;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.ImportJobs;
-using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.Core.UnitOfWork;
@@ -12,7 +11,7 @@ using Altinn.Register.TestUtils.Http;
 using Altinn.Register.TestUtils.MassTransit;
 using Altinn.Register.TestUtils.TestData;
 using Xunit.Sdk;
-using V1Models = Altinn.Platform.Register.Models;
+using V1Models = Altinn.Platform.Models.Register.V1;
 
 namespace Altinn.Register.IntegrationTests.PartyImport;
 
@@ -111,7 +110,7 @@ public class A2PartyImportConsumerTests
 
         sent.Context.Message.Party.PartyId.ShouldBe(partyId);
         sent.Context.Message.Party.PartyUuid.ShouldBe(partyUuid);
-        sent.Context.Message.Party.PartyType.ShouldBe(PartyType.SelfIdentifiedUser);
+        sent.Context.Message.Party.PartyType.ShouldBe(PartyRecordType.SelfIdentifiedUser);
         sent.Context.DestinationAddress.ShouldBe(CommandQueueResolver.GetQueueUriForCommandType<UpsertPartyCommand>());
     }
 
@@ -119,7 +118,7 @@ public class A2PartyImportConsumerTests
     public async Task ImportA2UserIdForPartyCommand_ForPerson_FetchesUserId_AndSendsUpsertCommand()
     {
         var partyUuid = Guid.CreateVersion7();
-        var partyType = PartyType.Person;
+        var partyType = PartyRecordType.Person;
 
         FakeHttpHandlers.For<IA2PartyImportService>().Expect(HttpMethod.Get, "/profile/api/users/getorcreate/{partyUuid:guid}")
             .WithRouteValue("partyUuid", partyUuid.ToString())
@@ -255,7 +254,7 @@ public class A2PartyImportConsumerTests
         var party = new V1Models.Party
         {
             PartyId = 50012345,
-            PartyTypeName = Platform.Register.Enums.PartyType.Person,
+            PartyTypeName = Platform.Models.Register.V1.PartyType.Person,
             OrgNumber = null,
             SSN = "25871999336",
             UnitType = null,

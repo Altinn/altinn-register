@@ -126,11 +126,11 @@ public static class RegisterPersistenceExtensions
 
     private static INpgsqlDatabaseBuilder MapRegisterTypes(this INpgsqlDatabaseBuilder builder)
     {
-        builder.MapEnum<PartyType>("register.party_type", new EnumNameTranslator<PartyType>(static value => value switch
+        builder.MapEnum<PartyRecordType>("register.party_type", new EnumNameTranslator<PartyRecordType>(static value => value switch
         {
-            PartyType.Organization => "organization",
-            PartyType.Person => "person",
-            PartyType.SelfIdentifiedUser => "self-identified-user",
+            PartyRecordType.Organization => "organization",
+            PartyRecordType.Person => "person",
+            PartyRecordType.SelfIdentifiedUser => "self-identified-user",
             _ => null,
         }));
 
@@ -156,23 +156,23 @@ public static class RegisterPersistenceExtensions
             _ => null,
         }));
 
-        builder.MapComposite<MailingAddress>("register.co_mailing_address", new CompositeNameTranslator<MailingAddress>(static member => member.Name switch
+        builder.MapComposite<MailingAddressRecord>("register.co_mailing_address", new CompositeNameTranslator<MailingAddressRecord>(static member => member.Name switch
         {
-            nameof(MailingAddress.Address) => "address",
-            nameof(MailingAddress.PostalCode) => "postal_code",
-            nameof(MailingAddress.City) => "city",
+            nameof(MailingAddressRecord.Address) => "address",
+            nameof(MailingAddressRecord.PostalCode) => "postal_code",
+            nameof(MailingAddressRecord.City) => "city",
             _ => null,
         }));
 
-        builder.MapComposite<StreetAddress>("register.co_street_address", new CompositeNameTranslator<StreetAddress>(static member => member.Name switch
+        builder.MapComposite<StreetAddressRecord>("register.co_street_address", new CompositeNameTranslator<StreetAddressRecord>(static member => member.Name switch
         {
-            nameof(StreetAddress.MunicipalNumber) => "municipal_number",
-            nameof(StreetAddress.MunicipalName) => "municipal_name",
-            nameof(StreetAddress.StreetName) => "street_name",
-            nameof(StreetAddress.HouseNumber) => "house_number",
-            nameof(StreetAddress.HouseLetter) => "house_letter",
-            nameof(StreetAddress.PostalCode) => "postal_code",
-            nameof(StreetAddress.City) => "city",
+            nameof(StreetAddressRecord.MunicipalNumber) => "municipal_number",
+            nameof(StreetAddressRecord.MunicipalName) => "municipal_name",
+            nameof(StreetAddressRecord.StreetName) => "street_name",
+            nameof(StreetAddressRecord.HouseNumber) => "house_number",
+            nameof(StreetAddressRecord.HouseLetter) => "house_letter",
+            nameof(StreetAddressRecord.PostalCode) => "postal_code",
+            nameof(StreetAddressRecord.City) => "city",
             _ => null,
         }));
 

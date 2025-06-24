@@ -13,7 +13,7 @@ public sealed record SelfIdentifiedUserRecord
     /// Initializes a new instance of the <see cref="SelfIdentifiedUserRecord"/> class.
     /// </summary>
     public SelfIdentifiedUserRecord()
-        : base(Parties.PartyType.SelfIdentifiedUser)
+        : base(PartyRecordType.SelfIdentifiedUser)
     {
     }
 }

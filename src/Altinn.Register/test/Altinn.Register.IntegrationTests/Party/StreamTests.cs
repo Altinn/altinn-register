@@ -1,5 +1,7 @@
-﻿using Altinn.Register.Controllers.V2;
-using Altinn.Register.Core.Parties.Records;
+﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Platform.Models.Register;
+using Altinn.Register.Controllers.V2;
+using Altinn.Register.Mapping;
 using Altinn.Register.Models;
 using Altinn.Register.TestUtils.TestData;
 
@@ -14,7 +16,7 @@ public class StreamTests
         var response = await HttpClient.GetAsync("/register/api/v2/internal/parties/stream", TestContext.Current.CancellationToken);
 
         await response.ShouldHaveSuccessStatusCode();
-        var content = await response.ShouldHaveJsonContent<ItemStream<PartyRecord>>();
+        var content = await response.ShouldHaveJsonContent<ItemStream<Platform.Models.Register.Party>>();
 
         content.Items.ShouldBeEmpty();
         content.Links.Next.ShouldBeNull();
@@ -34,13 +36,13 @@ public class StreamTests
         var response = await HttpClient.GetAsync("/register/api/v2/internal/parties/stream", TestContext.Current.CancellationToken);
 
         await response.ShouldHaveSuccessStatusCode();
-        var content = await response.ShouldHaveJsonContent<ItemStream<PartyRecord>>();
+        var content = await response.ShouldHaveJsonContent<ItemStream<Platform.Models.Register.Party>>();
 
         var items = content.Items.ToList();
         items.Count.ShouldBe(2);
 
-        items[0].PartyUuid.ShouldBe(orgs[0].PartyUuid);
-        items[1].PartyUuid.ShouldBe(orgs[1].PartyUuid);
+        items[0].Uuid.ShouldBe(orgs[0].PartyUuid.Value);
+        items[1].Uuid.ShouldBe(orgs[1].PartyUuid.Value);
 
         content.Links.Next.ShouldNotBeNull();
         content.Links.Next.ShouldStartWith(BaseUrl + "register/api/v2/internal/parties/stream?");
@@ -48,7 +50,7 @@ public class StreamTests
         response = await HttpClient.GetAsync(content.Links.Next, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveSuccessStatusCode();
-        content = await response.ShouldHaveJsonContent<ItemStream<PartyRecord>>();
+        content = await response.ShouldHaveJsonContent<ItemStream<Platform.Models.Register.Party>>();
 
         content.Items.ShouldBeEmpty();
         content.Links.Next.ShouldBeNull();
@@ -68,14 +70,14 @@ public class StreamTests
         var response = await HttpClient.GetAsync("/register/api/v2/internal/parties/stream", TestContext.Current.CancellationToken);
 
         await response.ShouldHaveSuccessStatusCode();
-        var content = await response.ShouldHaveJsonContent<ItemStream<PartyRecord>>();
+        var content = await response.ShouldHaveJsonContent<ItemStream<Platform.Models.Register.Party>>();
 
         var items = content.Items.ToList();
         items.Count.ShouldBe(PartyController.PARTY_STREAM_PAGE_SIZE);
 
         for (var i = 0; i < items.Count; i++)
         {
-            items[i].PartyUuid.ShouldBe(orgs[i].PartyUuid);
+            items[i].Uuid.ShouldBe(orgs[i].PartyUuid.Value);
         }
 
         content.Links.Next.ShouldNotBeNull();
@@ -87,14 +89,14 @@ public class StreamTests
         response = await HttpClient.GetAsync(content.Links.Next, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveSuccessStatusCode();
-        content = await response.ShouldHaveJsonContent<ItemStream<PartyRecord>>();
+        content = await response.ShouldHaveJsonContent<ItemStream<Platform.Models.Register.Party>>();
 
         items = content.Items.ToList();
         items.Count.ShouldBe(PartyController.PARTY_STREAM_PAGE_SIZE);
 
         for (var i = 0; i < items.Count; i++)
         {
-            items[i].PartyUuid.ShouldBe(orgs[PartyController.PARTY_STREAM_PAGE_SIZE + i].PartyUuid);
+            items[i].Uuid.ShouldBe(orgs[PartyController.PARTY_STREAM_PAGE_SIZE + i].PartyUuid.Value);
         }
 
         content.Links.Next.ShouldNotBeNull();
@@ -106,14 +108,14 @@ public class StreamTests
         response = await HttpClient.GetAsync(content.Links.Next, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveSuccessStatusCode();
-        content = await response.ShouldHaveJsonContent<ItemStream<PartyRecord>>();
+        content = await response.ShouldHaveJsonContent<ItemStream<Platform.Models.Register.Party>>();
 
         items = content.Items.ToList();
         items.Count.ShouldBe(PartyController.PARTY_STREAM_PAGE_SIZE);
 
         for (var i = 0; i < items.Count; i++)
         {
-            items[i].PartyUuid.ShouldBe(orgs[(PartyController.PARTY_STREAM_PAGE_SIZE * 2) + i].PartyUuid);
+            items[i].Uuid.ShouldBe(orgs[(PartyController.PARTY_STREAM_PAGE_SIZE * 2) + i].PartyUuid.Value);
         }
 
         content.Links.Next.ShouldNotBeNull();
@@ -125,14 +127,14 @@ public class StreamTests
         response = await HttpClient.GetAsync(content.Links.Next, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveSuccessStatusCode();
-        content = await response.ShouldHaveJsonContent<ItemStream<PartyRecord>>();
+        content = await response.ShouldHaveJsonContent<ItemStream<Platform.Models.Register.Party>>();
 
         items = content.Items.ToList();
         items.Count.ShouldBe(PartyController.PARTY_STREAM_PAGE_SIZE / 2);
 
         for (var i = 0; i < items.Count; i++)
         {
-            items[i].PartyUuid.ShouldBe(orgs[(PartyController.PARTY_STREAM_PAGE_SIZE * 3) + i].PartyUuid);
+            items[i].Uuid.ShouldBe(orgs[(PartyController.PARTY_STREAM_PAGE_SIZE * 3) + i].PartyUuid.Value);
         }
 
         content.Links.Next.ShouldNotBeNull();
@@ -144,7 +146,7 @@ public class StreamTests
         response = await HttpClient.GetAsync(content.Links.Next, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveSuccessStatusCode();
-        content = await response.ShouldHaveJsonContent<ItemStream<PartyRecord>>();
+        content = await response.ShouldHaveJsonContent<ItemStream<Platform.Models.Register.Party>>();
 
         content.Items.ShouldBeEmpty();
         content.Links.Next.ShouldBeNull();
@@ -164,7 +166,7 @@ public class StreamTests
         var response = await HttpClient.GetAsync("/register/api/v2/internal/parties/stream", TestContext.Current.CancellationToken);
 
         await response.ShouldHaveSuccessStatusCode();
-        var content = await response.ShouldHaveJsonContent<ItemStream<PartyRecord>>();
+        var content = await response.ShouldHaveJsonContent<ItemStream<Platform.Models.Register.Party>>();
 
         var items = content.Items.ToList();
         items.Count.ShouldBe(2);
@@ -172,16 +174,15 @@ public class StreamTests
         var apiOrg = items[0];
         var apiPers = items[1];
 
-        apiOrg.ShouldBeOfType<OrganizationRecord>().ShouldSatisfyAllConditions(
-            o => o.PartyUuid.ShouldBe(dbOrg.PartyUuid),
+        apiOrg.ShouldBeOfType<Organization>().ShouldSatisfyAllConditions(
+            o => o.Uuid.ShouldBe(dbOrg.PartyUuid.Value),
             o => o.PartyId.ShouldBe(dbOrg.PartyId),
             o => o.DisplayName.ShouldBe(dbOrg.DisplayName),
-            o => o.PersonIdentifier.ShouldBeNull(),
-            o => o.OrganizationIdentifier.ShouldBe(dbOrg.OrganizationIdentifier),
+            o => o.OrganizationIdentifier.ShouldBe(dbOrg.OrganizationIdentifier.Value),
             o => o.CreatedAt.ShouldBeUnset(),
             o => o.ModifiedAt.ShouldBeUnset(),
             o => o.IsDeleted.ShouldBeUnset(),
-            o => o.VersionId.ShouldBe(dbOrg.VersionId),
+            o => o.VersionId.ShouldBe(dbOrg.VersionId.Value),
             o => o.UnitStatus.ShouldBeUnset(),
             o => o.UnitType.ShouldBeUnset(),
             o => o.TelephoneNumber.ShouldBeUnset(),
@@ -192,16 +193,15 @@ public class StreamTests
             o => o.MailingAddress.ShouldBeUnset(),
             o => o.BusinessAddress.ShouldBeUnset());
 
-        apiPers.ShouldBeOfType<PersonRecord>().ShouldSatisfyAllConditions(
-            p => p.PartyUuid.ShouldBe(dbPers.PartyUuid),
+        apiPers.ShouldBeOfType<Person>().ShouldSatisfyAllConditions(
+            p => p.Uuid.ShouldBe(dbPers.PartyUuid.Value),
             p => p.PartyId.ShouldBe(dbPers.PartyId),
             p => p.DisplayName.ShouldBe(dbPers.DisplayName),
-            p => p.PersonIdentifier.ShouldBe(dbPers.PersonIdentifier),
-            p => p.OrganizationIdentifier.ShouldBeNull(),
+            p => p.PersonIdentifier.ShouldBe(dbPers.PersonIdentifier.Value),
             p => p.CreatedAt.ShouldBeUnset(),
             p => p.ModifiedAt.ShouldBeUnset(),
             p => p.IsDeleted.ShouldBeUnset(),
-            p => p.VersionId.ShouldBe(dbPers.VersionId),
+            p => p.VersionId.ShouldBe(dbPers.VersionId.Value),
             p => p.FirstName.ShouldBeUnset(),
             p => p.MiddleName.ShouldBeUnset(),
             p => p.LastName.ShouldBeUnset(),
@@ -226,7 +226,7 @@ public class StreamTests
         var response = await HttpClient.GetAsync("/register/api/v2/internal/parties/stream?fields=person,party,org", TestContext.Current.CancellationToken);
 
         await response.ShouldHaveSuccessStatusCode();
-        var content = await response.ShouldHaveJsonContent<ItemStream<PartyRecord>>();
+        var content = await response.ShouldHaveJsonContent<ItemStream<Platform.Models.Register.Party>>();
 
         var nextLink = content.Links.Next.ShouldNotBeNull();
         nextLink.ShouldContain("fields=party,person,org");
@@ -237,16 +237,15 @@ public class StreamTests
         var apiOrg = items[0];
         var apiPers = items[1];
 
-        apiOrg.ShouldBeOfType<OrganizationRecord>().ShouldSatisfyAllConditions(
-            o => o.PartyUuid.ShouldBe(dbOrg.PartyUuid),
+        apiOrg.ShouldBeOfType<Organization>().ShouldSatisfyAllConditions(
+            o => o.Uuid.ShouldBe(dbOrg.PartyUuid.Value),
             o => o.PartyId.ShouldBe(dbOrg.PartyId),
             o => o.DisplayName.ShouldBe(dbOrg.DisplayName),
-            o => o.PersonIdentifier.ShouldBeNull(),
-            o => o.OrganizationIdentifier.ShouldBe(dbOrg.OrganizationIdentifier),
+            o => o.OrganizationIdentifier.ShouldBe(dbOrg.OrganizationIdentifier.Value),
             o => o.CreatedAt.ShouldBe(dbOrg.CreatedAt),
             o => o.ModifiedAt.ShouldBe(dbOrg.ModifiedAt),
             o => o.IsDeleted.ShouldBe(dbOrg.IsDeleted),
-            o => o.VersionId.ShouldBe(dbOrg.VersionId),
+            o => o.VersionId.ShouldBe(dbOrg.VersionId.Value),
             o => o.UnitStatus.ShouldBe(dbOrg.UnitStatus),
             o => o.UnitType.ShouldBe(dbOrg.UnitType),
             o => o.TelephoneNumber.ShouldBe(dbOrg.TelephoneNumber),
@@ -254,25 +253,24 @@ public class StreamTests
             o => o.FaxNumber.ShouldBe(dbOrg.FaxNumber),
             o => o.EmailAddress.ShouldBe(dbOrg.EmailAddress),
             o => o.InternetAddress.ShouldBe(dbOrg.InternetAddress),
-            o => o.MailingAddress.ShouldBe(dbOrg.MailingAddress),
-            o => o.BusinessAddress.ShouldBe(dbOrg.BusinessAddress));
+            o => o.MailingAddress.ShouldBe(dbOrg.MailingAddress.Select(static v => PartyMapper.ToPlatformModel(v))),
+            o => o.BusinessAddress.ShouldBe(dbOrg.BusinessAddress.Select(static v => PartyMapper.ToPlatformModel(v))));
 
-        apiPers.ShouldBeOfType<PersonRecord>().ShouldSatisfyAllConditions(
-            p => p.PartyUuid.ShouldBe(dbPers.PartyUuid),
+        apiPers.ShouldBeOfType<Person>().ShouldSatisfyAllConditions(
+            p => p.Uuid.ShouldBe(dbPers.PartyUuid.Value),
             p => p.PartyId.ShouldBe(dbPers.PartyId),
             p => p.DisplayName.ShouldBe(dbPers.DisplayName),
-            p => p.PersonIdentifier.ShouldBe(dbPers.PersonIdentifier),
-            p => p.OrganizationIdentifier.ShouldBeNull(),
+            p => p.PersonIdentifier.ShouldBe(dbPers.PersonIdentifier.Value),
             p => p.CreatedAt.ShouldBe(dbPers.CreatedAt),
             p => p.ModifiedAt.ShouldBe(dbPers.ModifiedAt),
             p => p.IsDeleted.ShouldBe(dbPers.IsDeleted),
-            p => p.VersionId.ShouldBe(dbPers.VersionId),
+            p => p.VersionId.ShouldBe(dbPers.VersionId.Value),
             p => p.FirstName.ShouldBe(dbPers.FirstName),
             p => p.MiddleName.ShouldBe(dbPers.MiddleName),
             p => p.LastName.ShouldBe(dbPers.LastName),
             p => p.ShortName.ShouldBe(dbPers.ShortName),
-            p => p.Address.ShouldBe(dbPers.Address),
-            p => p.MailingAddress.ShouldBe(dbPers.MailingAddress),
+            p => p.Address.ShouldBe(dbPers.Address.Select(static v => PartyMapper.ToPlatformModel(v))),
+            p => p.MailingAddress.ShouldBe(dbPers.MailingAddress.Select(static v => PartyMapper.ToPlatformModel(v))),
             p => p.DateOfBirth.ShouldBe(dbPers.DateOfBirth),
             p => p.DateOfDeath.ShouldBe(dbPers.DateOfDeath));
     }

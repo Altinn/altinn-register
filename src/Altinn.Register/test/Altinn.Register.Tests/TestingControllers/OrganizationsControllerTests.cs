@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using Altinn.Authorization.ServiceDefaults;
 using Altinn.Common.AccessToken.Services;
-using Altinn.Platform.Register.Models;
+using Altinn.Platform.Models.Register.V1;
 using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Controllers;
 using Altinn.Register.Tests.Mocks;

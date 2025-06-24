@@ -1,4 +1,5 @@
 ﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Platform.Models.Register;
 using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
@@ -62,7 +63,7 @@ public class PartyImportFlowTests
 
         var personUpdated = person with
         {
-            Address = new StreetAddress
+            Address = new StreetAddressRecord
             {
                 StreetName = "Testveien",
                 HouseNumber = "1",

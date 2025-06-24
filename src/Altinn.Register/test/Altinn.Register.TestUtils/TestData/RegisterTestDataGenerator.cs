@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 using Altinn.Authorization.ModelUtils;
-using Altinn.Register.Core.Parties;
+using Altinn.Platform.Models.Register;
 using Altinn.Register.Core.Parties.Records;
 using CommunityToolkit.Diagnostics;
 using Npgsql;
@@ -126,8 +126,8 @@ public sealed partial class RegisterTestDataGenerator
         FieldValue<string> faxNumber = default,
         FieldValue<string> emailAddress = default,
         FieldValue<string> internetAddress = default,
-        FieldValue<MailingAddress> mailingAddress = default,
-        FieldValue<MailingAddress> businessAddress = default)
+        FieldValue<MailingAddressRecord> mailingAddress = default,
+        FieldValue<MailingAddressRecord> businessAddress = default)
     {
         if (!id.HasValue)
         {
@@ -178,8 +178,8 @@ public sealed partial class RegisterTestDataGenerator
         FieldValue<string> faxNumber = default,
         FieldValue<string> emailAddress = default,
         FieldValue<string> internetAddress = default,
-        FieldValue<MailingAddress> mailingAddress = default,
-        FieldValue<MailingAddress> businessAddress = default,
+        FieldValue<MailingAddressRecord> mailingAddress = default,
+        FieldValue<MailingAddressRecord> businessAddress = default,
         CancellationToken cancellationToken = default)
     {
         return WithIdentifiers(
@@ -238,8 +238,8 @@ public sealed partial class RegisterTestDataGenerator
         FieldValue<DateTimeOffset> createdAt = default,
         FieldValue<DateTimeOffset> modifiedAt = default,
         FieldValue<PersonName> name = default,
-        FieldValue<StreetAddress> address = default,
-        FieldValue<MailingAddress> mailingAddress = default,
+        FieldValue<StreetAddressRecord> address = default,
+        FieldValue<MailingAddressRecord> mailingAddress = default,
         FieldValue<DateOnly> dateOfBirth = default,
         FieldValue<DateOnly> dateOfDeath = default,
         FieldValue<PartyUserRecord> user = default)
@@ -265,7 +265,7 @@ public sealed partial class RegisterTestDataGenerator
 
         if (!address.HasValue)
         {
-            address = new StreetAddress
+            address = new StreetAddressRecord
             {
                 MunicipalNumber = "0001",
                 MunicipalName = "Test",
@@ -279,7 +279,7 @@ public sealed partial class RegisterTestDataGenerator
 
         if (!mailingAddress.HasValue)
         {
-            mailingAddress = new MailingAddress
+            mailingAddress = new MailingAddressRecord
             {
                 Address = $"{address.Value!.StreetName} {address.Value.HouseNumber}",
                 PostalCode = address.Value.PostalCode,
@@ -340,8 +340,8 @@ public sealed partial class RegisterTestDataGenerator
         FieldValue<DateTimeOffset> createdAt = default,
         FieldValue<DateTimeOffset> modifiedAt = default,
         FieldValue<PersonName> name = default,
-        FieldValue<StreetAddress> address = default,
-        FieldValue<MailingAddress> mailingAddress = default,
+        FieldValue<StreetAddressRecord> address = default,
+        FieldValue<MailingAddressRecord> mailingAddress = default,
         FieldValue<DateOnly> dateOfBirth = default,
         FieldValue<DateOnly> dateOfDeath = default,
         FieldValue<PartyUserRecord> user = default,

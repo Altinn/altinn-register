@@ -1,82 +1,71 @@
-namespace Altinn.Platform.Register.Models;
+﻿using Altinn.Authorization.ModelUtils;
+
+namespace Altinn.Platform.Models.Register;
 
 /// <summary>
-/// Class representing an organization
+/// Represents an organization party in Altinn Register.
 /// </summary>
-public record Organization
+[PolymorphicFieldValueRecord]
+public sealed record Organization()
+    : Party(PartyType.Organization)
 {
     /// <summary>
-    /// Gets or sets the organization number
+    /// Gets the organization identifier of the organization.
     /// </summary>
-    public string? OrgNumber { get; set; }
+    [JsonPropertyName("organizationIdentifier")]
+    public required OrganizationIdentifier OrganizationIdentifier { get; init; }
 
     /// <summary>
-    /// Gets or sets the name of the organization
+    /// Gets the status of the organization.
     /// </summary>
-    public string? Name { get; set; }
+    [JsonPropertyName("unitStatus")]
+    public required FieldValue<string> UnitStatus { get; init; }
 
     /// <summary>
-    /// Gets or sets the unit type
+    /// Gets the type of the organization.
     /// </summary>
-    public string? UnitType { get; set; }
+    [JsonPropertyName("unitType")]
+    public required FieldValue<string> UnitType { get; init; }
 
     /// <summary>
-    /// Gets or sets the telephone number
+    /// Gets the telephone number of the organization.
     /// </summary>
-    public string? TelephoneNumber { get; set; }
+    [JsonPropertyName("telephoneNumber")]
+    public required FieldValue<string> TelephoneNumber { get; init; }
 
     /// <summary>
-    /// Gets or sets the mobile number
+    /// Gets the mobile number of the organization.
     /// </summary>
-    public string? MobileNumber { get; set; }
+    [JsonPropertyName("mobileNumber")]
+    public required FieldValue<string> MobileNumber { get; init; }
 
     /// <summary>
-    /// Gets or sets the fax number
+    /// Gets the fax number of the organization.
     /// </summary>
-    public string? FaxNumber { get; set; }
+    [JsonPropertyName("faxNumber")]
+    public required FieldValue<string> FaxNumber { get; init; }
 
     /// <summary>
-    /// Gets or sets the eMail address
+    /// Gets the email address of the organization.
     /// </summary>
-    public string? EMailAddress { get; set; }
+    [JsonPropertyName("emailAddress")]
+    public required FieldValue<string> EmailAddress { get; init; }
 
     /// <summary>
-    /// Gets or sets the internet address
+    /// Gets the internet address of the organization.
     /// </summary>
-    public string? InternetAddress { get; set; }
+    [JsonPropertyName("internetAddress")]
+    public required FieldValue<string> InternetAddress { get; init; }
 
     /// <summary>
-    /// Gets or sets the mailing address
+    /// Gets the mailing address of the organization.
     /// </summary>
-    public string? MailingAddress { get; set; }
+    [JsonPropertyName("mailingAddress")]
+    public required FieldValue<MailingAddress> MailingAddress { get; init; }
 
     /// <summary>
-    /// Gets or sets the mailing postal code 
+    /// Gets the business address of the organization.
     /// </summary>
-    public string? MailingPostalCode { get; set; }
-
-    /// <summary>
-    /// Gets or sets the mailing postal city 
-    /// </summary>
-    public string? MailingPostalCity { get; set; }
-
-    /// <summary>
-    /// Gets or sets the business address
-    /// </summary>
-    public string? BusinessAddress { get; set; }
-
-    /// <summary>
-    /// Gets or sets the postal code business
-    /// </summary>
-    public string? BusinessPostalCode { get; set; }
-
-    /// <summary>
-    /// Gets or sets the postal city business
-    /// </summary>
-    public string? BusinessPostalCity { get; set; }
-
-    /// <summary>
-    /// Gets or sets the unit status
-    /// </summary>
-    public string? UnitStatus { get; set; }
+    [JsonPropertyName("businessAddress")]
+    public required FieldValue<MailingAddress> BusinessAddress { get; init; }
 }

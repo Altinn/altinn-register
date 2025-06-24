@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using System.Linq.Expressions;
 using Altinn.Authorization.ModelUtils;
+using Altinn.Platform.Models.Register;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
@@ -122,7 +123,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         party.PartyUuid.Should().Be(OrganizationWithChildrenUuid);
         party.PartyId.Should().Be(OrganizationWithChildrenId);
-        party.PartyType.Should().Be(PartyType.Organization);
+        party.PartyType.Should().Be(PartyRecordType.Organization);
         party.DisplayName.Should().Be("MOEN OG BJØRNEVATN");
         party.PersonIdentifier.Should().BeNull();
         party.OrganizationIdentifier.Should().Be(OrganizationWithChildrenIdentifier);
@@ -150,7 +151,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         party.PartyUuid.Should().Be(OrganizationWithChildrenUuid);
         party.PartyId.Should().Be(OrganizationWithChildrenId);
-        party.PartyType.Should().Be(PartyType.Organization);
+        party.PartyType.Should().Be(PartyRecordType.Organization);
         party.DisplayName.Should().Be("MOEN OG BJØRNEVATN");
         party.PersonIdentifier.Should().BeNull();
         party.OrganizationIdentifier.Should().Be(OrganizationWithChildrenIdentifier);
@@ -243,7 +244,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         party.PartyUuid.Should().Be(OrganizationWithChildrenUuid);
         party.PartyId.Should().Be(OrganizationWithChildrenId);
-        party.PartyType.Should().Be(PartyType.Organization);
+        party.PartyType.Should().Be(PartyRecordType.Organization);
         party.DisplayName.Should().Be("MOEN OG BJØRNEVATN");
         party.PersonIdentifier.Should().BeNull();
         party.OrganizationIdentifier.Should().Be(OrganizationWithChildrenIdentifier);
@@ -269,7 +270,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         using var scope = new AssertionScope();
         party.PartyUuid.Should().Be(PersonUuid);
         party.PartyId.Should().Be(50002129);
-        party.PartyType.Should().Be(PartyType.Person);
+        party.PartyType.Should().Be(PartyRecordType.Person);
         party.DisplayName.Should().Be("SANNE BJØRKUM");
         party.PersonIdentifier.Should().Be(PersonIdentifier);
         party.OrganizationIdentifier.Should().BeNull();
@@ -277,8 +278,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         party.FirstName.Should().Be("SANNE");
         party.MiddleName.Should().BeNull();
         party.LastName.Should().Be("BJØRKUM");
-        party.Address.Should().Be(new StreetAddress { PostalCode = "3230", City = "SANDEFJORD" });
-        party.MailingAddress.Should().Be(new MailingAddress { Address = "Granholmveien 19", PostalCode = "3230", City = "SANDEFJORD" });
+        party.Address.Should().Be(new StreetAddressRecord { PostalCode = "3230", City = "SANDEFJORD" });
+        party.MailingAddress.Should().Be(new MailingAddressRecord { Address = "Granholmveien 19", PostalCode = "3230", City = "SANDEFJORD" });
         party.DateOfBirth.Should().Be(new DateOnly(1862, 05, 01));
         party.DateOfDeath.Should().BeNull();
     }
@@ -293,7 +294,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         using var scope = new AssertionScope();
         party.PartyUuid.Should().Be(PersonUuid);
         party.PartyId.Should().Be(50002129);
-        party.PartyType.Should().Be(PartyType.Person);
+        party.PartyType.Should().Be(PartyRecordType.Person);
         party.DisplayName.Should().Be("SANNE BJØRKUM");
         party.PersonIdentifier.Should().Be(PersonIdentifier);
         party.OrganizationIdentifier.Should().BeNull();
@@ -301,8 +302,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         party.FirstName.Should().Be("SANNE");
         party.MiddleName.Should().BeNull();
         party.LastName.Should().Be("BJØRKUM");
-        party.Address.Should().Be(new StreetAddress { PostalCode = "3230", City = "SANDEFJORD" });
-        party.MailingAddress.Should().Be(new MailingAddress { Address = "Granholmveien 19", PostalCode = "3230", City = "SANDEFJORD" });
+        party.Address.Should().Be(new StreetAddressRecord { PostalCode = "3230", City = "SANDEFJORD" });
+        party.MailingAddress.Should().Be(new MailingAddressRecord { Address = "Granholmveien 19", PostalCode = "3230", City = "SANDEFJORD" });
         party.DateOfBirth.Should().Be(new DateOnly(1862, 05, 01));
         party.DateOfDeath.Should().BeNull();
     }
@@ -324,7 +325,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             using var scope = new AssertionScope();
             parent.PartyUuid.Should().Be(OrganizationWithChildrenUuid);
             parent.PartyId.Should().Be(OrganizationWithChildrenId);
-            parent.PartyType.Should().Be(PartyType.Organization);
+            parent.PartyType.Should().Be(PartyRecordType.Organization);
             parent.DisplayName.Should().Be("MOEN OG BJØRNEVATN");
             parent.PersonIdentifier.Should().BeNull();
             parent.OrganizationIdentifier.Should().Be(OrganizationWithChildrenIdentifier);
@@ -346,7 +347,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             using var scope = new AssertionScope();
             child.PartyUuid.Should().Be(ChildOrganizationUuid);
             child.PartyId.Should().Be(50056655);
-            child.PartyType.Should().Be(PartyType.Organization);
+            child.PartyType.Should().Be(PartyRecordType.Organization);
             child.DisplayName.Should().Be("NERLANDSØY OG DYRANUT");
             child.PersonIdentifier.Should().BeNull();
             child.OrganizationIdentifier.Should().HaveValue().Which.Should().Be("910056077");
@@ -381,7 +382,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         party.PartyUuid.Should().Be(OrganizationWithChildrenUuid);
         party.PartyId.Should().Be(OrganizationWithChildrenId);
-        party.PartyType.Should().Be(PartyType.Organization);
+        party.PartyType.Should().Be(PartyRecordType.Organization);
         party.DisplayName.Should().Be("MOEN OG BJØRNEVATN");
         party.PersonIdentifier.Should().BeNull();
         party.OrganizationIdentifier.Should().Be(OrganizationWithChildrenIdentifier);
@@ -719,8 +720,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             FaxNumber = "fax",
             EmailAddress = "email",
             InternetAddress = "internet",
-            MailingAddress = new MailingAddress { Address = "mailing", City = "mailing city", PostalCode = "0123" },
-            BusinessAddress = new MailingAddress { Address = "business", City = "business city", PostalCode = "0123" },
+            MailingAddress = new MailingAddressRecord { Address = "mailing", City = "mailing city", PostalCode = "0123" },
+            BusinessAddress = new MailingAddressRecord { Address = "business", City = "business city", PostalCode = "0123" },
         };
 
         result = await Persistence.UpsertParty(toUpdate);
@@ -992,7 +993,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             MiddleName = "Mid Updated",
             LastName = "Testson Updated",
             ShortName = "TESTSON Updated Test Mid",
-            Address = new StreetAddress
+            Address = new StreetAddressRecord
             {
                 MunicipalName = "mn",
                 MunicipalNumber = "00",
@@ -1002,7 +1003,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
                 PostalCode = "pc",
                 StreetName = "sn",
             },
-            MailingAddress = new MailingAddress { Address = "mailing", City = "mailing city", PostalCode = "mailing postal code" },
+            MailingAddress = new MailingAddressRecord { Address = "mailing", City = "mailing city", PostalCode = "mailing postal code" },
             DateOfBirth = birthDate.AddDays(10),
             DateOfDeath = birthDate.AddDays(30),
         };

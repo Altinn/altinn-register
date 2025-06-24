@@ -1,6 +1,5 @@
 ﻿using System.Net;
 using Altinn.Register.Contracts.ExternalRoles;
-using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Models;
 using Altinn.Register.TestUtils.TestData;
@@ -22,7 +21,7 @@ public class CustomersTests
         var response = await HttpClient.GetAsync($"register/api/{apiVersion}/internal/parties/{org.PartyUuid.Value}/customers/ccr/{roleIdentifier}", TestContext.Current.CancellationToken);
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
 
-        var content = await response.ShouldHaveJsonContent<ListObject<PartyRecord>>();
+        var content = await response.ShouldHaveJsonContent<ListObject<Platform.Models.Register.Party>>();
         content.Items.ShouldBeEmpty();
     }
 
@@ -75,11 +74,11 @@ public class CustomersTests
         var response = await HttpClient.GetAsync($"register/api/{apiVersion}/internal/parties/{org1.PartyUuid.Value}/customers/ccr/{roleIdentifier}", TestContext.Current.CancellationToken);
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
 
-        var content = await response.ShouldHaveJsonContent<ListObject<PartyRecord>>();
+        var content = await response.ShouldHaveJsonContent<ListObject<Platform.Models.Register.Party>>();
         var items = content.Items.ToList();
         items.Count.ShouldBe(2);
-        items.ShouldContain(p => p.PartyUuid == org2.PartyUuid);
-        items.ShouldContain(p => p.PartyUuid == org3.PartyUuid);
+        items.ShouldContain(p => p.Uuid == org2.PartyUuid.Value);
+        items.ShouldContain(p => p.Uuid == org3.PartyUuid.Value);
     }
 
     public static TheoryData<string, string> CustomerRoleIdentifiers => new MatrixTheoryData<string, string>(

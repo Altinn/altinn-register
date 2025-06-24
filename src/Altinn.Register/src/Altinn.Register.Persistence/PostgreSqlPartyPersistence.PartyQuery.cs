@@ -6,9 +6,9 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ModelUtils.EnumUtils;
+using Altinn.Platform.Models.Register;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
-using Altinn.Register.Core.Utils;
 using CommunityToolkit.Diagnostics;
 using Npgsql;
 using NpgsqlTypes;
@@ -218,14 +218,14 @@ internal partial class PostgreSqlPartyPersistence
 
         private async ValueTask<(PartyRecord Party, bool HasMore)> ReadParty(NpgsqlDataReader reader, CancellationToken cancellationToken = default)
         {
-            var partyType = await reader.GetConditionalFieldValueAsync<PartyType>(_fields.PartyType, cancellationToken);
+            var partyType = await reader.GetConditionalFieldValueAsync<PartyRecordType>(_fields.PartyRecordType, cancellationToken);
 
             return partyType switch
             {
                 { HasValue: false } => await ReadBaseParty(reader, _fields, partyType, cancellationToken),
-                { Value: PartyType.Person } => await ReadPersonParty(reader, _fields, cancellationToken),
-                { Value: PartyType.Organization } => await ReadOrganizationParty(reader, _fields, cancellationToken),
-                { Value: PartyType.SelfIdentifiedUser } => await ReadSelfIdentifiedUserParty(reader, _fields, cancellationToken),
+                { Value: PartyRecordType.Person } => await ReadPersonParty(reader, _fields, cancellationToken),
+                { Value: PartyRecordType.Organization } => await ReadOrganizationParty(reader, _fields, cancellationToken),
+                { Value: PartyRecordType.SelfIdentifiedUser } => await ReadSelfIdentifiedUserParty(reader, _fields, cancellationToken),
                 _ => Unreachable<(PartyRecord Party, bool HasMore)>(),
             };
 
@@ -248,7 +248,7 @@ internal partial class PostgreSqlPartyPersistence
                 };
             }
 
-            static async ValueTask<(PartyRecord Party, bool HasMore)> ReadBaseParty(NpgsqlDataReader reader, PartyFields fields, FieldValue<PartyType> partyType, CancellationToken cancellationToken)
+            static async ValueTask<(PartyRecord Party, bool HasMore)> ReadBaseParty(NpgsqlDataReader reader, PartyFields fields, FieldValue<PartyRecordType> partyType, CancellationToken cancellationToken)
             {
                 var common = await ReadCommonFields(reader, fields, cancellationToken);
 
@@ -283,8 +283,8 @@ internal partial class PostgreSqlPartyPersistence
                 var shortName = await reader.GetConditionalFieldValueAsync<string>(fields.PersonShortName, cancellationToken);
                 var dateOfBirth = await reader.GetConditionalFieldValueAsync<DateOnly>(fields.PersonDateOfBirth, cancellationToken);
                 var dateOfDeath = await reader.GetConditionalFieldValueAsync<DateOnly>(fields.PersonDateOfDeath, cancellationToken);
-                var address = await reader.GetConditionalFieldValueAsync<StreetAddress>(fields.PersonAddress, cancellationToken);
-                var mailingAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>(fields.PersonMailingAddress, cancellationToken);
+                var address = await reader.GetConditionalFieldValueAsync<StreetAddressRecord>(fields.PersonAddress, cancellationToken);
+                var mailingAddress = await reader.GetConditionalFieldValueAsync<MailingAddressRecord>(fields.PersonMailingAddress, cancellationToken);
 
                 // must be the last read-access to the reader
                 Debug.Assert(common.PartyUuid.HasValue);
@@ -327,8 +327,8 @@ internal partial class PostgreSqlPartyPersistence
                 var faxNumber = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationFaxNumber, cancellationToken);
                 var emailAddress = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationEmailAddress, cancellationToken);
                 var internetAddress = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationInternetAddress, cancellationToken);
-                var mailingAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>(fields.OrganizationMailingAddress, cancellationToken);
-                var businessAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>(fields.OrganizationBusinessAddress, cancellationToken);
+                var mailingAddress = await reader.GetConditionalFieldValueAsync<MailingAddressRecord>(fields.OrganizationMailingAddress, cancellationToken);
+                var businessAddress = await reader.GetConditionalFieldValueAsync<MailingAddressRecord>(fields.OrganizationBusinessAddress, cancellationToken);
 
                 if (parentOrganizationUuid.IsNull)
                 {
@@ -1041,7 +1041,7 @@ internal partial class PostgreSqlPartyPersistence
             // register.party
             public int PartyUuid => partyUuid;
             public int PartyId => partyId;
-            public int PartyType => partyType;
+            public int PartyRecordType => partyType;
             public int PartyDisplayName => partyDisplayName;
             public int PartyPersonIdentifier => partyPersonIdentifier;
             public int PartyOrganizationIdentifier => partyOrganizationIdentifier;

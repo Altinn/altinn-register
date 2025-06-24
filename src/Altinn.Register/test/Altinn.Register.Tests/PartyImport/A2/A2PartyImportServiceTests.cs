@@ -27,7 +27,7 @@ public class A2PartyImportServiceTests
     public async Task GetParty_Calls_Correct_Endpoint_AndMapsOrganizationData()
     {
         var partyId = 50004216U;
-        var party = await TestDataLoader.Load<Altinn.Platform.Register.Models.Party>(partyId.ToString(CultureInfo.InvariantCulture));
+        var party = await TestDataLoader.Load<Platform.Models.Register.V1.Party>(partyId.ToString(CultureInfo.InvariantCulture));
         Assert.NotNull(party);
 
         var partyUuid = party.PartyUuid!.Value;
@@ -59,13 +59,13 @@ public class A2PartyImportServiceTests
             orgRecord.FaxNumber.Should().HaveValue().Which.Should().Be("22077108");
             orgRecord.EmailAddress.Should().HaveValue().Which.Should().Be("tynset_og_oppdal@example.com");
             orgRecord.InternetAddress.Should().HaveValue().Which.Should().Be("tynset-og-oppdal.example.com");
-            orgRecord.MailingAddress.Should().HaveValue().Which.Should().Be(new MailingAddress
+            orgRecord.MailingAddress.Should().HaveValue().Which.Should().Be(new MailingAddressRecord
             {
                 Address = "Postboks 6662 St. Bergens plass",
                 PostalCode = "1666",
                 City = "Bergen",
             });
-            orgRecord.BusinessAddress.Should().HaveValue().Which.Should().Be(new MailingAddress
+            orgRecord.BusinessAddress.Should().HaveValue().Which.Should().Be(new MailingAddressRecord
             {
                 Address = "Postboks 6662 St. Olavs plass",
                 PostalCode = "0555",
@@ -78,7 +78,7 @@ public class A2PartyImportServiceTests
     public async Task GetParty_Calls_Correct_Endpoint_AndMapsPersonData()
     {
         var partyId = 50012345U;
-        var party = await TestDataLoader.Load<Altinn.Platform.Register.Models.Party>(partyId.ToString(CultureInfo.InvariantCulture));
+        var party = await TestDataLoader.Load<Platform.Models.Register.V1.Party>(partyId.ToString(CultureInfo.InvariantCulture));
         Assert.NotNull(party);
 
         var partyUuid = party.PartyUuid!.Value;
@@ -107,13 +107,13 @@ public class A2PartyImportServiceTests
             persRecord.MiddleName.Should().HaveValue().Which.Should().Be("Bla");
             persRecord.LastName.Should().HaveValue().Which.Should().Be("Nordmann");
             persRecord.ShortName.Should().HaveValue().Which.Should().Be("Ola Bla Nordmann");
-            persRecord.MailingAddress.Should().HaveValue().Which.Should().Be(new MailingAddress
+            persRecord.MailingAddress.Should().HaveValue().Which.Should().Be(new MailingAddressRecord
             {
                 Address = "Blåbæreveien 7 8450 Stokmarknes",
                 PostalCode = "8450",
                 City = "Stokmarknes",
             });
-            persRecord.Address.Should().HaveValue().Which.Should().Be(new StreetAddress
+            persRecord.Address.Should().HaveValue().Which.Should().Be(new StreetAddressRecord
             {
                 MunicipalNumber = "1866",
                 MunicipalName = "Hadsel",
@@ -133,7 +133,7 @@ public class A2PartyImportServiceTests
         var expected = JsonSerializer.Deserialize<ErrorCode>(JsonSerializer.Serialize(errorCode));
 
         var partyId = 50012345;
-        var party = await TestDataLoader.Load<Altinn.Platform.Register.Models.Party>(partyId.ToString(CultureInfo.InvariantCulture));
+        var party = await TestDataLoader.Load<Platform.Models.Register.V1.Party>(partyId.ToString(CultureInfo.InvariantCulture));
         Assert.NotNull(party);
 
         var partyUuid = party.PartyUuid!.Value;
@@ -163,7 +163,7 @@ public class A2PartyImportServiceTests
     public async Task GetExternalRoleAssignmentsFrom_Calls_Correct_Endpoint_AndMapsData()
     {
         var partyId = 50012345U;
-        var party = await TestDataLoader.Load<Altinn.Platform.Register.Models.Party>(partyId.ToString(CultureInfo.InvariantCulture));
+        var party = await TestDataLoader.Load<Platform.Models.Register.V1.Party>(partyId.ToString(CultureInfo.InvariantCulture));
         Assert.NotNull(party);
 
         var partyUuid = party.PartyUuid!.Value;
@@ -207,7 +207,7 @@ public class A2PartyImportServiceTests
     public async Task GetExternalRoleAssignmentsFrom_Calls_Correct_Endpoint_AndMapsData_KONT_Roles()
     {
         var partyId = 50012345U;
-        var party = await TestDataLoader.Load<Altinn.Platform.Register.Models.Party>(partyId.ToString(CultureInfo.InvariantCulture));
+        var party = await TestDataLoader.Load<Platform.Models.Register.V1.Party>(partyId.ToString(CultureInfo.InvariantCulture));
         Assert.NotNull(party);
 
         var partyUuid = party.PartyUuid!.Value;

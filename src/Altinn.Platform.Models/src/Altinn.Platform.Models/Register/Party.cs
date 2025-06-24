@@ -1,69 +1,108 @@
-using Altinn.Platform.Register.Enums;
+﻿using System.Text.Json;
+using Altinn.Authorization.ModelUtils;
+using CommunityToolkit.Diagnostics;
 
-namespace Altinn.Platform.Register.Models;
+namespace Altinn.Platform.Models.Register;
 
 /// <summary>
-/// Class representing a party
+/// Represents a party in Altinn Register.
 /// </summary>
+[PolymorphicFieldValueRecord(IsRoot = true)]
+[PolymorphicDerivedType(typeof(Person), PartyType.Person)]
+[PolymorphicDerivedType(typeof(Organization), PartyType.Organization)]
+[PolymorphicDerivedType(typeof(SelfIdentifiedUser), PartyType.SelfIdentifiedUser)]
+[PolymorphicDerivedType(typeof(SystemUser), PartyType.SystemUser)]
+[PolymorphicDerivedType(typeof(EnterpriseUser), PartyType.EnterpriseUser)]
 public record Party
+    : IHasExtensionData
 {
-    /// <summary>
-    /// Gets or sets the ID of the party
-    /// </summary>
-    public int PartyId { get; set; }
+    [JsonExtensionData]
+    private readonly JsonElement _extensionData;
+
+    private readonly Guid _uuid;
+    private readonly PartyUrn.PartyUuid _urn = null!;
 
     /// <summary>
-    /// Gets or sets the UUID of the party
+    /// Initializes a new instance of the <see cref="Party"/> class.
     /// </summary>
-    public Guid? PartyUuid { get; set; }
+    /// <param name="partyType">The type of the party.</param>
+    public Party(NonExhaustiveEnum<PartyType> partyType)
+    {
+        Type = partyType;
+    }
 
     /// <summary>
-    /// Gets or sets the type of party
+    /// Gets the UUID of the party.
     /// </summary>
-    public PartyType PartyTypeName { get; set; }
+    [JsonPropertyName("partyUuid")]
+    public required Guid Uuid
+    {
+        get => _uuid;
+        init
+        {
+            Guard.IsNotDefault(value);
+            _uuid = value;
+            _urn = PartyUrn.PartyUuid.Create(value);
+        }
+    }
 
     /// <summary>
-    /// Gets the parties org number
+    /// Gets the version ID of the party.
     /// </summary>
-    public string? OrgNumber { get; set; }
+    [JsonPropertyName("versionId")]
+    public required ulong VersionId { get; init; }
 
     /// <summary>
-    /// Gets the parties ssn
+    /// Gets the canonical URN of the party.
     /// </summary>
-    public string? SSN { get; set; }
+    [JsonPropertyName("urn")]
+    public PartyUrn.PartyUuid Urn
+        => _urn;
 
     /// <summary>
-    /// Gets or sets the UnitType
+    /// Gets the ID of the party.
     /// </summary>
-    public string? UnitType { get; set; }
+    [JsonPropertyName("partyId")]
+    public required FieldValue<uint> PartyId { get; init; }
 
     /// <summary>
-    /// Gets or sets the Name
+    /// Gets the type of the party.
     /// </summary>
-    public string? Name { get; set; }
+    [JsonPropertyName("partyType")]
+    [PolymorphicDiscriminatorProperty]
+    public NonExhaustiveEnum<PartyType> Type { get; }
 
     /// <summary>
-    /// Gets or sets the IsDeleted
+    /// Gets the display-name of the party.
     /// </summary>
-    public bool IsDeleted { get; set; }
+    [JsonPropertyName("displayName")]
+    public required FieldValue<string> DisplayName { get; init; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether if the reportee in the list is only there for showing the hierarchy (a parent unit with no access)
+    /// Gets when the party was created in Altinn 3.
     /// </summary>
-    public bool OnlyHierarchyElementWithNoAccess { get; set; }
+    [JsonPropertyName("createdAt")]
+    public required FieldValue<DateTimeOffset> CreatedAt { get; init; }
 
     /// <summary>
-    /// Gets or sets the person details for this party (will only be set if the party type is Person)
+    /// Gets when the party was last modified in Altinn 3.
     /// </summary>
-    public Person? Person { get; set; }
+    [JsonPropertyName("modifiedAt")]
+    public required FieldValue<DateTimeOffset> ModifiedAt { get; init; }
 
     /// <summary>
-    /// Gets or sets the organization details for this party (will only be set if the party type is Organization)
+    /// Gets whether the party is deleted.
     /// </summary>
-    public Organization? Organization { get; set; }
+    [JsonPropertyName("isDeleted")]
+    public required FieldValue<bool> IsDeleted { get; init; }
 
     /// <summary>
-    /// Gets or sets the value of ChildParties
+    /// Gets user information for the party.
     /// </summary>
-    public IReadOnlyList<Party>? ChildParties { get; set; }
+    [JsonPropertyName("user")]
+    public required FieldValue<PartyUser> User { get; init; }
+
+    /// <inheritdoc/>
+    JsonElement IHasExtensionData.JsonExtensionData
+        => _extensionData;
 }

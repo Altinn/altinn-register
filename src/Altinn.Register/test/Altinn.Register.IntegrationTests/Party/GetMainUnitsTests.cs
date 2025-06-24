@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
+using Altinn.Platform.Models.Register;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Models;
@@ -23,16 +24,16 @@ public class GetMainUnitsTests
             return (subUnit, mainUnit);
         });
 
-        var requestContent = DataObject.Create(OrgUrn.PartyUuid.Create(subUnit.PartyUuid.Value));
+        var requestContent = DataObject.Create(OrganizationUrn.PartyUuid.Create(subUnit.PartyUuid.Value));
 
         var response = await HttpClient.PostAsJsonAsync("register/api/v2/internal/parties/main-units", requestContent, JsonOptions, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
-        var content = await response.ShouldHaveJsonContent<ListObject<OrganizationRecord>>();
+        var content = await response.ShouldHaveJsonContent<ListObject<Organization>>();
         var items = content.Items.ToList();
         items.Count.ShouldBe(1);
 
-        items[0].PartyUuid.ShouldBe(mainUnit.PartyUuid);
+        items[0].Uuid.ShouldBe(mainUnit.PartyUuid.Value);
     }
 
     [Fact]
@@ -48,16 +49,16 @@ public class GetMainUnitsTests
             return (subUnit, mainUnit);
         });
 
-        var requestContent = DataObject.Create(OrgUrn.PartyId.Create(subUnit.PartyId.Value));
+        var requestContent = DataObject.Create(OrganizationUrn.PartyId.Create(subUnit.PartyId.Value));
 
         var response = await HttpClient.PostAsJsonAsync("register/api/v2/internal/parties/main-units", requestContent, JsonOptions, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
-        var content = await response.ShouldHaveJsonContent<ListObject<OrganizationRecord>>();
+        var content = await response.ShouldHaveJsonContent<ListObject<Organization>>();
         var items = content.Items.ToList();
         items.Count.ShouldBe(1);
 
-        items[0].PartyUuid.ShouldBe(mainUnit.PartyUuid);
+        items[0].Uuid.ShouldBe(mainUnit.PartyUuid.Value);
     }
 
     [Fact]
@@ -73,16 +74,16 @@ public class GetMainUnitsTests
             return (subUnit, mainUnit);
         });
 
-        var requestContent = DataObject.Create(OrgUrn.OrganizationId.Create(subUnit.OrganizationIdentifier.Value!));
+        var requestContent = DataObject.Create(OrganizationUrn.OrganizationId.Create(subUnit.OrganizationIdentifier.Value!));
 
         var response = await HttpClient.PostAsJsonAsync("register/api/v2/internal/parties/main-units", requestContent, JsonOptions, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
-        var content = await response.ShouldHaveJsonContent<ListObject<OrganizationRecord>>();
+        var content = await response.ShouldHaveJsonContent<ListObject<Organization>>();
         var items = content.Items.ToList();
         items.Count.ShouldBe(1);
 
-        items[0].PartyUuid.ShouldBe(mainUnit.PartyUuid);
+        items[0].Uuid.ShouldBe(mainUnit.PartyUuid.Value);
     }
 
     [Fact]
@@ -100,17 +101,17 @@ public class GetMainUnitsTests
             return (subUnit, mainUnit1, mainUnit2);
         });
 
-        var requestContent = DataObject.Create(OrgUrn.PartyUuid.Create(subUnit.PartyUuid.Value));
+        var requestContent = DataObject.Create(OrganizationUrn.PartyUuid.Create(subUnit.PartyUuid.Value));
 
         var response = await HttpClient.PostAsJsonAsync("register/api/v2/internal/parties/main-units", requestContent, JsonOptions, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
-        var content = await response.ShouldHaveJsonContent<ListObject<OrganizationRecord>>();
+        var content = await response.ShouldHaveJsonContent<ListObject<Organization>>();
         var items = content.Items.ToList();
         items.Count.ShouldBe(2);
 
-        items[0].PartyUuid.ShouldBe(mainUnit1.PartyUuid);
-        items[1].PartyUuid.ShouldBe(mainUnit2.PartyUuid);
+        items[0].Uuid.ShouldBe(mainUnit1.PartyUuid.Value);
+        items[1].Uuid.ShouldBe(mainUnit2.PartyUuid.Value);
     }
 
     [Fact]
@@ -118,12 +119,12 @@ public class GetMainUnitsTests
     {
         var subUnit = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
 
-        var requestContent = DataObject.Create(OrgUrn.PartyUuid.Create(subUnit.PartyUuid.Value));
+        var requestContent = DataObject.Create(OrganizationUrn.PartyUuid.Create(subUnit.PartyUuid.Value));
 
         var response = await HttpClient.PostAsJsonAsync("register/api/v2/internal/parties/main-units", requestContent, JsonOptions, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
-        var content = await response.ShouldHaveJsonContent<ListObject<OrganizationRecord>>();
+        var content = await response.ShouldHaveJsonContent<ListObject<Organization>>();
 
         content.Items.ShouldBeEmpty();
     }

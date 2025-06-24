@@ -1,6 +1,4 @@
-using System.Text.Json.Serialization;
-
-namespace Altinn.Platform.Register.Models;
+namespace Altinn.Platform.Models.Register.V1;
 
 /// <summary>
 /// Represents a list of party names for each corresponding identifier

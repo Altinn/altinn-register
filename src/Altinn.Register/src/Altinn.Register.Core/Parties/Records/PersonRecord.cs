@@ -13,7 +13,7 @@ public sealed record PersonRecord
     /// Initializes a new instance of the <see cref="PersonRecord"/> class.
     /// </summary>
     public PersonRecord()
-        : base(Parties.PartyType.Person)
+        : base(PartyRecordType.Person)
     {
     }
 
@@ -38,14 +38,14 @@ public sealed record PersonRecord
     public required FieldValue<string> ShortName { get; init; }
 
     /// <summary>
-    /// Gets the (optional) <see cref="StreetAddress"/> of the person.
+    /// Gets the (optional) <see cref="StreetAddressRecord"/> of the person.
     /// </summary>
-    public required FieldValue<StreetAddress> Address { get; init; }
+    public required FieldValue<StreetAddressRecord> Address { get; init; }
 
     /// <summary>
-    /// Gets the (optional) <see cref="Parties.MailingAddress"/> of the person.
+    /// Gets the (optional) <see cref="Records.MailingAddressRecord"/> of the person.
     /// </summary>
-    public required FieldValue<MailingAddress> MailingAddress { get; init; }
+    public required FieldValue<MailingAddressRecord> MailingAddress { get; init; }
 
     /// <summary>
     /// Gets the date of birth of the person.

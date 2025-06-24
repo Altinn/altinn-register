@@ -1,10 +1,5 @@
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-
-using Altinn.Platform.Register.Models;
-
-using Xunit;
+using Altinn.Platform.Models.Register.V1;
 
 namespace Altinn.Platform.Models.Tests.Register
 {

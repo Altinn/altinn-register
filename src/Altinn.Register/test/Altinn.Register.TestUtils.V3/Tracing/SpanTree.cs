@@ -2,7 +2,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Altinn.Register.TestUtils.Tracing;
 
@@ -47,6 +46,13 @@ internal sealed class SpanTree
                 var selfPrefix = isLast ? "╰╴" : "├╴";
                 var childPrefix = isLast ? "  " : "│ ";
 
+                var tagString = string.Empty;
+
+                if (child.Retries is { } retries && retries > 0)
+                {
+                    tagString = $" (retries: {retries})";
+                }
+
                 if (root)
                 {
                     // parent is root
@@ -60,7 +66,7 @@ internal sealed class SpanTree
                     Duration = child.Duration!.Value,
                     StartTime = child.StartTime,
                     EndTime = child.StartTime + child.Duration.Value,
-                    Name = $"{child.Name} [{child.Source}]",
+                    Name = $"{child.Name}{tagString} [{child.Source}]",
                 });
 
                 // Step 4. Recurse
@@ -161,6 +167,9 @@ internal sealed class SpanTree
         private TimeSpan? _duration;
         private ActivityDisplayFilterCollection? _displayFilter;
 
+        // tags
+        private int? _retries;
+
         public static SpanNode FromActivity(Activity activity)
         {
             SpanNode span = new(activity.SpanId);
@@ -176,6 +185,9 @@ internal sealed class SpanTree
         public string Name => _name ?? string.Empty;
 
         public string Source => _source ?? string.Empty;
+
+        // tags
+        public int? Retries => _retries;
 
         public static SpanNode Root(Activity activity)
             => new(activity.SpanId);
@@ -227,99 +239,9 @@ internal sealed class SpanTree
             _startTime = activity.StartTimeUtc;
             _duration = activity.Duration;
             _displayFilter = activity.GetDisplayFilterCollection();
-        }
-    }
-}
 
-internal static class TimeSpanExtensions
-{
-    private static readonly TimeSpan _day = TimeSpan.FromDays(1);
-    private static readonly TimeSpan _hour = TimeSpan.FromHours(1);
-    private static readonly TimeSpan _month = TimeSpan.FromDays(30);
-    private static readonly TimeSpan _year = TimeSpan.FromDays(365);
-
-    public static void ToFriendlyString(this TimeSpan ts, StringBuilder sb)
-    {
-        if (ts.Equals(_month))
-        {
-            sb.Append("1M");
-        }
-
-        if (ts.Equals(_year))
-        {
-            sb.Append("1y");
-        }
-
-        if (ts.Equals(_day))
-        {
-            sb.Append("1d");
-        }
-
-        if (ts.Equals(_hour))
-        {
-            sb.Append("1h");
-        }
-
-        var years = ts.Days / 365;
-        var months = (ts.Days % 365) / 30;
-        var weeks = ((ts.Days % 365) % 30) / 7;
-        var days = ((ts.Days % 365) % 30) % 7;
-
-        if (years > 0)
-        {
-            sb.Append(years).Append("y");
-        }
-
-        if (months > 0)
-        {
-            sb.Append(months).Append("M");
-        }
-
-        if (weeks > 0)
-        {
-            sb.Append(weeks).Append("w");
-        }
-
-        if (days > 0)
-        {
-            sb.Append(days).Append("d");
-        }
-
-        if (ts.Hours > 0)
-        {
-            sb.Append(ts.Hours).Append("h");
-        }
-
-        if (ts.Minutes > 0)
-        {
-            sb.Append(ts.Minutes).Append("m");
-        }
-
-        if (ts.Seconds > 0)
-        {
-            sb.Append(ts.Seconds).Append("s");
-        }
-
-        if (ts.Milliseconds > 0)
-        {
-            sb.Append(ts.Milliseconds).Append("ms");
-        }
-
-        if (ts.Ticks == 0)
-        {
-            sb.Append("-0-");
-        }
-        else if (sb.Length == 0)
-        {
-            var nanos = ts.Ticks * 100;
-            if (nanos > 1000)
-            {
-                sb.Append((nanos + 500) / 1000).Append("\x00B5s");
-            }
-            else
-            {
-                sb.Append(nanos).Append("ns");
-            }
+            // tags
+            _retries = activity.GetTagItem("retry.count") as int?;
         }
     }
 }

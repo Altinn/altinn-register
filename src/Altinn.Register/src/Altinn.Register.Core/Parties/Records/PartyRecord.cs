@@ -1,4 +1,5 @@
 ﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Platform.Models.Register;
 
 namespace Altinn.Register.Core.Parties.Records;
 
@@ -6,15 +7,15 @@ namespace Altinn.Register.Core.Parties.Records;
 /// A database record for a party.
 /// </summary>
 [PolymorphicFieldValueRecord(IsRoot = true)]
-[PolymorphicDerivedType(typeof(PersonRecord), Parties.PartyType.Person)]
-[PolymorphicDerivedType(typeof(OrganizationRecord), Parties.PartyType.Organization)]
-[PolymorphicDerivedType(typeof(SelfIdentifiedUserRecord), Parties.PartyType.SelfIdentifiedUser)]
+[PolymorphicDerivedType(typeof(PersonRecord), PartyRecordType.Person)]
+[PolymorphicDerivedType(typeof(OrganizationRecord), PartyRecordType.Organization)]
+[PolymorphicDerivedType(typeof(SelfIdentifiedUserRecord), PartyRecordType.SelfIdentifiedUser)]
 public record PartyRecord
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="PartyRecord"/> class.
     /// </summary>
-    public PartyRecord(FieldValue<PartyType> partyType)
+    public PartyRecord(FieldValue<PartyRecordType> partyType)
     {
         PartyType = partyType;
     }
@@ -33,7 +34,7 @@ public record PartyRecord
     /// Gets the type of the party.
     /// </summary>
     [PolymorphicDiscriminatorProperty]
-    public FieldValue<PartyType> PartyType { get; private init; }
+    public FieldValue<PartyRecordType> PartyType { get; private init; }
 
     /// <summary>
     /// Gets the display-name of the party.

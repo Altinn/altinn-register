@@ -1,32 +1,43 @@
-namespace Altinn.Platform.Register.Enums;
+﻿using Altinn.Authorization.ModelUtils;
+
+namespace Altinn.Platform.Models.Register;
 
 /// <summary>
-/// Enum containing values for the different types of parties
+/// Represents a party type.
 /// </summary>
+/// <remarks>
+/// This enum is explicitly made such that <c>default(PartyType)</c> is not a valid value.
+/// </remarks>
+[StringEnumConverter]
 public enum PartyType
 {
     /// <summary>
-    /// Party Type is Person
+    /// Person party type.
     /// </summary>
+    [JsonStringEnumMemberName("person")]
     Person = 1,
 
     /// <summary>
-    /// Party Type is Organization
+    /// Organization party type.
     /// </summary>
-    Organisation = 2,
+    [JsonStringEnumMemberName("organization")]
+    Organization,
 
     /// <summary>
-    /// Party Type is Self Identified user
+    /// Self-identified user party type.
     /// </summary>
-    SelfIdentified = 3,
+    [JsonStringEnumMemberName("self-identified-user")]
+    SelfIdentifiedUser,
 
     /// <summary>
-    /// Party Type is sub unit
+    /// System user party type.
     /// </summary>
-    SubUnit = 4,
+    [JsonStringEnumMemberName("system-user")]
+    SystemUser,
 
     /// <summary>
-    /// Party Type is bankruptcy estate
+    /// Enterprise user party type.
     /// </summary>
-    BankruptcyEstate = 5
+    [JsonStringEnumMemberName("enterprise-user")]
+    EnterpriseUser,
 }

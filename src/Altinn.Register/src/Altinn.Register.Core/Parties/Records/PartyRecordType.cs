@@ -1,13 +1,13 @@
 ﻿using System.Text.Json.Serialization;
 using Altinn.Authorization.ModelUtils;
 
-namespace Altinn.Register.Core.Parties;
+namespace Altinn.Register.Core.Parties.Records;
 
 /// <summary>
 /// Represents a party type.
 /// </summary>
-[StringEnumConverter]
-public enum PartyType
+[StringEnumConverter(JsonKnownNamingPolicy.KebabCaseLower)]
+public enum PartyRecordType
 {
     /// <summary>
     /// Person party type.

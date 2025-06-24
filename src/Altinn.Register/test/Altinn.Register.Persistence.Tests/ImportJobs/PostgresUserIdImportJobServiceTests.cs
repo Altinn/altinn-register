@@ -76,11 +76,11 @@ public class PostgresUserIdImportJobServiceTests
     public class GetPartiesWithoutUserIdAndJobStateTests
         : PostgresUserIdImportJobServiceTests
     {
-        private static readonly IReadOnlySet<PartyType> _partyTypes = 
-            new HashSet<PartyType>
+        private static readonly IReadOnlySet<PartyRecordType> _partyTypes = 
+            new HashSet<PartyRecordType>
             {
-                PartyType.Person,
-                PartyType.SelfIdentifiedUser,
+                PartyRecordType.Person,
+                PartyRecordType.SelfIdentifiedUser,
             };
 
         [Fact]
@@ -116,11 +116,11 @@ public class PostgresUserIdImportJobServiceTests
 
                 switch (party.PartyType)
                 {
-                    case PartyType.Person:
+                    case PartyRecordType.Person:
                         people.Should().Contain(p => p.PartyUuid.Value == party.PartyUuid);
                         break;
 
-                    case PartyType.SelfIdentifiedUser:
+                    case PartyRecordType.SelfIdentifiedUser:
                         siUsers.Should().Contain(p => p.PartyUuid.Value == party.PartyUuid);
                         break;
 
@@ -165,11 +165,11 @@ public class PostgresUserIdImportJobServiceTests
                 party.PartyType.Should().BeOneOf(_partyTypes);
                 switch (party.PartyType)
                 {
-                    case PartyType.Person:
+                    case PartyRecordType.Person:
                         peopleCount++;
                         break;
 
-                    case PartyType.SelfIdentifiedUser:
+                    case PartyRecordType.SelfIdentifiedUser:
                         siUsersCount++;
                         break;
 
@@ -210,7 +210,7 @@ public class PostgresUserIdImportJobServiceTests
             parties.Should().HaveCount(2);
             parties.Should().AllSatisfy(party =>
             {
-                party.PartyType.Should().Be(PartyType.SelfIdentifiedUser);
+                party.PartyType.Should().Be(PartyRecordType.SelfIdentifiedUser);
                 users.Should().Contain(p => p.PartyUuid.Value == party.PartyUuid);
             });
         }

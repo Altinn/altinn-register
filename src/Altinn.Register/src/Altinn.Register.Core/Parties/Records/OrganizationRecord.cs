@@ -14,7 +14,7 @@ public sealed record OrganizationRecord
     /// Initializes a new instance of the <see cref="OrganizationRecord"/> class.
     /// </summary>
     public OrganizationRecord()
-        : base(Parties.PartyType.Organization)
+        : base(PartyRecordType.Organization)
     {
     }
 
@@ -56,12 +56,12 @@ public sealed record OrganizationRecord
     /// <summary>
     /// Gets the mailing address of the organization.
     /// </summary>
-    public required FieldValue<MailingAddress> MailingAddress { get; init; }
+    public required FieldValue<MailingAddressRecord> MailingAddress { get; init; }
 
     /// <summary>
     /// Gets the business address of the organization.
     /// </summary>
-    public required FieldValue<MailingAddress> BusinessAddress { get; init; }
+    public required FieldValue<MailingAddressRecord> BusinessAddress { get; init; }
 
     /// <summary>
     /// Gets the parent organization of the organization (if any).

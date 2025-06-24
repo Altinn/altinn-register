@@ -5,8 +5,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-
-using Altinn.Platform.Register.Models;
+using Altinn.Platform.Models.Register.V1;
 using Altinn.Register.Clients;
 using Altinn.Register.Configuration;
 using Altinn.Register.Tests.Mocks;

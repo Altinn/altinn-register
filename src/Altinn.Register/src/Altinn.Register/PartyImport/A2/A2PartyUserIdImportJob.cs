@@ -3,7 +3,7 @@
 using System.Collections.Frozen;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Core.ImportJobs;
-using Altinn.Register.Core.Parties;
+using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Jobs;
 
@@ -15,9 +15,9 @@ namespace Altinn.Register.PartyImport.A2;
 internal sealed partial class A2PartyUserIdImportJob
     : IJob
 {
-    private readonly static FrozenSet<PartyType> _partyTypes = [
-        PartyType.Person, 
-        PartyType.SelfIdentifiedUser,
+    private readonly static FrozenSet<PartyRecordType> _partyTypes = [
+        PartyRecordType.Person, 
+        PartyRecordType.SelfIdentifiedUser,
     ];
 
     private readonly ILogger<A2PartyUserIdImportJob> _logger;

@@ -1,5 +1,5 @@
+using Altinn.Platform.Models.Register.V1;
 using Altinn.Platform.Profile.Enums;
-using Altinn.Platform.Register.Models;
 
 namespace Altinn.Platform.Profile.Models;
 

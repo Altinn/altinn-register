@@ -1,24 +1,15 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
+﻿using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
-using Altinn.Platform.Register.Enums;
-using Altinn.Platform.Register.Models;
+using Altinn.Platform.Models.Register.V1;
 using Altinn.Register.Clients;
 using Altinn.Register.Configuration;
 using Altinn.Register.Tests.Mocks;
-using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using Xunit;
 
 namespace Altinn.Register.Tests.UnitTests
 {

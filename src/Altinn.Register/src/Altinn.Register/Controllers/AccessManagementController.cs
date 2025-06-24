@@ -1,4 +1,5 @@
-﻿using Altinn.Register.Core.Parties;
+﻿using Altinn.Platform.Models.Register;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
@@ -22,11 +23,11 @@ public class AccessManagementController(V2.PartyController inner)
     /// <param name="uuid">The party UUID.</param>
     /// <param name="fields">The fields to include in the response.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
-    /// <returns>A <see cref="PartyRecord"/>.</returns>
+    /// <returns>A <see cref="Party"/>.</returns>
     [HttpGet("{uuid:guid}")]
-    [ProducesResponseType<PartyRecord>(StatusCodes.Status200OK)]
+    [ProducesResponseType<Party>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
-    public Task<ActionResult<PartyRecord>> GetPartyByUuid(
+    public Task<ActionResult<Party>> GetPartyByUuid(
         [FromRoute] Guid uuid,
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         CancellationToken cancellationToken = default)

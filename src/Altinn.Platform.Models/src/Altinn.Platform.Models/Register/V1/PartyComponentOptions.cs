@@ -1,4 +1,4 @@
-﻿namespace Altinn.Platform.Register.Models;
+﻿namespace Altinn.Platform.Models.Register.V1;
 
 /// <summary>
 /// Specifies the components that should be included when retrieving party's information.

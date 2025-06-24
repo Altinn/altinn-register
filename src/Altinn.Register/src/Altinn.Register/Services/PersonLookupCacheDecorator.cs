@@ -1,5 +1,5 @@
 ﻿#nullable enable
-using Altinn.Platform.Register.Models;
+using Altinn.Platform.Models.Register.V1;
 using Altinn.Register.Core;
 
 using Microsoft.Extensions.Caching.Memory;

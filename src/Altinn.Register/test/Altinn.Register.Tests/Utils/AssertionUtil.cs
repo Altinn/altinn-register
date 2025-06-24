@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
-using Altinn.Platform.Register.Enums;
-using Altinn.Platform.Register.Models;
+using Altinn.Platform.Models.Register.V1;
 using Xunit;
 
 namespace Altinn.Register.Tests.Utils

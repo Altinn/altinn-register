@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
 
-namespace Altinn.Platform.Register.Models;
+namespace Altinn.Platform.Models.Register.V1;
 
 /// <summary>
 /// Represents a lookup criteria when looking for a Party. Only one of the properties can be used at a time.

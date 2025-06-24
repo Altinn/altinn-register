@@ -9,13 +9,13 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
+using Altinn.Platform.Models.Register;
 using Altinn.Register.Core.Errors;
-using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
 using CommunityToolkit.Diagnostics;
-using V1Models = Altinn.Platform.Register.Models;
-using V1PartyType = Altinn.Platform.Register.Enums.PartyType;
+using V1Models = Altinn.Platform.Models.Register.V1;
+using V1PartyType = Altinn.Platform.Models.Register.V1.PartyType;
 
 namespace Altinn.Register.PartyImport.A2;
 
@@ -268,7 +268,7 @@ internal sealed partial class A2PartyImportService
         static string? Normalize(string? value)
             => string.IsNullOrWhiteSpace(value) ? null : value;
 
-        static StreetAddress? MapStreetAddress(
+        static StreetAddressRecord? MapStreetAddress(
             string? municipalNumber,
             string? municipalName,
             string? streetName,
@@ -296,7 +296,7 @@ internal sealed partial class A2PartyImportService
                 return null;
             }
 
-            return new StreetAddress
+            return new StreetAddressRecord
             {
                 MunicipalNumber = municipalNumber,
                 MunicipalName = municipalName,
@@ -308,7 +308,7 @@ internal sealed partial class A2PartyImportService
             };
         }
 
-        static MailingAddress? MapMailingAddress(
+        static MailingAddressRecord? MapMailingAddress(
             string? address,
             string? postalCode,
             string? city)
@@ -324,7 +324,7 @@ internal sealed partial class A2PartyImportService
                 return null;
             }
 
-            return new MailingAddress
+            return new MailingAddressRecord
             {
                 Address = address,
                 PostalCode = postalCode,

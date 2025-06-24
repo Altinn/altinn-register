@@ -3,8 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-
-using Altinn.Platform.Register.Models;
+using Altinn.Platform.Models.Register.V1;
 using Altinn.Register.Configuration;
 using Altinn.Register.Tests.IntegrationTests.Utils;
 using Altinn.Register.Tests.Mocks;

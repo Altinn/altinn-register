@@ -1,6 +1,7 @@
 ﻿using System.Collections.Immutable;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
+using Altinn.Platform.Models.Register;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
@@ -69,8 +70,8 @@ public static class PartyPersistenceExtensions
         FieldValue<string> faxNumber = default,
         FieldValue<string> emailAddress = default,
         FieldValue<string> internetAddress = default,
-        FieldValue<MailingAddress> mailingAddress = default,
-        FieldValue<MailingAddress> businessAddress = default,
+        FieldValue<MailingAddressRecord> mailingAddress = default,
+        FieldValue<MailingAddressRecord> businessAddress = default,
         CancellationToken cancellationToken = default)
     {
         var toInsert = await uow.GetRequiredService<RegisterTestDataGenerator>()
@@ -146,8 +147,8 @@ public static class PartyPersistenceExtensions
         FieldValue<DateTimeOffset> createdAt = default,
         FieldValue<DateTimeOffset> modifiedAt = default,
         FieldValue<PersonName> name = default,
-        FieldValue<StreetAddress> address = default,
-        FieldValue<MailingAddress> mailingAddress = default,
+        FieldValue<StreetAddressRecord> address = default,
+        FieldValue<MailingAddressRecord> mailingAddress = default,
         FieldValue<DateOnly> dateOfBirth = default,
         FieldValue<DateOnly> dateOfDeath = default,
         FieldValue<PartyUserRecord> user = default,

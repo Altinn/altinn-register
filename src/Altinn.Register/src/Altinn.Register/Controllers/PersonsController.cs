@@ -1,7 +1,7 @@
 #nullable enable
 
 using System.Security.Claims;
-using Altinn.Platform.Register.Models;
+using Altinn.Platform.Models.Register.V1;
 using Altinn.Register.Core;
 using Altinn.Register.Models;
 using AltinnCore.Authentication.Constants;

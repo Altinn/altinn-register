@@ -4,11 +4,10 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Altinn.Swashbuckle.Examples;
 using Altinn.Swashbuckle.Filters;
 
-namespace Altinn.Register.Core.Parties;
+namespace Altinn.Platform.Models.Register;
 
 /// <summary>
 /// A organization number (a string of 9 digits).

@@ -1,9 +1,9 @@
-﻿namespace Altinn.Register.Core.Parties;
+﻿namespace Altinn.Register.Core.Parties.Records;
 
 /// <summary>
 /// Represents a mailing address.
 /// </summary>
-public record MailingAddress
+public record MailingAddressRecord
 {
     /// <summary>
     /// Gets the address part of the mailing address.

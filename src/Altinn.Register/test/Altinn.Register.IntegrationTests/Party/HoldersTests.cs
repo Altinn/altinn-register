@@ -22,7 +22,7 @@ public class HoldersTests
         var response = await HttpClient.GetAsync($"register/api/{apiVersion}/internal/parties/{org.PartyUuid.Value}/holders/ccr/{roleIdentifier}", TestContext.Current.CancellationToken);
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
 
-        var content = await response.ShouldHaveJsonContent<ListObject<PartyRecord>>();
+        var content = await response.ShouldHaveJsonContent<ListObject<Platform.Models.Register.Party>>();
         content.Items.ShouldBeEmpty();
     }
 
@@ -66,13 +66,13 @@ public class HoldersTests
         var response = await HttpClient.GetAsync($"register/api/{apiVersion}/internal/parties/{org1.PartyUuid.Value}/holders/ccr/{roleIdentifier}", TestContext.Current.CancellationToken);
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
 
-        var content = await response.ShouldHaveJsonContent<ListObject<PartyRecord>>();
+        var content = await response.ShouldHaveJsonContent<ListObject<Platform.Models.Register.Party>>();
         var items = content.Items.ToList();
         items.Count.ShouldBe(4);
-        items.ShouldContain(p => p.PartyUuid == org1.PartyUuid);
-        items.ShouldContain(p => p.PartyUuid == org2.PartyUuid);
-        items.ShouldContain(p => p.PartyUuid == org3.PartyUuid);
-        items.ShouldContain(p => p.PartyUuid == pers1.PartyUuid);
+        items.ShouldContain(p => p.Uuid == org1.PartyUuid.Value);
+        items.ShouldContain(p => p.Uuid == org2.PartyUuid.Value);
+        items.ShouldContain(p => p.Uuid == org3.PartyUuid.Value);
+        items.ShouldContain(p => p.Uuid == pers1.PartyUuid.Value);
     }
 
     public static TheoryData<string, string> HoldersRoleIdentifiers => new MatrixTheoryData<string, string>(

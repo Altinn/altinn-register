@@ -5,7 +5,6 @@ using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Core;
 using Altinn.Register.Core.Errors;
-using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
 using MassTransit;
@@ -86,7 +85,7 @@ public sealed partial class A2PartyImportConsumer
         var partyType = context.Message.PartyType;
 
         Result<PartyUserRecord> userRecordResult;
-        if (partyType is PartyType.Person)
+        if (partyType is PartyRecordType.Person)
         {
             userRecordResult = await _importService.GetOrCreatePersonUser(partyUuid, context.CancellationToken);
         }

@@ -12,8 +12,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Altinn.Authorization.ModelUtils" />
+    <PackageReference Include="Altinn.Swashbuckle.Abstractions" />
+    <PackageReference Include="Altinn.Urn" />
     <PackageReference Include="System.ComponentModel.Annotations" />
     <PackageReference Include="System.Text.Json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="System.Text.Json.Serialization" />
   </ItemGroup>
 
 </Project>

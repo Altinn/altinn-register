@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Register.Core.ImportJobs;
-using Altinn.Register.Core.Parties;
+using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
 using CommunityToolkit.Diagnostics;
 using Npgsql;
@@ -30,9 +30,9 @@ internal class PostgresUserIdImportJobService
     }
 
     /// <inheritdoc/>
-    public async IAsyncEnumerable<(Guid PartyUuid, PartyType PartyType)> GetPartiesWithoutUserIdAndJobState(
+    public async IAsyncEnumerable<(Guid PartyUuid, PartyRecordType PartyType)> GetPartiesWithoutUserIdAndJobState(
         string jobId,
-        IReadOnlySet<PartyType> partyTypes,
+        IReadOnlySet<PartyRecordType> partyTypes,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         const string QUERY =
@@ -65,7 +65,7 @@ internal class PostgresUserIdImportJobService
         await using var cmd = _connection.CreateCommand(QUERY);
         
         cmd.Parameters.Add<string>("jobId", NpgsqlDbType.Text).TypedValue = jobId;
-        cmd.Parameters.Add<List<PartyType>>("partyTypes").TypedValue = [.. partyTypes];
+        cmd.Parameters.Add<List<PartyRecordType>>("partyTypes").TypedValue = [.. partyTypes];
 
         var fromParam = cmd.Parameters.Add<Guid?>("from", NpgsqlDbType.Uuid);
         fromParam.TypedValue = null;
@@ -85,11 +85,11 @@ internal class PostgresUserIdImportJobService
             }
 
             Guid partyUuid;
-            PartyType partyType;
+            PartyRecordType partyType;
             do
             {
                 partyUuid = await reader.GetFieldValueAsync<Guid>(uuidOrdinal, cancellationToken);
-                partyType = await reader.GetFieldValueAsync<PartyType>(partyTypeOrdinal, cancellationToken);
+                partyType = await reader.GetFieldValueAsync<PartyRecordType>(partyTypeOrdinal, cancellationToken);
                 yield return (partyUuid, partyType);
             }
             while (await reader.ReadAsync(cancellationToken));

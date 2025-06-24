@@ -3,6 +3,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Altinn.Authorization.ProblemDetails;
+using Altinn.Platform.Models.Register;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core;
 using Altinn.Register.Core.Errors;
@@ -10,6 +11,7 @@ using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Core.Utils;
+using Altinn.Register.Mapping;
 using Altinn.Register.ModelBinding;
 using Altinn.Register.Models;
 using Asp.Versioning;
@@ -28,6 +30,13 @@ namespace Altinn.Register.Controllers.V2;
 public class PartyController
     : ControllerBase
 {
+    private const PartyFieldIncludes REQUIRED_FIELDS = 
+          PartyFieldIncludes.PartyUuid 
+        | PartyFieldIncludes.PartyType 
+        | PartyFieldIncludes.PartyOrganizationIdentifier 
+        | PartyFieldIncludes.PartyPersonIdentifier 
+        | PartyFieldIncludes.PartyVersionId;
+
     /// <summary>
     /// The page-size for party streams.
     /// </summary>
@@ -84,7 +93,7 @@ public class PartyController
     /// The page-size for the stream is not constant, and can change over time. It should not be relied upon.
     /// </remarks>
     [HttpGet("stream", Name = ROUTE_GET_STREAM)]
-    public async Task<ActionResult<ItemStream<PartyRecord>>> GetStream(
+    public async Task<ActionResult<ItemStream<Party>>> GetStream(
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         [FromQuery(Name = "token")] Opaque<ulong>? token = null,
         CancellationToken cancellationToken = default)
@@ -109,8 +118,9 @@ public class PartyController
         var parties = await persistence.GetPartyStream(
             fromExclusive: token?.Value ?? 0,
             limit: PAGE_SIZE,
-            fields | PartyFieldIncludes.PartyVersionId,
+            fields | REQUIRED_FIELDS,
             cancellationToken)
+            .Select(static p => p.ToPlatformModel())
             .ToListAsync(cancellationToken);
 
         string? nextLink = null;
@@ -118,7 +128,7 @@ public class PartyController
         {
             nextLink = Url.Link(ROUTE_GET_STREAM, new
             {
-                token = Opaque.Create(parties[^1].VersionId.Value),
+                token = Opaque.Create(parties[^1].VersionId),
                 fields = PartyFieldIncludesModelBinder.Format(fields),
             });
         }
@@ -127,7 +137,7 @@ public class PartyController
             parties,
             next: nextLink,
             sequenceMax: maxVersionId,
-            sequenceNumberFactory: static p => p.VersionId.Value);
+            sequenceNumberFactory: static p => p.VersionId);
     }
 
     /// <summary>
@@ -181,8 +191,8 @@ public class PartyController
     [ApiVersion(1.0)]
     [ApiVersion(2.0)]
     [HttpGet("{partyUuid:guid}/customers/ccr/revisor")]
-    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status200OK)]
-    public Task<ActionResult<ListObject<PartyRecord>>> GetRevisorCustomers(
+    [ProducesResponseType<ListObject<Party>>(StatusCodes.Status200OK)]
+    public Task<ActionResult<ListObject<Party>>> GetRevisorCustomers(
         [FromRoute] Guid partyUuid,
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         CancellationToken cancellationToken = default)
@@ -200,8 +210,8 @@ public class PartyController
     [ApiVersion(1.0)]
     [ApiVersion(2.0)]
     [HttpGet("{partyUuid:guid}/customers/ccr/regnskapsforer")]
-    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status200OK)]
-    public Task<ActionResult<ListObject<PartyRecord>>> GetRegnskapsforerCustomers(
+    [ProducesResponseType<ListObject<Party>>(StatusCodes.Status200OK)]
+    public Task<ActionResult<ListObject<Party>>> GetRegnskapsforerCustomers(
         [FromRoute] Guid partyUuid, 
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         CancellationToken cancellationToken = default)
@@ -219,15 +229,15 @@ public class PartyController
     [ApiVersion(1.0)]
     [ApiVersion(2.0)]
     [HttpGet("{partyUuid:guid}/customers/ccr/forretningsforer")]
-    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status200OK)]
-    public Task<ActionResult<ListObject<PartyRecord>>> GetForretningsforerCustomers(
+    [ProducesResponseType<ListObject<Party>>(StatusCodes.Status200OK)]
+    public Task<ActionResult<ListObject<Party>>> GetForretningsforerCustomers(
         [FromRoute] Guid partyUuid,
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         CancellationToken cancellationToken = default)
         => GetCustomers(partyUuid, _forretningsforerRole, fields, cancellationToken);
 
     [NonAction]
-    private async Task<ActionResult<ListObject<PartyRecord>>> GetCustomers(
+    private async Task<ActionResult<ListObject<Party>>> GetCustomers(
         Guid partyUuid,
         ExternalRoleReference role,
         PartyFieldIncludes fields,
@@ -253,18 +263,19 @@ public class PartyController
 
         if (customerPartyUuids.Count == 0)
         {
-            return StatusCode(StatusCodes.Status200OK, ListObject.Create<PartyRecord>([]));
+            return StatusCode(StatusCodes.Status200OK, ListObject.Create<Party>([]));
         }
 
-        List<PartyRecord> customers;
+        List<Party> customers;
 
         {
             using var activity = RegisterTelemetry.StartActivity("LookupParties");
 
             customers = await partyPersistence.LookupParties(
                 partyUuids: customerPartyUuids,
-                include: fields,
+                include: fields | REQUIRED_FIELDS,
                 cancellationToken: cancellationToken)
+                .Select(static p => p.ToPlatformModel())
                 .ToListAsync(cancellationToken);
         }
 
@@ -283,15 +294,15 @@ public class PartyController
     [ApiVersion(1.0)]
     [ApiVersion(2.0)]
     [HttpGet("{partyUuid:guid}/holders/ccr/daglig-leder")]
-    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status200OK)]
-    public Task<ActionResult<ListObject<PartyRecord>>> GetDagligLedere(
+    [ProducesResponseType<ListObject<Party>>(StatusCodes.Status200OK)]
+    public Task<ActionResult<ListObject<Party>>> GetDagligLedere(
         [FromRoute] Guid partyUuid,
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         CancellationToken cancellationToken = default)
         => GetRoleHolders(partyUuid, _dagligLederRole, fields, cancellationToken);
 
     [NonAction]
-    private async Task<ActionResult<ListObject<PartyRecord>>> GetRoleHolders(
+    private async Task<ActionResult<ListObject<Party>>> GetRoleHolders(
         Guid partyUuid,
         ExternalRoleReference role,
         PartyFieldIncludes fields,
@@ -315,15 +326,16 @@ public class PartyController
                 .ToListAsync(cancellationToken);
         }
 
-        List<PartyRecord> holders;
+        List<Party> holders;
 
         {
             using var activity = RegisterTelemetry.StartActivity("LookupParties");
 
             holders = await partyPersistence.LookupParties(
                 partyUuids: customerPartyUuids,
-                include: fields,
+                include: fields | REQUIRED_FIELDS,
                 cancellationToken: cancellationToken)
+                .Select(static p => p.ToPlatformModel())
                 .ToListAsync(cancellationToken);
         }
 
@@ -338,9 +350,9 @@ public class PartyController
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="PartyRecord"/>.</returns>
     [HttpGet("{uuid:guid}")]
-    [ProducesResponseType<PartyRecord>(StatusCodes.Status200OK)]
+    [ProducesResponseType<Party>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<PartyRecord>> GetPartyByUuid(
+    public async Task<ActionResult<Party>> GetPartyByUuid(
         [FromRoute] Guid uuid,
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         CancellationToken cancellationToken = default)
@@ -359,7 +371,7 @@ public class PartyController
         await using var uow = await _uowManager.CreateAsync(cancellationToken);
         var persistence = uow.GetPartyPersistence();
 
-        var party = await persistence.GetPartyById(uuid, fields, cancellationToken)
+        var party = await persistence.GetPartyById(uuid, fields | REQUIRED_FIELDS, cancellationToken)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (party is null)
@@ -368,7 +380,7 @@ public class PartyController
                 .ToActionResult();
         }
 
-        return Ok(party);
+        return Ok(party.ToPlatformModel());
     }
 
     /// <summary>
@@ -388,9 +400,9 @@ public class PartyController
     /// </list>
     /// </remarks>
     [HttpPost("query")]
-    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status200OK)]
-    [ProducesResponseType<ListObject<PartyRecord>>(StatusCodes.Status206PartialContent)]
-    public async Task<ActionResult<ListObject<PartyRecord>>> Query(
+    [ProducesResponseType<ListObject<Party>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ListObject<Party>>(StatusCodes.Status206PartialContent)]
+    public async Task<ActionResult<ListObject<Party>>> Query(
         [FromBody] ListObject<PartyUrn> parties,
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         CancellationToken cancellationToken = default)
@@ -476,15 +488,16 @@ public class PartyController
             organizationIdentifiers: orgIds,
             personIdentifiers: personIds,
             userIds: userIds,
-            fields,
+            fields | REQUIRED_FIELDS,
             cancellationToken)
+            .Select(static p => p.ToPlatformModel())
             .ToListAsync(cancellationToken);
 
         var statusCode = StatusCodes.Status200OK;
         var anyMissing = ids.OrEmpty().Any(id => !result.Any(p => p.PartyId.Value == id)) 
-            || uuids.OrEmpty().Any(uuid => !result.Any(p => p.PartyUuid.Value == uuid)) 
-            || orgIds.OrEmpty().Any(orgId => !result.Any(p => p.OrganizationIdentifier.Value == orgId)) 
-            || personIds.OrEmpty().Any(personId => !result.Any(p => p.PersonIdentifier.Value == personId))
+            || uuids.OrEmpty().Any(uuid => !result.Any(p => p.Uuid == uuid)) 
+            || orgIds.OrEmpty().Any(orgId => !result.Any(p => p is Organization o && o.OrganizationIdentifier == orgId)) 
+            || personIds.OrEmpty().Any(personId => !result.Any(p => p is Person pp && pp.PersonIdentifier == personId))
             || userIds.OrEmpty().Any(uid => !result.Any(p => p.User.HasValue && p.User.Value.UserIds.HasValue && p.User.Value.UserIds.Value.Contains(uid)));
 
         if (anyMissing)
@@ -506,9 +519,9 @@ public class PartyController
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>All organizations that are the main-units of the input organization.</returns>
     [HttpPost("main-units")]
-    [ProducesResponseType<ListObject<OrganizationRecord>>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<ListObject<OrganizationRecord>>> GetMainUnits(
-        [FromBody] DataObject<OrgUrn> request,
+    [ProducesResponseType<ListObject<Organization>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ListObject<Organization>>> GetMainUnits(
+        [FromBody] DataObject<OrganizationUrn> request,
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         CancellationToken cancellationToken = default)
     {
@@ -531,10 +544,10 @@ public class PartyController
         {
             PartyRecord? party = request.Item switch
             {
-                OrgUrn.PartyId { Value: var partyId } => await partyPersistence
+                OrganizationUrn.PartyId { Value: var partyId } => await partyPersistence
                     .GetPartyById(partyId, PartyFieldIncludes.PartyUuid | PartyFieldIncludes.PartyType, cancellationToken)
                     .FirstOrDefaultAsync(cancellationToken),
-                OrgUrn.OrganizationId { Value: var orgId } => await partyPersistence
+                OrganizationUrn.OrganizationId { Value: var orgId } => await partyPersistence
                     .GetOrganizationByIdentifier(orgId, PartyFieldIncludes.PartyUuid, cancellationToken)
                     .FirstOrDefaultAsync(cancellationToken),
                 _ => Unreachable<PartyRecord>(),
@@ -543,7 +556,7 @@ public class PartyController
             if (party is not OrganizationRecord { PartyUuid.HasValue: true })
             {
                 // only organizations can have main units
-                return ListObject.Create<OrganizationRecord>([]);
+                return ListObject.Create<Organization>([]);
             }
 
             partyUuid = party.PartyUuid.Value;
@@ -559,14 +572,15 @@ public class PartyController
 
         if (mainUnitIds.Count == 0)
         {
-            return ListObject.Create<OrganizationRecord>([]);
+            return ListObject.Create<Organization>([]);
         }
 
         var mainUnits = await partyPersistence.LookupParties(
             partyUuids: mainUnitIds,
-            include: fields | PartyFieldIncludes.PartyType,
+            include: fields | REQUIRED_FIELDS,
             cancellationToken: cancellationToken)
             .OfType<OrganizationRecord>()
+            .Select(static o => o.ToPlatformModel())
             .ToListAsync(cancellationToken);
 
         return ListObject.Create(mainUnits);

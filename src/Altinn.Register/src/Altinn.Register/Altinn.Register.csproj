@@ -30,16 +30,18 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Altinn.Platform.Models\src\Altinn.Platform.Models\Altinn.Platform.Models.csproj" />
+    <ProjectReference
+      Include="..\..\..\Altinn.Platform.Models\src\Altinn.Platform.Models\Altinn.Platform.Models.csproj" />
     <ProjectReference Include="..\Altinn.Register.Core\Altinn.Register.Core.csproj" />
     <ProjectReference Include="..\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
-    <ProjectReference Include="..\ServiceDefaults.MassTransit\Altinn.Authorization.ServiceDefaults.MassTransit.csproj" />
+    <ProjectReference
+      Include="..\ServiceDefaults.MassTransit\Altinn.Authorization.ServiceDefaults.MassTransit.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-		<InternalsVisibleTo Include="Altinn.Register.TestUtils.V2" />
-		<InternalsVisibleTo Include="Altinn.Register.TestUtils.V3" />
-		<InternalsVisibleTo Include="Altinn.Register.IntegrationTests" />
+    <InternalsVisibleTo Include="Altinn.Register.TestUtils.V2" />
+    <InternalsVisibleTo Include="Altinn.Register.TestUtils.V3" />
+    <InternalsVisibleTo Include="Altinn.Register.IntegrationTests" />
   </ItemGroup>
 
 </Project>

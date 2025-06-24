@@ -3,8 +3,8 @@ using System.Diagnostics;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
+using Altinn.Platform.Models.Register;
 using Altinn.Register.Core.Errors;
-using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using CommunityToolkit.Diagnostics;
 using Npgsql;
@@ -98,7 +98,7 @@ internal partial class PostgreSqlPartyPersistence
             return new PartyUserRecord(userId: userId, username: FieldValue.Unset, userIds: userIds);
         }
 
-        private abstract class Typed<T>(PartyType type, string query = DEFAULT_QUERY)
+        private abstract class Typed<T>(PartyRecordType type, string query = DEFAULT_QUERY)
             : UpsertPartyQuery
             where T : PartyRecord
         {
@@ -127,7 +127,7 @@ internal partial class PostgreSqlPartyPersistence
                 cmd.Parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = party.PartyUuid.Value;
                 cmd.Parameters.Add<int>("id", NpgsqlDbType.Bigint).TypedValue = checked((int)party.PartyId.Value);
                 cmd.Parameters.Add<int[]?>("user_ids", NpgsqlDbType.Bigint | NpgsqlDbType.Array).TypedValue = userIds.OrDefault();
-                cmd.Parameters.Add<PartyType>("party_type").TypedValue = party.PartyType.Value;
+                cmd.Parameters.Add<PartyRecordType>("party_type").TypedValue = party.PartyType.Value;
                 cmd.Parameters.Add<string>("display_name", NpgsqlDbType.Text).TypedValue = party.DisplayName.Value;
                 cmd.Parameters.Add<string>("person_id", NpgsqlDbType.Text).TypedValue = party.PersonIdentifier.IsNull ? null : party.PersonIdentifier.Value!.ToString();
                 cmd.Parameters.Add<string>("org_id", NpgsqlDbType.Text).TypedValue = party.OrganizationIdentifier.IsNull ? null : party.OrganizationIdentifier.Value!.ToString();
@@ -153,7 +153,7 @@ internal partial class PostgreSqlPartyPersistence
                     var read = await reader.ReadAsync(cancellationToken);
                     Debug.Assert(read, "Expected a row from upsert_party");
 
-                    var partyType = await reader.GetConditionalFieldValueAsync<PartyType>("p_party_type", cancellationToken);
+                    var partyType = await reader.GetConditionalFieldValueAsync<PartyRecordType>("p_party_type", cancellationToken);
                     Debug.Assert(partyType == type);
 
                     return await ReadResult(reader, cancellationToken);
@@ -176,7 +176,7 @@ internal partial class PostgreSqlPartyPersistence
         }
 
         private sealed class UpsertPersonQuery()
-            : Typed<PersonRecord>(PartyType.Person, QUERY)
+            : Typed<PersonRecord>(PartyRecordType.Person, QUERY)
         {
             private const string QUERY =
                 /*strpsql*/"""
@@ -223,8 +223,8 @@ internal partial class PostgreSqlPartyPersistence
                 cmd.Parameters.Add<string>("short_name", NpgsqlDbType.Text).TypedValue = party.ShortName.Value;
                 cmd.Parameters.Add<DateOnly>("date_of_birth").TypedValue = party.DateOfBirth.Value;
                 cmd.Parameters.Add<DateOnly?>("date_of_death").TypedValue = party.DateOfDeath.IsNull ? null : party.DateOfDeath.Value;
-                cmd.Parameters.Add<StreetAddress>("address").TypedValue = party.Address.Value;
-                cmd.Parameters.Add<MailingAddress>("mailing_address").TypedValue = party.MailingAddress.Value;
+                cmd.Parameters.Add<StreetAddressRecord>("address").TypedValue = party.Address.Value;
+                cmd.Parameters.Add<MailingAddressRecord>("mailing_address").TypedValue = party.MailingAddress.Value;
             }
 
             protected override async Task<PersonRecord> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken)
@@ -248,14 +248,14 @@ internal partial class PostgreSqlPartyPersistence
                     ShortName = await reader.GetConditionalFieldValueAsync<string>("p_short_name", cancellationToken),
                     DateOfBirth = await reader.GetConditionalFieldValueAsync<DateOnly>("p_date_of_birth", cancellationToken),
                     DateOfDeath = await reader.GetConditionalFieldValueAsync<DateOnly>("p_date_of_death", cancellationToken),
-                    Address = await reader.GetConditionalFieldValueAsync<StreetAddress>("p_address", cancellationToken),
-                    MailingAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>("p_mailing_address", cancellationToken),
+                    Address = await reader.GetConditionalFieldValueAsync<StreetAddressRecord>("p_address", cancellationToken),
+                    MailingAddress = await reader.GetConditionalFieldValueAsync<MailingAddressRecord>("p_mailing_address", cancellationToken),
                 };
             }
         }
 
         private sealed class UpsertOrganizationParty()
-            : Typed<OrganizationRecord>(PartyType.Organization, QUERY)
+            : Typed<OrganizationRecord>(PartyRecordType.Organization, QUERY)
         {
             private const string QUERY =
                 /*strpsql*/"""
@@ -305,8 +305,8 @@ internal partial class PostgreSqlPartyPersistence
                 cmd.Parameters.Add<string>("fax_number", NpgsqlDbType.Text).TypedValue = party.FaxNumber.Value;
                 cmd.Parameters.Add<string>("email_address", NpgsqlDbType.Text).TypedValue = party.EmailAddress.Value;
                 cmd.Parameters.Add<string>("internet_address", NpgsqlDbType.Text).TypedValue = party.InternetAddress.Value;
-                cmd.Parameters.Add<MailingAddress>("mailing_address").TypedValue = party.MailingAddress.Value;
-                cmd.Parameters.Add<MailingAddress>("business_address").TypedValue = party.BusinessAddress.Value;
+                cmd.Parameters.Add<MailingAddressRecord>("mailing_address").TypedValue = party.MailingAddress.Value;
+                cmd.Parameters.Add<MailingAddressRecord>("business_address").TypedValue = party.BusinessAddress.Value;
             }
 
             protected override async Task<OrganizationRecord> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken)
@@ -331,8 +331,8 @@ internal partial class PostgreSqlPartyPersistence
                     FaxNumber = await reader.GetConditionalFieldValueAsync<string>("p_fax_number", cancellationToken),
                     EmailAddress = await reader.GetConditionalFieldValueAsync<string>("p_email_address", cancellationToken),
                     InternetAddress = await reader.GetConditionalFieldValueAsync<string>("p_internet_address", cancellationToken),
-                    MailingAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>("p_mailing_address", cancellationToken),
-                    BusinessAddress = await reader.GetConditionalFieldValueAsync<MailingAddress>("p_business_address", cancellationToken),
+                    MailingAddress = await reader.GetConditionalFieldValueAsync<MailingAddressRecord>("p_mailing_address", cancellationToken),
+                    BusinessAddress = await reader.GetConditionalFieldValueAsync<MailingAddressRecord>("p_business_address", cancellationToken),
 
                     ParentOrganizationUuid = FieldValue.Unset,
                 };
@@ -340,7 +340,7 @@ internal partial class PostgreSqlPartyPersistence
         }
 
         private sealed class UpsertSelfIdentifiedUserQuery()
-            : Typed<SelfIdentifiedUserRecord>(PartyType.SelfIdentifiedUser)
+            : Typed<SelfIdentifiedUserRecord>(PartyRecordType.SelfIdentifiedUser)
         {
             protected override async Task<SelfIdentifiedUserRecord> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken)
             {

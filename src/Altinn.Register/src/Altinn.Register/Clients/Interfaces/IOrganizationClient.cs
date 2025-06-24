@@ -1,4 +1,4 @@
-using Altinn.Platform.Register.Models;
+using Altinn.Platform.Models.Register.V1;
 using Altinn.Register.Models;
 
 namespace Altinn.Register.Clients.Interfaces

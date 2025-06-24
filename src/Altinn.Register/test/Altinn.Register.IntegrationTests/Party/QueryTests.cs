@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
+using Altinn.Platform.Models.Register;
 using Altinn.Register.Controllers.V2;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Models;
@@ -16,7 +17,7 @@ public class QueryTests
         var response = await HttpClient.PostAsJsonAsync("register/api/v2/internal/parties/query", ListObject.Create<PartyUrn>([]), JsonOptions, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
-        var content = await response.ShouldHaveJsonContent<ListObject<PartyRecord>>();
+        var content = await response.ShouldHaveJsonContent<ListObject<Platform.Models.Register.Party>>();
 
         content.Items.ShouldBeEmpty();
     }
@@ -27,7 +28,7 @@ public class QueryTests
         var response = await HttpClient.PostAsJsonAsync("register/api/v2/internal/parties/query", ListObject.Create<PartyUrn>([PartyUrn.PartyId.Create(1)]), JsonOptions, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.PartialContent);
-        var content = await response.ShouldHaveJsonContent<ListObject<PartyRecord>>();
+        var content = await response.ShouldHaveJsonContent<ListObject<Platform.Models.Register.Party>>();
 
         content.Items.ShouldBeEmpty();
     }
@@ -53,10 +54,10 @@ public class QueryTests
         var response = await HttpClient.PostAsJsonAsync("register/api/v2/internal/parties/query", requestContent, JsonOptions, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
-        var content = await response.ShouldHaveJsonContent<ListObject<PartyRecord>>();
+        var content = await response.ShouldHaveJsonContent<ListObject<Platform.Models.Register.Party>>();
 
         var item = content.Items.ShouldHaveSingleItem();
-        item.PartyUuid.ShouldBe(party.PartyUuid);
+        item.Uuid.ShouldBe(party.PartyUuid.Value);
     }
 
     [Fact]
@@ -73,9 +74,9 @@ public class QueryTests
         var response = await HttpClient.PostAsJsonAsync("register/api/v2/internal/parties/query", requestContent, JsonOptions, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.PartialContent);
-        var content = await response.ShouldHaveJsonContent<ListObject<PartyRecord>>();
+        var content = await response.ShouldHaveJsonContent<ListObject<Platform.Models.Register.Party>>();
 
-        content.Items.ShouldHaveSingleItem().PartyUuid.ShouldBe(party.PartyUuid);
+        content.Items.ShouldHaveSingleItem().Uuid.ShouldBe(party.PartyUuid.Value);
     }
 
     [Fact]

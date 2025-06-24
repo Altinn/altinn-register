@@ -1,4 +1,4 @@
-﻿using Altinn.Platform.Register.Models;
+﻿using Altinn.Platform.Models.Register.V1;
 using Altinn.Register.Extensions;
 using Altinn.Register.ModelBinding;
 using Altinn.Register.Tests.IntegrationTests.Utils;

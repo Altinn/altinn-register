@@ -1,6 +1,6 @@
 #nullable enable
 
-using Altinn.Platform.Register.Models;
+using Altinn.Platform.Models.Register.V1;
 
 namespace Altinn.Register.Clients.Interfaces;
 

@@ -1,4 +1,5 @@
-﻿using Altinn.Register.Core.Parties;
+﻿using Altinn.Platform.Models.Register;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Models;
 using Asp.Versioning;
@@ -37,7 +38,7 @@ public class DialogPortenController(V2.PartyController inner)
     [ProducesResponseType<ListObject<PartyRecord>>(200)]
     [ProducesResponseType<ListObject<PartyRecord>>(204)]
     [ProducesResponseType<ListObject<PartyRecord>>(206)]
-    public Task<ActionResult<ListObject<PartyRecord>>> Query(
+    public Task<ActionResult<ListObject<Party>>> Query(
         [FromBody] ListObject<PartyUrn> parties,
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         CancellationToken cancellationToken = default)

@@ -1,4 +1,5 @@
-﻿using Altinn.Authorization.ServiceDefaults;
+﻿using System.Text.RegularExpressions;
+using Altinn.Authorization.ServiceDefaults;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Common.AccessToken;
 using Altinn.Common.AccessToken.Configuration;
@@ -39,7 +40,7 @@ namespace Altinn.Register;
 /// <summary>
 /// Configures the register host.
 /// </summary>
-internal static class RegisterHost
+internal static partial class RegisterHost
 {
     /// <summary>
     /// Configures the register host.
@@ -253,9 +254,16 @@ internal static class RegisterHost
                 {
                     var orig = originalIdSelector(t);
 
-                    if (t.Assembly == typeof(Platform.Register.Enums.PartyType).Assembly)
+                    if (t.Assembly == typeof(Platform.Models.Register.V1.PartyType).Assembly)
                     {
-                        orig = $"PlatformModels.{orig}";
+                        if (GetVersionedNamespaceRegex().Match(t.Namespace) is { Success: true, Groups: var groups })
+                        {
+                            orig = $"PlatformModels.{groups[1].ValueSpan}.{orig}";
+                        }
+                        else 
+                        {
+                            orig = $"PlatformModels.{orig}";
+                        }
                     }
 
                     return orig;
@@ -276,4 +284,7 @@ internal static class RegisterHost
 
         return builder.Build();
     }
+
+    [GeneratedRegex(@"\.(?<version>V\d+)(?:\.|$)", RegexOptions.Singleline | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture)]
+    private static partial Regex GetVersionedNamespaceRegex();
 }

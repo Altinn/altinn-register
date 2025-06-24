@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using Altinn.Authorization.ProblemDetails;
+using Altinn.Platform.Models.Register;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.TestUtils.TestData;
@@ -28,19 +29,18 @@ public class GetPartyByUUIDTests
         var response = await HttpClient.GetAsync($"register/api/v2/internal/parties/{party.PartyUuid.Value}", CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
-        var content = await response.ShouldHaveJsonContent<PartyRecord>();
-        var person = content.ShouldBeOfType<PersonRecord>();
+        var content = await response.ShouldHaveJsonContent<Platform.Models.Register.Party>();
+        var person = content.ShouldBeOfType<Person>();
 
-        content.PartyUuid.ShouldBe(party.PartyUuid);
+        content.Uuid.ShouldBe(party.PartyUuid.Value);
         content.PartyId.ShouldBe(party.PartyId);
-        content.PersonIdentifier.ShouldBe(party.PersonIdentifier);
-        content.OrganizationIdentifier.ShouldBeNull();
         content.DisplayName.ShouldBe(party.DisplayName);
+        content.VersionId.ShouldNotBe(0UL);
         content.CreatedAt.ShouldBeUnset();
         content.ModifiedAt.ShouldBeUnset();
-        content.VersionId.ShouldBeUnset();
         content.User.ShouldBeUnset();
 
+        person.PersonIdentifier.ShouldBe(party.PersonIdentifier.Value);
         person.FirstName.ShouldBeUnset();
         person.MiddleName.ShouldBeUnset();
         person.LastName.ShouldBeUnset();
@@ -54,19 +54,18 @@ public class GetPartyByUUIDTests
         var response = await HttpClient.GetAsync($"register/api/v2/internal/parties/{party.PartyUuid.Value}?fields=party,person", CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
-        var content = await response.ShouldHaveJsonContent<PartyRecord>();
-        var person = content.ShouldBeOfType<PersonRecord>();
+        var content = await response.ShouldHaveJsonContent<Platform.Models.Register.Party>();
+        var person = content.ShouldBeOfType<Person>();
 
-        content.PartyUuid.ShouldBe(party.PartyUuid);
+        content.Uuid.ShouldBe(party.PartyUuid.Value);
         content.PartyId.ShouldBe(party.PartyId);
-        content.PersonIdentifier.ShouldBe(party.PersonIdentifier);
-        content.OrganizationIdentifier.ShouldBeNull();
+        content.VersionId.ShouldNotBe(0UL);
         content.DisplayName.ShouldBe(party.DisplayName);
         content.CreatedAt.ShouldBe(party.CreatedAt);
         content.ModifiedAt.ShouldBe(party.ModifiedAt);
-        content.VersionId.ShouldBe(party.VersionId);
         content.User.ShouldBeUnset();
 
+        person.PersonIdentifier.ShouldBe(party.PersonIdentifier.Value);
         person.FirstName.ShouldBe(party.FirstName);
         person.MiddleName.ShouldBe(party.MiddleName);
         person.LastName.ShouldBe(party.LastName);

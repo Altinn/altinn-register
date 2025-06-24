@@ -1,4 +1,5 @@
 using Altinn.Register.Core.Parties;
+using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.TestUtils;
 using Npgsql;
 using Xunit.Abstractions;
@@ -9,16 +10,16 @@ public class DataSourceMappingsTests
     : DatabaseTestBase
 {
     [Theory]
-    [InlineData(PartyType.Person)]
-    [InlineData(PartyType.Organization)]
-    public async Task MapsPartyType(PartyType partyType)
+    [InlineData(PartyRecordType.Person)]
+    [InlineData(PartyRecordType.Organization)]
+    public async Task MapsPartyType(PartyRecordType partyType)
     {
         var source = GetRequiredService<NpgsqlDataSource>();
         await using var conn = await source.OpenConnectionAsync();
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = /*strpsql*/"SELECT @p::register.party_type";
 
-        var param = cmd.Parameters.Add<PartyType>("p");
+        var param = cmd.Parameters.Add<PartyRecordType>("p");
         param.TypedValue = partyType;
 
         await cmd.PrepareAsync();
@@ -26,7 +27,7 @@ public class DataSourceMappingsTests
         await using var reader = await cmd.ExecuteReaderAsync();
         (await reader.ReadAsync()).Should().BeTrue();
 
-        var result = await reader.GetFieldValueAsync<PartyType>(0);
+        var result = await reader.GetFieldValueAsync<PartyRecordType>(0);
         result.Should().Be(partyType);
     }
 
@@ -63,7 +64,7 @@ public class DataSourceMappingsTests
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = /*strpsql*/"SELECT @p::register.mailing_address";
 
-        var param = cmd.Parameters.Add<MailingAddress?>("p");
+        var param = cmd.Parameters.Add<MailingAddressRecord?>("p");
         param.TypedValue = value;
 
         await cmd.PrepareAsync();
@@ -71,18 +72,18 @@ public class DataSourceMappingsTests
         await using var reader = await cmd.ExecuteReaderAsync();
         (await reader.ReadAsync()).Should().BeTrue();
 
-        var result = await reader.GetFieldValueOrDefaultAsync<MailingAddress>(0);
+        var result = await reader.GetFieldValueOrDefaultAsync<MailingAddressRecord>(0);
         result.Should().Be(value);
     }
 
     public static TheoryData<SerializableMailingAddress?> MailingAddresses => new()
     {
         null,
-        new MailingAddress { Address = null, City = null, PostalCode = null },
-        new MailingAddress { Address = "address", City = "city", PostalCode = "postal_code" },
-        new MailingAddress { Address = "address", City = null, PostalCode = null },
-        new MailingAddress { Address = null, City = "city", PostalCode = null },
-        new MailingAddress { Address = null, City = null, PostalCode = "postal_code" },
+        new MailingAddressRecord { Address = null, City = null, PostalCode = null },
+        new MailingAddressRecord { Address = "address", City = "city", PostalCode = "postal_code" },
+        new MailingAddressRecord { Address = "address", City = null, PostalCode = null },
+        new MailingAddressRecord { Address = null, City = "city", PostalCode = null },
+        new MailingAddressRecord { Address = null, City = null, PostalCode = "postal_code" },
     };
 
     [Theory]
@@ -96,7 +97,7 @@ public class DataSourceMappingsTests
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = /*strpsql*/"SELECT @p::register.street_address";
 
-        var param = cmd.Parameters.Add<StreetAddress?>("p");
+        var param = cmd.Parameters.Add<StreetAddressRecord?>("p");
         param.TypedValue = value;
 
         await cmd.PrepareAsync();
@@ -104,14 +105,14 @@ public class DataSourceMappingsTests
         await using var reader = await cmd.ExecuteReaderAsync();
         (await reader.ReadAsync()).Should().BeTrue();
 
-        var result = await reader.GetFieldValueOrDefaultAsync<StreetAddress>(0);
+        var result = await reader.GetFieldValueOrDefaultAsync<StreetAddressRecord>(0);
         result.Should().Be(value);
     }
 
     public static TheoryData<SerializableStreetAddress?> StreetAddresses => new()
     {
         null,
-        new StreetAddress
+        new StreetAddressRecord
         {
             MunicipalNumber = "municipal_number",
             MunicipalName = "municipal_name",
@@ -121,13 +122,13 @@ public class DataSourceMappingsTests
             PostalCode = "postal_code",
             City = "city",
         },
-        new StreetAddress { MunicipalNumber = "municipal_number" },
-        new StreetAddress { MunicipalName = "municipal_name" },
-        new StreetAddress { StreetName = "street_name" },
-        new StreetAddress { HouseNumber = "house_number" },
-        new StreetAddress { HouseLetter = "house_letter" },
-        new StreetAddress { PostalCode = "postal_code" },
-        new StreetAddress { City = "city" },
+        new StreetAddressRecord { MunicipalNumber = "municipal_number" },
+        new StreetAddressRecord { MunicipalName = "municipal_name" },
+        new StreetAddressRecord { StreetName = "street_name" },
+        new StreetAddressRecord { HouseNumber = "house_number" },
+        new StreetAddressRecord { HouseLetter = "house_letter" },
+        new StreetAddressRecord { PostalCode = "postal_code" },
+        new StreetAddressRecord { City = "city" },
     };
 
     public sealed class SerializableMailingAddress
@@ -139,8 +140,8 @@ public class DataSourceMappingsTests
 
         public string? PostalCode { get; set; }
 
-        public MailingAddress ToMailingAddress() 
-            => new MailingAddress
+        public MailingAddressRecord ToMailingAddress() 
+            => new MailingAddressRecord
             {
                 Address = Address,
                 City = City,
@@ -161,7 +162,7 @@ public class DataSourceMappingsTests
             info.AddValue(nameof(PostalCode), PostalCode);
         }
 
-        public static implicit operator SerializableMailingAddress(MailingAddress address)
+        public static implicit operator SerializableMailingAddress(MailingAddressRecord address)
             => new SerializableMailingAddress
             {
                 Address = address.Address,
@@ -187,8 +188,8 @@ public class DataSourceMappingsTests
 
         public string? City { get; set; }
 
-        public StreetAddress ToStreetAddress()
-            => new StreetAddress
+        public StreetAddressRecord ToStreetAddress()
+            => new StreetAddressRecord
             {
                 MunicipalNumber = MunicipalNumber,
                 MunicipalName = MunicipalName,
@@ -221,7 +222,7 @@ public class DataSourceMappingsTests
             info.AddValue(nameof(City), City);
         }
 
-        public static implicit operator SerializableStreetAddress(StreetAddress address)
+        public static implicit operator SerializableStreetAddress(StreetAddressRecord address)
             => new SerializableStreetAddress
             {
                 MunicipalNumber = address.MunicipalNumber,

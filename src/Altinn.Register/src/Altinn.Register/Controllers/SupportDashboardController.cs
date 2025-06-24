@@ -1,4 +1,5 @@
-﻿using Altinn.Register.Core.Parties;
+﻿using Altinn.Platform.Models.Register;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
@@ -24,9 +25,9 @@ public class SupportDashboardController(V2.PartyController inner)
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="PartyRecord"/>.</returns>
     [HttpGet("{uuid:guid}")]
-    [ProducesResponseType<PartyRecord>(StatusCodes.Status200OK)]
+    [ProducesResponseType<Party>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
-    public Task<ActionResult<PartyRecord>> GetPartyByUuid(
+    public Task<ActionResult<Party>> GetPartyByUuid(
         [FromRoute] Guid uuid,
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         CancellationToken cancellationToken = default)

@@ -1,7 +1,7 @@
 ﻿#nullable enable
 
 using Altinn.Authorization.ServiceDefaults.MassTransit;
-using Altinn.Register.Core.Parties;
+using Altinn.Register.Core.Parties.Records;
 
 namespace Altinn.Register.PartyImport.A2;
 
@@ -19,7 +19,7 @@ public sealed record ImportA2UserIdForPartyCommand
     /// <summary>
     /// Gets the <see cref="PartyType"/> of the party.
     /// </summary>
-    public required PartyType PartyType { get; init; }
+    public required PartyRecordType PartyType { get; init; }
 
     /// <summary>
     /// Gets the tracking information for the import.

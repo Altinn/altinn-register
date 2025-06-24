@@ -3,6 +3,7 @@ using Altinn.Register.IntegrationTests.Tracing;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Database;
 using Altinn.Register.TestUtils.MassTransit;
+using MassTransit;
 using MassTransit.Testing;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Mvc.Testing.Handlers;
@@ -61,6 +62,22 @@ public sealed class TestWebApplication
                 output.WriteLine($"Message type: {fault.Context.SupportedMessageTypes.First()}");
                 output.WriteLine($"Message destination: {fault.Context.DestinationAddress}");
                 output.WriteLine(fault.Exception.ToString());
+            }
+
+            var receiveFaults = await busHarness.Sent
+                .SelectExisting(static m => m.MessageObject is ReceiveFault)
+                .Cast<ISentMessage<ReceiveFault>>()
+                .ToListAsync(CancellationToken.None);
+
+            foreach (var receiveFault in receiveFaults)
+            {
+                output.WriteLine($"### RECEIVE FAULT ###");
+                output.WriteLine($"Message type: {receiveFault.Context.SupportedMessageTypes.First()}");
+                output.WriteLine($"Message destination: {receiveFault.Context.DestinationAddress}");
+                output.WriteLine(">>>>> MESSAGE OBJECT:");
+                output.WriteLine(receiveFault.MessageObject.ToString() ?? "No details available.");
+                output.WriteLine(">>>>> EXCEPTION DETAILS:");
+                output.WriteLine(receiveFault.Exception?.ToString() ?? "No exception available.");
             }
         }
 

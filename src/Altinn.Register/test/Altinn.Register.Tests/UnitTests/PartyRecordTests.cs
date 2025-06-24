@@ -1,9 +1,8 @@
 ﻿#nullable enable
 
-using System.Collections.Immutable;
 using System.Text.Json;
 using Altinn.Authorization.ModelUtils;
-using Altinn.Register.Core.Parties;
+using Altinn.Platform.Models.Register;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.TestUtils;
 
@@ -83,7 +82,7 @@ public class PartyRecordTests
     [Fact]
     public void Serialize_PartyRecord_PersonType()
     {
-        PartyRecord record = new PartyRecord(PartyType.Person)
+        PartyRecord record = new PartyRecord(PartyRecordType.Person)
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
@@ -122,7 +121,7 @@ public class PartyRecordTests
     [Fact]
     public void Serialize_PartyRecord_OrganizationType()
     {
-        PartyRecord record = new PartyRecord(PartyType.Organization)
+        PartyRecord record = new PartyRecord(PartyRecordType.Organization)
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
@@ -161,7 +160,7 @@ public class PartyRecordTests
     [Fact]
     public void Serialize_PartyRecord_SIType()
     {
-        PartyRecord record = new PartyRecord(PartyType.SelfIdentifiedUser)
+        PartyRecord record = new PartyRecord(PartyRecordType.SelfIdentifiedUser)
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
@@ -307,7 +306,7 @@ public class PartyRecordTests
             MiddleName = null,
             LastName = "Last",
             ShortName = "Short",
-            Address = new StreetAddress
+            Address = new StreetAddressRecord
             {
                 MunicipalNumber = "1",
                 MunicipalName = "2",
@@ -317,7 +316,7 @@ public class PartyRecordTests
                 PostalCode = "6",
                 City = "7",
             },
-            MailingAddress = new MailingAddress
+            MailingAddress = new MailingAddressRecord
             {
                 Address = "Address",
                 PostalCode = "PostalCode",
@@ -434,13 +433,13 @@ public class PartyRecordTests
             FaxNumber = "fax",
             EmailAddress = "email",
             InternetAddress = "internet",
-            MailingAddress = new MailingAddress
+            MailingAddress = new MailingAddressRecord
             {
                 Address = "mailing address",
                 PostalCode = "mailing postal",
                 City = "mailing city",
             },
-            BusinessAddress = new MailingAddress
+            BusinessAddress = new MailingAddressRecord
             {
                 Address = "business address",
                 PostalCode = "business postal",
@@ -603,13 +602,13 @@ public class PartyRecordTests
             FaxNumber = "fax",
             EmailAddress = "email",
             InternetAddress = "internet",
-            MailingAddress = new MailingAddress
+            MailingAddress = new MailingAddressRecord
             {
                 Address = "mailing address",
                 PostalCode = "mailing postal",
                 City = "mailing city",
             },
-            BusinessAddress = new MailingAddress
+            BusinessAddress = new MailingAddressRecord
             {
                 Address = "business address",
                 PostalCode = "business postal",

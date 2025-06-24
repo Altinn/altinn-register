@@ -1,97 +1,65 @@
-namespace Altinn.Platform.Register.Models;
+﻿using Altinn.Authorization.ModelUtils;
+
+namespace Altinn.Platform.Models.Register;
 
 /// <summary>
-/// Class representing a person
+/// Represents a person party in Altinn Register.
 /// </summary>
-public record Person
+[PolymorphicFieldValueRecord]
+public sealed record Person()
+    : Party(PartyType.Person)
 {
     /// <summary>
-    /// Gets or sets the social security number
+    /// Gets the person identifier of the person.
     /// </summary>
-    public string? SSN { get; set; }
+    [JsonPropertyName("personIdentifier")]
+    public required PersonIdentifier PersonIdentifier { get; init; }
 
     /// <summary>
-    /// Gets a persons name
+    /// Gets the first name.
     /// </summary>
-    public string? Name { get; set; }
+    [JsonPropertyName("firstName")]
+    public required FieldValue<string> FirstName { get; init; }
 
     /// <summary>
-    /// Gets or sets the first name
+    /// Gets the (optional) middle name.
     /// </summary>
-    public string? FirstName { get; set; }
+    [JsonPropertyName("middleName")]
+    public required FieldValue<string> MiddleName { get; init; }
 
     /// <summary>
-    /// Gets or sets the middle name
+    /// Gets the last name.
     /// </summary>
-    public string? MiddleName { get; set; }
+    [JsonPropertyName("lastName")]
+    public required FieldValue<string> LastName { get; init; }
 
     /// <summary>
-    /// Gets or sets the last name
+    /// Gets the short name.
     /// </summary>
-    public string? LastName { get; set; }
+    [JsonPropertyName("shortName")]
+    public required FieldValue<string> ShortName { get; init; }
 
     /// <summary>
-    /// Gets a persons telephone number
+    /// Gets the (optional) <see cref="StreetAddress"/> of the person.
     /// </summary>
-    public string? TelephoneNumber { get; set; }
+    [JsonPropertyName("address")]
+    public required FieldValue<StreetAddress> Address { get; init; }
 
     /// <summary>
-    /// Gets a persons mobile number
+    /// Gets the (optional) <see cref="Register.MailingAddress"/> of the person.
     /// </summary>
-    public string? MobileNumber { get; set; }
+    [JsonPropertyName("mailingAddress")]
+    public required FieldValue<MailingAddress> MailingAddress { get; init; }
 
     /// <summary>
-    /// Gets a persons mailing address
+    /// Gets the date of birth of the person.
     /// </summary>
-    public string? MailingAddress { get; set; }
+    [JsonPropertyName("dateOfBirth")]
+    public required FieldValue<DateOnly> DateOfBirth { get; init; }
 
     /// <summary>
-    /// Gets a persons mailing postal code
+    /// Gets the (optional) date of death of the person.
     /// </summary>
-    public string? MailingPostalCode { get; set; }
-
-    /// <summary>
-    /// Gets a persons mailing postal city
-    /// </summary>
-    public string? MailingPostalCity { get; set; }
-
-    /// <summary>
-    /// Gets a persons address municipal number
-    /// </summary>
-    public string? AddressMunicipalNumber { get; set; }
-
-    /// <summary>
-    /// Gets a persons address municipal name
-    /// </summary>
-    public string? AddressMunicipalName { get; set; }
-
-    /// <summary>
-    /// Gets a persons address street name
-    /// </summary>
-    public string? AddressStreetName { get; set; }
-
-    /// <summary>
-    /// Gets a persons address house number
-    /// </summary>
-    public string? AddressHouseNumber { get; set; }
-
-    /// <summary>
-    /// Gets a persons address house letter
-    /// </summary>
-    public string? AddressHouseLetter { get; set; }
-
-    /// <summary>
-    /// Gets a persons address postal code
-    /// </summary>
-    public string? AddressPostalCode { get; set; }
-
-    /// <summary>
-    /// Gets a persons address city
-    /// </summary>
-    public string? AddressCity { get; set; }
-
-    /// <summary>
-    /// Gets a persons date of death. Null if not dead.
-    /// </summary>
-    public DateTime? DateOfDeath { get; set; }
+    [JsonPropertyName("dateOfDeath")]
+    public required FieldValue<DateOnly> DateOfDeath { get; init; }
 }
