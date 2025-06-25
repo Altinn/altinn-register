@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Core.ModelUtils;
+﻿using Altinn.Authorization.ModelUtils.EnumUtils;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 
@@ -34,7 +34,7 @@ public abstract class FlagsEnumSchemaFilter<TEnum>
         schema.Items = new OpenApiSchema
         {
             Type = "string",
-            Enum = _model.Items.Select(v => (IOpenApiAny)new OpenApiString(v.Name)).ToList(),
+            Enum = [.. _model.Items.Select(v => (IOpenApiAny)new OpenApiString(v.Name))],
         };
     }
 }

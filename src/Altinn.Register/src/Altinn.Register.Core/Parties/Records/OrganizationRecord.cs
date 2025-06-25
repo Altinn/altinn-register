@@ -6,7 +6,7 @@ namespace Altinn.Register.Core.Parties.Records;
 /// <summary>
 /// A database record for an organization.
 /// </summary>
-[JsonConverter(typeof(PartyRecordJsonConverter))]
+[PolymorphicFieldValueRecord]
 public sealed record OrganizationRecord
     : PartyRecord
 {

@@ -1,7 +1,6 @@
 ﻿#nullable enable
 
-using System.Text.Json;
-using Altinn.Register.Core.ModelUtils;
+using Altinn.Authorization.ModelUtils.EnumUtils;
 using Altinn.Register.Core.Parties;
 
 namespace Altinn.Register.ModelBinding;
@@ -17,7 +16,7 @@ public class PartyFieldIncludesModelBinder
     /// Gets the model for <see cref="PartyFieldIncludes"/>.
     /// </summary>
     public static FlagsEnumModel<PartyFieldIncludes> Model { get; }
-        = FlagsEnumModel.Create<PartyFieldIncludes>(JsonNamingPolicy.KebabCaseLower, StringComparison.Ordinal);
+        = FlagsEnumModel.Create<PartyFieldIncludes>();
 
     private PartyFieldIncludesModelBinder()
         : base(Model)

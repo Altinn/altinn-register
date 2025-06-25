@@ -1,12 +1,11 @@
-﻿using System.Text.Json.Serialization;
-using Altinn.Authorization.ModelUtils;
+﻿using Altinn.Authorization.ModelUtils;
 
 namespace Altinn.Register.Core.Parties.Records;
 
 /// <summary>
 /// A database record for a person.
 /// </summary>
-[JsonConverter(typeof(PartyRecordJsonConverter))]
+[PolymorphicFieldValueRecord]
 public sealed record PersonRecord
     : PartyRecord
 {

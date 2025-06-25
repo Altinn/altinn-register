@@ -1,12 +1,14 @@
-﻿using System.Text.Json.Serialization;
-using Altinn.Authorization.ModelUtils;
+﻿using Altinn.Authorization.ModelUtils;
 
 namespace Altinn.Register.Core.Parties.Records;
 
 /// <summary>
 /// A database record for a party.
 /// </summary>
-[JsonConverter(typeof(PartyRecordJsonConverter))]
+[PolymorphicFieldValueRecord(IsRoot = true)]
+[PolymorphicDerivedType(typeof(PersonRecord), Parties.PartyType.Person)]
+[PolymorphicDerivedType(typeof(OrganizationRecord), Parties.PartyType.Organization)]
+[PolymorphicDerivedType(typeof(SelfIdentifiedUserRecord), Parties.PartyType.SelfIdentifiedUser)]
 public record PartyRecord
 {
     /// <summary>
@@ -30,6 +32,7 @@ public record PartyRecord
     /// <summary>
     /// Gets the type of the party.
     /// </summary>
+    [PolymorphicDiscriminatorProperty]
     public FieldValue<PartyType> PartyType { get; private init; }
 
     /// <summary>
