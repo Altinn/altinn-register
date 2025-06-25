@@ -25,7 +25,7 @@ public static class Problems
 
     /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
     public static ProblemDescriptor PartyNotFound { get; }
-        = _factory.Create(3, HttpStatusCode.NotFound, "Party not found");
+        = _factory.Create(3, HttpStatusCode.BadRequest, "Party not found");
 
     /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
     public static ProblemDescriptor PartyFetchFailed { get; }

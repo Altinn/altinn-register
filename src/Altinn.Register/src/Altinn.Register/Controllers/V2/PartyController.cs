@@ -331,6 +331,47 @@ public class PartyController
     }
 
     /// <summary>
+    /// Gets a single party by its UUID.
+    /// </summary>
+    /// <param name="uuid">The party UUID.</param>
+    /// <param name="fields">The fields to include in the response.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>A <see cref="PartyRecord"/>.</returns>
+    [HttpGet("{uuid:guid}")]
+    [ProducesResponseType<PartyRecord>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PartyRecord>> GetPartyByUuid(
+        [FromRoute] Guid uuid,
+        [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
+        CancellationToken cancellationToken = default)
+    {
+        ValidationErrorBuilder errors = default;
+        if (fields.HasFlag(PartyFieldIncludes.SubUnits))
+        {
+            errors.Add(ValidationErrors.PartyFields_SubUnits_Forbidden, "/$QUERY/fields");
+        }
+
+        if (errors.TryToActionResult(out var actionResult))
+        {
+            return actionResult;
+        }
+
+        await using var uow = await _uowManager.CreateAsync(cancellationToken);
+        var persistence = uow.GetPartyPersistence();
+
+        var party = await persistence.GetPartyById(uuid, fields, cancellationToken)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (party is null)
+        {
+            return Problems.PartyNotFound.Create([new("partyUuid", uuid.ToString())])
+                .ToActionResult();
+        }
+
+        return Ok(party);
+    }
+
+    /// <summary>
     /// Looks up parties based on the provided identifiers.
     /// </summary>
     /// <param name="parties">The party identifiers to look up.</param>
