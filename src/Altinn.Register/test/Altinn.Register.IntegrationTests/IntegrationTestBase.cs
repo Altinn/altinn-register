@@ -23,6 +23,9 @@ public abstract class IntegrationTestBase
     private ITestHarness? _testHarness;
     private ICommandSender? _commandSender;
 
+    protected CancellationToken CancellationToken
+        => TestContext.Current.CancellationToken;
+
     protected JsonSerializerOptions JsonOptions
         => _jsonOptions;
 
@@ -53,7 +56,7 @@ public abstract class IntegrationTestBase
 
     protected async Task<T> Setup<T>(Func<IUnitOfWork, CancellationToken, Task<T>> setup)
     {
-        var ct = TestContext.Current.CancellationToken;
+        var ct = CancellationToken;
 
         var uowManager = GetRequiredService<IUnitOfWorkManager>();
         await using var uow = await uowManager.CreateAsync(activityName: $"setup {TestContext.Current.Test!.TestDisplayName}", cancellationToken: ct);
@@ -72,7 +75,7 @@ public abstract class IntegrationTestBase
 
     protected async Task<T> Check<T>(Func<IUnitOfWork, CancellationToken, Task<T>> check)
     {
-        var ct = TestContext.Current.CancellationToken;
+        var ct = CancellationToken;
 
         var uowManager = GetRequiredService<IUnitOfWorkManager>();
         await using var uow = await uowManager.CreateAsync(activityName: $"check {TestContext.Current.Test!.TestDisplayName}", cancellationToken: ct);
