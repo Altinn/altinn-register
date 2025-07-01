@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using Altinn.Register.IntegrationTests.TestServices;
+﻿using Altinn.Register.IntegrationTests.TestServices;
 using Altinn.Register.IntegrationTests.Tracing;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Database;

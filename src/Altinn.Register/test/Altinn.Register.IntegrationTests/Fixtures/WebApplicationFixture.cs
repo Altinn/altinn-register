@@ -9,6 +9,7 @@ using Altinn.Register.IntegrationTests.Tracing;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Database;
 using Altinn.Register.TestUtils.Http;
+using Altinn.Register.TestUtils.TestData;
 using AltinnCore.Authentication.JwtCookie;
 using CommunityToolkit.Diagnostics;
 using MassTransit;
@@ -138,6 +139,7 @@ public sealed class WebApplicationFixture
             builder.ConfigureServices(services =>
             {
                 services.AddSingleton<FakeTimeProvider>();
+                services.AddSingleton<RegisterTestDataGenerator>();
                 services.AddSingleton<TimeProvider>(s => s.GetRequiredService<FakeTimeProvider>());
 
                 services.AddSingleton<IPublicSigningKeyProvider, TestPublicSigningKeyProvider>();
