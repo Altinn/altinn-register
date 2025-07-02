@@ -134,15 +134,43 @@ public class PostgresUserIdImportJobServiceTests
         public async Task NoPartiesWithUserIdOrJobState_ReturnsAll_Large()
         {
             const int PAGES = 10;
-            await Parallel.ForEachAsync(
-                Enumerable.Range(0, PAGES), 
-                new ParallelOptions { MaxDegreeOfParallelism = 4 },
-                async (i, ct) =>
+
+            var dataGenerator = GetRequiredService<RegisterTestDataGenerator>();
+            var toInsert = await Enumerable.Range(0, PAGES)
+                .ToAsyncEnumerable()
+                .SelectAwait(async i =>
                 {
-                    await using var uow = await _manager!.CreateAsync(ct, activityName: $"setup {i}");
-                    await uow.CreatePeople(101, cancellationToken: ct);
-                    await uow.CreateSelfIdentifiedUsers(102, cancellationToken: ct);
-                    await uow.CreateOrgs(103, cancellationToken: ct);
+                    var people = await dataGenerator.GetPeopleData(101);
+                    var siUsers = await dataGenerator.GetSelfIdentifiedUsersData(102);
+                    var orgs = await dataGenerator.GetOrgsData(103);
+
+                    return (i, people, siUsers, orgs);
+                })
+                .ToListAsync();
+
+            await Parallel.ForEachAsync(
+                toInsert, 
+                new ParallelOptions { MaxDegreeOfParallelism = 4 },
+                async (data, ct) =>
+                {
+                    await using var uow = await _manager!.CreateAsync(ct, activityName: $"setup {data.i}");
+                    var persistence = uow.GetPartyPersistence();
+
+                    foreach (var person in data.people)
+                    {
+                        await persistence.UpsertParty(person, ct);
+                    }
+
+                    foreach (var siUser in data.siUsers)
+                    {
+                        await persistence.UpsertParty(siUser, ct);
+                    }
+
+                    foreach (var org in data.orgs)
+                    {
+                        await persistence.UpsertParty(org, ct);
+                    }
+
                     await uow.CommitAsync(ct);
                 });
 
