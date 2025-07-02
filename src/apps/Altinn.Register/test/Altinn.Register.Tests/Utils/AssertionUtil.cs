@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using Altinn.Platform.Models.Register.V1;
+using Altinn.Register.Contracts.V1;
 using Xunit;
 
 namespace Altinn.Register.Tests.Utils

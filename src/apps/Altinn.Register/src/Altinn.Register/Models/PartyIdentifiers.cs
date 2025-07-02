@@ -2,7 +2,7 @@
 
 using System;
 using System.Text.Json.Serialization;
-using Altinn.Platform.Models.Register.V1;
+using Altinn.Register.Contracts.V1;
 
 namespace Altinn.Register.Models;
 

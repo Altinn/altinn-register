@@ -1,5 +1,5 @@
 ﻿using Altinn.Authorization.ModelUtils;
-using Altinn.Platform.Models.Register;
+using Altinn.Register.Contracts;
 using Altinn.Register.Controllers.V2;
 using Altinn.Register.Mapping;
 using Altinn.Register.Models;
@@ -16,7 +16,7 @@ public class StreamTests
         var response = await HttpClient.GetAsync("/register/api/v2/internal/parties/stream", TestContext.Current.CancellationToken);
 
         await response.ShouldHaveSuccessStatusCode();
-        var content = await response.ShouldHaveJsonContent<ItemStream<Platform.Models.Register.Party>>();
+        var content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
 
         content.Items.ShouldBeEmpty();
         content.Links.Next.ShouldBeNull();
@@ -36,7 +36,7 @@ public class StreamTests
         var response = await HttpClient.GetAsync("/register/api/v2/internal/parties/stream", TestContext.Current.CancellationToken);
 
         await response.ShouldHaveSuccessStatusCode();
-        var content = await response.ShouldHaveJsonContent<ItemStream<Platform.Models.Register.Party>>();
+        var content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
 
         var items = content.Items.ToList();
         items.Count.ShouldBe(2);
@@ -50,7 +50,7 @@ public class StreamTests
         response = await HttpClient.GetAsync(content.Links.Next, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveSuccessStatusCode();
-        content = await response.ShouldHaveJsonContent<ItemStream<Platform.Models.Register.Party>>();
+        content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
 
         content.Items.ShouldBeEmpty();
         content.Links.Next.ShouldBeNull();
@@ -70,7 +70,7 @@ public class StreamTests
         var response = await HttpClient.GetAsync("/register/api/v2/internal/parties/stream", TestContext.Current.CancellationToken);
 
         await response.ShouldHaveSuccessStatusCode();
-        var content = await response.ShouldHaveJsonContent<ItemStream<Platform.Models.Register.Party>>();
+        var content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
 
         var items = content.Items.ToList();
         items.Count.ShouldBe(PartyController.PARTY_STREAM_PAGE_SIZE);
@@ -89,7 +89,7 @@ public class StreamTests
         response = await HttpClient.GetAsync(content.Links.Next, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveSuccessStatusCode();
-        content = await response.ShouldHaveJsonContent<ItemStream<Platform.Models.Register.Party>>();
+        content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
 
         items = content.Items.ToList();
         items.Count.ShouldBe(PartyController.PARTY_STREAM_PAGE_SIZE);
@@ -108,7 +108,7 @@ public class StreamTests
         response = await HttpClient.GetAsync(content.Links.Next, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveSuccessStatusCode();
-        content = await response.ShouldHaveJsonContent<ItemStream<Platform.Models.Register.Party>>();
+        content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
 
         items = content.Items.ToList();
         items.Count.ShouldBe(PartyController.PARTY_STREAM_PAGE_SIZE);
@@ -127,7 +127,7 @@ public class StreamTests
         response = await HttpClient.GetAsync(content.Links.Next, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveSuccessStatusCode();
-        content = await response.ShouldHaveJsonContent<ItemStream<Platform.Models.Register.Party>>();
+        content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
 
         items = content.Items.ToList();
         items.Count.ShouldBe(PartyController.PARTY_STREAM_PAGE_SIZE / 2);
@@ -146,7 +146,7 @@ public class StreamTests
         response = await HttpClient.GetAsync(content.Links.Next, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveSuccessStatusCode();
-        content = await response.ShouldHaveJsonContent<ItemStream<Platform.Models.Register.Party>>();
+        content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
 
         content.Items.ShouldBeEmpty();
         content.Links.Next.ShouldBeNull();
@@ -166,7 +166,7 @@ public class StreamTests
         var response = await HttpClient.GetAsync("/register/api/v2/internal/parties/stream", TestContext.Current.CancellationToken);
 
         await response.ShouldHaveSuccessStatusCode();
-        var content = await response.ShouldHaveJsonContent<ItemStream<Platform.Models.Register.Party>>();
+        var content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
 
         var items = content.Items.ToList();
         items.Count.ShouldBe(2);
@@ -226,7 +226,7 @@ public class StreamTests
         var response = await HttpClient.GetAsync("/register/api/v2/internal/parties/stream?fields=person,party,org", TestContext.Current.CancellationToken);
 
         await response.ShouldHaveSuccessStatusCode();
-        var content = await response.ShouldHaveJsonContent<ItemStream<Platform.Models.Register.Party>>();
+        var content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
 
         var nextLink = content.Links.Next.ShouldNotBeNull();
         nextLink.ShouldContain("fields=party,person,org");

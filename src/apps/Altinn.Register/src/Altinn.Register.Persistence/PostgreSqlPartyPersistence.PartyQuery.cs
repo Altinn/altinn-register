@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ModelUtils.EnumUtils;
-using Altinn.Platform.Models.Register;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using CommunityToolkit.Diagnostics;

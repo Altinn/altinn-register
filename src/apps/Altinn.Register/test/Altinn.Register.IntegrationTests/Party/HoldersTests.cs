@@ -22,7 +22,7 @@ public class HoldersTests
         var response = await HttpClient.GetAsync($"register/api/{apiVersion}/internal/parties/{org.PartyUuid.Value}/holders/ccr/{roleIdentifier}", TestContext.Current.CancellationToken);
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
 
-        var content = await response.ShouldHaveJsonContent<ListObject<Platform.Models.Register.Party>>();
+        var content = await response.ShouldHaveJsonContent<ListObject<Contracts.Party>>();
         content.Items.ShouldBeEmpty();
     }
 
@@ -66,7 +66,7 @@ public class HoldersTests
         var response = await HttpClient.GetAsync($"register/api/{apiVersion}/internal/parties/{org1.PartyUuid.Value}/holders/ccr/{roleIdentifier}", TestContext.Current.CancellationToken);
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
 
-        var content = await response.ShouldHaveJsonContent<ListObject<Platform.Models.Register.Party>>();
+        var content = await response.ShouldHaveJsonContent<ListObject<Contracts.Party>>();
         var items = content.Items.ToList();
         items.Count.ShouldBe(4);
         items.ShouldContain(p => p.Uuid == org1.PartyUuid.Value);

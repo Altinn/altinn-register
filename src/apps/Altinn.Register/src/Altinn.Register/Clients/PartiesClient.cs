@@ -4,13 +4,12 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
-using Altinn.Platform.Models.Register.V1;
 using Altinn.Register.Configuration;
+using Altinn.Register.Contracts.V1;
 using Altinn.Register.Core.Parties;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
-
-using V1Models = Altinn.Platform.Models.Register.V1;
+using V1Models = Altinn.Register.Contracts.V1;
 
 namespace Altinn.Register.Clients;
 

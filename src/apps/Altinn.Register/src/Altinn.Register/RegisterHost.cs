@@ -254,15 +254,15 @@ internal static partial class RegisterHost
                 {
                     var orig = originalIdSelector(t);
 
-                    if (t.Assembly == typeof(Platform.Models.Register.V1.PartyType).Assembly)
+                    if (t.Assembly == typeof(Contracts.PartyType).Assembly)
                     {
                         if (GetVersionedNamespaceRegex().Match(t.Namespace) is { Success: true, Groups: var groups })
                         {
-                            orig = $"PlatformModels.{groups[1].ValueSpan}.{orig}";
+                            orig = $"Contracts.{groups[1].ValueSpan}.{orig}";
                         }
                         else 
                         {
-                            orig = $"PlatformModels.{orig}";
+                            orig = $"Contracts.{orig}";
                         }
                     }
 

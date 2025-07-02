@@ -1,4 +1,4 @@
-﻿using Altinn.Platform.Models.Register;
+﻿using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Asp.Versioning;

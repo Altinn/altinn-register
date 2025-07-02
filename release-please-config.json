@@ -4,8 +4,8 @@
   "pull-request-title-pattern": "release${scope}:${component} ${version}",
   "release-type": "simple",
   "packages": {
-    "src/Altinn.Platform.Models": {
-      "component": "Altinn.Platform.Models",
+    "src/Altinn.Register.Contracts": {
+      "component": "Altinn.Register.Contracts",
       "extra-files": [
         {
           "type": "xml",

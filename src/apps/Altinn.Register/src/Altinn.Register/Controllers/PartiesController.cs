@@ -3,7 +3,7 @@
 using System.Diagnostics;
 using System.Security.Claims;
 using Altinn.Authorization.ProblemDetails;
-using Altinn.Platform.Models.Register.V1;
+using Altinn.Register.Contracts.V1;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Extensions;
 using Altinn.Register.Models;
@@ -12,7 +12,7 @@ using AltinnCore.Authentication.Constants;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using V1Models = Altinn.Platform.Models.Register.V1;
+using V1Models = Altinn.Register.Contracts.V1;
 
 namespace Altinn.Register.Controllers;
 

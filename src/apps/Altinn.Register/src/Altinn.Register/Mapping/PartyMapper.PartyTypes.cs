@@ -3,7 +3,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ModelUtils;
-using Altinn.Platform.Models.Register;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties.Records;
 using CommunityToolkit.Diagnostics;
 

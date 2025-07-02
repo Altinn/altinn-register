@@ -1,5 +1,5 @@
 ﻿using Altinn.Authorization.ProblemDetails;
-using Altinn.Platform.Models.Register;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties.Records;
 
 namespace Altinn.Register.Core.Parties;

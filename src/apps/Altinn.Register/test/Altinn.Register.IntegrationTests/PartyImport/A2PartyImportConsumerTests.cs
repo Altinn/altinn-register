@@ -11,7 +11,7 @@ using Altinn.Register.TestUtils.Http;
 using Altinn.Register.TestUtils.MassTransit;
 using Altinn.Register.TestUtils.TestData;
 using Xunit.Sdk;
-using V1Models = Altinn.Platform.Models.Register.V1;
+using V1Models = Altinn.Register.Contracts.V1;
 
 namespace Altinn.Register.IntegrationTests.PartyImport;
 
@@ -254,7 +254,7 @@ public class A2PartyImportConsumerTests
         var party = new V1Models.Party
         {
             PartyId = 50012345,
-            PartyTypeName = Platform.Models.Register.V1.PartyType.Person,
+            PartyTypeName = V1Models.PartyType.Person,
             OrgNumber = null,
             SSN = "25871999336",
             UnitType = null,

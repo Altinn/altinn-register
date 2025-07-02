@@ -3,7 +3,7 @@ using System.Diagnostics;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
-using Altinn.Platform.Models.Register;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties.Records;
 using CommunityToolkit.Diagnostics;

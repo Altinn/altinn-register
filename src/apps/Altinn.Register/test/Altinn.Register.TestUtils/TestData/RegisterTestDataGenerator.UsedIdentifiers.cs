@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
-using Altinn.Platform.Models.Register;
+using Altinn.Register.Contracts;
 using CommunityToolkit.Diagnostics;
 using Npgsql;
 

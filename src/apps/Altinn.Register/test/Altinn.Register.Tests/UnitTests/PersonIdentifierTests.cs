@@ -1,7 +1,7 @@
 ﻿#nullable enable
 
 using System.Text.Json;
-using Altinn.Platform.Models.Register;
+using Altinn.Register.Contracts;
 using Altinn.Swashbuckle.Examples;
 
 namespace Altinn.Register.Tests.UnitTests;

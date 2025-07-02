@@ -1,6 +1,6 @@
 #nullable enable
-using Altinn.Platform.Models.Register.V1;
 using Altinn.Register.Clients.Interfaces;
+using Altinn.Register.Contracts.V1;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 

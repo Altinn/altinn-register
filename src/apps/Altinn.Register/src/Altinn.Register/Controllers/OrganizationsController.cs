@@ -1,5 +1,5 @@
-using Altinn.Platform.Models.Register.V1;
 using Altinn.Register.Clients.Interfaces;
+using Altinn.Register.Contracts.V1;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

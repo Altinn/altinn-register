@@ -5,16 +5,13 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Altinn.Platform.Models.Register.V1;
 using Altinn.Register.Clients;
 using Altinn.Register.Configuration;
+using Altinn.Register.Contracts.V1;
 using Altinn.Register.Tests.Mocks;
-
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-
 using Moq;
-
 using Xunit;
 
 namespace Altinn.Register.Tests.UnitTests;

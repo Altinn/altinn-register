@@ -4,7 +4,6 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Altinn.Common.AccessToken.Services;
-using Altinn.Platform.Models.Register.V1;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Models;
 using Altinn.Register.Services.Interfaces;
@@ -18,7 +17,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
-using V1Models = Altinn.Platform.Models.Register.V1;
 
 namespace Altinn.Register.Tests.TestingControllers
 {
@@ -34,7 +32,7 @@ namespace Altinn.Register.Tests.TestingControllers
             int partyId = 6565;
 
             // Arrange
-            _partiesClient.Setup(s => s.GetPartyById(It.Is<int>(o => o == partyId), It.IsAny<CancellationToken>())).ReturnsAsync(new V1Models.Party());
+            _partiesClient.Setup(s => s.GetPartyById(It.Is<int>(o => o == partyId), It.IsAny<CancellationToken>())).ReturnsAsync(new Contracts.V1.Party());
 
             HttpClient client = CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -50,7 +48,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            Platform.Models.Register.V1.Party actual = await JsonSerializer.DeserializeAsync<Platform.Models.Register.V1.Party>(await response.Content.ReadAsStreamAsync());
+            Contracts.V1.Party actual = await JsonSerializer.DeserializeAsync<Contracts.V1.Party>(await response.Content.ReadAsStreamAsync());
 
             Assert.NotNull(actual);
         }
@@ -62,7 +60,7 @@ namespace Altinn.Register.Tests.TestingControllers
             int partyId = 6565;
 
             // Arrange
-            _partiesClient.Setup(s => s.GetPartyById(It.Is<int>(o => o == partyId), It.IsAny<CancellationToken>())).ReturnsAsync(new V1Models.Party());
+            _partiesClient.Setup(s => s.GetPartyById(It.Is<int>(o => o == partyId), It.IsAny<CancellationToken>())).ReturnsAsync(new Contracts.V1.Party());
 
             HttpClient client = CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -84,7 +82,7 @@ namespace Altinn.Register.Tests.TestingControllers
             int partyId = 6565;
 
             // Arrange
-            _partiesClient.Setup(s => s.GetPartyById(It.Is<int>(o => o == partyId), It.IsAny<CancellationToken>())).ReturnsAsync((Platform.Models.Register.V1.Party)null);
+            _partiesClient.Setup(s => s.GetPartyById(It.Is<int>(o => o == partyId), It.IsAny<CancellationToken>())).ReturnsAsync((Contracts.V1.Party)null);
 
             HttpClient client = CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -108,7 +106,7 @@ namespace Altinn.Register.Tests.TestingControllers
             int partyId = 6565;
 
             // Arrange
-            _partiesClient.Setup(s => s.GetPartyById(It.Is<int>(o => o == partyId), It.IsAny<CancellationToken>())).ReturnsAsync((Platform.Models.Register.V1.Party)null);
+            _partiesClient.Setup(s => s.GetPartyById(It.Is<int>(o => o == partyId), It.IsAny<CancellationToken>())).ReturnsAsync((Contracts.V1.Party)null);
 
             HttpClient client = CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -151,7 +149,7 @@ namespace Altinn.Register.Tests.TestingControllers
             HttpClient client = CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            PartyLookup lookUp = new PartyLookup();
+            Contracts.V1.PartyLookup lookUp = new Contracts.V1.PartyLookup();
 
             StringContent requestBody = new StringContent(JsonSerializer.Serialize(lookUp), Encoding.UTF8, "application/json");
 
@@ -174,12 +172,12 @@ namespace Altinn.Register.Tests.TestingControllers
             // Arrange
             string ssn = "27108775284";
 
-            _partiesClient.Setup(s => s.LookupPartyBySSNOrOrgNo(It.Is<string>(p => p == ssn), It.IsAny<CancellationToken>())).ReturnsAsync((Platform.Models.Register.V1.Party)null);
+            _partiesClient.Setup(s => s.LookupPartyBySSNOrOrgNo(It.Is<string>(p => p == ssn), It.IsAny<CancellationToken>())).ReturnsAsync((Contracts.V1.Party)null);
 
             HttpClient client = CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            PartyLookup lookUp = new PartyLookup { Ssn = ssn };
+            Contracts.V1.PartyLookup lookUp = new Contracts.V1.PartyLookup { Ssn = ssn };
 
             StringContent requestBody = new StringContent(JsonSerializer.Serialize(lookUp), Encoding.UTF8, "application/json");
 
@@ -203,7 +201,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             // Arrange
             _partiesClient.Setup(s => s.GetPartiesById(It.IsAny<List<int>>(), It.Is<bool>(b => b == false), It.IsAny<CancellationToken>()))
-                .Returns(new AsyncList<Platform.Models.Register.V1.Party> { new(), new() });
+                .Returns(new AsyncList<Contracts.V1.Party> { new(), new() });
 
             HttpClient client = CreateClient();
 
@@ -220,7 +218,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            List<Platform.Models.Register.V1.Party> actual = await JsonSerializer.DeserializeAsync<List<Platform.Models.Register.V1.Party>>(await response.Content.ReadAsStreamAsync());
+            List<Contracts.V1.Party> actual = await JsonSerializer.DeserializeAsync<List<Contracts.V1.Party>>(await response.Content.ReadAsStreamAsync());
 
             Assert.NotNull(actual);
             Assert.Equal(partyIds.Count, actual.Count);
@@ -233,7 +231,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             // Arrange
             _partiesClient.Setup(s => s.GetPartiesById(It.IsAny<List<int>>(), It.Is<bool>(b => b == true), It.IsAny<CancellationToken>()))
-                .Returns(new AsyncList<Platform.Models.Register.V1.Party> { new(), new() });
+                .Returns(new AsyncList<Contracts.V1.Party> { new(), new() });
 
             HttpClient client = CreateClient();
 
@@ -250,7 +248,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            List<Platform.Models.Register.V1.Party> actual = await JsonSerializer.DeserializeAsync<List<Platform.Models.Register.V1.Party>>(await response.Content.ReadAsStreamAsync());
+            List<Contracts.V1.Party> actual = await JsonSerializer.DeserializeAsync<List<Contracts.V1.Party>>(await response.Content.ReadAsStreamAsync());
 
             Assert.NotNull(actual);
             Assert.Equal(partyIds.Count, actual.Count);
@@ -263,7 +261,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             // Arrange
             _partiesClient.Setup(s => s.GetPartiesById(It.IsAny<List<Guid>>(), It.Is<bool>(b => b == false), It.IsAny<CancellationToken>()))
-                .Returns(new AsyncList<Platform.Models.Register.V1.Party> { new(), new() });
+                .Returns(new AsyncList<Contracts.V1.Party> { new(), new() });
 
             HttpClient client = CreateClient();
 
@@ -280,7 +278,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            List<Platform.Models.Register.V1.Party> actual = await JsonSerializer.DeserializeAsync<List<Platform.Models.Register.V1.Party>>(await response.Content.ReadAsStreamAsync());
+            List<Contracts.V1.Party> actual = await JsonSerializer.DeserializeAsync<List<Contracts.V1.Party>>(await response.Content.ReadAsStreamAsync());
 
             Assert.NotNull(actual);
             Assert.Equal(partyUuids.Count, actual.Count);
@@ -293,7 +291,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             // Arrange
             _partiesClient.Setup(s => s.GetPartiesById(It.IsAny<List<Guid>>(), It.Is<bool>(b => b == true), It.IsAny<CancellationToken>()))
-                .Returns(new AsyncList<Platform.Models.Register.V1.Party> { new(), new() });
+                .Returns(new AsyncList<Contracts.V1.Party> { new(), new() });
 
             HttpClient client = CreateClient();
 
@@ -310,7 +308,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            List<Platform.Models.Register.V1.Party> actual = await JsonSerializer.DeserializeAsync<List<Platform.Models.Register.V1.Party>>(await response.Content.ReadAsStreamAsync());
+            List<Contracts.V1.Party> actual = await JsonSerializer.DeserializeAsync<List<Contracts.V1.Party>>(await response.Content.ReadAsStreamAsync());
 
             Assert.NotNull(actual);
             Assert.Equal(partyUuids.Count, actual.Count);
@@ -322,7 +320,7 @@ namespace Altinn.Register.Tests.TestingControllers
             // Arrange
             string token = PrincipalUtil.GetToken(1);
 
-            _partiesClient.Setup(s => s.GetPartyById(It.Is<Guid>(g => g == new Guid("93630d41-ca61-4b5c-b8fb-3346b561f6ff")), It.IsAny<CancellationToken>())).ReturnsAsync(new V1Models.Party());
+            _partiesClient.Setup(s => s.GetPartyById(It.Is<Guid>(g => g == new Guid("93630d41-ca61-4b5c-b8fb-3346b561f6ff")), It.IsAny<CancellationToken>())).ReturnsAsync(new Contracts.V1.Party());
 
             HttpClient client = CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -338,7 +336,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            Platform.Models.Register.V1.Party actual = await JsonSerializer.DeserializeAsync<Platform.Models.Register.V1.Party>(await response.Content.ReadAsStreamAsync());
+            Contracts.V1.Party actual = await JsonSerializer.DeserializeAsync<Contracts.V1.Party>(await response.Content.ReadAsStreamAsync());
 
             Assert.NotNull(actual);
         }
@@ -349,7 +347,7 @@ namespace Altinn.Register.Tests.TestingControllers
             // Arrange
             string token = PrincipalUtil.GetToken(1);
 
-            _partiesClient.Setup(s => s.GetPartyById(It.Is<Guid>(g => g == new Guid("93630d41-ca61-4b5c-b8fb-3346b561f6ff")), It.IsAny<CancellationToken>())).ReturnsAsync((Platform.Models.Register.V1.Party)null);
+            _partiesClient.Setup(s => s.GetPartyById(It.Is<Guid>(g => g == new Guid("93630d41-ca61-4b5c-b8fb-3346b561f6ff")), It.IsAny<CancellationToken>())).ReturnsAsync((Contracts.V1.Party)null);
 
             HttpClient client = CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -372,7 +370,7 @@ namespace Altinn.Register.Tests.TestingControllers
             // Arrange
             string token = PrincipalUtil.GetOrgToken("ttd");
 
-            _partiesClient.Setup(s => s.GetPartyById(It.Is<Guid>(g => g == new Guid("93630d41-ca61-4b5c-b8fb-3346b561f6ff")), It.IsAny<CancellationToken>())).ReturnsAsync((Platform.Models.Register.V1.Party)null);
+            _partiesClient.Setup(s => s.GetPartyById(It.Is<Guid>(g => g == new Guid("93630d41-ca61-4b5c-b8fb-3346b561f6ff")), It.IsAny<CancellationToken>())).ReturnsAsync((Contracts.V1.Party)null);
 
             HttpClient client = CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -416,7 +414,7 @@ namespace Altinn.Register.Tests.TestingControllers
             // Arrange
             string token = PrincipalUtil.GetServiceOwnerOrgToken("ttd");
 
-            _partiesClient.Setup(s => s.GetPartyById(It.Is<Guid>(g => g == new Guid("93630d41-ca61-4b5c-b8fb-3346b561f6ff")), It.IsAny<CancellationToken>())).ReturnsAsync((Platform.Models.Register.V1.Party)null);
+            _partiesClient.Setup(s => s.GetPartyById(It.Is<Guid>(g => g == new Guid("93630d41-ca61-4b5c-b8fb-3346b561f6ff")), It.IsAny<CancellationToken>())).ReturnsAsync((Contracts.V1.Party)null);
 
             HttpClient client = CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -440,7 +438,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             // Arrange
             _partiesClient.Setup(s => s.GetPartiesById(It.IsAny<List<Guid>>(), It.Is<bool>(b => b == false), It.IsAny<CancellationToken>()))
-                .Returns(new AsyncList<Platform.Models.Register.V1.Party>());
+                .Returns(new AsyncList<Contracts.V1.Party>());
 
             HttpClient client = CreateClient();
 
@@ -457,7 +455,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            List<Platform.Models.Register.V1.Party> actual = await JsonSerializer.DeserializeAsync<List<Platform.Models.Register.V1.Party>>(await response.Content.ReadAsStreamAsync());
+            List<Contracts.V1.Party> actual = await JsonSerializer.DeserializeAsync<List<Contracts.V1.Party>>(await response.Content.ReadAsStreamAsync());
 
             Assert.Empty(actual);
         }
@@ -468,7 +466,7 @@ namespace Altinn.Register.Tests.TestingControllers
             // Arrange
             string orgNo = "555000103";
 
-            Platform.Models.Register.V1.Party party = new V1Models.Party
+            Contracts.V1.Party party = new Contracts.V1.Party
             {
                 OrgNumber = orgNo
             };
@@ -477,7 +475,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             HttpClient client = CreateClient();
 
-            PartyLookup lookUp = new PartyLookup { OrgNo = orgNo };
+            Contracts.V1.PartyLookup lookUp = new Contracts.V1.PartyLookup { OrgNo = orgNo };
 
             StringContent requestBody = new StringContent(JsonSerializer.Serialize(lookUp), Encoding.UTF8, "application/json");
 
@@ -493,7 +491,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            Platform.Models.Register.V1.Party actual = await JsonSerializer.DeserializeAsync<Platform.Models.Register.V1.Party>(await response.Content.ReadAsStreamAsync());
+            Contracts.V1.Party actual = await JsonSerializer.DeserializeAsync<Contracts.V1.Party>(await response.Content.ReadAsStreamAsync());
 
             Assert.NotNull(actual);
         }
@@ -509,7 +507,7 @@ namespace Altinn.Register.Tests.TestingControllers
             HttpClient client = CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            PartyLookup lookUp = new PartyLookup { OrgNo = orgNo };
+            Contracts.V1.PartyLookup lookUp = new Contracts.V1.PartyLookup { OrgNo = orgNo };
 
             StringContent requestBody = new StringContent(JsonSerializer.Serialize(lookUp), Encoding.UTF8, "application/json");
 
@@ -527,7 +525,7 @@ namespace Altinn.Register.Tests.TestingControllers
             int partyId = 6565;
 
             // Arrange
-            _partiesClient.Setup(s => s.GetPartyById(It.Is<int>(o => o == partyId), It.IsAny<CancellationToken>())).ReturnsAsync(new V1Models.Party());
+            _partiesClient.Setup(s => s.GetPartyById(It.Is<int>(o => o == partyId), It.IsAny<CancellationToken>())).ReturnsAsync(new Contracts.V1.Party());
 
             HttpClient client = CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -666,7 +664,7 @@ namespace Altinn.Register.Tests.TestingControllers
 
             // Arrange
             _partiesClient.Setup(s => s.GetPartiesById(It.Is<IEnumerable<int>>(ids => ids.Contains(1) && ids.Contains(2) && ids.Contains(3) && ids.Count() == 3), It.IsAny<CancellationToken>()))
-                .Returns(new AsyncList<Platform.Models.Register.V1.Party>(expected.Select(i => new V1Models.Party { PartyId = i.PartyId, PartyUuid = i.PartyUuid, OrgNumber = i.OrgNumber })));
+                .Returns(new AsyncList<Contracts.V1.Party>(expected.Select(i => new Contracts.V1.Party { PartyId = i.PartyId, PartyUuid = i.PartyUuid, OrgNumber = i.OrgNumber })));
 
             HttpClient httpClient = CreateClient();
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -704,11 +702,11 @@ namespace Altinn.Register.Tests.TestingControllers
 
             // Arrange
             _partiesClient.Setup(s => s.GetPartiesById(It.Is<IEnumerable<int>>(ids => ids.Contains(byId.PartyId) && ids.Count() == 1), It.IsAny<CancellationToken>()))
-                .Returns(new AsyncList<Platform.Models.Register.V1.Party>(new[] { new V1Models.Party { PartyId = byId.PartyId, PartyUuid = byId.PartyUuid, OrgNumber = byId.OrgNumber } }));
+                .Returns(new AsyncList<Contracts.V1.Party>(new[] { new Contracts.V1.Party { PartyId = byId.PartyId, PartyUuid = byId.PartyUuid, OrgNumber = byId.OrgNumber } }));
             _partiesClient.Setup(s => s.GetPartiesById(It.Is<IEnumerable<Guid>>(ids => ids.Contains(byUuid.PartyUuid) && ids.Count() == 1), It.IsAny<CancellationToken>()))
-                .Returns(new AsyncList<Platform.Models.Register.V1.Party>(new[] { new V1Models.Party { PartyId = byUuid.PartyId, PartyUuid = byUuid.PartyUuid, OrgNumber = byUuid.OrgNumber } }));
+                .Returns(new AsyncList<Contracts.V1.Party>(new[] { new Contracts.V1.Party { PartyId = byUuid.PartyId, PartyUuid = byUuid.PartyUuid, OrgNumber = byUuid.OrgNumber } }));
             _partiesClient.Setup(s => s.LookupPartiesBySSNOrOrgNos(It.Is<IEnumerable<string>>(ids => ids.Contains(byOrgNo.OrgNumber) && ids.Count() == 1), It.IsAny<CancellationToken>()))
-                .Returns(new AsyncList<Platform.Models.Register.V1.Party>(new[] { new V1Models.Party { PartyId = byOrgNo.PartyId, PartyUuid = byOrgNo.PartyUuid, OrgNumber = byOrgNo.OrgNumber } }));
+                .Returns(new AsyncList<Contracts.V1.Party>(new[] { new Contracts.V1.Party { PartyId = byOrgNo.PartyId, PartyUuid = byOrgNo.PartyUuid, OrgNumber = byOrgNo.OrgNumber } }));
 
             HttpClient httpClient = CreateClient();
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);

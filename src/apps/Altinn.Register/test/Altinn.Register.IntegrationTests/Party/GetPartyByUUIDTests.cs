@@ -1,6 +1,6 @@
 ﻿using System.Net;
 using Altinn.Authorization.ProblemDetails;
-using Altinn.Platform.Models.Register;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.TestUtils.TestData;
@@ -29,7 +29,7 @@ public class GetPartyByUUIDTests
         var response = await HttpClient.GetAsync($"register/api/v2/internal/parties/{party.PartyUuid.Value}", CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
-        var content = await response.ShouldHaveJsonContent<Platform.Models.Register.Party>();
+        var content = await response.ShouldHaveJsonContent<Contracts.Party>();
         var person = content.ShouldBeOfType<Person>();
 
         content.Uuid.ShouldBe(party.PartyUuid.Value);
@@ -54,7 +54,7 @@ public class GetPartyByUUIDTests
         var response = await HttpClient.GetAsync($"register/api/v2/internal/parties/{party.PartyUuid.Value}?fields=party,person", CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
-        var content = await response.ShouldHaveJsonContent<Platform.Models.Register.Party>();
+        var content = await response.ShouldHaveJsonContent<Contracts.Party>();
         var person = content.ShouldBeOfType<Person>();
 
         content.Uuid.ShouldBe(party.PartyUuid.Value);

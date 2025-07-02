@@ -1,5 +1,5 @@
 ﻿#nullable enable
-using Altinn.Platform.Models.Register.V1;
+using Altinn.Register.Contracts.V1;
 using Altinn.Register.Core;
 using Altinn.Register.Services;
 

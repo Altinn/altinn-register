@@ -1,8 +1,8 @@
 using System.Text;
 using System.Text.Json;
-using Altinn.Platform.Models.Register.V1;
 using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Configuration;
+using Altinn.Register.Contracts.V1;
 using Altinn.Register.Exceptions;
 using Altinn.Register.Models;
 using Microsoft.Extensions.Options;

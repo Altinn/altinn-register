@@ -1,14 +1,12 @@
 #nullable enable
 
-using Altinn.Platform.Models.Register.V1;
 using Altinn.Register.Clients.Interfaces;
+using Altinn.Register.Contracts.V1;
 using Altinn.Register.Core;
-
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-
 using Moq;
 
 namespace Altinn.Register.Tests.UnitTests;

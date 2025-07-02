@@ -1,7 +1,7 @@
 ﻿#nullable enable
 
 using System.Diagnostics.CodeAnalysis;
-using Altinn.Platform.Models.Register;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties.Records;
 using CommunityToolkit.Diagnostics;
 

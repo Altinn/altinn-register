@@ -15,9 +15,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference
-      Include="..\..\..\..\pkgs\Altinn.Platform.Models\src\Altinn.Platform.Models\Altinn.Platform.Models.csproj" />
-    <ProjectReference Include="..\Altinn.Register.Contracts\Altinn.Register.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\..\pkgs\Altinn.Register.Contracts\src\Altinn.Register.Contracts\Altinn.Register.Contracts.csproj" />
+    <ProjectReference Include="..\Altinn.Register.Contracts.MassTransit\Altinn.Register.Contracts.MassTransit.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
-using Altinn.Platform.Models.Register;
+using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;

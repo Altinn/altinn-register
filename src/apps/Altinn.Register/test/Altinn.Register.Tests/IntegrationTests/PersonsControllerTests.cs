@@ -2,12 +2,11 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using Altinn.Platform.Models.Register.V1;
 using Altinn.Register.Configuration;
+using Altinn.Register.Contracts.V1;
 using Altinn.Register.Tests.IntegrationTests.Utils;
 using Altinn.Register.Tests.Mocks;
 using Altinn.Register.Tests.Utils;
-
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Caching.Memory;
 

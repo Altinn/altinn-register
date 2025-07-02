@@ -7,7 +7,6 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Core.Errors;
-using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.PartyImport.A2;
 using Altinn.Register.Tests.Utils;
@@ -27,7 +26,7 @@ public class A2PartyImportServiceTests
     public async Task GetParty_Calls_Correct_Endpoint_AndMapsOrganizationData()
     {
         var partyId = 50004216U;
-        var party = await TestDataLoader.Load<Platform.Models.Register.V1.Party>(partyId.ToString(CultureInfo.InvariantCulture));
+        var party = await TestDataLoader.Load<Contracts.V1.Party>(partyId.ToString(CultureInfo.InvariantCulture));
         Assert.NotNull(party);
 
         var partyUuid = party.PartyUuid!.Value;
@@ -78,7 +77,7 @@ public class A2PartyImportServiceTests
     public async Task GetParty_Calls_Correct_Endpoint_AndMapsPersonData()
     {
         var partyId = 50012345U;
-        var party = await TestDataLoader.Load<Platform.Models.Register.V1.Party>(partyId.ToString(CultureInfo.InvariantCulture));
+        var party = await TestDataLoader.Load<Contracts.V1.Party>(partyId.ToString(CultureInfo.InvariantCulture));
         Assert.NotNull(party);
 
         var partyUuid = party.PartyUuid!.Value;
@@ -133,7 +132,7 @@ public class A2PartyImportServiceTests
         var expected = JsonSerializer.Deserialize<ErrorCode>(JsonSerializer.Serialize(errorCode));
 
         var partyId = 50012345;
-        var party = await TestDataLoader.Load<Platform.Models.Register.V1.Party>(partyId.ToString(CultureInfo.InvariantCulture));
+        var party = await TestDataLoader.Load<Contracts.V1.Party>(partyId.ToString(CultureInfo.InvariantCulture));
         Assert.NotNull(party);
 
         var partyUuid = party.PartyUuid!.Value;
@@ -163,7 +162,7 @@ public class A2PartyImportServiceTests
     public async Task GetExternalRoleAssignmentsFrom_Calls_Correct_Endpoint_AndMapsData()
     {
         var partyId = 50012345U;
-        var party = await TestDataLoader.Load<Platform.Models.Register.V1.Party>(partyId.ToString(CultureInfo.InvariantCulture));
+        var party = await TestDataLoader.Load<Contracts.V1.Party>(partyId.ToString(CultureInfo.InvariantCulture));
         Assert.NotNull(party);
 
         var partyUuid = party.PartyUuid!.Value;
@@ -207,7 +206,7 @@ public class A2PartyImportServiceTests
     public async Task GetExternalRoleAssignmentsFrom_Calls_Correct_Endpoint_AndMapsData_KONT_Roles()
     {
         var partyId = 50012345U;
-        var party = await TestDataLoader.Load<Platform.Models.Register.V1.Party>(partyId.ToString(CultureInfo.InvariantCulture));
+        var party = await TestDataLoader.Load<Contracts.V1.Party>(partyId.ToString(CultureInfo.InvariantCulture));
         Assert.NotNull(party);
 
         var partyUuid = party.PartyUuid!.Value;

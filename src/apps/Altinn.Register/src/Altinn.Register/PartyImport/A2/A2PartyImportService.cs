@@ -9,13 +9,13 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
-using Altinn.Platform.Models.Register;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
 using CommunityToolkit.Diagnostics;
-using V1Models = Altinn.Platform.Models.Register.V1;
-using V1PartyType = Altinn.Platform.Models.Register.V1.PartyType;
+using V1Models = Altinn.Register.Contracts.V1;
+using V1PartyType = Altinn.Register.Contracts.V1.PartyType;
 
 namespace Altinn.Register.PartyImport.A2;
 

@@ -2,9 +2,9 @@
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using Altinn.Platform.Models.Register.V1;
 using Altinn.Register.Clients;
 using Altinn.Register.Configuration;
+using Altinn.Register.Contracts.V1;
 using Altinn.Register.Tests.Mocks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;

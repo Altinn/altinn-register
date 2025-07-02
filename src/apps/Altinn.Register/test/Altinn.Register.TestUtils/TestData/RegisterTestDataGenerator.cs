@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 using Altinn.Authorization.ModelUtils;
-using Altinn.Platform.Models.Register;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties.Records;
 using CommunityToolkit.Diagnostics;
 using Npgsql;

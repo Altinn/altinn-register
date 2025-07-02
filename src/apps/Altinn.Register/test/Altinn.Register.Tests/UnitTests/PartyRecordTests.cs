@@ -2,7 +2,7 @@
 
 using System.Text.Json;
 using Altinn.Authorization.ModelUtils;
-using Altinn.Platform.Models.Register;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.TestUtils;
 
