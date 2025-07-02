@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Altinn.Register.TestUtils.TestData;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
@@ -39,6 +41,7 @@ public abstract class DatabaseTestBase
 
         builder.AddAltinnServiceDefaults("register");
         builder.AddRegisterPersistence();
+        builder.Services.AddSingleton<RegisterTestDataGenerator>();
     }
 
     /// <inheritdoc/>

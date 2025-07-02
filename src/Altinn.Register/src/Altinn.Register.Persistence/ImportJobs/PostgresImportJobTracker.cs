@@ -110,7 +110,7 @@ internal partial class PostgresImportJobTracker
         var tcs = new TaskCompletionSource<bool>();
         var message = new WorkerMessage.ClearCacheMessage(id, Activity.Current, cancellationToken, tcs);
         await _writer.WriteAsync(message, cancellationToken);
-        return await tcs.Task;
+        return await tcs.Task.WaitAsync(cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -119,7 +119,7 @@ internal partial class PostgresImportJobTracker
         var tcs = new TaskCompletionSource<ImportJobStatus>();
         var message = new WorkerMessage.GetStatusMessage(id, Activity.Current, cancellationToken, tcs);
         await _writer.WriteAsync(message, cancellationToken);
-        return await tcs.Task;
+        return await tcs.Task.WaitAsync(cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -128,7 +128,7 @@ internal partial class PostgresImportJobTracker
         var tcs = new TaskCompletionSource<ImportJobUpdateStatus>();
         var message = new WorkerMessage.TrackQueueStatusMessage(id, status, Activity.Current, cancellationToken, tcs);
         await _writer.WriteAsync(message, cancellationToken);
-        var (newStatus, updated) = await tcs.Task;
+        var (newStatus, updated) = await tcs.Task.WaitAsync(cancellationToken);
         return (newStatus, updated);
     }
 
@@ -138,7 +138,7 @@ internal partial class PostgresImportJobTracker
         var tcs = new TaskCompletionSource<ImportJobUpdateStatus>();
         var message = new WorkerMessage.TrackProcessedStatusMessage(id, status, Activity.Current, cancellationToken, tcs);
         await _writer.WriteAsync(message, cancellationToken);
-        var (newStatus, updated) = await tcs.Task;
+        var (newStatus, updated) = await tcs.Task.WaitAsync(cancellationToken);
         return (newStatus, updated);
     }
 

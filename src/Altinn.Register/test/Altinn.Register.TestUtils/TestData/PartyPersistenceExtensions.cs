@@ -1,9 +1,4 @@
 ﻿using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Globalization;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Register.Contracts.ExternalRoles;
@@ -22,202 +17,19 @@ namespace Altinn.Register.TestUtils.TestData;
 /// </summary>
 public static class PartyPersistenceExtensions
 {
-    public static async Task<OrganizationIdentifier> GetNewOrgNumber(this IUnitOfWork uow, CancellationToken cancellationToken = default)
-    {
-        var connection = uow.GetRequiredService<NpgsqlConnection>();
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText =
-            /*strpsql*/"""
-            SELECT organization_identifier 
-            FROM register.party 
-            WHERE organization_identifier = @id
-            """;
+    public static ValueTask<OrganizationIdentifier> GetNewOrgNumber(
+        this IUnitOfWork uow,
+        CancellationToken cancellationToken = default)
+        => uow.GetRequiredService<RegisterTestDataGenerator>()
+            .GetNewOrgNumber(cancellationToken);
 
-        var param = cmd.Parameters.Add<string>("id", NpgsqlDbType.Text);
-        await cmd.PrepareAsync(cancellationToken);
-
-        OrganizationIdentifier id;
-        do
-        {
-            id = GenerateOrganizationIdentifier();
-        }
-        while (await InUse(id, cancellationToken));
-
-        return id;
-
-        async Task<bool> InUse(OrganizationIdentifier id, CancellationToken cancellationToken)
-        {
-            param.TypedValue = id.ToString();
-
-            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-            var exists = await reader.ReadAsync(cancellationToken);
-            return exists;
-        }
-
-        static OrganizationIdentifier GenerateOrganizationIdentifier()
-        {
-            Vector128<ushort> weights = Vector128.Create((ushort)3, 2, 7, 6, 5, 4, 3, 2);
-
-            while (true)
-            {
-                // 8 digit random number
-                var random = Random.Shared.Next(10_000_000, 99_999_999);
-                Span<char> s = stackalloc char[9];
-                Debug.Assert(random.TryFormat(s, out var written, provider: CultureInfo.InvariantCulture));
-                Debug.Assert(written == 8);
-
-                ReadOnlySpan<ushort> chars = MemoryMarshal.Cast<char, ushort>(s);
-
-                Vector128<ushort> zeroDigit = Vector128.Create('0', '0', '0', '0', '0', '0', '0', '0');
-                Vector128<ushort> charsVec = Vector128.Create(chars);
-
-                var sum = Vector128.Sum((charsVec - zeroDigit) * weights);
-
-                var ctrlDigit = 11 - (sum % 11);
-                if (ctrlDigit == 11)
-                {
-                    ctrlDigit = 0;
-                }
-
-                if (ctrlDigit == 10)
-                {
-                    continue;
-                }
-
-                Debug.Assert(ctrlDigit is >= 0 and <= 9, $"ctrlDigit was {ctrlDigit}");
-                s[8] = (char)('0' + ctrlDigit);
-
-                return OrganizationIdentifier.Parse(new string(s));
-            }
-        }
-    }
-
-    public static async Task<PersonIdentifier> GetNewPersonIdentifier(this IUnitOfWork uow, DateOnly birthDate, bool isDNumber, CancellationToken cancellationToken = default)
-    {
-        var connection = uow.GetRequiredService<NpgsqlConnection>();
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText =
-            /*strpsql*/"""
-            SELECT person_identifier 
-            FROM register.party 
-            WHERE person_identifier = @id
-            """;
-
-        var param = cmd.Parameters.Add<string>("id", NpgsqlDbType.Text);
-        await cmd.PrepareAsync(cancellationToken);
-
-        PersonIdentifier id;
-        do
-        {
-            id = GeneratePersonIdentifier(birthDate, isDNumber);
-        }
-        while (await InUse(id, cancellationToken));
-
-        return id;
-
-        async Task<bool> InUse(PersonIdentifier id, CancellationToken cancellationToken)
-        {
-            param.TypedValue = id.ToString();
-
-            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-            var exists = await reader.ReadAsync(cancellationToken);
-            return exists;
-        }
-
-        static PersonIdentifier GeneratePersonIdentifier(DateOnly dateComp, bool isDNumber)
-        {
-            Vector256<ushort> k1weights = Vector256.Create((ushort)3, 7, 6, 1, 8, 9, 4, 5, 2, 0, 0, 0, 0, 0, 0, 0);
-            Vector256<ushort> k2weights = Vector256.Create((ushort)5, 4, 3, 2, 7, 6, 5, 4, 3, 2, 0, 0, 0, 0, 0, 0);
-            Span<ushort> k1_candidates = stackalloc ushort[4];
-
-            var random = Random.Shared;
-
-            var dayOffset = isDNumber ? 40 : 0;
-            int written;
-
-            while (true)
-            {
-                var individualNumber = random.Next(0, 1000);
-                Span<char> s = stackalloc char[11];
-                s.Fill('0');
-
-                var day = dateComp.Day + dayOffset;
-                var month = dateComp.Month;
-                var year = dateComp.Year % 100;
-
-                Debug.Assert(day.TryFormat(s, out written, "D2", provider: CultureInfo.InvariantCulture));
-                Debug.Assert(written == 2);
-
-                Debug.Assert(month.TryFormat(s.Slice(2), out written, "D2", provider: CultureInfo.InvariantCulture));
-                Debug.Assert(written == 2);
-
-                Debug.Assert(year.TryFormat(s.Slice(4), out written, "D2", provider: CultureInfo.InvariantCulture));
-                Debug.Assert(written == 2);
-
-                Debug.Assert(individualNumber.TryFormat(s.Slice(6), out written, "D3", provider: CultureInfo.InvariantCulture));
-                Debug.Assert(written == 3);
-
-                Vector256<ushort> digits = CreateVector(s);
-
-                var k1c_base = (ushort)(Vector256.Sum(digits * k1weights) % 11);
-                var k1c_1 = (ushort)((11 - k1c_base) % 11);
-                var k1c_2 = (ushort)((12 - k1c_base) % 11);
-                var k1c_3 = (ushort)((13 - k1c_base) % 11);
-                var k1c_4 = (ushort)((14 - k1c_base) % 11);
-
-                var idx = 0;
-                AddIfValid(k1_candidates, ref idx, k1c_1);
-                AddIfValid(k1_candidates, ref idx, k1c_2);
-                AddIfValid(k1_candidates, ref idx, k1c_3);
-                AddIfValid(k1_candidates, ref idx, k1c_4);
-
-                var k1 = k1_candidates[random.Next(0, idx)];
-                Debug.Assert(k1.TryFormat(s.Slice(9), out written, "D1", provider: CultureInfo.InvariantCulture));
-                Debug.Assert(written == 1);
-
-                digits = CreateVector(s);
-                var k2 = (ushort)((11 - (Vector256.Sum(digits * k2weights) % 11)) % 11);
-
-                if (k2 == 10)
-                {
-                    continue;
-                }
-
-                Debug.Assert(k2.TryFormat(s.Slice(10), out written, "D1", provider: CultureInfo.InvariantCulture));
-                Debug.Assert(written == 1);
-
-                if (!PersonIdentifier.TryParse(s, provider: null, out var result))
-                {
-                    Assert.Fail($"Generated illegal person identifier: {new string(s)}");
-                }
-
-                return result;
-            }
-        }
-
-        static void AddIfValid(Span<ushort> candidates, ref int idx, ushort value)
-        {
-            if (value != 10)
-            {
-                candidates[idx++] = value;
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static Vector256<ushort> CreateVector(ReadOnlySpan<char> s)
-        {
-            Debug.Assert(s.Length == 11);
-
-            Span<ushort> c = stackalloc ushort[16];
-            c.Clear(); // zero out the vector
-            MemoryMarshal.Cast<char, ushort>(s).CopyTo(c);
-
-            var chars = Vector256.Create<ushort>(c);
-            var zeros = Vector256.Create('0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', 0, 0, 0, 0, 0);
-
-            return chars - zeros;
-        }
-    }
+    public static ValueTask<PersonIdentifier> GetNewPersonIdentifier(
+        this IUnitOfWork uow,
+        DateOnly birthDate,
+        bool isDNumber,
+        CancellationToken cancellationToken = default)
+        => uow.GetRequiredService<RegisterTestDataGenerator>()
+            .GetNewPersonIdentifier(birthDate, isDNumber, cancellationToken);
 
     public static DateOnly GetRandomBirthDate(this IUnitOfWork uow)
     {
@@ -228,30 +40,18 @@ public static class PartyPersistenceExtensions
         return DateOnly.FromDayNumber(value);
     }
 
-    public static async Task<uint> GetNextPartyId(this IUnitOfWork uow, CancellationToken cancellationToken = default)
-    {
-        var connection = uow.GetRequiredService<NpgsqlConnection>();
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText =
-            /*strpsql*/"""
-            SELECT COALESCE(MAX(id), 0) FROM register.party
-            """;
+    public static ValueTask<uint> GetNextPartyId(
+        this IUnitOfWork uow,
+        CancellationToken cancellationToken = default)
+        => uow.GetRequiredService<RegisterTestDataGenerator>()
+            .GetNextPartyId(cancellationToken);
 
-        return Convert.ToUInt32(await cmd.ExecuteScalarAsync(cancellationToken)) + 1;
-    }
-
-    public static async Task<IEnumerable<int>> GetNewUserIds(this IUnitOfWork uow, int count = 1, CancellationToken cancellationToken = default)
-    {
-        var connection = uow.GetRequiredService<NpgsqlConnection>();
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText =
-            /*strpsql*/"""
-            SELECT COALESCE(MAX(user_id), 0) FROM register.user
-            """;
-
-        var max = Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken));
-        return Enumerable.Range(max + 1, count);
-    }
+    public static ValueTask<IEnumerable<uint>> GetNewUserIds(
+        this IUnitOfWork uow,
+        int count = 1,
+        CancellationToken cancellationToken = default)
+        => uow.GetRequiredService<RegisterTestDataGenerator>()
+            .GetNextUserIds(count, cancellationToken);
 
     public static async Task<OrganizationRecord> CreateOrg(
         this IUnitOfWork uow,
@@ -273,42 +73,28 @@ public static class PartyPersistenceExtensions
         FieldValue<MailingAddress> businessAddress = default,
         CancellationToken cancellationToken = default)
     {
-        var connection = uow.GetRequiredService<NpgsqlConnection>();
+        var toInsert = await uow.GetRequiredService<RegisterTestDataGenerator>()
+            .GetOrgData(
+                uuid,
+                id,
+                name,
+                identifier,
+                createdAt,
+                modifiedAt,
+                isDeleted,
+                unitStatus,
+                unitType,
+                telephoneNumber,
+                mobileNumber,
+                faxNumber,
+                emailAddress,
+                internetAddress,
+                mailingAddress,
+                businessAddress,
+                cancellationToken);
 
-        if (!id.HasValue)
-        {
-            id = await uow.GetNextPartyId(cancellationToken);
-        }
-
-        if (!identifier.HasValue)
-        {
-            identifier = await uow.GetNewOrgNumber(cancellationToken);
-        }
-
-        var result = await uow.GetRequiredService<IPartyPersistence>().UpsertParty(
-            new OrganizationRecord
-            {
-                PartyUuid = uuid.HasValue ? uuid.Value : Guid.NewGuid(),
-                PartyId = id,
-                DisplayName = name.HasValue ? name.Value : "Test",
-                PersonIdentifier = null,
-                OrganizationIdentifier = identifier,
-                CreatedAt = createdAt.HasValue ? createdAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
-                ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
-                IsDeleted = isDeleted.HasValue ? isDeleted.Value : false,
-                User = FieldValue.Unset,
-                VersionId = FieldValue.Unset,
-                UnitStatus = unitStatus.HasValue ? unitStatus.Value : "N",
-                UnitType = unitType.HasValue ? unitType.Value : "AS",
-                TelephoneNumber = telephoneNumber.HasValue ? telephoneNumber.Value : null,
-                MobileNumber = mobileNumber.HasValue ? mobileNumber.Value : null,
-                FaxNumber = faxNumber.HasValue ? faxNumber.Value : null,
-                EmailAddress = emailAddress.HasValue ? emailAddress.Value : null,
-                InternetAddress = internetAddress.HasValue ? internetAddress.Value : null,
-                MailingAddress = mailingAddress.HasValue ? mailingAddress.Value : null,
-                BusinessAddress = businessAddress.HasValue ? businessAddress.Value : null,
-            },
-            cancellationToken);
+        var result = await uow.GetRequiredService<IPartyPersistence>()
+            .UpsertParty(toInsert, cancellationToken);
 
         result.EnsureSuccess();
         return (OrganizationRecord)result.Value;
@@ -317,25 +103,23 @@ public static class PartyPersistenceExtensions
     public static async Task<ImmutableArray<OrganizationRecord>> CreateOrgs(
         this IUnitOfWork uow,
         int count,
-        FieldValue<uint> idOffset = default,
         CancellationToken cancellationToken = default)
     {
-        var nextPartyId = await uow.GetNextPartyId(cancellationToken);
+        var toInsert = await uow.GetRequiredService<RegisterTestDataGenerator>()
+            .GetOrgsData(count, cancellationToken);
 
-        if (idOffset.HasValue)
-        {
-            var offsetValue = idOffset.Value;
-            nextPartyId += offsetValue;
-        }
-
+        var persistence = uow.GetRequiredService<IPartyPersistence>();
         var builder = ImmutableArray.CreateBuilder<OrganizationRecord>(count);
-        for (var i = 0; i < count; i++)
+
+        foreach (var org in toInsert)
         {
-            builder.Add(await uow.CreateOrg(id: nextPartyId, cancellationToken: cancellationToken));
-            nextPartyId += 1;
+            var result = await persistence.UpsertParty(org, cancellationToken);
+
+            result.EnsureSuccess();
+            builder.Add((OrganizationRecord)result.Value);
         }
 
-        return builder.MoveToImmutable();
+        return builder.DrainToImmutable();
     }
 
     public static async Task ExecuteNonQueries(
@@ -369,97 +153,23 @@ public static class PartyPersistenceExtensions
         FieldValue<PartyUserRecord> user = default,
         CancellationToken cancellationToken = default)
     {
-        var connection = uow.GetRequiredService<NpgsqlConnection>();
+        var toInsert = await uow.GetRequiredService<RegisterTestDataGenerator>()
+            .GetPersonData(
+                uuid,
+                id,
+                identifier,
+                createdAt,
+                modifiedAt,
+                name,
+                address,
+                mailingAddress,
+                dateOfBirth,
+                dateOfDeath,
+                user,
+                cancellationToken);
 
-        if (!id.HasValue)
-        {
-            id = await uow.GetNextPartyId(cancellationToken);
-        }
-
-        if (!dateOfBirth.IsSet)
-        {
-            // 10% chance of having no date of birth
-            dateOfBirth = Random.Shared.NextDouble() > 0.1 
-                ? uow.GetRandomBirthDate()
-                : FieldValue.Null;
-        }
-
-        if (!identifier.HasValue)
-        {
-            var dateOfBirthValue = dateOfBirth.HasValue ? dateOfBirth.Value : uow.GetRandomBirthDate();
-            identifier = await uow.GetNewPersonIdentifier(dateOfBirthValue, isDNumber: false, cancellationToken);
-        }
-
-        if (!address.HasValue)
-        {
-            address = new StreetAddress
-            {
-                MunicipalNumber = "0001",
-                MunicipalName = "Test",
-                StreetName = "Testveien",
-                HouseNumber = "1",
-                HouseLetter = null,
-                PostalCode = "0001",
-                City = "Testby",
-            };
-        }
-
-        if (!mailingAddress.HasValue)
-        {
-            mailingAddress = new MailingAddress
-            {
-                Address = $"{address.Value!.StreetName} {address.Value.HouseNumber}",
-                PostalCode = address.Value.PostalCode,
-                City = address.Value.City,
-            };
-        }
-
-        if (!name.HasValue)
-        {
-            name = PersonName.Create("Test", "Mid", "Testson");
-        }
-
-        if (dateOfDeath.IsUnset)
-        {
-            dateOfDeath = FieldValue.Null;
-        }
-
-        if (user.IsUnset)
-        {
-            var userIdsEnumerable = await uow.GetNewUserIds(3, cancellationToken);
-            var userIds = userIdsEnumerable.Select(static id => (uint)id).OrderByDescending(static id => id).ToImmutableValueArray();
-            var userId = userIds[0];
-
-            user = new PartyUserRecord(userId: userId, username: FieldValue.Unset, userIds: userIds);
-        }
-        else if (user.IsNull)
-        {
-            user = FieldValue.Unset;
-        }
-
-        var result = await uow.GetRequiredService<IPartyPersistence>().UpsertParty(
-            new PersonRecord
-            {
-                PartyUuid = uuid.HasValue ? uuid.Value : Guid.NewGuid(),
-                PartyId = id,
-                DisplayName = name.Value!.DisplayName,
-                PersonIdentifier = identifier,
-                OrganizationIdentifier = null,
-                CreatedAt = createdAt.HasValue ? createdAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
-                ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
-                IsDeleted = dateOfDeath.HasValue,
-                User = user,
-                VersionId = FieldValue.Unset,
-                FirstName = name.Value.FirstName,
-                MiddleName = name.Value.MiddleName,
-                LastName = name.Value.LastName,
-                ShortName = name.Value.ShortName,
-                Address = address,
-                MailingAddress = mailingAddress,
-                DateOfBirth = dateOfBirth,
-                DateOfDeath = dateOfDeath,
-            },
-            cancellationToken);
+        var result = await uow.GetRequiredService<IPartyPersistence>()
+            .UpsertParty(toInsert, cancellationToken);
 
         result.EnsureSuccess();
         return (PersonRecord)result.Value;
@@ -468,34 +178,23 @@ public static class PartyPersistenceExtensions
     public static async Task<ImmutableArray<PersonRecord>> CreatePeople(
         this IUnitOfWork uow,
         int count,
-        FieldValue<uint> idOffset = default,
         CancellationToken cancellationToken = default)
     {
-        var nextPartyId = await uow.GetNextPartyId(cancellationToken);
-        var userIdsBuilder = ImmutableArray.CreateBuilder<uint>(3);
-        userIdsBuilder.AddRange((await uow.GetNewUserIds(3, cancellationToken)).Select(static i => (uint)i));
-        userIdsBuilder.Sort(static (a, b) => b.CompareTo(a)); // sort in descending order
+        var toInsert = await uow.GetRequiredService<RegisterTestDataGenerator>()
+            .GetPeopleData(count, cancellationToken);
 
-        if (idOffset.HasValue)
-        {
-            var offsetValue = idOffset.Value;
-            nextPartyId += offsetValue;
-            IncrementUserIds(userIdsBuilder, offsetValue);
-        }
-
+        var persistence = uow.GetRequiredService<IPartyPersistence>();
         var builder = ImmutableArray.CreateBuilder<PersonRecord>(count);
-        for (uint i = 0; i < count; i++)
-        {
-            var userIds = userIdsBuilder.ToImmutableValueArray();
-            var userId = userIds[0];
-            var user = new PartyUserRecord(userId: userId, username: FieldValue.Unset, userIds: userIds);
 
-            builder.Add(await uow.CreatePerson(id: nextPartyId, user: user, cancellationToken: cancellationToken));
-            nextPartyId += 1;
-            IncrementUserIds(userIdsBuilder, (uint)userIdsBuilder.Count);
+        foreach (var org in toInsert)
+        {
+            var result = await persistence.UpsertParty(org, cancellationToken);
+
+            result.EnsureSuccess();
+            builder.Add((PersonRecord)result.Value);
         }
 
-        return builder.MoveToImmutable();
+        return builder.DrainToImmutable();
     }
 
     public static async Task<SelfIdentifiedUserRecord> CreateSelfIdentifiedUser(
@@ -509,42 +208,19 @@ public static class PartyPersistenceExtensions
         FieldValue<PartyUserRecord> user = default,
         CancellationToken cancellationToken = default)
     {
-        var connection = uow.GetRequiredService<NpgsqlConnection>();
+        var toInsert = await uow.GetRequiredService<RegisterTestDataGenerator>()
+            .GetSelfIdentifiedUserData(
+                uuid,
+                id,
+                name,
+                createdAt,
+                modifiedAt,
+                isDeleted,
+                user,
+                cancellationToken);
 
-        if (id.IsUnset)
-        {
-            id = await uow.GetNextPartyId(cancellationToken);
-        }
-
-        if (user.IsUnset)
-        {
-            var userIdsEnumerable = await uow.GetNewUserIds(3, cancellationToken);
-            var userIds = userIdsEnumerable.Select(static id => (uint)id).OrderByDescending(static id => id).ToImmutableValueArray();
-            var userId = userIds[0];
-
-            user = new PartyUserRecord(userId: userId, username: FieldValue.Unset, userIds: userIds);
-        }
-
-        if (name.IsUnset)
-        {
-            name = $"si-user-{id.Value}";
-        }
-
-        var result = await uow.GetRequiredService<IPartyPersistence>().UpsertParty(
-            new SelfIdentifiedUserRecord
-            {
-                PartyUuid = uuid.HasValue ? uuid.Value : Guid.NewGuid(),
-                PartyId = id,
-                DisplayName = name,
-                PersonIdentifier = null,
-                OrganizationIdentifier = null,
-                CreatedAt = createdAt.HasValue ? createdAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
-                ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : uow.GetRequiredService<TimeProvider>().GetUtcNow(),
-                User = user,
-                VersionId = FieldValue.Unset,
-                IsDeleted = isDeleted.OrDefault(defaultValue: false),
-            },
-            cancellationToken);
+        var result = await uow.GetRequiredService<IPartyPersistence>()
+            .UpsertParty(toInsert, cancellationToken);
 
         result.EnsureSuccess();
         return (SelfIdentifiedUserRecord)result.Value;
@@ -556,31 +232,21 @@ public static class PartyPersistenceExtensions
         FieldValue<uint> idOffset = default,
         CancellationToken cancellationToken = default)
     {
-        var nextPartyId = await uow.GetNextPartyId(cancellationToken);
-        var userIdsBuilder = ImmutableArray.CreateBuilder<uint>(3);
-        userIdsBuilder.AddRange((await uow.GetNewUserIds(3, cancellationToken)).Select(static i => (uint)i));
-        userIdsBuilder.Sort(static (a, b) => b.CompareTo(a)); // sort in descending order
+        var toInsert = await uow.GetRequiredService<RegisterTestDataGenerator>()
+            .GetSelfIdentifiedUsersData(count, cancellationToken);
 
-        if (idOffset.HasValue)
-        {
-            var offsetValue = idOffset.Value;
-            nextPartyId += offsetValue;
-            IncrementUserIds(userIdsBuilder, offsetValue);
-        }
-
+        var persistence = uow.GetRequiredService<IPartyPersistence>();
         var builder = ImmutableArray.CreateBuilder<SelfIdentifiedUserRecord>(count);
-        for (var i = 0; i < count; i++)
-        {
-            var userIds = userIdsBuilder.ToImmutableValueArray();
-            var userId = userIds[0];
-            var user = new PartyUserRecord(userId: userId, username: FieldValue.Unset, userIds: userIds);
 
-            builder.Add(await uow.CreateSelfIdentifiedUser(id: nextPartyId, user: user, cancellationToken: cancellationToken));
-            nextPartyId += 1;
-            IncrementUserIds(userIdsBuilder, (uint)userIdsBuilder.Count);
+        foreach (var org in toInsert)
+        {
+            var result = await persistence.UpsertParty(org, cancellationToken);
+
+            result.EnsureSuccess();
+            builder.Add((SelfIdentifiedUserRecord)result.Value);
         }
 
-        return builder.MoveToImmutable();
+        return builder.DrainToImmutable();
     }
 
     public static async Task AddRole(
