@@ -3,7 +3,7 @@ WORKDIR /app
 
 # Copy everything and build
 COPY . .
-RUN cd ./src/Altinn.Register/src/Altinn.Register \
+RUN cd ./src/apps/Altinn.Register/src/Altinn.Register \
   && dotnet build Altinn.Register.csproj -c Release -o /app_output \
   && dotnet publish Altinn.Register.csproj -c Release -o /app_output
 
