@@ -1,4 +1,5 @@
-﻿using Altinn.Authorization.ModelUtils;
+﻿using System.Text;
+using Altinn.Authorization.ModelUtils;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.Contracts;
@@ -67,5 +68,44 @@ public sealed record PartyUser
         UserId = userId;
         Username = username;
         UserIds = userIds;
+    }
+
+    private bool PrintMembers(StringBuilder builder)
+    {
+        builder.Append("UserId = ");
+        builder.Append(UserId);
+
+        builder.Append(", Username = ");
+        builder.Append(Username);
+
+        builder.Append(", UserIds = ");
+        if (!UserIds.HasValue)
+        {
+            builder.Append(UserIds);
+        }
+        else
+        {
+            builder.Append("[ ");
+            var first = true;
+            foreach (var item in UserIds.Value)
+            {
+                if (!first)
+                {
+                    builder.Append(", ");
+                }
+
+                first = false;
+                builder.Append(item);
+            }
+
+            if (!first)
+            {
+                builder.Append(' ');
+            }
+
+            builder.Append(']');
+        }
+
+        return true;
     }
 }

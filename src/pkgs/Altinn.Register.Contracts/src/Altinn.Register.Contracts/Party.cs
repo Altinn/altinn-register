@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Text;
+using System.Text.Json;
 using Altinn.Authorization.ModelUtils;
 using CommunityToolkit.Diagnostics;
 
@@ -17,7 +18,7 @@ public record Party
     : IHasExtensionData
 {
     [JsonExtensionData]
-    private readonly JsonElement _extensionData;
+    private readonly JsonExtensionData _extensionData;
 
     private readonly Guid _uuid;
     private readonly PartyUrn.PartyUuid _urn = null!;
@@ -105,4 +106,36 @@ public record Party
     /// <inheritdoc/>
     JsonElement IHasExtensionData.JsonExtensionData
         => _extensionData;
+
+    /// <summary>
+    /// Prints the members of the party to a <see cref="StringBuilder"/>.
+    /// </summary>
+    /// <param name="builder">The string builder.</param>
+    /// <returns><see langword="true"/>.</returns>
+    /// <remarks>This implements the record <see cref="ToString"/> protocol.</remarks>
+    protected virtual bool PrintMembers(StringBuilder builder)
+    {
+        if (GetType() == typeof(Party))
+        {
+            // only print the party-type if this is the base class
+            builder.Append("PartyType = ").Append(Type);
+        }
+
+        builder.Append(", Uuid = ").Append(Uuid);
+        builder.Append(", VersionId = ").Append(VersionId);
+        builder.Append(", PartyId = ").Append(PartyId);
+        builder.Append(", DisplayName = ").Append(DisplayName);
+        builder.Append(", CreatedAt = ").Append(CreatedAt);
+        builder.Append(", ModifiedAt = ").Append(ModifiedAt);
+        builder.Append(", IsDeleted = ").Append(IsDeleted);
+        builder.Append(", User = ").Append(User);
+
+        IHasExtensionData ext = this;
+        if (ext.HasJsonExtensionData)
+        {
+            builder.Append(", [has extension data]");
+        }
+
+        return true;
+    }
 }
