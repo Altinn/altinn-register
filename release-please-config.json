@@ -4,7 +4,7 @@
   "pull-request-title-pattern": "release${scope}:${component} ${version}",
   "release-type": "simple",
   "packages": {
-    "src/Altinn.Register.Contracts": {
+    "src/pkgs/Altinn.Register.Contracts": {
       "component": "Altinn.Register.Contracts",
       "extra-files": [
         {
