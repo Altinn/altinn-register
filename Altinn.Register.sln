@@ -45,6 +45,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{44C13623-099
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.Contracts", "src\pkgs\Altinn.Register.Contracts\src\Altinn.Register.Contracts\Altinn.Register.Contracts.csproj", "{FE220F3B-6117-4221-A537-A67C30F38A40}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{CAA5ED54-2DD6-DF4F-72EB-A8CC3E326621}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.Contracts.Tests", "src\pkgs\Altinn.Register.Contracts\test\Altinn.Register.Contracts.Tests\Altinn.Register.Contracts.Tests.csproj", "{7B6F9FAC-DF27-41F3-804C-6FC888FECE72}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -223,6 +227,18 @@ Global
 		{FE220F3B-6117-4221-A537-A67C30F38A40}.Release|x64.Build.0 = Release|Any CPU
 		{FE220F3B-6117-4221-A537-A67C30F38A40}.Release|x86.ActiveCfg = Release|Any CPU
 		{FE220F3B-6117-4221-A537-A67C30F38A40}.Release|x86.Build.0 = Release|Any CPU
+		{7B6F9FAC-DF27-41F3-804C-6FC888FECE72}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B6F9FAC-DF27-41F3-804C-6FC888FECE72}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B6F9FAC-DF27-41F3-804C-6FC888FECE72}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7B6F9FAC-DF27-41F3-804C-6FC888FECE72}.Debug|x64.Build.0 = Debug|Any CPU
+		{7B6F9FAC-DF27-41F3-804C-6FC888FECE72}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7B6F9FAC-DF27-41F3-804C-6FC888FECE72}.Debug|x86.Build.0 = Debug|Any CPU
+		{7B6F9FAC-DF27-41F3-804C-6FC888FECE72}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B6F9FAC-DF27-41F3-804C-6FC888FECE72}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7B6F9FAC-DF27-41F3-804C-6FC888FECE72}.Release|x64.ActiveCfg = Release|Any CPU
+		{7B6F9FAC-DF27-41F3-804C-6FC888FECE72}.Release|x64.Build.0 = Release|Any CPU
+		{7B6F9FAC-DF27-41F3-804C-6FC888FECE72}.Release|x86.ActiveCfg = Release|Any CPU
+		{7B6F9FAC-DF27-41F3-804C-6FC888FECE72}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -247,5 +263,7 @@ Global
 		{66B908F7-E4F6-163F-C477-C34BD0343C82} = {2CACE873-F0F8-81F3-56EC-A1F4A4ABD967}
 		{44C13623-0995-2183-17AD-382970CA8A29} = {66B908F7-E4F6-163F-C477-C34BD0343C82}
 		{FE220F3B-6117-4221-A537-A67C30F38A40} = {44C13623-0995-2183-17AD-382970CA8A29}
+		{CAA5ED54-2DD6-DF4F-72EB-A8CC3E326621} = {66B908F7-E4F6-163F-C477-C34BD0343C82}
+		{7B6F9FAC-DF27-41F3-804C-6FC888FECE72} = {CAA5ED54-2DD6-DF4F-72EB-A8CC3E326621}
 	EndGlobalSection
 EndGlobal

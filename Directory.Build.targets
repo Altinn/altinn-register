@@ -5,8 +5,8 @@
 
       <PropertyGroup>
         <GenerateDocumentationFile>false</GenerateDocumentationFile>
-        <NoWarn>$(NoWarn);SA0001</NoWarn>
-        <XUnitVersion Condition=" '$(XUnitVersion)' == '' ">v2</XUnitVersion>
+        <NoWarn>$(NoWarn);SA0001;SA1600</NoWarn>
+        <XUnitVersion Condition=" '$(XUnitVersion)' == '' ">v3</XUnitVersion>
       </PropertyGroup>
 
       <PropertyGroup>
