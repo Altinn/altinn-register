@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Immutable;
+using System.Diagnostics;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
@@ -136,45 +137,26 @@ public class PostgresUserIdImportJobServiceTests
             const int PAGES = 10;
 
             var dataGenerator = GetRequiredService<RegisterTestDataGenerator>();
-            var toInsert = await Enumerable.Range(0, PAGES)
+            var toInsert = Enumerable.Range(0, PAGES)
                 .ToAsyncEnumerable()
-                .SelectAwait(async i =>
+                .SelectManyAwait(async _ =>
                 {
                     var people = await dataGenerator.GetPeopleData(101);
                     var siUsers = await dataGenerator.GetSelfIdentifiedUsersData(102);
                     var orgs = await dataGenerator.GetOrgsData(103);
 
-                    return (i, people, siUsers, orgs);
-                })
-                .ToListAsync();
+                    IEnumerable<PartyRecord> items = [
+                        .. people.As<PartyRecord>(),
+                        .. siUsers.As<PartyRecord>(),
+                        .. orgs.As<PartyRecord>(),
+                    ];
 
-            await Parallel.ForEachAsync(
-                toInsert, 
-                new ParallelOptions { MaxDegreeOfParallelism = 4 },
-                async (data, ct) =>
-                {
-                    await using var uow = await _manager!.CreateAsync(ct, activityName: $"setup {data.i}");
-                    var persistence = uow.GetPartyPersistence();
-
-                    foreach (var person in data.people)
-                    {
-                        await persistence.UpsertParty(person, ct);
-                    }
-
-                    foreach (var siUser in data.siUsers)
-                    {
-                        await persistence.UpsertParty(siUser, ct);
-                    }
-
-                    foreach (var org in data.orgs)
-                    {
-                        await persistence.UpsertParty(org, ct);
-                    }
-
-                    await uow.CommitAsync(ct);
+                    return items.ToAsyncEnumerable();
                 });
 
-            await NewTransaction(commit: false);
+            await UoW.GetPartyPersistence().UpsertParties(toInsert).LastOrDefaultAsync();
+            await NewTransaction(commit: true);
+
             await UoW.ExecuteNonQueries([
                 /*strpsql*/"""
                 TRUNCATE register."user"

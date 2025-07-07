@@ -54,6 +54,27 @@ public interface IPartyPersistence
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Attempts to upsert multiple party.
+    /// </summary>
+    /// <param name="parties">The parties to upsert.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>The updated party.</returns>
+    public IAsyncEnumerable<Result<PartyRecord>> UpsertParties(
+        IAsyncEnumerable<PartyRecord> parties,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Attempts to upsert multiple party.
+    /// </summary>
+    /// <param name="parties">The parties to upsert.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>The updated party.</returns>
+    public IAsyncEnumerable<Result<PartyRecord>> UpsertParties(
+        IEnumerable<PartyRecord> parties,
+        CancellationToken cancellationToken = default)
+        => UpsertParties(parties.ToAsyncEnumerable(), cancellationToken);
+
+    /// <summary>
     /// Attempts to upsert a party user.
     /// </summary>
     /// <param name="partyUuid">The party uuid.</param>

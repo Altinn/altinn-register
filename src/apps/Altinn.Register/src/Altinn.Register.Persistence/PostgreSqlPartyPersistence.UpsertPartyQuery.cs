@@ -1,5 +1,7 @@
 ﻿using System.Data;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
@@ -19,22 +21,156 @@ internal partial class PostgreSqlPartyPersistence
 {
     private abstract class UpsertPartyQuery
     {
+        private const int MAX_BATCH_SIZE = 1_000;
+
         private static readonly UpsertPersonQuery _person = new();
         private static readonly UpsertOrganizationParty _org = new();
         private static readonly UpsertSelfIdentifiedUserQuery _si = new();
 
-        public static Task<Result<PartyRecord>> UpsertParty(
+        public static ValueTask<Result<PartyRecord>> UpsertParty(
             NpgsqlConnection conn,
             PartyRecord party,
             CancellationToken cancellationToken)
+            => UpsertParties(conn, new AsyncSingleton(party), cancellationToken)
+                .FirstAsync(cancellationToken);
+
+        public static async IAsyncEnumerable<Result<PartyRecord>> UpsertParties(
+            NpgsqlConnection connection,
+            IAsyncEnumerable<PartyRecord> parties,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            return party switch
+            var batch = connection.CreateBatch();
+
+            try
             {
-                PersonRecord person => _person.UpsertParty(conn, person, cancellationToken),
-                OrganizationRecord org => _org.UpsertParty(conn, org, cancellationToken),
-                SelfIdentifiedUserRecord siu => _si.UpsertParty(conn, siu, cancellationToken),
-                _ => ThrowHelper.ThrowArgumentException<Task<Result<PartyRecord>>>("Unsupported party type"),
-            };
+                await foreach (var party in parties.WithCancellation(cancellationToken))
+                {
+                    switch (party)
+                    {
+                        case PersonRecord person:
+                            _person.EnqueuePartyUpsert(batch, person);
+                            break;
+
+                        case OrganizationRecord org:
+                            _org.EnqueuePartyUpsert(batch, org);
+                            break;
+
+                        case SelfIdentifiedUserRecord siu:
+                            _si.EnqueuePartyUpsert(batch, siu);
+                            break;
+
+                        default:
+                            ThrowHelper.ThrowArgumentException<Result<PartyRecord>>("Unsupported party type for batch upsert", nameof(party));
+                            break;
+                    }
+
+                    if (batch.BatchCommands.Count >= MAX_BATCH_SIZE)
+                    {
+                        await foreach (var result in ExecuteBatch(batch, cancellationToken))
+                        {
+                            yield return result;
+                            
+                            if (result.IsProblem)
+                            {
+                                yield break;
+                            }
+                        }
+
+                        await batch.DisposeAsync();
+                        batch = connection.CreateBatch();
+                    }
+                }
+
+                if (batch.BatchCommands.Count > 0)
+                {
+                    await foreach (var result in ExecuteBatch(batch, cancellationToken))
+                    {
+                        yield return result;
+                        
+                        if (result.IsProblem)
+                        {
+                            yield break;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                await batch.DisposeAsync();
+            }
+
+            static async IAsyncEnumerable<Result<PartyRecord>> ExecuteBatch(
+                NpgsqlBatch batch,
+                [EnumeratorCancellation] CancellationToken cancellationToken)
+            {
+                await using var batchEnumerator = ExecuteBatchInner(batch, cancellationToken).GetAsyncEnumerator(cancellationToken);
+
+                bool hasMore = false;
+                ProblemInstance? problem = null;
+
+                while (true)
+                {
+                    try
+                    {
+                        hasMore = await batchEnumerator.MoveNextAsync();
+                    }
+                    catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.UniqueViolation)
+                    {
+                        problem = Problems.PartyConflict.Create([
+                            new("constraint", e.ConstraintName ?? "<unknown>"),
+                        ]);
+                    }
+                    catch (PostgresException e) when (e.SqlState == "ZZ001")
+                    {
+                        // ZZ001 is a custom SQLSTATE code used to indicate that the party update is invalid
+                        problem = Problems.InvalidPartyUpdate.Create([
+                            new("message", e.MessageText),
+                            new("column", e.ColumnName ?? "<unknown>"),
+                        ]);
+                    }
+
+                    if (problem is not null)
+                    {
+                        yield return problem;
+                        break;
+                    }
+
+                    if (!hasMore)
+                    {
+                        break;
+                    }
+
+                    yield return batchEnumerator.Current;
+                }
+            }
+
+            static async IAsyncEnumerable<Result<PartyRecord>> ExecuteBatchInner(
+                NpgsqlBatch batch,
+                [EnumeratorCancellation] CancellationToken cancellationToken)
+            {
+                await batch.PrepareAsync(cancellationToken);
+                await using var reader = await batch.ExecuteReaderAsync(cancellationToken);
+
+                do
+                {
+                    while (await reader.ReadAsync(cancellationToken))
+                    {
+                        var partyType = await reader.GetConditionalFieldValueAsync<PartyRecordType>("p_party_type", cancellationToken);
+                        Debug.Assert(partyType.HasValue);
+
+                        Result<PartyRecord> result = partyType.Value switch
+                        {
+                            PartyRecordType.Person => await _person.ReadResult(reader, cancellationToken),
+                            PartyRecordType.Organization => await _org.ReadResult(reader, cancellationToken),
+                            PartyRecordType.SelfIdentifiedUser => await _si.ReadResult(reader, cancellationToken),
+                            _ => ThrowHelper.ThrowInvalidOperationException<Result<PartyRecord>>("Unsupported party type from batch upsert"),
+                        };
+
+                        yield return result;
+                    }
+                }
+                while (await reader.NextResultAsync(cancellationToken));
+            }
         }
 
         public static async Task<Result<PartyUserRecord>> UpsertPartyUser(
@@ -118,60 +254,32 @@ internal partial class PostgreSqlPartyPersistence
                 Debug.Assert(party.IsDeleted.HasValue);
             }
 
-            protected virtual void AddPartyParameters(NpgsqlCommand cmd, T party)
+            protected virtual void AddPartyParameters(NpgsqlParameterCollection parameters, T party)
             {
                 var userIds = party.User
                     .SelectFieldValue(static u => u.UserIds)
                     .Select(static ids => ids.Select(static id => checked((int)id)).ToArray());
 
-                cmd.Parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = party.PartyUuid.Value;
-                cmd.Parameters.Add<int>("id", NpgsqlDbType.Bigint).TypedValue = checked((int)party.PartyId.Value);
-                cmd.Parameters.Add<int[]?>("user_ids", NpgsqlDbType.Bigint | NpgsqlDbType.Array).TypedValue = userIds.OrDefault();
-                cmd.Parameters.Add<PartyRecordType>("party_type").TypedValue = party.PartyType.Value;
-                cmd.Parameters.Add<string>("display_name", NpgsqlDbType.Text).TypedValue = party.DisplayName.Value;
-                cmd.Parameters.Add<string>("person_id", NpgsqlDbType.Text).TypedValue = party.PersonIdentifier.IsNull ? null : party.PersonIdentifier.Value!.ToString();
-                cmd.Parameters.Add<string>("org_id", NpgsqlDbType.Text).TypedValue = party.OrganizationIdentifier.IsNull ? null : party.OrganizationIdentifier.Value!.ToString();
-                cmd.Parameters.Add<DateTimeOffset>("created_at", NpgsqlDbType.TimestampTz).TypedValue = party.CreatedAt.Value;
-                cmd.Parameters.Add<DateTimeOffset>("modified_at", NpgsqlDbType.TimestampTz).TypedValue = party.ModifiedAt.Value;
-                cmd.Parameters.Add<bool>("is_deleted", NpgsqlDbType.Boolean).TypedValue = party.IsDeleted.Value;
+                parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = party.PartyUuid.Value;
+                parameters.Add<int>("id", NpgsqlDbType.Bigint).TypedValue = checked((int)party.PartyId.Value);
+                parameters.Add<int[]?>("user_ids", NpgsqlDbType.Bigint | NpgsqlDbType.Array).TypedValue = userIds.OrDefault();
+                parameters.Add<PartyRecordType>("party_type").TypedValue = party.PartyType.Value;
+                parameters.Add<string>("display_name", NpgsqlDbType.Text).TypedValue = party.DisplayName.Value;
+                parameters.Add<string>("person_id", NpgsqlDbType.Text).TypedValue = party.PersonIdentifier.IsNull ? null : party.PersonIdentifier.Value!.ToString();
+                parameters.Add<string>("org_id", NpgsqlDbType.Text).TypedValue = party.OrganizationIdentifier.IsNull ? null : party.OrganizationIdentifier.Value!.ToString();
+                parameters.Add<DateTimeOffset>("created_at", NpgsqlDbType.TimestampTz).TypedValue = party.CreatedAt.Value;
+                parameters.Add<DateTimeOffset>("modified_at", NpgsqlDbType.TimestampTz).TypedValue = party.ModifiedAt.Value;
+                parameters.Add<bool>("is_deleted", NpgsqlDbType.Boolean).TypedValue = party.IsDeleted.Value;
             }
 
-            protected abstract Task<T> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken);
+            public abstract Task<T> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken);
 
-            public async Task<Result<PartyRecord>> UpsertParty(NpgsqlConnection connection, T party, CancellationToken cancellationToken)
+            public void EnqueuePartyUpsert(NpgsqlBatch batch, T party)
             {
                 ValidateFields(party);
 
-                try
-                {
-                    await using var cmd = connection.CreateCommand(query);
-
-                    AddPartyParameters(cmd, party);
-
-                    await cmd.PrepareAsync(cancellationToken);
-                    await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow, cancellationToken);
-                    var read = await reader.ReadAsync(cancellationToken);
-                    Debug.Assert(read, "Expected a row from upsert_party");
-
-                    var partyType = await reader.GetConditionalFieldValueAsync<PartyRecordType>("p_party_type", cancellationToken);
-                    Debug.Assert(partyType == type);
-
-                    return await ReadResult(reader, cancellationToken);
-                }
-                catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.UniqueViolation)
-                {
-                    return Problems.PartyConflict.Create([
-                        new("constraint", e.ConstraintName ?? "<unknown>"),
-                    ]);
-                }
-                catch (PostgresException e) when (e.SqlState == "ZZ001")
-                {
-                    // ZZ001 is a custom SQLSTATE code used to indicate that the party update is invalid
-                    return Problems.InvalidPartyUpdate.Create([
-                        new("message", e.MessageText),
-                        new("column", e.ColumnName ?? "<unknown>"),
-                    ]);
-                }
+                var cmd = batch.CreateBatchCommand(query);
+                AddPartyParameters(cmd.Parameters, party);
             }
         }
 
@@ -214,20 +322,20 @@ internal partial class PostgreSqlPartyPersistence
                 Debug.Assert(party.DateOfDeath.IsSet, "person must have DateOfDeath set");
             }
 
-            protected override void AddPartyParameters(NpgsqlCommand cmd, PersonRecord party)
+            protected override void AddPartyParameters(NpgsqlParameterCollection parameters, PersonRecord party)
             {
-                base.AddPartyParameters(cmd, party);
-                cmd.Parameters.Add<string>("first_name", NpgsqlDbType.Text).TypedValue = party.FirstName.Value;
-                cmd.Parameters.Add<string?>("middle_name", NpgsqlDbType.Text).TypedValue = party.MiddleName.IsNull ? null : party.MiddleName.Value;
-                cmd.Parameters.Add<string>("last_name", NpgsqlDbType.Text).TypedValue = party.LastName.Value;
-                cmd.Parameters.Add<string>("short_name", NpgsqlDbType.Text).TypedValue = party.ShortName.Value;
-                cmd.Parameters.Add<DateOnly>("date_of_birth").TypedValue = party.DateOfBirth.Value;
-                cmd.Parameters.Add<DateOnly?>("date_of_death").TypedValue = party.DateOfDeath.IsNull ? null : party.DateOfDeath.Value;
-                cmd.Parameters.Add<StreetAddressRecord>("address").TypedValue = party.Address.Value;
-                cmd.Parameters.Add<MailingAddressRecord>("mailing_address").TypedValue = party.MailingAddress.Value;
+                base.AddPartyParameters(parameters, party);
+                parameters.Add<string>("first_name", NpgsqlDbType.Text).TypedValue = party.FirstName.Value;
+                parameters.Add<string?>("middle_name", NpgsqlDbType.Text).TypedValue = party.MiddleName.IsNull ? null : party.MiddleName.Value;
+                parameters.Add<string>("last_name", NpgsqlDbType.Text).TypedValue = party.LastName.Value;
+                parameters.Add<string>("short_name", NpgsqlDbType.Text).TypedValue = party.ShortName.Value;
+                parameters.Add<DateOnly>("date_of_birth").TypedValue = party.DateOfBirth.Value;
+                parameters.Add<DateOnly?>("date_of_death").TypedValue = party.DateOfDeath.IsNull ? null : party.DateOfDeath.Value;
+                parameters.Add<StreetAddressRecord>("address").TypedValue = party.Address.Value;
+                parameters.Add<MailingAddressRecord>("mailing_address").TypedValue = party.MailingAddress.Value;
             }
 
-            protected override async Task<PersonRecord> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken)
+            public override async Task<PersonRecord> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken)
             {
                 return new PersonRecord
                 {
@@ -295,21 +403,21 @@ internal partial class PostgreSqlPartyPersistence
                 Debug.Assert(party.BusinessAddress.IsSet);
             }
 
-            protected override void AddPartyParameters(NpgsqlCommand cmd, OrganizationRecord party)
+            protected override void AddPartyParameters(NpgsqlParameterCollection parameters, OrganizationRecord party)
             {
-                base.AddPartyParameters(cmd, party);
-                cmd.Parameters.Add<string>("unit_status", NpgsqlDbType.Text).TypedValue = party.UnitStatus.Value;
-                cmd.Parameters.Add<string>("unit_type", NpgsqlDbType.Text).TypedValue = party.UnitType.Value;
-                cmd.Parameters.Add<string>("telephone_number", NpgsqlDbType.Text).TypedValue = party.TelephoneNumber.Value;
-                cmd.Parameters.Add<string>("mobile_number", NpgsqlDbType.Text).TypedValue = party.MobileNumber.Value;
-                cmd.Parameters.Add<string>("fax_number", NpgsqlDbType.Text).TypedValue = party.FaxNumber.Value;
-                cmd.Parameters.Add<string>("email_address", NpgsqlDbType.Text).TypedValue = party.EmailAddress.Value;
-                cmd.Parameters.Add<string>("internet_address", NpgsqlDbType.Text).TypedValue = party.InternetAddress.Value;
-                cmd.Parameters.Add<MailingAddressRecord>("mailing_address").TypedValue = party.MailingAddress.Value;
-                cmd.Parameters.Add<MailingAddressRecord>("business_address").TypedValue = party.BusinessAddress.Value;
+                base.AddPartyParameters(parameters, party);
+                parameters.Add<string>("unit_status", NpgsqlDbType.Text).TypedValue = party.UnitStatus.Value;
+                parameters.Add<string>("unit_type", NpgsqlDbType.Text).TypedValue = party.UnitType.Value;
+                parameters.Add<string>("telephone_number", NpgsqlDbType.Text).TypedValue = party.TelephoneNumber.Value;
+                parameters.Add<string>("mobile_number", NpgsqlDbType.Text).TypedValue = party.MobileNumber.Value;
+                parameters.Add<string>("fax_number", NpgsqlDbType.Text).TypedValue = party.FaxNumber.Value;
+                parameters.Add<string>("email_address", NpgsqlDbType.Text).TypedValue = party.EmailAddress.Value;
+                parameters.Add<string>("internet_address", NpgsqlDbType.Text).TypedValue = party.InternetAddress.Value;
+                parameters.Add<MailingAddressRecord>("mailing_address").TypedValue = party.MailingAddress.Value;
+                parameters.Add<MailingAddressRecord>("business_address").TypedValue = party.BusinessAddress.Value;
             }
 
-            protected override async Task<OrganizationRecord> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken)
+            public override async Task<OrganizationRecord> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken)
             {
                 return new OrganizationRecord
                 {
@@ -342,7 +450,7 @@ internal partial class PostgreSqlPartyPersistence
         private sealed class UpsertSelfIdentifiedUserQuery()
             : Typed<SelfIdentifiedUserRecord>(PartyRecordType.SelfIdentifiedUser)
         {
-            protected override async Task<SelfIdentifiedUserRecord> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken)
+            public override async Task<SelfIdentifiedUserRecord> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken)
             {
                 return new SelfIdentifiedUserRecord
                 {
@@ -358,6 +466,26 @@ internal partial class PostgreSqlPartyPersistence
                     VersionId = await reader.GetConditionalFieldValueAsync<long>("o_version_id", cancellationToken).Select(static v => (ulong)v),
                 };
             }
+        }
+
+        private sealed class AsyncSingleton(PartyRecord party)
+            : IAsyncEnumerable<PartyRecord>
+            , IAsyncEnumerator<PartyRecord>
+        {
+            private readonly PartyRecord _party = party;
+            private int _index = -1;
+
+            PartyRecord IAsyncEnumerator<PartyRecord>.Current
+                => _party;
+
+            ValueTask IAsyncDisposable.DisposeAsync()
+                => ValueTask.CompletedTask;
+
+            IAsyncEnumerator<PartyRecord> IAsyncEnumerable<PartyRecord>.GetAsyncEnumerator(CancellationToken cancellationToken)
+                => this;
+
+            ValueTask<bool> IAsyncEnumerator<PartyRecord>.MoveNextAsync()
+                => new(Interlocked.Increment(ref _index) == 0);
         }
     }
 }
