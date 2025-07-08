@@ -272,6 +272,8 @@ public sealed partial class PartyImportBatchConsumer
         {
             _pool = pool;
             _tracking = pool.Rent(size);
+
+            Debug.Assert(_tracking[0].JobName is null);
         }
 
         public bool Any()

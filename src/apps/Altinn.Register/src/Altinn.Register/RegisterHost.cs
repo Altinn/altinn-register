@@ -179,6 +179,7 @@ internal static partial class RegisterHost
             });
 
         services.AddUnitOfWorkManager();
+
         if (config.GetValue<bool>("Altinn:Npgsql:register:Enable"))
         {
             builder.AddRegisterPersistence();
@@ -189,33 +190,37 @@ internal static partial class RegisterHost
             services.AddSingleton<IImportJobTracker>(s => throw new InvalidOperationException("Npgsql is not enabled"));
         }
 
-        if (config.GetValue<bool>("Altinn:MassTransit:register:Enable"))
+        var initOnly = config.GetValue<bool>("Altinn:RunInitOnly");
+        if (!initOnly)
         {
-            builder.AddAltinnMassTransit(
-                configureMassTransit: (cfg) =>
+            if (config.GetValue<bool>("Altinn:MassTransit:register:Enable"))
+            {
+                builder.AddAltinnMassTransit(
+                    configureMassTransit: (cfg) =>
+                    {
+                        cfg.AddConsumers(typeof(RegisterHost).Assembly);
+                    });
+            }
+
+            if (config.GetValue<bool>("Altinn:register:PartyImport:A2:Enable"))
+            {
+                services.AddRecurringJob<A2PartyImportJob>(settings =>
                 {
-                    cfg.AddConsumers(typeof(RegisterHost).Assembly);
+                    settings.LeaseName = LeaseNames.A2PartyImport;
+                    settings.Interval = TimeSpan.FromMinutes(1);
+                    settings.WaitForReady = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
                 });
-        }
+            }
 
-        if (config.GetValue<bool>("Altinn:register:PartyImport:A2:Enable"))
-        {
-            services.AddRecurringJob<A2PartyImportJob>(settings =>
+            if (config.GetValue<bool>("Altinn:register:PartyImport:A2:PartyUserId:Enable"))
             {
-                settings.LeaseName = LeaseNames.A2PartyImport;
-                settings.Interval = TimeSpan.FromMinutes(1);
-                settings.WaitForReady = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
-            });
-        }
-
-        if (config.GetValue<bool>("Altinn:register:PartyImport:A2:PartyUserId:Enable"))
-        {
-            services.AddRecurringJob<A2PartyUserIdImportJob>(settings =>
-            {
-                settings.LeaseName = LeaseNames.A2PartyUserIdImport;
-                settings.Interval = TimeSpan.FromMinutes(1);
-                settings.WaitForReady = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
-            });
+                services.AddRecurringJob<A2PartyUserIdImportJob>(settings =>
+                {
+                    settings.LeaseName = LeaseNames.A2PartyUserIdImport;
+                    settings.Interval = TimeSpan.FromMinutes(1);
+                    settings.WaitForReady = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
+                });
+            }
         }
 
         services.AddOpenApiExampleProvider();
