@@ -4,7 +4,6 @@ using System.Buffers;
 using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
-using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core;
@@ -21,13 +20,14 @@ namespace Altinn.Register.PartyImport;
 /// <summary>
 /// Consumer for upserting parties from different sources in batches.
 /// </summary>
-public sealed class PartyImportBatchConsumer
+public sealed partial class PartyImportBatchConsumer
     : IConsumer<UpsertValidatedPartyCommand>
     , IConsumer<UpsertPartyUserCommand>
     , IConsumer<UpsertExternalRoleAssignmentsCommand>
 {
     private const int BATCH_SIZE = 10;
 
+    private readonly ILogger<PartyImportBatchConsumer> _logger;
     private readonly IUnitOfWorkManager _uow;
     private readonly IImportJobTracker _tracker;
     private readonly ImportMeters _meters;
@@ -35,8 +35,13 @@ public sealed class PartyImportBatchConsumer
     /// <summary>
     /// Initializes a new instance of the <see cref="PartyImportBatchConsumer"/> class.
     /// </summary>
-    public PartyImportBatchConsumer(IUnitOfWorkManager uow, IImportJobTracker tracker, RegisterTelemetry telemetry)
+    public PartyImportBatchConsumer(
+        ILogger<PartyImportBatchConsumer> logger,
+        IUnitOfWorkManager uow,
+        IImportJobTracker tracker,
+        RegisterTelemetry telemetry)
     {
+        _logger = logger;
         _uow = uow;
         _tracker = tracker;
         _meters = telemetry.GetServiceMeters<ImportMeters>();
@@ -99,10 +104,7 @@ public sealed class PartyImportBatchConsumer
             await uow.CommitAsync(cancellationToken);
         }
 
-        foreach (var info in tracking)
-        {
-            await _tracker.TrackProcessedStatus(info.JobName, new ImportJobProcessingStatus { ProcessedMax = info.Progress }, cancellationToken);
-        }
+        await FlushTracking(tracking, cancellationToken);
 
         _meters.PartiesUpserted.Add(upserts.Count);
         _meters.PartyBatchesSucceeded.Add(1);
@@ -138,10 +140,7 @@ public sealed class PartyImportBatchConsumer
             await uow.CommitAsync(cancellationToken);
         }
 
-        foreach (var info in tracking)
-        {
-            await _tracker.TrackProcessedStatus(info.JobName, new ImportJobProcessingStatus { ProcessedMax = info.Progress }, cancellationToken);
-        }
+        await FlushTracking(tracking, cancellationToken);
 
         _meters.PartiesUpserted.Add(upserts.Count);
         _meters.PartyBatchesSucceeded.Add(1);
@@ -228,6 +227,28 @@ public sealed class PartyImportBatchConsumer
         _meters.RoleAssignmentBatchSize.Record(upserts.Count);
     }
 
+    private async Task FlushTracking(TrackingHelper tracking, CancellationToken cancellationToken)
+    {
+        if (!tracking.Any())
+        {
+            return;
+        }
+
+        using var activity = RegisterTelemetry.StartActivity($"{nameof(FlushTracking)}");
+        foreach (var info in tracking)
+        {
+            using var subActivity = RegisterTelemetry.StartActivity(
+                $"track {info.JobName}",
+                tags: [
+                    new("job.name", info.JobName),
+                    new("job.progress", info.Progress),
+                ]);
+
+            Log.TrackingProgressUpdated(_logger, info.JobName, info.Progress);
+            await _tracker.TrackProcessedStatus(info.JobName, new ImportJobProcessingStatus { ProcessedMax = info.Progress }, cancellationToken);
+        }
+    }
+
     private static string ToTagString(ExternalRoleSource source)
         => source switch
         {
@@ -251,6 +272,16 @@ public sealed class PartyImportBatchConsumer
         {
             _pool = pool;
             _tracking = pool.Rent(size);
+        }
+
+        public bool Any()
+        {
+            if (_tracking is null)
+            {
+                ThrowHelper.ThrowObjectDisposedException(nameof(TrackingHelper));
+            }
+
+            return _tracking[0].JobName is not null;
         }
 
         public IEnumerator<UpsertPartyTracking> GetEnumerator()
@@ -305,7 +336,7 @@ public sealed class PartyImportBatchConsumer
         {
             if (_tracking is not null)
             {
-                _pool.Return(_tracking);
+                _pool.Return(_tracking, clearArray: true);
                 _tracking = null;
             }
         }
@@ -379,5 +410,11 @@ public sealed class PartyImportBatchConsumer
         /// <inheritdoc/>
         public static ImportMeters Create(RegisterTelemetry telemetry)
             => new ImportMeters(telemetry);
+    }
+
+    private static partial class Log
+    {
+        [LoggerMessage(0, LogLevel.Trace, "Updating progress tracking for job '{JobName}' with progress {Progress}.")]
+        public static partial void TrackingProgressUpdated(ILogger logger, string jobName, ulong progress);
     }
 }

@@ -30,9 +30,16 @@ var rabbitMq = builder.AddRabbitMQ("rabbitmq", userName: rabbitMqUsername, port:
     .WithLifetime(ContainerLifetime.Persistent)
     .WithPublicEndpoints();
 
+var registerInit = builder.AddProject<Projects.Altinn_Register>("register-init", launchProfileName: "Init Altinn.Register")
+    .WithReference(registerDb, "register")
+    .WithEnvironment("ASPNET_ENVIRONMENT", "Development")
+    .WithEnvironment("Altinn__Npgsql__register__Enable", "true")
+    .WithEnvironment("Altinn__RunInitOnly", "true");
+
 var registerApi = builder.AddProject<Projects.Altinn_Register>("register")
     .WithReference(registerDb, "register")
     .WaitFor(rabbitMq)
+    .WaitForCompletion(registerInit)
     .WithEnvironment(ctx =>
     {
         var env = ctx.EnvironmentVariables;
@@ -51,6 +58,7 @@ var registerApi = builder.AddProject<Projects.Altinn_Register>("register")
         env[$"{prefix}RabbitMq__VirtualHost"] = "/";
     })
     .WithEnvironment("Altinn__Npgsql__register__Enable", "true")
+    .WithEnvironment("Altinn__Npgsql__register__Migrate__Enabled", "false")
     .WithEnvironment("Altinn__register__PartyImport__A2__Enable", "false")
     .WithEnvironment("Altinn__register__PartyImport__A2__PartyUserId__Enable", "false")
     .WithHttpHealthCheck("/health");

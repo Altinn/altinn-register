@@ -10,6 +10,7 @@
     <PackageReference Include="Altinn.Authorization.ServiceDefaults.Telemetry" />
     <PackageReference Include="Altinn.Swashbuckle.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Polly" />
     <PackageReference Include="System.Linq.Async" />
     <PackageReference Include="System.Text.RegularExpressions" />
   </ItemGroup>

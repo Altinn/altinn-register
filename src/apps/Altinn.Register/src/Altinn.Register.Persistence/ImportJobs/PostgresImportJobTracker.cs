@@ -12,6 +12,7 @@ using Npgsql;
 using NpgsqlTypes;
 using Polly;
 using Polly.Retry;
+using Polly.Telemetry;
 
 namespace Altinn.Register.Persistence.ImportJobs;
 
@@ -41,6 +42,7 @@ internal partial class PostgresImportJobTracker
     /// Initializes a new instance of the <see cref="PostgresImportJobTracker"/> class.
     /// </summary>
     public PostgresImportJobTracker(
+        ILoggerFactory loggerFactory,
         ILogger<PostgresImportJobTracker> logger,
         IServiceScopeFactory scopeFactory,
         TimeProvider timeProvider)
@@ -48,6 +50,11 @@ internal partial class PostgresImportJobTracker
         _logger = logger;
         _scopeFactory = scopeFactory;
         _timeProvider = timeProvider;
+
+        var telemetryOptions = new TelemetryOptions
+        {
+            LoggerFactory = loggerFactory,
+        };
 
         var pipelineBuilder = new ResiliencePipelineBuilder();
         pipelineBuilder.TimeProvider = timeProvider;
@@ -79,14 +86,16 @@ internal partial class PostgresImportJobTracker
             OnRetry = args =>
             {
                 var activity = args.Context.Properties.GetValue(ActivityPropertyKey, defaultValue: null);
-                activity?.SetTag("retry.count", args.AttemptNumber);
+                activity?.SetTag("retry.count", args.AttemptNumber + 1);
                 Log.TransactionSerializationError(logger);
 
                 return ValueTask.CompletedTask;
             },
         });
 
-        _retryPipeline = pipelineBuilder.Build();
+        _retryPipeline = pipelineBuilder
+            .ConfigureTelemetry(telemetryOptions)
+            .Build();
 
         var channel = Channel.CreateUnbounded<WorkerMessage>(new UnboundedChannelOptions
         {
@@ -408,30 +417,44 @@ internal partial class PostgresImportJobTracker
             id,
             static async (id, conn, state, cancellationToken) =>
             {
-                var (status, logger) = state;
-                await using var cmd = conn.CreateCommand();
-                cmd.CommandText = QUERY;
+                using var activity = RegisterTelemetry.StartActivity(
+                    $"{nameof(TrackProcessedStatus)}.attempt",
+                    tags: [
+                        new("job.name", id),
+                    ]);
 
-                cmd.Parameters.Add<string>("id", NpgsqlDbType.Text).TypedValue = id;
-                cmd.Parameters.Add<long>("processed_max", NpgsqlDbType.Bigint).TypedValue = checked((long)status.ProcessedMax);
-
-                Log.UpdateProcessedStatus(logger, id, status);
-                await cmd.PrepareAsync(cancellationToken);
-                await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleResult | CommandBehavior.SingleRow, cancellationToken);
-
-                var read = await reader.ReadAsync(cancellationToken);
-                if (!read)
+                try
                 {
-                    throw new JobDoesNotExistException(id);
+                    var (status, logger) = state;
+                    await using var cmd = conn.CreateCommand();
+                    cmd.CommandText = QUERY;
+
+                    cmd.Parameters.Add<string>("id", NpgsqlDbType.Text).TypedValue = id;
+                    cmd.Parameters.Add<long>("processed_max", NpgsqlDbType.Bigint).TypedValue = checked((long)status.ProcessedMax);
+
+                    Log.UpdateProcessedStatus(logger, id, status);
+                    await cmd.PrepareAsync(cancellationToken);
+                    await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleResult | CommandBehavior.SingleRow, cancellationToken);
+
+                    var read = await reader.ReadAsync(cancellationToken);
+                    if (!read)
+                    {
+                        throw new JobDoesNotExistException(id);
+                    }
+
+                    var sourceMax = await reader.GetFieldValueOrDefaultAsync<long?>("source_max", cancellationToken) switch { null => (ulong?)null, long l => (ulong)l };
+                    var enqueuedMax = (ulong)await reader.GetFieldValueAsync<long>("enqueued_max", cancellationToken);
+                    var processedMax = (ulong)await reader.GetFieldValueAsync<long>("processed_max", cancellationToken);
+                    var source = await reader.GetFieldValueAsync<int>("source", cancellationToken);
+                    var updated = source == 1;
+
+                    return (sourceMax, enqueuedMax, processedMax, updated);
                 }
-
-                var sourceMax = await reader.GetFieldValueOrDefaultAsync<long?>("source_max", cancellationToken) switch { null => (ulong?)null, long l => (ulong)l };
-                var enqueuedMax = (ulong)await reader.GetFieldValueAsync<long>("enqueued_max", cancellationToken);
-                var processedMax = (ulong)await reader.GetFieldValueAsync<long>("processed_max", cancellationToken);
-                var source = await reader.GetFieldValueAsync<int>("source", cancellationToken);
-                var updated = source == 1;
-
-                return (sourceMax, enqueuedMax, processedMax, updated);
+                catch (Exception ex) when (activity is not null)
+                {
+                    activity.SetStatus(ActivityStatusCode.Error, ex.Message);
+                    throw;
+                }
             },
             new WithLoggerState<ImportJobProcessingStatus>(status, _logger),
             cancellationToken);
@@ -468,6 +491,8 @@ internal partial class PostgresImportJobTracker
             var result = await _retryPipeline.ExecuteAsync(
                 static async (ResilienceContext ctx, WithConnectionContext<TResult, TState> connCtx) =>
                 {
+                    await Task.Delay(500);
+
                     var cancellationToken = ctx.CancellationToken;
                     var (id, state, action, conn) = connCtx;
 

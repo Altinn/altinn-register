@@ -14,6 +14,8 @@ internal abstract partial class MassTransitTransportHelper
         {
             configurator.UsingInMemory((ctx, cfg) =>
             {
+                cfg.UseInMemoryScheduler();
+
                 configureBus(ctx, cfg);
                 cfg.ConfigureEndpoints(ctx);
             });

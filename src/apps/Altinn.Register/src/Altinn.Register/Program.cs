@@ -3,6 +3,21 @@ using Microsoft.IdentityModel.Logging;
 
 WebApplication app = RegisterHost.Create(args);
 
+if (app.Configuration.GetValue<bool>("Altinn:RunInitOnly", defaultValue: false))
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("Running in init-only mode. Initializing Altinn Register...");
+    logger.LogInformation("Environment: {EnvironmentName}", app.Environment.EnvironmentName);
+
+    await app.StartAsync();
+    logger.LogInformation("Altinn Register initialized successfully - shutting down.");
+
+    await app.StopAsync();
+    logger.LogInformation("Altinn Register shutdown complete.");
+
+    return;
+}
+
 app.AddDefaultAltinnMiddleware(errorHandlingPath: "/register/api/v1/error");
 
 if (app.Environment.IsDevelopment())
@@ -37,7 +52,7 @@ await app.RunAsync();
 /// </summary>
 public sealed partial class Program
 {
-    private Program() 
-    { 
+    private Program()
+    {
     }
 }

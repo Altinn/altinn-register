@@ -1,6 +1,7 @@
 ﻿using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.Parties;
+using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
@@ -15,6 +16,12 @@ public class PartyImportFlowTests
     [Fact]
     public async Task UpsertPartyCommand_UpsertsParty()
     {
+        await Setup(async (uow, ct) =>
+        {
+            await GetRequiredService<IImportJobTracker>()
+                .TrackQueueStatus("test", new() { EnqueuedMax = 100, SourceMax = null }, ct);
+        });
+
         var partyUuid = Guid.CreateVersion7();
         var partyId = 1U;
 
@@ -44,6 +51,7 @@ public class PartyImportFlowTests
         var cmd1 = new UpsertPartyCommand
         {
             Party = person,
+            Tracking = new("test", 10),
         };
 
         await CommandSender.Send(cmd1, TestContext.Current.CancellationToken);
@@ -76,6 +84,7 @@ public class PartyImportFlowTests
         var cmd2 = new UpsertPartyCommand
         {
             Party = personUpdated,
+            Tracking = new("test", 20),
         };
 
         await CommandSender.Send(cmd2, TestContext.Current.CancellationToken);

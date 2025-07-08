@@ -48,9 +48,10 @@ internal sealed class SpanTree
 
                 var tagString = string.Empty;
 
-                if (child.Retries is { } retries && retries > 0)
+                if (!child.Tags.IsDefaultOrEmpty)
                 {
-                    tagString = $" (retries: {retries})";
+                    var tags = string.Join(", ", child.Tags.Select(kvp => $"{kvp.Key}={kvp.Value}"));
+                    tagString = $" {{{tags}}}";
                 }
 
                 if (root)
@@ -67,6 +68,7 @@ internal sealed class SpanTree
                     StartTime = child.StartTime,
                     EndTime = child.StartTime + child.Duration.Value,
                     Name = $"{child.Name}{tagString} [{child.Source}]",
+                    Error = child.Error,
                 });
 
                 // Step 4. Recurse
@@ -127,6 +129,8 @@ internal sealed class SpanTree
         public required DateTimeOffset EndTime { get; init; }
 
         public required string Name { get; init; }
+
+        public required string? Error { get; init; }
     }
 
     public class Stats
@@ -166,9 +170,10 @@ internal sealed class SpanTree
         private DateTimeOffset _startTime;
         private TimeSpan? _duration;
         private ActivityDisplayFilterCollection? _displayFilter;
+        private string? _error;
 
         // tags
-        private int? _retries;
+        private ImmutableArray<KeyValuePair<string, string>> _tags = [];
 
         public static SpanNode FromActivity(Activity activity)
         {
@@ -186,8 +191,10 @@ internal sealed class SpanTree
 
         public string Source => _source ?? string.Empty;
 
+        public string? Error => _error;
+
         // tags
-        public int? Retries => _retries;
+        public ImmutableArray<KeyValuePair<string, string>> Tags => _tags;
 
         public static SpanNode Root(Activity activity)
             => new(activity.SpanId);
@@ -239,9 +246,24 @@ internal sealed class SpanTree
             _startTime = activity.StartTimeUtc;
             _duration = activity.Duration;
             _displayFilter = activity.GetDisplayFilterCollection();
+            _error = activity.Status == ActivityStatusCode.Error
+                ? (activity.StatusDescription ?? "error")
+                : null;
 
             // tags
-            _retries = activity.GetTagItem("retry.count") as int?;
+            var builder = ImmutableArray.CreateBuilder<KeyValuePair<string, string>>();
+            
+            if (activity.GetTagItem("retry.count") is int retries)
+            {
+                builder.Add(KeyValuePair.Create("retries", retries.ToString()));
+            }
+
+            if (activity.GetTagItem("job.name") is string jobName)
+            {
+                builder.Add(KeyValuePair.Create("job-name", jobName));
+            }
+            
+            _tags = builder.DrainToImmutable();
         }
     }
 }
