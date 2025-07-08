@@ -12,6 +12,7 @@ using Npgsql;
 using NpgsqlTypes;
 using Polly;
 using Polly.Retry;
+using Polly.Telemetry;
 
 namespace Altinn.Register.Persistence.ImportJobs;
 
@@ -41,6 +42,7 @@ internal partial class PostgresImportJobTracker
     /// Initializes a new instance of the <see cref="PostgresImportJobTracker"/> class.
     /// </summary>
     public PostgresImportJobTracker(
+        ILoggerFactory loggerFactory,
         ILogger<PostgresImportJobTracker> logger,
         IServiceScopeFactory scopeFactory,
         TimeProvider timeProvider)
@@ -48,6 +50,11 @@ internal partial class PostgresImportJobTracker
         _logger = logger;
         _scopeFactory = scopeFactory;
         _timeProvider = timeProvider;
+
+        var telemetryOptions = new TelemetryOptions
+        {
+            LoggerFactory = loggerFactory,
+        };
 
         var pipelineBuilder = new ResiliencePipelineBuilder();
         pipelineBuilder.TimeProvider = timeProvider;
@@ -86,7 +93,9 @@ internal partial class PostgresImportJobTracker
             },
         });
 
-        _retryPipeline = pipelineBuilder.Build();
+        _retryPipeline = pipelineBuilder
+            .ConfigureTelemetry(telemetryOptions)
+            .Build();
 
         var channel = Channel.CreateUnbounded<WorkerMessage>(new UnboundedChannelOptions
         {
@@ -468,6 +477,8 @@ internal partial class PostgresImportJobTracker
             var result = await _retryPipeline.ExecuteAsync(
                 static async (ResilienceContext ctx, WithConnectionContext<TResult, TState> connCtx) =>
                 {
+                    await Task.Delay(500);
+
                     var cancellationToken = ctx.CancellationToken;
                     var (id, state, action, conn) = connCtx;
 

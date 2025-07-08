@@ -21,6 +21,7 @@
     <PackageReference Include="JWTCookieAuthentication" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
     <PackageReference Include="Nerdbank.Streams" />
+    <PackageReference Include="Polly.Extensions" />
     <PackageReference Include="Scrutor" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
     <PackageReference Include="Swashbuckle.AspNetCore.Annotations" />
