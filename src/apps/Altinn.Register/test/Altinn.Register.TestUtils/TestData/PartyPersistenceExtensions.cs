@@ -112,10 +112,8 @@ public static class PartyPersistenceExtensions
         var persistence = uow.GetRequiredService<IPartyPersistence>();
         var builder = ImmutableArray.CreateBuilder<OrganizationRecord>(count);
 
-        foreach (var org in toInsert)
+        await foreach (var result in persistence.UpsertParties(toInsert, cancellationToken))
         {
-            var result = await persistence.UpsertParty(org, cancellationToken);
-
             result.EnsureSuccess();
             builder.Add((OrganizationRecord)result.Value);
         }
@@ -187,10 +185,8 @@ public static class PartyPersistenceExtensions
         var persistence = uow.GetRequiredService<IPartyPersistence>();
         var builder = ImmutableArray.CreateBuilder<PersonRecord>(count);
 
-        foreach (var org in toInsert)
+        await foreach (var result in persistence.UpsertParties(toInsert, cancellationToken))
         {
-            var result = await persistence.UpsertParty(org, cancellationToken);
-
             result.EnsureSuccess();
             builder.Add((PersonRecord)result.Value);
         }
@@ -239,10 +235,8 @@ public static class PartyPersistenceExtensions
         var persistence = uow.GetRequiredService<IPartyPersistence>();
         var builder = ImmutableArray.CreateBuilder<SelfIdentifiedUserRecord>(count);
 
-        foreach (var org in toInsert)
+        await foreach (var result in persistence.UpsertParties(toInsert, cancellationToken))
         {
-            var result = await persistence.UpsertParty(org, cancellationToken);
-
             result.EnsureSuccess();
             builder.Add((SelfIdentifiedUserRecord)result.Value);
         }
