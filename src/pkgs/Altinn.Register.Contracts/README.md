@@ -7,6 +7,7 @@
 - [Overview](#overview)
 - [Features](#features)
 - [Installation](#installation)
+- [Usage](#usage)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -34,6 +35,26 @@ Or via the Package Manager Console:
 
 ```powershell
 Install-Package Altinn.Register.Contracts
+```
+
+## Usage
+
+Here's a basic example of how you might use this package with an HTTP client:
+
+```csharp
+using System.Net.Http;
+using System.Text.Json;
+using Altinn.Register.Contracts.Models;
+
+using var client = new HttpClient();
+client.BaseAddress = new Uri("BASE_ADDRESS");
+using var req = new HttpRequestMessage(HttpMethod.Get, $"register/api/v2/parties/666f1fd3-ca28-467c-9cc1-807b51b7586f");
+using var response = await client.SendAsync(req);
+response.EnsureSuccessStatusCode();
+
+var party = response.Content.ReadFromJsonAsync<Party>(JsonSerializerOptions.Web);
+
+Console.WriteLine($"Organization: {party.DisplayName}");
 ```
 
 ## Contributing
