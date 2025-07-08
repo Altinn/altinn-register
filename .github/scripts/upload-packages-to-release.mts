@@ -8,18 +8,21 @@ import { retry } from "zx";
 const c = new Chalk({ level: 3 });
 
 const ghToken = process.env.GITHUB_TOKEN;
+const repo = process.env.GITHUB_REPOSITORY;
 const filesGlob = process.env.FILES_GLOB;
 const releaseId = process.env.RELEASE_ID;
 
-if (!ghToken || !filesGlob || !releaseId) {
+if (!ghToken || !filesGlob || !releaseId || !repo) {
   console.error("Missing required environment variables");
   process.exit(1);
 }
 
+const [repoOwner, repoName] = repo.split("/");
+
 const releaseInfo = {
   release_id: Number.parseInt(releaseId, 10),
-  owner: "Altinn",
-  repo: "altinn-authorization-utils",
+  owner: repoOwner,
+  repo: repoName,
 } as const;
 
 const github = new Octokit({
