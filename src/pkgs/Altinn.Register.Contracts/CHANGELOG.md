@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.0.0...Altinn.Register.Contracts-v1.0.1) (2025-07-08)
+
+
+### Documentation
+
+* update readme ([#507](https://github.com/Altinn/altinn-register/issues/507)) ([e1de383](https://github.com/Altinn/altinn-register/commit/e1de3834eeb65f6e548db8ae95325fb8b823411d))
+
 ## 1.0.0 (2025-07-08)
 
 
