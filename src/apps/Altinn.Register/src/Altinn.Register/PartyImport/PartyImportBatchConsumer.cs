@@ -336,7 +336,7 @@ public sealed partial class PartyImportBatchConsumer
         {
             if (_tracking is not null)
             {
-                _pool.Return(_tracking);
+                _pool.Return(_tracking, clearArray: true);
                 _tracking = null;
             }
         }
