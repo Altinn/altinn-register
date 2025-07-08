@@ -144,7 +144,14 @@ internal sealed class ActivityCollector
             sb.Append(item.Prefix);
             sb.Append(item.Name).Append(" (");
             item.Duration.ToFriendlyString(sb);
-            sb.AppendLine(")");
+            sb.Append(')');
+
+            if (item.Error is { } error)
+            {
+                sb.Append(": ").Append(error.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault("error"));
+            }
+
+            sb.AppendLine();
         }
 
         TestContext.Current.TestOutputHelper!.WriteLine(sb.ToString());
