@@ -226,6 +226,8 @@ internal partial class PostgreSqlPartyPersistence
                 { Value: PartyRecordType.Person } => await ReadPersonParty(reader, _fields, cancellationToken),
                 { Value: PartyRecordType.Organization } => await ReadOrganizationParty(reader, _fields, cancellationToken),
                 { Value: PartyRecordType.SelfIdentifiedUser } => await ReadSelfIdentifiedUserParty(reader, _fields, cancellationToken),
+                { Value: PartyRecordType.SystemUser } => await ReadSystemUserParty(reader, _fields, cancellationToken),
+                { Value: PartyRecordType.EnterpriseUser } => await ReadEnterpriseUserParty(reader, _fields, cancellationToken),
                 _ => Unreachable<(PartyRecord Party, bool HasMore)>(),
             };
 
@@ -390,6 +392,58 @@ internal partial class PostgreSqlPartyPersistence
                     User = user,
                 };
     
+                return (party, hasMore);
+            }
+
+            static async ValueTask<(PartyRecord Party, bool HasMore)> ReadSystemUserParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
+            {
+                var common = await ReadCommonFields(reader, fields, cancellationToken);
+
+                // must be the last read-access to the reader
+                Debug.Assert(common.PartyUuid.HasValue);
+                var partyUuid = common.PartyUuid.Value;
+                var (user, hasMore) = await ReadUser(reader, partyUuid, fields, cancellationToken);
+
+                var party = new SystemUserRecord
+                {
+                    PartyUuid = common.PartyUuid,
+                    PartyId = common.PartyId,
+                    DisplayName = common.DisplayName,
+                    PersonIdentifier = common.PersonIdentifier,
+                    OrganizationIdentifier = common.OrganizationIdentifier,
+                    CreatedAt = common.CreatedAt,
+                    ModifiedAt = common.ModifiedAt,
+                    IsDeleted = common.IsDeleted,
+                    VersionId = common.VersionId,
+                    User = user,
+                };
+
+                return (party, hasMore);
+            }
+
+            static async ValueTask<(PartyRecord Party, bool HasMore)> ReadEnterpriseUserParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
+            {
+                var common = await ReadCommonFields(reader, fields, cancellationToken);
+
+                // must be the last read-access to the reader
+                Debug.Assert(common.PartyUuid.HasValue);
+                var partyUuid = common.PartyUuid.Value;
+                var (user, hasMore) = await ReadUser(reader, partyUuid, fields, cancellationToken);
+
+                var party = new EnterpriseUserRecord
+                {
+                    PartyUuid = common.PartyUuid,
+                    PartyId = common.PartyId,
+                    DisplayName = common.DisplayName,
+                    PersonIdentifier = common.PersonIdentifier,
+                    OrganizationIdentifier = common.OrganizationIdentifier,
+                    CreatedAt = common.CreatedAt,
+                    ModifiedAt = common.ModifiedAt,
+                    IsDeleted = common.IsDeleted,
+                    VersionId = common.VersionId,
+                    User = user,
+                };
+
                 return (party, hasMore);
             }
 

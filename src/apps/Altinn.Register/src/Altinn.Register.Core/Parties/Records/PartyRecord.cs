@@ -10,6 +10,8 @@ namespace Altinn.Register.Core.Parties.Records;
 [PolymorphicDerivedType(typeof(PersonRecord), PartyRecordType.Person)]
 [PolymorphicDerivedType(typeof(OrganizationRecord), PartyRecordType.Organization)]
 [PolymorphicDerivedType(typeof(SelfIdentifiedUserRecord), PartyRecordType.SelfIdentifiedUser)]
+[PolymorphicDerivedType(typeof(SystemUserRecord), PartyRecordType.SystemUser)]
+[PolymorphicDerivedType(typeof(EnterpriseUserRecord), PartyRecordType.EnterpriseUser)]
 public record PartyRecord
 {
     /// <summary>

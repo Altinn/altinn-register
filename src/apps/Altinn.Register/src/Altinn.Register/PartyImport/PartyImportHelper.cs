@@ -1,5 +1,6 @@
 ﻿#nullable enable
 
+using System.Diagnostics;
 using System.Text;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Core.Errors;
@@ -22,7 +23,6 @@ public static class PartyImportHelper
         ValidationErrorBuilder builder = default;
 
         CheckRequired(ref builder, party.PartyUuid.HasValue, "/partyUuid");
-        CheckRequired(ref builder, party.PartyId.HasValue, "/partyId");
         CheckRequired(ref builder, party.PartyType.HasValue, "/partyType");
         CheckRequired(ref builder, party.DisplayName.HasValue, "/name");
         CheckRequired(ref builder, party.PersonIdentifier.IsSet, "/personIdentifier");
@@ -30,6 +30,22 @@ public static class PartyImportHelper
         CheckRequired(ref builder, party.CreatedAt.HasValue, "/createdAt");
         CheckRequired(ref builder, party.ModifiedAt.HasValue, "/modifiedAt");
         CheckRequired(ref builder, party.IsDeleted.HasValue, "/isDeleted");
+
+        if (party.PartyType.HasValue)
+        {
+            var type = party.PartyType.Value;
+
+            if (type is PartyRecordType.Person or PartyRecordType.Organization or PartyRecordType.SelfIdentifiedUser)
+            {
+                CheckRequired(ref builder, party.PartyUuid.HasValue, "/partyUuid");
+                Debug.Assert(party.PartyId.HasValue);
+            }
+            else
+            {
+                Check(ref builder, party.PartyUuid.IsNull, ValidationErrors.NotNull, "/partyUuid");
+                Debug.Assert(party.PartyId.IsNull);
+            }
+        }
 
         Check(ref builder, !party.User.IsNull, ValidationErrors.Null, "/user");
         if (party.User.HasValue)

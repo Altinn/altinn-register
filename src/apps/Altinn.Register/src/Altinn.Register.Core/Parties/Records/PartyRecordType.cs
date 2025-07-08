@@ -26,4 +26,16 @@ public enum PartyRecordType
     /// </summary>
     [JsonStringEnumMemberName("self-identified-user")]
     SelfIdentifiedUser,
+
+    /// <summary>
+    /// System user party type.
+    /// </summary>
+    [JsonStringEnumMemberName("system-user")]
+    SystemUser,
+
+    /// <summary>
+    /// Enterprise user party type.
+    /// </summary>
+    [JsonStringEnumMemberName("enterprise-user")]
+    EnterpriseUser,
 }

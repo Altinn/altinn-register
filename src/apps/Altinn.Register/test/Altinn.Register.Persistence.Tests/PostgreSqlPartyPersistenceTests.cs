@@ -1277,6 +1277,170 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
     #endregion
 
+    #region Upsert System User
+
+    [Fact]
+    public async Task UpsertParty_SystemUser_Inserts_New_SystemUser()
+    {
+        var birthDate = UoW.GetRandomBirthDate();
+        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new SystemUserRecord
+        {
+            PartyUuid = uuid,
+            PartyId = FieldValue.Null,
+            DisplayName = "Test System User",
+            PersonIdentifier = null,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            User = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        var inserted = result.Should().HaveValue().Which.Should().BeOfType<SystemUserRecord>().Which;
+        inserted.Should().BeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party).SingleAsync();
+        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
+    }
+
+    [Fact]
+    public async Task UpsertParty_SystemUser_Updates_Name_And_Updated()
+    {
+        var birthDate = UoW.GetRandomBirthDate();
+        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new SystemUserRecord
+        {
+            PartyUuid = uuid,
+            PartyId = FieldValue.Null,
+            DisplayName = "Test System User",
+            PersonIdentifier = null,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            User = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue();
+
+        TimeProvider.Advance(TimeSpan.FromDays(30));
+
+        var toUpdate = toInsert with
+        {
+            DisplayName = "Test Updated",
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+        };
+
+        result = await Persistence.UpsertParty(toUpdate);
+        result.Should().HaveValue();
+
+        var expected = toUpdate with
+        {
+            CreatedAt = toInsert.CreatedAt, // created at should not change
+        };
+
+        var updated = result.Value.Should().BeOfType<SystemUserRecord>().Which;
+        updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
+
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party).SingleAsync();
+        fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+    }
+
+    #endregion
+
+    #region Upsert Enterprise User
+
+    [Fact]
+    public async Task UpsertParty_EnterpriseUser_Inserts_New_EnterpriseUser()
+    {
+        var birthDate = UoW.GetRandomBirthDate();
+        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new EnterpriseUserRecord
+        {
+            PartyUuid = uuid,
+            PartyId = FieldValue.Null,
+            DisplayName = "Test SI User",
+            PersonIdentifier = null,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            User = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        var inserted = result.Should().HaveValue().Which.Should().BeOfType<EnterpriseUserRecord>().Which;
+        inserted.Should().BeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party).SingleAsync();
+        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
+    }
+
+    [Fact]
+    public async Task UpsertParty_EnterpriseUser_Updates_Name_And_Updated()
+    {
+        var birthDate = UoW.GetRandomBirthDate();
+        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new EnterpriseUserRecord
+        {
+            PartyUuid = uuid,
+            PartyId = FieldValue.Null,
+            DisplayName = "Test SI User",
+            PersonIdentifier = null,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            User = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue();
+
+        TimeProvider.Advance(TimeSpan.FromDays(30));
+
+        var toUpdate = toInsert with
+        {
+            DisplayName = "Test Updated",
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+        };
+
+        result = await Persistence.UpsertParty(toUpdate);
+        result.Should().HaveValue();
+
+        var expected = toUpdate with
+        {
+            CreatedAt = toInsert.CreatedAt, // created at should not change
+        };
+
+        var updated = result.Value.Should().BeOfType<EnterpriseUserRecord>().Which;
+        updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
+
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party).SingleAsync();
+        fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+    }
+
+    #endregion
+
     #region Upsert Role-Assigments
 
     [Fact]
