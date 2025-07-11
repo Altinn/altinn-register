@@ -192,9 +192,11 @@ internal partial class PostgreSqlPartyPersistence
         {
             const string QUERY =
                 /*strpsql*/"""
-                SELECT register.upsert_user(
+                SELECT (register.upsert_user(
                     @uuid,
-                    @user_ids) p_user_ids
+                    @user_ids,
+                    @set_username,
+                    @username)).*
                 """;
 
             await using var cmd = connection.CreateCommand(QUERY);
@@ -205,6 +207,8 @@ internal partial class PostgreSqlPartyPersistence
 
             cmd.Parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = partyUuid;
             cmd.Parameters.Add<int[]>("user_ids", NpgsqlDbType.Bigint | NpgsqlDbType.Array).TypedValue = userIds.Value;
+            cmd.Parameters.Add<bool>("set_username", NpgsqlDbType.Boolean).TypedValue = user.Username.IsSet;
+            cmd.Parameters.Add<string?>("username", NpgsqlDbType.Text).TypedValue = user.Username.Value;
 
             await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow, cancellationToken);
             var read = await reader.ReadAsync(cancellationToken);
@@ -222,6 +226,8 @@ internal partial class PostgreSqlPartyPersistence
                 @uuid,
                 @id,
                 @user_ids,
+                @set_username,
+                @username,
                 @party_type,
                 @display_name,
                 @person_id,
@@ -234,6 +240,7 @@ internal partial class PostgreSqlPartyPersistence
         protected static async Task<FieldValue<PartyUserRecord>> ReadUser(NpgsqlDataReader reader, CancellationToken cancellationToken)
         {
             var fromDbUserIds = await reader.GetConditionalFieldValueAsync<int[]>("p_user_ids", cancellationToken);
+            var username = await reader.GetConditionalFieldValueAsync<string>("p_username", cancellationToken);
 
             if (!fromDbUserIds.HasValue)
             {
@@ -242,7 +249,7 @@ internal partial class PostgreSqlPartyPersistence
 
             var userIds = fromDbUserIds.Value.Select(static id => checked((uint)id)).ToImmutableValueArray();
             var userId = userIds[0];
-            return new PartyUserRecord(userId: userId, username: FieldValue.Unset, userIds: userIds);
+            return new PartyUserRecord(userId: userId, username: username, userIds: userIds);
         }
 
         private abstract class Typed<T>(PartyRecordType type, string query = DEFAULT_QUERY)
@@ -279,9 +286,13 @@ internal partial class PostgreSqlPartyPersistence
                     .SelectFieldValue(static u => u.UserIds)
                     .Select(static ids => ids.Select(static id => checked((int)id)).ToArray());
 
+                var username = party.User.SelectFieldValue(static u => u.Username);
+
                 parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = party.PartyUuid.Value;
                 parameters.Add<int?>("id", NpgsqlDbType.Bigint).TypedValue = party.PartyId.IsNull ? null : checked((int)party.PartyId.Value);
                 parameters.Add<int[]?>("user_ids", NpgsqlDbType.Bigint | NpgsqlDbType.Array).TypedValue = userIds.OrDefault();
+                parameters.Add<bool>("set_username", NpgsqlDbType.Boolean).TypedValue = username.IsSet;
+                parameters.Add<string?>("username", NpgsqlDbType.Text).TypedValue = username.Value;
                 parameters.Add<PartyRecordType>("party_type").TypedValue = party.PartyType.Value;
                 parameters.Add<string>("display_name", NpgsqlDbType.Text).TypedValue = party.DisplayName.Value;
                 parameters.Add<string>("person_id", NpgsqlDbType.Text).TypedValue = party.PersonIdentifier.IsNull ? null : party.PersonIdentifier.Value!.ToString();
@@ -311,6 +322,8 @@ internal partial class PostgreSqlPartyPersistence
                     @uuid,
                     @id,
                     @user_ids,
+                    @set_username,
+                    @username,
                     @party_type,
                     @display_name,
                     @person_id,
@@ -390,6 +403,8 @@ internal partial class PostgreSqlPartyPersistence
                     @uuid,
                     @id,
                     @user_ids,
+                    @set_username,
+                    @username,
                     @party_type,
                     @display_name,
                     @person_id,

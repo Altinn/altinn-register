@@ -47,7 +47,7 @@ public static class PartyPersistenceExtensions
         => uow.GetRequiredService<RegisterTestDataGenerator>()
             .GetNextPartyId(cancellationToken);
 
-    public static ValueTask<IEnumerable<uint>> GetNewUserIds(
+    public static ValueTask<IReadOnlyList<uint>> GetNewUserIds(
         this IUnitOfWork uow,
         int count = 1,
         CancellationToken cancellationToken = default)

@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Xunit;
 
 namespace Altinn.Register.TestUtils;
 
@@ -24,6 +23,11 @@ public abstract class DatabaseTestBase
     /// Gets the database.
     /// </summary>
     protected PostgreSqlDatabase Database => _db!;
+
+    /// <summary>
+    /// Gets the test data generator.
+    /// </summary>
+    protected RegisterTestDataGenerator TestDataGenerator => GetRequiredService<RegisterTestDataGenerator>();
 
     /// <inheritdoc/>
     protected override async ValueTask ConfigureHost(IHostApplicationBuilder builder)
