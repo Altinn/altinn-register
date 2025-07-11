@@ -914,7 +914,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -953,7 +953,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -1028,7 +1028,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -1078,7 +1078,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -1128,7 +1128,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -1200,7 +1200,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
         var uuid = Guid.NewGuid();
 
         var toInsert = new SelfIdentifiedUserRecord
@@ -1230,7 +1230,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -1282,8 +1282,6 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [Fact]
     public async Task UpsertParty_SystemUser_Inserts_New_SystemUser()
     {
-        var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
         var uuid = Guid.NewGuid();
 
         var toInsert = new SystemUserRecord
@@ -1311,9 +1309,6 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [Fact]
     public async Task UpsertParty_SystemUser_Updates_Name_And_Updated()
     {
-        var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
         var toInsert = new SystemUserRecord
@@ -1365,7 +1360,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     public async Task UpsertParty_EnterpriseUser_Inserts_New_EnterpriseUser()
     {
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
         var uuid = Guid.NewGuid();
 
         var toInsert = new EnterpriseUserRecord
@@ -1394,7 +1389,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     public async Task UpsertParty_EnterpriseUser_Updates_Name_And_Updated()
     {
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -1747,7 +1742,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -1795,7 +1790,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -1847,7 +1842,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -1895,7 +1890,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -1938,7 +1933,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -2007,7 +2002,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = Random.Shared.NextDouble() <= 0.1; // 10% chance of D-number
+        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 

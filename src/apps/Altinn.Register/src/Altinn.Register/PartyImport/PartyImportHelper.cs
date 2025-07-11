@@ -37,13 +37,11 @@ public static class PartyImportHelper
 
             if (type is PartyRecordType.Person or PartyRecordType.Organization or PartyRecordType.SelfIdentifiedUser)
             {
-                CheckRequired(ref builder, party.PartyUuid.HasValue, "/partyUuid");
-                Debug.Assert(party.PartyId.HasValue);
+                CheckRequired(ref builder, party.PartyId.HasValue, "/partyId");
             }
             else
             {
-                Check(ref builder, party.PartyUuid.IsNull, ValidationErrors.NotNull, "/partyUuid");
-                Debug.Assert(party.PartyId.IsNull);
+                Check(ref builder, party.PartyId.IsNull, ValidationErrors.NotNull, "/partyId");
             }
         }
 

@@ -110,6 +110,9 @@ public sealed partial class RegisterTestDataGenerator
         return DateOnly.FromDayNumber(value);
     }
 
+    public bool GetRandomBool(double chance)
+        => _random.NextBool(chance);
+
     private OrganizationRecord GetOrgData(
         UsedIdentifiers used,
         FieldValue<Guid> uuid = default,
