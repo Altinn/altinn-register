@@ -56,6 +56,24 @@ internal static partial class PartyMapper
         => MapSelfIdentifiedUser(source);
 
     /// <summary>
+    /// Maps a <see cref="EnterpriseUserRecord"/> to a <see cref="EnterpriseUser"/>.
+    /// </summary>
+    /// <param name="source">The source enterprise user.</param>
+    /// <returns>A <see cref="EnterpriseUser"/>.</returns>
+    [return: NotNullIfNotNull(nameof(source))]
+    public static EnterpriseUser? ToPlatformModel(this EnterpriseUserRecord? source)
+        => MapEnterpriseUser(source);
+
+    /// <summary>
+    /// Maps a <see cref="SystemUserRecord"/> to a <see cref="SystemUser"/>.
+    /// </summary>
+    /// <param name="source">The source self-identified user.</param>
+    /// <returns>A <see cref="SystemUser"/>.</returns>
+    [return: NotNullIfNotNull(nameof(source))]
+    public static SystemUser? ToPlatformModel(this SystemUserRecord? source)
+        => MapSystemUser(source);
+
+    /// <summary>
     /// Maps a <see cref="PartyUserRecord"/> to a <see cref="PartyUser"/>.
     /// </summary>
     /// <param name="source">The source user.</param>

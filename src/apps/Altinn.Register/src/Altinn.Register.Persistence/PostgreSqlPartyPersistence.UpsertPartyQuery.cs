@@ -1,7 +1,6 @@
 ﻿using System.Data;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
@@ -26,6 +25,8 @@ internal partial class PostgreSqlPartyPersistence
         private static readonly UpsertPersonQuery _person = new();
         private static readonly UpsertOrganizationParty _org = new();
         private static readonly UpsertSelfIdentifiedUserQuery _si = new();
+        private static readonly UpsertSystemUserQuery _su = new();
+        private static readonly UpsertEnterpriseUserQuery _eu = new();
 
         public static ValueTask<Result<PartyRecord>> UpsertParty(
             NpgsqlConnection conn,
@@ -57,6 +58,14 @@ internal partial class PostgreSqlPartyPersistence
 
                         case SelfIdentifiedUserRecord siu:
                             _si.EnqueuePartyUpsert(batch, siu);
+                            break;
+
+                        case SystemUserRecord su:
+                            _su.EnqueuePartyUpsert(batch, su);
+                            break;
+
+                        case EnterpriseUserRecord eu:
+                            _eu.EnqueuePartyUpsert(batch, eu);
                             break;
 
                         default:
@@ -163,6 +172,8 @@ internal partial class PostgreSqlPartyPersistence
                             PartyRecordType.Person => await _person.ReadResult(reader, cancellationToken),
                             PartyRecordType.Organization => await _org.ReadResult(reader, cancellationToken),
                             PartyRecordType.SelfIdentifiedUser => await _si.ReadResult(reader, cancellationToken),
+                            PartyRecordType.EnterpriseUser => await _eu.ReadResult(reader, cancellationToken),
+                            PartyRecordType.SystemUser => await _su.ReadResult(reader, cancellationToken),
                             _ => ThrowHelper.ThrowInvalidOperationException<Result<PartyRecord>>("Unsupported party type from batch upsert"),
                         };
 
@@ -243,7 +254,6 @@ internal partial class PostgreSqlPartyPersistence
                 var userIds = party.User.SelectFieldValue(static u => u.UserIds);
 
                 Debug.Assert(party.PartyUuid.HasValue);
-                Debug.Assert(party.PartyId.HasValue);
                 Debug.Assert(party.User.IsUnset || (userIds.HasValue && !userIds.Value.IsDefaultOrEmpty));
                 Debug.Assert(party.PartyType.HasValue && party.PartyType.Value == type);
                 Debug.Assert(party.DisplayName.HasValue);
@@ -252,6 +262,15 @@ internal partial class PostgreSqlPartyPersistence
                 Debug.Assert(party.CreatedAt.HasValue);
                 Debug.Assert(party.ModifiedAt.HasValue);
                 Debug.Assert(party.IsDeleted.HasValue);
+
+                if (type is PartyRecordType.Person or PartyRecordType.Organization or PartyRecordType.SelfIdentifiedUser)
+                {
+                    Debug.Assert(party.PartyId.HasValue);
+                }
+                else
+                {
+                    Debug.Assert(party.PartyId.IsNull);
+                }
             }
 
             protected virtual void AddPartyParameters(NpgsqlParameterCollection parameters, T party)
@@ -261,7 +280,7 @@ internal partial class PostgreSqlPartyPersistence
                     .Select(static ids => ids.Select(static id => checked((int)id)).ToArray());
 
                 parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = party.PartyUuid.Value;
-                parameters.Add<int>("id", NpgsqlDbType.Bigint).TypedValue = checked((int)party.PartyId.Value);
+                parameters.Add<int?>("id", NpgsqlDbType.Bigint).TypedValue = party.PartyId.IsNull ? null : checked((int)party.PartyId.Value);
                 parameters.Add<int[]?>("user_ids", NpgsqlDbType.Bigint | NpgsqlDbType.Array).TypedValue = userIds.OrDefault();
                 parameters.Add<PartyRecordType>("party_type").TypedValue = party.PartyType.Value;
                 parameters.Add<string>("display_name", NpgsqlDbType.Text).TypedValue = party.DisplayName.Value;
@@ -453,6 +472,48 @@ internal partial class PostgreSqlPartyPersistence
             public override async Task<SelfIdentifiedUserRecord> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken)
             {
                 return new SelfIdentifiedUserRecord
+                {
+                    PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_uuid", cancellationToken),
+                    PartyId = await reader.GetConditionalFieldValueAsync<int>("p_id", cancellationToken).Select(static id => checked((uint)id)),
+                    User = await ReadUser(reader, cancellationToken),
+                    DisplayName = await reader.GetConditionalFieldValueAsync<string>("p_display_name", cancellationToken),
+                    PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>("p_person_identifier", cancellationToken),
+                    OrganizationIdentifier = await reader.GetConditionalParsableFieldValueAsync<OrganizationIdentifier>("p_organization_identifier", cancellationToken),
+                    CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_created", cancellationToken),
+                    ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_updated", cancellationToken),
+                    IsDeleted = await reader.GetConditionalFieldValueAsync<bool>("p_is_deleted", cancellationToken),
+                    VersionId = await reader.GetConditionalFieldValueAsync<long>("o_version_id", cancellationToken).Select(static v => (ulong)v),
+                };
+            }
+        }
+
+        private sealed class UpsertSystemUserQuery()
+            : Typed<SystemUserRecord>(PartyRecordType.SystemUser)
+        {
+            public override async Task<SystemUserRecord> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken)
+            {
+                return new SystemUserRecord
+                {
+                    PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_uuid", cancellationToken),
+                    PartyId = await reader.GetConditionalFieldValueAsync<int>("p_id", cancellationToken).Select(static id => checked((uint)id)),
+                    User = await ReadUser(reader, cancellationToken),
+                    DisplayName = await reader.GetConditionalFieldValueAsync<string>("p_display_name", cancellationToken),
+                    PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>("p_person_identifier", cancellationToken),
+                    OrganizationIdentifier = await reader.GetConditionalParsableFieldValueAsync<OrganizationIdentifier>("p_organization_identifier", cancellationToken),
+                    CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_created", cancellationToken),
+                    ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_updated", cancellationToken),
+                    IsDeleted = await reader.GetConditionalFieldValueAsync<bool>("p_is_deleted", cancellationToken),
+                    VersionId = await reader.GetConditionalFieldValueAsync<long>("o_version_id", cancellationToken).Select(static v => (ulong)v),
+                };
+            }
+        }
+
+        private sealed class UpsertEnterpriseUserQuery()
+            : Typed<EnterpriseUserRecord>(PartyRecordType.EnterpriseUser)
+        {
+            public override async Task<EnterpriseUserRecord> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken)
+            {
+                return new EnterpriseUserRecord
                 {
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_uuid", cancellationToken),
                     PartyId = await reader.GetConditionalFieldValueAsync<int>("p_id", cancellationToken).Select(static id => checked((uint)id)),

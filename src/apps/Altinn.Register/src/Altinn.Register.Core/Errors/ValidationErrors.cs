@@ -29,4 +29,8 @@ public static class ValidationErrors
     /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
     public static ValidationErrorDescriptor Empty { get; }
         = _factory.Create(4, "List cannot be empty");
+
+    /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
+    public static ValidationErrorDescriptor NotNull { get; }
+        = _factory.Create(5, "Value must be null");
 }

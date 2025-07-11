@@ -131,6 +131,8 @@ public static class RegisterPersistenceExtensions
             PartyRecordType.Organization => "organization",
             PartyRecordType.Person => "person",
             PartyRecordType.SelfIdentifiedUser => "self-identified-user",
+            PartyRecordType.SystemUser => "system-user",
+            PartyRecordType.EnterpriseUser => "enterprise-user",
             _ => null,
         }));
 

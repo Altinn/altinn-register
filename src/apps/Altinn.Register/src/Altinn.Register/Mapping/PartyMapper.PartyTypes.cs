@@ -144,4 +144,70 @@ internal static partial class PartyMapper
             User = source.User.Select(static u => u.ToPlatformModel()),
         };
     }
+
+    [return: NotNullIfNotNull(nameof(source))]
+    private static EnterpriseUser? MapEnterpriseUser(this EnterpriseUserRecord? source)
+    {
+        if (source is null)
+        {
+            return null;
+        }
+
+        if (!source.PartyUuid.HasValue)
+        {
+            ThrowHelper.ThrowInvalidOperationException("Platform.Models.Register.Party requires a PartyUuid to be set.");
+        }
+
+        if (!source.VersionId.HasValue)
+        {
+            ThrowHelper.ThrowInvalidOperationException("Platform.Models.Register.Party requires a VersionId to be set.");
+        }
+
+        Debug.Assert(source.PartyType.IsSet && source.PartyType.Value == PartyRecordType.EnterpriseUser);
+
+        return new EnterpriseUser
+        {
+            Uuid = source.PartyUuid.Value,
+            VersionId = source.VersionId.Value,
+            PartyId = source.PartyId,
+            DisplayName = source.DisplayName,
+            CreatedAt = source.CreatedAt,
+            ModifiedAt = source.ModifiedAt,
+            IsDeleted = source.IsDeleted,
+            User = source.User.Select(static u => u.ToPlatformModel()),
+        };
+    }
+
+    [return: NotNullIfNotNull(nameof(source))]
+    private static SystemUser? MapSystemUser(this SystemUserRecord? source)
+    {
+        if (source is null)
+        {
+            return null;
+        }
+
+        if (!source.PartyUuid.HasValue)
+        {
+            ThrowHelper.ThrowInvalidOperationException("Platform.Models.Register.Party requires a PartyUuid to be set.");
+        }
+
+        if (!source.VersionId.HasValue)
+        {
+            ThrowHelper.ThrowInvalidOperationException("Platform.Models.Register.Party requires a VersionId to be set.");
+        }
+
+        Debug.Assert(source.PartyType.IsSet && source.PartyType.Value == PartyRecordType.SystemUser);
+
+        return new SystemUser
+        {
+            Uuid = source.PartyUuid.Value,
+            VersionId = source.VersionId.Value,
+            PartyId = source.PartyId,
+            DisplayName = source.DisplayName,
+            CreatedAt = source.CreatedAt,
+            ModifiedAt = source.ModifiedAt,
+            IsDeleted = source.IsDeleted,
+            User = source.User.Select(static u => u.ToPlatformModel()),
+        };
+    }
 }
