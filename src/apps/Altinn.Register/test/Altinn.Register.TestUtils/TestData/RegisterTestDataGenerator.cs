@@ -95,7 +95,7 @@ public sealed partial class RegisterTestDataGenerator
             static (used, rng) => used.GetNextPartyId(),
             cancellationToken);
 
-    public ValueTask<IEnumerable<uint>> GetNextUserIds(int count = 1, CancellationToken cancellationToken = default)
+    public ValueTask<IReadOnlyList<uint>> GetNextUserIds(int count = 1, CancellationToken cancellationToken = default)
         => WithIdentifiers(
             ValueTuple.Create(count), 
             static (used, rng, data) => used.GetNextUserIds(data.Item1),

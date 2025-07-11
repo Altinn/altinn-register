@@ -127,7 +127,7 @@ public sealed partial class RegisterTestDataGenerator
         public uint GetNextUserId()
             => checked((uint)_userId.Next());
 
-        public IEnumerable<uint> GetNextUserIds(int count)
+        public IReadOnlyList<uint> GetNextUserIds(int count)
         {
             var result = new uint[count];
             for (var i = 0; i < count; i++)

@@ -914,7 +914,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -953,7 +953,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -1028,7 +1028,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -1078,7 +1078,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -1128,7 +1128,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -1200,7 +1200,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
         var uuid = Guid.NewGuid();
 
         var toInsert = new SelfIdentifiedUserRecord
@@ -1230,7 +1230,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -1360,7 +1360,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     public async Task UpsertParty_EnterpriseUser_Inserts_New_EnterpriseUser()
     {
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
         var uuid = Guid.NewGuid();
 
         var toInsert = new EnterpriseUserRecord
@@ -1389,7 +1389,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     public async Task UpsertParty_EnterpriseUser_Updates_Name_And_Updated()
     {
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -1742,7 +1742,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -1772,9 +1772,10 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         result.Should().HaveValue().Which.User.Should().BeUnset();
 
         await NewTransaction();
+        var userIds = await TestDataGenerator.GetNextUserIds();
         var toUpdate = toInsert with 
         {
-            User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
+            User = new PartyUserRecord(userId: userIds[0], username: FieldValue.Unset, userIds: userIds.ToImmutableValueArray()),
         };
 
         result = await Persistence.UpsertParty(toUpdate);
@@ -1782,7 +1783,60 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             .Which.User.Should().HaveValue()
             .Which.UserIds.Should().HaveValue()
             .Which.Should().ContainSingle()
-            .Which.Should().Be(1);
+            .Which.Should().Be(userIds[0]);
+    }
+
+    [Fact]
+    public async Task Person_CanBeUpdated_WithActiveUserId_And_Username()
+    {
+        var id = await UoW.GetNextPartyId();
+        var birthDate = UoW.GetRandomBirthDate();
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new PersonRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            DisplayName = "Test Mid Testson",
+            PersonIdentifier = personId,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            User = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
+            FirstName = "Test",
+            MiddleName = "Mid",
+            LastName = "Testson",
+            ShortName = "TESTSON Test Mid",
+            Address = null,
+            MailingAddress = null,
+            DateOfBirth = birthDate,
+            DateOfDeath = FieldValue.Null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue().Which.User.Should().BeUnset();
+
+        await NewTransaction();
+        var userIds = await TestDataGenerator.GetNextUserIds();
+        var username = $"user_{userIds[0]}";
+        var toUpdate = toInsert with
+        {
+            User = new PartyUserRecord(userId: userIds[0], username: username, userIds: userIds.ToImmutableValueArray()),
+        };
+
+        result = await Persistence.UpsertParty(toUpdate);
+        var user = result.Should().HaveValue()
+            .Which.User.Should().HaveValue().Which;
+
+        user.UserId.Should().Be(userIds[0]);
+        user.UserIds.Should().HaveValue()
+            .Which.Should().ContainSingle()
+            .Which.Should().Be(userIds[0]);
+        user.Username.Should().Be(username);
     }
 
     [Fact]
@@ -1790,7 +1844,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -1842,7 +1896,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -1872,7 +1926,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         result.Should().HaveValue().Which.User.Should().BeUnset();
 
         await NewTransaction();
-        var user = new PartyUserRecord(userId: 10U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(10U, 2U, 5U));
+        var user = new PartyUserRecord(userId: 10U, username: FieldValue.Null, userIds: ImmutableValueArray.Create(10U, 2U, 5U));
 
         var userResult = await Persistence.UpsertPartyUser(uuid, user);
         var userIds = userResult.Should().HaveValue()
@@ -1890,7 +1944,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -1933,7 +1987,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -2002,7 +2056,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = GetRequiredService<RegisterTestDataGenerator>().GetRandomBool(0.1); // 10% chance of D-number
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
         var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
@@ -2042,6 +2096,147 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var problem = result.Should().BeProblem().Which;
         problem.ErrorCode.Should().Be(Problems.InvalidPartyUpdate.ErrorCode);
         problem.Extensions.Should().ContainKey("column").WhoseValue.Should().Be("user_id");
+    }
+
+    [Fact]
+    public async Task Person_Can_UpdateActiveUsername()
+    {
+        var id = await UoW.GetNextPartyId();
+        var birthDate = UoW.GetRandomBirthDate();
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new PersonRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            DisplayName = "Test Mid Testson",
+            PersonIdentifier = personId,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            User = new PartyUserRecord(userId: 10U, username: "user1", userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
+            VersionId = FieldValue.Unset,
+            FirstName = "Test",
+            MiddleName = "Mid",
+            LastName = "Testson",
+            ShortName = "TESTSON Test Mid",
+            Address = null,
+            MailingAddress = null,
+            DateOfBirth = birthDate,
+            DateOfDeath = FieldValue.Null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue();
+
+        await NewTransaction();
+
+        var toUpdate = toInsert with
+        {
+            User = new PartyUserRecord(userId: 10U, username: "user2", userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
+        };
+
+        result = await Persistence.UpsertParty(toUpdate);
+        var user = result.Should().HaveValue().Which.User.Should().HaveValue().Which;
+        user.UserId.Should().Be(10U);
+        user.Username.Should().Be("user2");
+    }
+
+    [Fact]
+    public async Task Person_Can_UnsetActiveUsername()
+    {
+        var id = await UoW.GetNextPartyId();
+        var birthDate = UoW.GetRandomBirthDate();
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new PersonRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            DisplayName = "Test Mid Testson",
+            PersonIdentifier = personId,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            User = new PartyUserRecord(userId: 10U, username: "user1", userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
+            VersionId = FieldValue.Unset,
+            FirstName = "Test",
+            MiddleName = "Mid",
+            LastName = "Testson",
+            ShortName = "TESTSON Test Mid",
+            Address = null,
+            MailingAddress = null,
+            DateOfBirth = birthDate,
+            DateOfDeath = FieldValue.Null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue();
+
+        await NewTransaction();
+
+        var toUpdate = toInsert with
+        {
+            User = new PartyUserRecord(userId: 10U, username: FieldValue.Null, userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
+        };
+
+        result = await Persistence.UpsertParty(toUpdate);
+        var user = result.Should().HaveValue().Which.User.Should().HaveValue().Which;
+        user.UserId.Should().Be(10U);
+        user.Username.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Person_Can_RetainActiveUsername()
+    {
+        var id = await UoW.GetNextPartyId();
+        var birthDate = UoW.GetRandomBirthDate();
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new PersonRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            DisplayName = "Test Mid Testson",
+            PersonIdentifier = personId,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            User = new PartyUserRecord(userId: 10U, username: "user1", userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
+            VersionId = FieldValue.Unset,
+            FirstName = "Test",
+            MiddleName = "Mid",
+            LastName = "Testson",
+            ShortName = "TESTSON Test Mid",
+            Address = null,
+            MailingAddress = null,
+            DateOfBirth = birthDate,
+            DateOfDeath = FieldValue.Null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue();
+
+        await NewTransaction();
+
+        var toUpdate = toInsert with
+        {
+            User = new PartyUserRecord(userId: 10U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
+        };
+
+        result = await Persistence.UpsertParty(toUpdate);
+        var user = result.Should().HaveValue().Which.User.Should().HaveValue().Which;
+        user.UserId.Should().Be(10U);
+        user.Username.Should().Be("user1");
     }
 
     #endregion
