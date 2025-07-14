@@ -29,7 +29,7 @@ public readonly record struct ImportJobQueueStatus
         get => _sourceMax switch
         {
             -1 => null,
-            > 0 => (ulong)_sourceMax,
+            >= 0 => (ulong)_sourceMax,
             _ => Unreachable<ulong?>(),
         };
 
