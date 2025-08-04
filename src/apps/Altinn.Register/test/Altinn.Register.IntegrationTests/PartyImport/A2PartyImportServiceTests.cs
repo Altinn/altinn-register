@@ -152,4 +152,253 @@ public class A2PartyImportServiceTests
         protected override Task<Result<PartyUserRecord>> GetUserParty(IA2PartyImportService service, Guid partyUuid)
             => service.GetOrCreatePersonUser(partyUuid, TestContext.Current.CancellationToken);
     }
+
+    public class GetUserProfileChangesTests
+        : IntegrationTestBase
+    {
+        [Fact]
+        public async Task NoChanges()
+        {
+            FakeHttpHandlers.For<IA2PartyImportService>()
+                .Expect(HttpMethod.Get, "profile/api/userprofileevents")
+                .WithQuery("eventId", "1")
+                .Respond(
+                    "application/json",
+                    """
+                    {
+                        "stats": {
+                            "sequenceMax": 0
+                        },
+                        "links": {
+                            "next": null
+                        },
+                        "data": []
+                    }
+                    """);
+
+            var service = GetRequiredService<IA2PartyImportService>();
+
+            var result = await service.GetUserProfileChanges(cancellationToken: CancellationToken)
+                .ToListAsync(CancellationToken);
+
+            result.ShouldNotBeNull();
+            result.ShouldBeEmpty();
+        }
+
+        [Fact]
+        public async Task NoMoreChanges()
+        {
+            FakeHttpHandlers.For<IA2PartyImportService>()
+                .Expect(HttpMethod.Get, "profile/api/userprofileevents")
+                .WithQuery("eventId", "251")
+                .Respond(
+                    "application/json",
+                    """
+                    {
+                        "stats": {
+                            "sequenceMax": 250
+                        },
+                        "links": {
+                            "next": null
+                        },
+                        "data": []
+                    }
+                    """);
+
+            var service = GetRequiredService<IA2PartyImportService>();
+
+            var result = await service.GetUserProfileChanges(250, cancellationToken: CancellationToken)
+                .ToListAsync(CancellationToken);
+
+            result.ShouldNotBeNull();
+            result.ShouldBeEmpty();
+        }
+
+        [Fact]
+        public async Task Pages()
+        {
+            FakeHttpHandlers.For<IA2PartyImportService>()
+                .Expect(HttpMethod.Get, "profile/api/userprofileevents")
+                .WithQuery("eventId", "1")
+                .Respond(
+                    "application/json",
+                    """
+                    {
+                        "stats": {
+                            "pageStart": 1,
+                            "pageEnd": 2,
+                            "sequenceMax": 3
+                        },
+                        "links": {
+                            "next": "foo/bar?bat"
+                        },
+                        "data": [
+                            {
+                                "userChangeEventId": 1,
+                                "userUuid": "453f2415-ce87-4c8f-a9de-8664109d599a",
+                                "userId": 20000000,
+                                "ownerPartyUuid": "453f2415-ce87-4c8f-a9de-8664109d599a",
+                                "ownerPartyId": 50002108,
+                                "userName": null,
+                                "userType": "SSNIdentified",
+                                "isDeleted": false
+                            },
+                            {
+                                "userChangeEventId": 2,
+                                "userUuid": "69f34a20-9228-4fda-b585-4ccf0eb8af60",
+                                "userId": 20000001,
+                                "ownerPartyUuid": "69f34a20-9228-4fda-b585-4ccf0eb8af60",
+                                "ownerPartyId": 50002109,
+                                "userName": "null",
+                                "userType": "SelfIdentified",
+                                "isDeleted": false
+                            }
+                        ]
+                    }
+                    """);
+
+            FakeHttpHandlers.For<IA2PartyImportService>()
+                .Expect(HttpMethod.Get, "profile/api/userprofileevents")
+                .WithQuery("eventId", "3")
+                .Respond(
+                    "application/json",
+                    """
+                    {
+                        "stats": {
+                            "pageStart": 3,
+                            "pageEnd": 4,
+                            "sequenceMax": 4
+                        },
+                        "links": {
+                            "next": "foo/bar?bat"
+                        },
+                        "data": [
+                            {
+                                "userChangeEventId": 3,
+                                "userUuid": "6e75fe3a-e1a7-4288-8c28-b1bc699cdcae",
+                                "userId": 20000002,
+                                "ownerPartyUuid": "6e75fe3a-e1a7-4288-8c28-b1bc699cdcae",
+                                "ownerPartyId": 50002110,
+                                "userName": null,
+                                "userType": "SSNIdentified",
+                                "isDeleted": false
+                            },
+                            {
+                                "userChangeEventId": 4,
+                                "userUuid": "8686c09c-8fa5-48c2-bde8-2d73446d2f75",
+                                "userId": 20000003,
+                                "ownerPartyUuid": "f8c9a346-b996-4250-9333-ae6e9fe37256",
+                                "ownerPartyId": 50002111,
+                                "userName": "FOOBARBAT",
+                                "userType": "EnterpriseIdentified",
+                                "isDeleted": false
+                            }
+                        ]
+                    }
+                    """);
+
+            FakeHttpHandlers.For<IA2PartyImportService>()
+                .Expect(HttpMethod.Get, "profile/api/userprofileevents")
+                .WithQuery("eventId", "5")
+                .Respond(
+                    "application/json",
+                    """
+                    {
+                        "stats": {
+                            "pageStart": 5,
+                            "pageEnd": 5,
+                            "sequenceMax": 5
+                        },
+                        "links": {
+                            "next": "foo/bar?bat"
+                        },
+                        "data": [
+                            {
+                                "userChangeEventId": 5,
+                                "userUuid": "5f7ca26d-40ed-409e-bcf9-880914803b2c",
+                                "userId": 20000004,
+                                "ownerPartyUuid": "5f7ca26d-40ed-409e-bcf9-880914803b2c",
+                                "ownerPartyId": 50002112,
+                                "userName": null,
+                                "userType": "SSNIdentified",
+                                "isDeleted": true
+                            }
+                        ]
+                    }
+                    """);
+
+            FakeHttpHandlers.For<IA2PartyImportService>()
+                .Expect(HttpMethod.Get, "profile/api/userprofileevents")
+                .WithQuery("eventId", "6")
+                .Respond(
+                    "application/json",
+                    """
+                    {
+                        "stats": {
+                            "sequenceMax": 5
+                        },
+                        "links": {
+                            "next": null
+                        },
+                        "data": []
+                    }
+                    """);
+
+            var service = GetRequiredService<IA2PartyImportService>();
+
+            var result = await service.GetUserProfileChanges(cancellationToken: CancellationToken)
+                .ToListAsync(CancellationToken);
+
+            result.ShouldNotBeNull();
+            result.Count.ShouldBe(3);
+
+            var page1 = result[0].ShouldNotBeNull();
+            var page2 = result[1].ShouldNotBeNull();
+            var page3 = result[2].ShouldNotBeNull();
+
+            page1.LastKnownChangeId.ShouldBe(3U);
+            page1.Count.ShouldBe(2);
+            page1[0].ShouldSatisfyAllConditions(
+                change => change.ChangeId.ShouldBe(1U),
+                change => change.UserUuid.ShouldBe(Guid.Parse("453f2415-ce87-4c8f-a9de-8664109d599a")),
+                change => change.OwnerPartyUuid.ShouldBe(Guid.Parse("453f2415-ce87-4c8f-a9de-8664109d599a")),
+                change => change.UserName.ShouldBeNull(),
+                change => change.IsDeleted.ShouldBeFalse(),
+                change => change.ProfileType.ShouldBe(A2UserProfileType.Person));
+            page1[1].ShouldSatisfyAllConditions(
+                change => change.ChangeId.ShouldBe(2U),
+                change => change.UserUuid.ShouldBe(Guid.Parse("69f34a20-9228-4fda-b585-4ccf0eb8af60")),
+                change => change.OwnerPartyUuid.ShouldBe(Guid.Parse("69f34a20-9228-4fda-b585-4ccf0eb8af60")),
+                change => change.UserName.ShouldBe("null"),
+                change => change.IsDeleted.ShouldBeFalse(),
+                change => change.ProfileType.ShouldBe(A2UserProfileType.SelfIdentifiedUser));
+
+            page2.LastKnownChangeId.ShouldBe(4U);
+            page2.Count.ShouldBe(2);
+            page2[0].ShouldSatisfyAllConditions(
+                change => change.ChangeId.ShouldBe(3U),
+                change => change.UserUuid.ShouldBe(Guid.Parse("6e75fe3a-e1a7-4288-8c28-b1bc699cdcae")),
+                change => change.OwnerPartyUuid.ShouldBe(Guid.Parse("6e75fe3a-e1a7-4288-8c28-b1bc699cdcae")),
+                change => change.UserName.ShouldBeNull(),
+                change => change.IsDeleted.ShouldBeFalse(),
+                change => change.ProfileType.ShouldBe(A2UserProfileType.Person));
+            page2[1].ShouldSatisfyAllConditions(
+                change => change.ChangeId.ShouldBe(4U),
+                change => change.UserUuid.ShouldBe(Guid.Parse("8686c09c-8fa5-48c2-bde8-2d73446d2f75")),
+                change => change.OwnerPartyUuid.ShouldBe(Guid.Parse("f8c9a346-b996-4250-9333-ae6e9fe37256")),
+                change => change.UserName.ShouldBe("FOOBARBAT"),
+                change => change.IsDeleted.ShouldBeFalse(),
+                change => change.ProfileType.ShouldBe(A2UserProfileType.EnterpriseUser));
+
+            page3.LastKnownChangeId.ShouldBe(5U);
+            page3.Count.ShouldBe(1);
+            page3[0].ShouldSatisfyAllConditions(
+                change => change.ChangeId.ShouldBe(5U),
+                change => change.UserUuid.ShouldBe(Guid.Parse("5f7ca26d-40ed-409e-bcf9-880914803b2c")),
+                change => change.OwnerPartyUuid.ShouldBe(Guid.Parse("5f7ca26d-40ed-409e-bcf9-880914803b2c")),
+                change => change.UserName.ShouldBeNull(),
+                change => change.IsDeleted.ShouldBeTrue(),
+                change => change.ProfileType.ShouldBe(A2UserProfileType.Person));
+        }
+    }
 }

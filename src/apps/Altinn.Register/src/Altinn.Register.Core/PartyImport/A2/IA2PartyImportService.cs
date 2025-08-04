@@ -1,5 +1,4 @@
 ﻿using Altinn.Authorization.ProblemDetails;
-using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 
 namespace Altinn.Register.Core.PartyImport.A2;
@@ -10,12 +9,20 @@ namespace Altinn.Register.Core.PartyImport.A2;
 public interface IA2PartyImportService
 {
     /// <summary>
-    /// Gets the changes that have occurred since the given change id.
+    /// Gets the changes that have occurred in parties since the given change id.
     /// </summary>
     /// <param name="fromExclusive">The previously imported change id. Defaults to <c>0</c>.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>An <see cref="IAsyncEnumerable{T}"/> of <see cref="A2PartyChangePage"/>s.</returns>
     IAsyncEnumerable<A2PartyChangePage> GetChanges(uint fromExclusive = 0, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the changes that have occurred in user profiles since the given change id.
+    /// </summary>
+    /// <param name="fromExclusive">The previously imported change id. Defaults to <c>0</c>.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>An <see cref="IAsyncEnumerable{T}"/> of <see cref="A2UserProfileChangePage"/>s.</returns>
+    IAsyncEnumerable<A2UserProfileChangePage> GetUserProfileChanges(uint fromExclusive = 0, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets all external role assignments from the party with the given id.
