@@ -1,15 +1,13 @@
-﻿namespace Altinn.Register.Core.PartyImport.A2;
+﻿using System.Text.Json.Serialization;
+
+namespace Altinn.Register.Core.PartyImport.A2;
 
 /// <summary>
 /// Represents a change-event for a party in Altinn 2.
 /// </summary>
 public sealed record A2PartyChange
+    : A2Change
 {
-    /// <summary>
-    /// Gets the id of this change.
-    /// </summary>
-    public required uint ChangeId { get; init; }
-
     /// <summary>
     /// Gets the party id that changed.
     /// </summary>

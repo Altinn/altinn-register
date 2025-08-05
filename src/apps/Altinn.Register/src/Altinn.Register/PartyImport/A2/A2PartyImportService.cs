@@ -52,17 +52,39 @@ internal sealed partial class A2PartyImportService
         PartyChangesResponse response;
         while (true)
         {
-            response = await GetChangesPage(fromExclusive, cancellationToken);
+            response = await GetPartyChangesPage(fromExclusive, cancellationToken);
 
             if (response.PartyChangeList.Count == 0)
             {
                 break;
             }
 
-            yield return MapChangePage(response);
+            yield return MapPartyChangePage(response);
 
             Assert(response.LastChangeInSegment > fromExclusive);
             fromExclusive = response.LastChangeInSegment;
+        }
+    }
+
+    /// <inheritdoc />
+    public async IAsyncEnumerable<A2UserProfileChangePage> GetUserProfileChanges(
+        uint fromExclusive = 0,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ItemStreamPage<UserProfileEvent> response;
+        while (true)
+        {
+            response = await GetUserProfileChangesPage(fromExclusive, cancellationToken);
+
+            if (response.Data.Count == 0)
+            {
+                break;
+            }
+
+            yield return MapUserProfileChangePage(response);
+
+            Assert(response.Stats.PageEnd is { } pageEnd && pageEnd > fromExclusive);
+            fromExclusive = response.Stats.PageEnd.Value;
         }
     }
 
@@ -220,7 +242,7 @@ internal sealed partial class A2PartyImportService
         }
     }
 
-    private async Task<PartyChangesResponse> GetChangesPage(uint fromExclusive, CancellationToken cancellationToken)
+    private async Task<PartyChangesResponse> GetPartyChangesPage(uint fromExclusive, CancellationToken cancellationToken)
     {
         var url = $"register/api/parties/partychanges/{fromExclusive}";
 
@@ -234,6 +256,20 @@ internal sealed partial class A2PartyImportService
         return response;
     }
 
+    private async Task<ItemStreamPage<UserProfileEvent>> GetUserProfileChangesPage(uint fromExclusive, CancellationToken cancellationToken)
+    {
+        var url = $"profile/api/userprofileevents?eventId={fromExclusive + 1}";
+
+        Log.FetchingUserProfileChangesPage(_logger, fromExclusive);
+        var response = await _httpClient.GetFromJsonAsync<ItemStreamPage<UserProfileEvent>>(url, _options, cancellationToken);
+        if (response is null)
+        {
+            throw new InvalidOperationException("Failed to parse user profile changes.");
+        }
+
+        return response;
+    }
+
     private PartyUserRecord MapPartyUser(PartyProfile profile)
     {
         var userId = checked((uint)profile.UserId);
@@ -242,7 +278,7 @@ internal sealed partial class A2PartyImportService
         return new PartyUserRecord(userId: userId, username: FieldValue.Unset, userIds: userIds);
     }
 
-    private A2PartyChangePage MapChangePage(PartyChangesResponse response)
+    private A2PartyChangePage MapPartyChangePage(PartyChangesResponse response)
     {
         var changes = response.PartyChangeList.Select(static change => new A2PartyChange
         {
@@ -253,6 +289,27 @@ internal sealed partial class A2PartyImportService
         }).ToImmutableArray();
 
         return new A2PartyChangePage(changes, response.LastAvailableChange);
+    }
+
+    private A2UserProfileChangePage MapUserProfileChangePage(ItemStreamPage<UserProfileEvent> response)
+    {
+        var changes = response.Data.Select(static change => new A2UserProfileChange
+        {
+            ChangeId = change.UserChangeEventId,
+            UserUuid = change.UserUuid,
+            OwnerPartyUuid = change.OwnerPartyUuid,
+            UserName = change.UserName,
+            IsDeleted = change.IsDeleted,
+            ProfileType = change.UserType switch
+            {
+                UserProfileType.Person => A2UserProfileType.Person,
+                UserProfileType.Enterprise => A2UserProfileType.EnterpriseUser,
+                UserProfileType.SelfIdentified => A2UserProfileType.SelfIdentifiedUser,
+                _ => ThrowHelper.ThrowNotSupportedException<A2UserProfileType>($"User profile type {change.UserType} is not supported."),
+            },
+        }).ToImmutableArray();
+
+        return new(changes, response.Stats.SequenceMax);
     }
 
     private PartyRecord MapParty(V1Models.Party party)
@@ -761,6 +818,122 @@ internal sealed partial class A2PartyImportService
         public required Guid PartyUuid { get; init; }
     }
 
+    /// <summary>
+    /// A "page" of items in a stream from the A2 system.
+    /// </summary>
+    /// <typeparam name="T">The data type.</typeparam>
+    internal sealed class ItemStreamPage<T>
+    {
+        /// <summary>
+        /// Gets stats for the page.
+        /// </summary>
+        [JsonPropertyName("stats")]
+        public required StreamPageStats Stats { get; init; }
+
+        /// <summary>
+        /// Gets the data in the page.
+        /// </summary>
+        [JsonPropertyName("data")]
+        public required IReadOnlyList<T> Data { get; init; }
+    }
+
+    /// <summary>
+    /// Stats for a stream page in the A2 system.
+    /// </summary>
+    internal sealed class StreamPageStats
+    {
+        /// <summary>
+        /// Gets the first item in the page.
+        /// </summary>
+        [JsonPropertyName("pageStart")]
+        public uint? PageStart { get; init; }
+
+        /// <summary>
+        /// Gets the last item in the page.
+        /// </summary>
+        [JsonPropertyName("pageEnd")]
+        public uint? PageEnd { get; init; }
+
+        /// <summary>
+        /// Gets the highest sequence number in all the pages.
+        /// </summary>
+        [JsonPropertyName("sequenceMax")]
+        public required uint SequenceMax { get; init; }
+    }
+
+    /// <summary>
+    /// An update event for a user profile in the A2 system.
+    /// </summary>
+    internal sealed class UserProfileEvent
+    {
+        /// <summary>
+        /// Gets the event id.
+        /// </summary>
+        [JsonPropertyName("userChangeEventId")]
+        public required uint UserChangeEventId { get; init; }
+
+        /// <summary>
+        /// Gets the user UUID.
+        /// </summary>
+        [JsonPropertyName("userUuid")]
+        public required Guid UserUuid { get; init; }
+
+        /// <summary>
+        /// Gets the user id.
+        /// </summary>
+        [JsonPropertyName("userId")]
+        public required uint UserId { get; init; }
+
+        /// <summary>
+        /// Gets the party UUID of the owner of this user profile. For person, and SI users, this should be the same as the user UUID.
+        /// </summary>
+        [JsonPropertyName("ownerPartyUuid")]
+        public required Guid OwnerPartyUuid { get; init; }
+
+        /// <summary>
+        /// Gets the user name, if any.
+        /// </summary>
+        [JsonPropertyName("userName")]
+        public string? UserName { get; init; }
+
+        /// <summary>
+        /// Gets the type of user profile.
+        /// </summary>
+        [JsonPropertyName("userType")]
+        public required UserProfileType UserType { get; init; }
+
+        /// <summary>
+        /// Gets whether the user profile is deleted or not.
+        /// </summary>
+        [JsonPropertyName("isDeleted")]
+        public required bool IsDeleted { get; init; }
+    }
+
+    /// <summary>
+    /// The type of user (in profile) in the A2 system.
+    /// </summary>
+    [StringEnumConverter]
+    internal enum UserProfileType
+    {
+        /// <summary>
+        /// A person user.
+        /// </summary>
+        [JsonStringEnumMemberName("SSNIdentified")]
+        Person,
+
+        /// <summary>
+        /// An enterprise user.
+        /// </summary>
+        [JsonStringEnumMemberName("EnterpriseIdentified")]
+        Enterprise,
+
+        /// <summary>
+        /// A self-identified user.
+        /// </summary>
+        [JsonStringEnumMemberName("SelfIdentified")]
+        SelfIdentified,
+    }
+
     private static partial class Log
     {
         [LoggerMessage(1, LogLevel.Debug, "Fetching party changes from {FromExclusive}.")]
@@ -771,5 +944,8 @@ internal sealed partial class A2PartyImportService
 
         [LoggerMessage(3, LogLevel.Error, "Failed to fetch party profile from {Url}. Status code: {StatusCode}.")]
         public static partial void FailedToFetchPartyProfile(ILogger logger, string url, HttpStatusCode statusCode);
+
+        [LoggerMessage(4, LogLevel.Debug, "Fetching user profile changes from {FromExclusive}.")]
+        public static partial void FetchingUserProfileChangesPage(ILogger logger, uint fromExclusive);
     }
 }

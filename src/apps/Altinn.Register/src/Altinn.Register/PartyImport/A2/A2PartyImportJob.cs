@@ -61,6 +61,7 @@ public sealed partial class A2PartyImportJob
 
         using var activity = RegisterTelemetry.StartActivity("import a2-parties", ActivityKind.Internal);
         var progress = await _tracker.GetStatus(JobNames.A2PartyImportParty, cancellationToken);
+        Log.PartyImportInitialProgress(_logger, progress);
 
         var changes = _importService.GetChanges(checked((uint)progress.EnqueuedMax), cancellationToken);
         await foreach (var page in changes.WithCancellation(cancellationToken))
@@ -199,6 +200,12 @@ public sealed partial class A2PartyImportJob
 
         [LoggerMessage(7, LogLevel.Information, "More than 50'000 parties in queue since last measurement. Pausing enqueueing. EnqueuedMax = {EnqueuedMax}, ProcessedMax = {ProcessedMax}.")]
         public static partial void PausingEnqueueingCCRRoles(ILogger logger, ulong enqueuedMax, ulong processedMax);
+
+        [LoggerMessage(8, LogLevel.Information, "Party import initial progress: EnqueuedMax = {EnqueuedMax}, SourceMax = {SourceMax}, ProcessedMax = {ProcessedMax}.")]
+        private static partial void PartyImportInitialProgress(ILogger logger, ulong enqueuedMax, ulong? sourceMax, ulong processedMax);
+
+        public static void PartyImportInitialProgress(ILogger logger, in ImportJobStatus status)
+            => PartyImportInitialProgress(logger, status.EnqueuedMax, status.SourceMax, status.ProcessedMax);
     }
 
     /// <summary>
