@@ -34,4 +34,12 @@ public interface IImportJobStatePersistence
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     public Task SetPartyState<T>(string jobId, Guid partyUuid, T state, CancellationToken cancellationToken = default)
         where T : IImportJobState<T>;
+
+    /// <summary>
+    /// Clears the job state for a given party and job-id combination.
+    /// </summary>
+    /// <param name="jobId">The job id.</param>
+    /// <param name="partyUuid">The party uuid.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    public Task ClearPartyState(string jobId, Guid partyUuid, CancellationToken cancellationToken = default);
 }

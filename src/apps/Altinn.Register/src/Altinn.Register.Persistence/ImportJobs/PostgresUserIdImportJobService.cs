@@ -4,6 +4,7 @@ using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
 using CommunityToolkit.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -12,21 +13,24 @@ namespace Altinn.Register.Persistence.ImportJobs;
 /// <summary>
 /// Postgres backed implementation of <see cref="IUserIdImportJobService"/>.
 /// </summary>
-internal class PostgresUserIdImportJobService
+internal partial class PostgresUserIdImportJobService
     : IUserIdImportJobService
 {
     private readonly IUnitOfWorkHandle _handle;
     private readonly NpgsqlConnection _connection;
+    private readonly ILogger<PostgresUserIdImportJobService> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PostgresUserIdImportJobService"/> class.
     /// </summary>
     public PostgresUserIdImportJobService(
         IUnitOfWorkHandle handle,
-        NpgsqlConnection connection)
+        NpgsqlConnection connection,
+        ILogger<PostgresUserIdImportJobService> logger)
     {
         _handle = handle;
         _connection = connection;
+        _logger = logger;
     }
 
     /// <inheritdoc/>
@@ -96,5 +100,42 @@ internal class PostgresUserIdImportJobService
 
             fromParam.TypedValue = partyUuid;
         }
+    }
+
+    /// <inheritdoc/>
+    public async Task ClearJobStateForPartiesWithUserId(string jobId, CancellationToken cancellationToken = default)
+    {
+        const string QUERY =
+            /*strpsql*/"""
+            WITH to_delete AS (
+                SELECT s.party_uuid
+                FROM register.import_job_party_state s
+                LEFT JOIN register."user" u ON u."uuid" = s.party_uuid
+                WHERE s.job_id = @jobId
+                  AND u.id IS NOT NULL
+            )
+            DELETE FROM register.import_job_party_state s
+            WHERE s.job_id = @jobId
+              AND s.party_uuid IN (SELECT party_uuid FROM to_delete)
+            """;
+
+        Guard.IsNotNullOrEmpty(jobId);
+
+        _handle.ThrowIfCompleted();
+
+        await using var cmd = _connection.CreateCommand(QUERY);
+
+        cmd.Parameters.Add<string>("jobId", NpgsqlDbType.Text).TypedValue = jobId;
+
+        await cmd.PrepareAsync(cancellationToken);
+        var deleted = await cmd.ExecuteNonQueryAsync(cancellationToken);
+        
+        Log.ClearedJobStateForPartiesWithUserId(_logger, jobId, deleted);
+    }
+
+    private static partial class Log
+    {
+        [LoggerMessage(0, LogLevel.Debug, "Cleared job state for parties with user id for job {JobId}. Deleted {Deleted} records.")]
+        public static partial void ClearedJobStateForPartiesWithUserId(ILogger logger, string jobId, int deleted);
     }
 }
