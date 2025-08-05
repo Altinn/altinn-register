@@ -95,6 +95,25 @@ public class PostgresImportJobStatePersistenceTests
         result.Should().BeNull();
     }
 
+    [Fact]
+    public async Task ClearState_ClearsState()
+    {
+        var party = await UoW.CreateOrg();
+        var jobId = "test";
+
+        var partyUuid = party.PartyUuid.Value;
+
+        var state = new StringState { Value = "test" };
+        await Persistence.SetPartyState(jobId, partyUuid, state);
+        var result = await Persistence.GetPartyState<StringState>(jobId, partyUuid);
+        result.Should().NotBeNull();
+
+        await Persistence.ClearPartyState(jobId, partyUuid);
+
+        result = await Persistence.GetPartyState<StringState>(jobId, partyUuid);
+        result.Should().BeUnset();
+    }
+
     private sealed class StringState
         : IImportJobState<StringState>
     {

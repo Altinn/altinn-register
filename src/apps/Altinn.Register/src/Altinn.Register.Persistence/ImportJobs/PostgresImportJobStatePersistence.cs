@@ -128,6 +128,27 @@ internal sealed class PostgresImportJobStatePersistence
         await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    /// <inheritdoc/>
+    public async Task ClearPartyState(string jobId, Guid partyUuid, CancellationToken cancellationToken = default)
+    {
+        const string QUERY =
+            /*strpsql*/"""
+            DELETE FROM register.import_job_party_state
+             WHERE job_id = @jobId
+               AND party_uuid = @partyUuid
+            """;
+
+        _handle.ThrowIfCompleted();
+
+        await using var cmd = _connection.CreateCommand(QUERY);
+
+        cmd.Parameters.Add<string>("jobId", NpgsqlDbType.Text).TypedValue = jobId;
+        cmd.Parameters.Add<Guid>("partyUuid", NpgsqlDbType.Uuid).TypedValue = partyUuid;
+
+        await cmd.PrepareAsync(cancellationToken);
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     private static void WriteTo<T>(Sequence<byte> seq, T state)
         where T : IImportJobState<T>
     {

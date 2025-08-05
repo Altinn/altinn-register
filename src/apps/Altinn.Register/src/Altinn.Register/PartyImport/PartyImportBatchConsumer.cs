@@ -119,6 +119,7 @@ public sealed partial class PartyImportBatchConsumer
         {
             await using var uow = await _uow.CreateAsync(cancellationToken);
             var persistence = uow.GetPartyPersistence();
+            var statePersistence = uow.GetImportJobStatePersistence();
 
             foreach (var context in upserts)
             {
@@ -127,6 +128,11 @@ public sealed partial class PartyImportBatchConsumer
 
                 var result = await persistence.UpsertPartyUser(partyUuid, user, cancellationToken);
                 result.EnsureSuccess();
+
+                if (context.Message.Tracking.JobName is { Length: > 0 } jobName)
+                {
+                    await statePersistence.ClearPartyState(jobName, partyUuid, cancellationToken);
+                }
 
                 tracking.Update(context.Message.Tracking);
                 await context.Publish(

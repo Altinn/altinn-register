@@ -1,5 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
@@ -73,6 +72,34 @@ public class PostgresUserIdImportJobServiceTests
 
     protected IUserIdImportJobService UserIdImportJobService
         => _userIdImportJobService!;
+
+    [Fact]
+    public async Task ClearJobStateForPartiesWithUserId_Clears_Expected_State()
+    {
+        var people = await UoW.CreatePeople(3);
+        await UoW.ExecuteNonQueries([
+            /*strpsql*/"""
+            TRUNCATE register."user"
+            """,
+            /*strpsql*/"""
+            TRUNCATE register."import_job_party_state"
+            """,
+        ]);
+
+        await Party.UpsertPartyUser(people[0].PartyUuid.Value, new(1U, FieldValue.Null, ImmutableValueArray.Create(1U)));
+        await Party.UpsertPartyUser(people[1].PartyUuid.Value, new(2U, FieldValue.Null, ImmutableValueArray.Create(2U)));
+        await JobState.SetPartyState("test", people[0].PartyUuid.Value, new EmptyState());
+        await JobState.SetPartyState("not-test", people[1].PartyUuid.Value, new EmptyState());
+        await JobState.SetPartyState("test", people[2].PartyUuid.Value, new EmptyState());
+
+        // people[0]: has test state, has user id
+        // people[1]: no  test state, has user id
+        // people[2]: has test state, no  user id
+        await UserIdImportJobService.ClearJobStateForPartiesWithUserId("test");
+        (await JobState.GetPartyState<EmptyState>("test", people[0].PartyUuid.Value)).Should().BeUnset();
+        (await JobState.GetPartyState<EmptyState>("not-test", people[1].PartyUuid.Value)).Should().Be(new EmptyState());
+        (await JobState.GetPartyState<EmptyState>("test", people[2].PartyUuid.Value)).Should().Be(new EmptyState());
+    }
 
     public class GetPartiesWithoutUserIdAndJobStateTests
         : PostgresUserIdImportJobServiceTests
@@ -224,11 +251,11 @@ public class PostgresUserIdImportJobServiceTests
                 users.Should().Contain(p => p.PartyUuid.Value == party.PartyUuid);
             });
         }
+    }
 
-        private sealed record class EmptyState
-            : IImportJobState<EmptyState>
-        {
-            public static string StateType => $"{nameof(EmptyState)}@0";
-        }
+    private sealed record class EmptyState
+        : IImportJobState<EmptyState>
+    {
+        public static string StateType => $"{nameof(EmptyState)}@0";
     }
 }

@@ -15,4 +15,11 @@ public interface IUserIdImportJobService
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>An async enumerable of <see cref="PartyRecord.PartyUuid"/> and <see cref="PartyRecord.PartyType"/> pairs.</returns>
     IAsyncEnumerable<(Guid PartyUuid, PartyRecordType PartyType)> GetPartiesWithoutUserIdAndJobState(string jobId, IReadOnlySet<PartyRecordType> partyTypes, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Clears the job state for all parties that has already been assigned a user-id.
+    /// </summary>
+    /// <param name="jobId">The job id.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    Task ClearJobStateForPartiesWithUserId(string jobId, CancellationToken cancellationToken = default);
 }

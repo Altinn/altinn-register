@@ -50,6 +50,7 @@ internal sealed partial class A2PartyUserIdImportJob
         var progress = await _tracker.GetStatus(JobNames.A2PartyUserIdImport, cancellationToken);
 
         var enqueuedMax = progress.EnqueuedMax;
+        var startEnqueuedMax = enqueuedMax;
         List<ImportA2UserIdForPartyCommand> messages = new(100);
         await foreach (var party in service.GetPartiesWithoutUserIdAndJobState(JobNames.A2PartyUserIdImport, _partyTypes, cancellationToken))
         {
@@ -81,6 +82,11 @@ internal sealed partial class A2PartyUserIdImportJob
         if (messages.Count > 0)
         {
             await SendAndUpdateState(messages, cancellationToken);
+        }
+        else if (startEnqueuedMax == enqueuedMax && progress.ProcessedMax == enqueuedMax)
+        {
+            // we've processed all parties, so we can clear up temporary state.
+            await service.ClearJobStateForPartiesWithUserId(JobNames.A2PartyUserIdImport, cancellationToken);
         }
     }
 
