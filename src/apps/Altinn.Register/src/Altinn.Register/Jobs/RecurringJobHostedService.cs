@@ -500,6 +500,7 @@ internal sealed partial class RecurringJobHostedService
         private JobRunResult(Outcome outcome, ExceptionDispatchInfo? exception)
         {
             _outcome = outcome;
+            _exception = exception;
         }
 
         private enum Outcome
