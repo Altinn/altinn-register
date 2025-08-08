@@ -14,7 +14,7 @@ namespace Altinn.Register.PartyImport.A2;
 /// A job that imports parties from A2.
 /// </summary>
 public sealed partial class A2PartyImportJob
-    : IJob
+    : Job
 {
     private readonly ILogger<A2PartyImportJob> _logger;
     private readonly IImportJobTracker _tracker;
@@ -43,7 +43,7 @@ public sealed partial class A2PartyImportJob
     }
 
     /// <inheritdoc/>
-    public async Task RunAsync(CancellationToken cancellationToken)
+    protected override async Task RunAsync(CancellationToken cancellationToken)
     {
         var partyImportStatus = await RunPartyImport(cancellationToken);
 
