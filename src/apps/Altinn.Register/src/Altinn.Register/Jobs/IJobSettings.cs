@@ -28,6 +28,14 @@ public interface IJobSettings
     JobHostLifecycles RunAt { get; set; }
 
     /// <summary>
+    /// Gets or sets a delegate that will be called to check if the job is enabled or not.
+    /// </summary>
+    /// <remarks>
+    /// This delegate will be called before each time the job is scheduled to run, and it runs in singleton scope.
+    /// </remarks>
+    Func<IServiceProvider, CancellationToken, ValueTask<bool>>? Enabled { get; set; }
+
+    /// <summary>
     /// Gets or sets a delegate that will be called before the first job from a job registration is run.
     /// </summary>
     Func<IServiceProvider, CancellationToken, ValueTask>? WaitForReady { get; set; }
