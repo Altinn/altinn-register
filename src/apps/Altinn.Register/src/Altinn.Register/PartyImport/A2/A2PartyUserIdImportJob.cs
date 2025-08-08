@@ -13,7 +13,7 @@ namespace Altinn.Register.PartyImport.A2;
 /// A job that imports user-ids from A2 for parties already imported into A3.
 /// </summary>
 internal sealed partial class A2PartyUserIdImportJob
-    : IJob
+    : Job
 {
     private readonly static FrozenSet<PartyRecordType> _partyTypes = [
         PartyRecordType.Person, 
@@ -41,8 +41,9 @@ internal sealed partial class A2PartyUserIdImportJob
     }
 
     /// <inheritdoc/>
-    public async Task RunAsync(CancellationToken cancellationToken)
+    protected override async Task RunAsync(CancellationToken cancellationToken)
     {
+        const string JOB_NAME = JobNames.A2PartyUserIdImport;
         const int CHUNK_SIZE = 100;
 
         await using var uow = await _uowManager.CreateAsync(cancellationToken, activityName: nameof(A2PartyUserIdImportJob));

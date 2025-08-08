@@ -763,12 +763,12 @@ public class RecurringJobHostedServiceTests
         Func<IServiceProvider, Task> run,
         Func<IServiceProvider, ValueTask<bool>> shouldRun,
         IServiceProvider services)
-        : IJob
+        : Job
     {
-        public Task RunAsync(CancellationToken cancellationToken)
+        protected override Task RunAsync(CancellationToken cancellationToken)
             => run(services);
 
-        public ValueTask<bool> ShouldRun(CancellationToken cancellationToken)
+        protected override ValueTask<bool> ShouldRun(CancellationToken cancellationToken)
             => shouldRun(services);
     }
 
@@ -892,7 +892,7 @@ public class RecurringJobHostedServiceTests
     }
 
     private sealed class DisposableJob(AtomicCounter disposeCounter)
-        : IJob
+        : Job
         , IDisposable
     {
         public void Dispose()
@@ -900,14 +900,14 @@ public class RecurringJobHostedServiceTests
             disposeCounter.Increment();
         }
 
-        public Task RunAsync(CancellationToken cancellationToken)
+        protected override Task RunAsync(CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }
     }
 
     private sealed class AsyncDisposableJob(AtomicCounter disposeCounter)
-        : IJob
+        : Job
         , IAsyncDisposable
     {
         public ValueTask DisposeAsync()
@@ -917,14 +917,14 @@ public class RecurringJobHostedServiceTests
             return ValueTask.CompletedTask;
         }
 
-        public Task RunAsync(CancellationToken cancellationToken)
+        protected override Task RunAsync(CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }
     }
 
     private sealed class BothDisposableJob(AtomicCounter disposeCounter, AtomicCounter asyncDisposeCounter)
-        : IJob
+        : Job
         , IAsyncDisposable
     {
         public void Dispose()
@@ -939,7 +939,7 @@ public class RecurringJobHostedServiceTests
             return ValueTask.CompletedTask;
         }
 
-        public Task RunAsync(CancellationToken cancellationToken)
+        protected override Task RunAsync(CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }

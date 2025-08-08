@@ -10,15 +10,14 @@ public interface IJob
     /// <summary>
     /// Gets the name of the job.
     /// </summary>
-    string Name => GetType().Name;
+    string Name { get; }
 
     /// <summary>
     /// Checks if the job should run at this time.
     /// </summary>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns><see langword="true"/>, if the job should be allowed to run at this time, otherwise <see langword="false"/>.</returns>
-    ValueTask<bool> ShouldRun(CancellationToken cancellationToken = default)
-        => ValueTask.FromResult(true);
+    ValueTask<bool> ShouldRun(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Runs the job.
