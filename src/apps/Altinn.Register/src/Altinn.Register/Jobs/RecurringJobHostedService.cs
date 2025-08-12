@@ -23,6 +23,7 @@ internal sealed partial class RecurringJobHostedService
     private readonly Counter<int> _jobsStarted;
     private readonly Counter<int> _jobsFailed;
     private readonly Counter<int> _jobsSucceeded;
+    private readonly Counter<int> _jobsSkipped;
 
     private readonly TimeProvider _timeProvider;
     private readonly LeaseManager _leaseManager;
@@ -61,6 +62,7 @@ internal sealed partial class RecurringJobHostedService
         _jobsStarted = telemetry.CreateCounter<int>("register.jobs.started", unit: "jobs", description: "The number of jobs that have been started");
         _jobsFailed = telemetry.CreateCounter<int>("register.jobs.failed", unit: "jobs", description: "The number of jobs that have failed");
         _jobsSucceeded = telemetry.CreateCounter<int>("register.jobs.succeeded", unit: "jobs", description: "The number of jobs that have succeeded");
+        _jobsSkipped = telemetry.CreateCounter<int>("register.jobs.skipped", unit: "jobs", description: "The number of jobs that have been skipped");
 
         _timeProvider = timeProvider;
         _leaseManager = leaseManager;
@@ -151,6 +153,12 @@ internal sealed partial class RecurringJobHostedService
         {
             cancellationToken.ThrowIfCancellationRequested();
 
+            var isEnabled = await IsEnabled(registration, throwOnException: true, lifecycle.ToString(), cancellationToken);
+            if (!isEnabled)
+            {
+                continue;
+            }
+
             if (registration.LeaseName is null)
             {
                 await RunJob(registration, throwOnException: true, lifecycle.ToString(), cancellationToken);
@@ -177,55 +185,90 @@ internal sealed partial class RecurringJobHostedService
     private Task<JobRunResult> RunJob(JobRegistration registration, bool throwOnException, string source, CancellationToken cancellationToken)
     {
         return Task.Run(
-            async () => 
+            async () =>
             {
                 Activity.Current = null;
 
-                await using var scope = _serviceScopeFactory.CreateAsyncScope();
-                var job = registration.Create(scope.ServiceProvider);
-
-                var start = _timeProvider.GetTimestamp();
-                var name = job.Name;
-
-                var jobTags = new TagList([
-                    new("job.name", name),
-                    new("job.source", source),
-                ]);
-                using var activity = RegisterTelemetry.StartActivity($"run job {name}", ActivityKind.Internal);
+                IJob? job = null;
                 try
                 {
-                    _jobsStarted.Add(1, in jobTags);
-                    Log.JobStarting(_logger, name);
+                    await using var scope = _serviceScopeFactory.CreateAsyncScope();
+                    job = registration.Create(scope.ServiceProvider);
+                    var name = job.Name;
+                    var jobTags = new TagList([
+                        new("job.name", name),
+                        new("job.source", source),
+                    ]);
 
-                    // update the start point to be more correct
-                    start = _timeProvider.GetTimestamp();
-                    await job.RunAsync(cancellationToken);
-                    var elapsed = _timeProvider.GetElapsedTime(start);
+                    using var outerActivity = RegisterTelemetry.StartActivity($"job {name}", ActivityKind.Internal, tags: in jobTags);
 
-                    _jobsSucceeded.Add(1, in jobTags);
-                    Log.JobCompleted(_logger, name, elapsed);
-                    activity?.SetStatus(ActivityStatusCode.Ok);
-                    return new JobRunResult(name, elapsed, null);
-                }
-                catch (OperationCanceledException e) when (e.CancellationToken == cancellationToken)
-                {
-                    throw;
-                }
-                catch (Exception e)
-                {
-                    var elapsed = _timeProvider.GetElapsedTime(start);
-
-                    _jobsFailed.Add(1, in jobTags);
-                    Log.JobFailed(_logger, name, elapsed, e);
-                    activity?.SetStatus(ActivityStatusCode.Error, e.Message);
-
-                    if (throwOnException)
+                    try
+                    {
+                        using var shouldRunActivity = RegisterTelemetry.StartActivity($"should run job {name}", ActivityKind.Internal, tags: in jobTags);
+                        var shouldRun = await job.ShouldRun(cancellationToken);
+                        if (!shouldRun)
+                        {
+                            _jobsSkipped.Add(1, in jobTags);
+                            Log.JobSkipped(_logger, name);
+                            return JobRunResult.Skipped(name);
+                        }
+                    }
+                    catch (OperationCanceledException e) when (e.CancellationToken == cancellationToken)
                     {
                         throw;
                     }
+                    catch (Exception e)
+                    {
+                        _jobsFailed.Add(1, in jobTags);
+                        Log.JobFailed(_logger, name, duration: TimeSpan.Zero, e);
+                        outerActivity?.SetStatus(ActivityStatusCode.Error, e.Message);
 
-                    var exception = ExceptionDispatchInfo.Capture(e);
-                    return new JobRunResult(name, elapsed, exception);
+                        if (throwOnException)
+                        {
+                            throw;
+                        }
+
+                        var exception = ExceptionDispatchInfo.Capture(e);
+                        return JobRunResult.Failure(name, duration: TimeSpan.Zero, exception);
+                    }
+
+                    var start = _timeProvider.GetTimestamp();
+                    using var activity = RegisterTelemetry.StartActivity($"run job {name}", ActivityKind.Internal, tags: in jobTags);
+                    try
+                    {
+                        _jobsStarted.Add(1, in jobTags);
+                        Log.JobStarting(_logger, name);
+
+                        // update the start point to be more correct
+                        start = _timeProvider.GetTimestamp();
+                        await job.RunAsync(cancellationToken);
+                        var elapsed = _timeProvider.GetElapsedTime(start);
+
+                        _jobsSucceeded.Add(1, in jobTags);
+                        Log.JobCompleted(_logger, name, elapsed);
+                        activity?.SetStatus(ActivityStatusCode.Ok);
+                        return JobRunResult.Success(name, elapsed);
+                    }
+                    catch (OperationCanceledException e) when (e.CancellationToken == cancellationToken)
+                    {
+                        throw;
+                    }
+                    catch (Exception e)
+                    {
+                        var elapsed = _timeProvider.GetElapsedTime(start);
+
+                        _jobsFailed.Add(1, in jobTags);
+                        Log.JobFailed(_logger, name, elapsed, e);
+                        activity?.SetStatus(ActivityStatusCode.Error, e.Message);
+
+                        if (throwOnException)
+                        {
+                            throw;
+                        }
+
+                        var exception = ExceptionDispatchInfo.Capture(e);
+                        return JobRunResult.Failure(name, elapsed, exception);
+                    }
                 }
                 finally
                 {
@@ -240,6 +283,27 @@ internal sealed partial class RecurringJobHostedService
                 }
             },
             cancellationToken);
+    }
+
+    private async ValueTask<bool> IsEnabled(JobRegistration registration, bool throwOnException, string source, CancellationToken cancellationToken)
+    {
+        using var activity = RegisterTelemetry.StartActivity($"check job-registration enabled", ActivityKind.Internal, tags: [new("job.source", source)]);
+
+        try
+        {
+            return await registration.Enabled(_serviceProvider, cancellationToken);
+        }
+        catch (Exception e)
+        {
+            Log.JobIsEnabledFailed(_logger, e);
+
+            if (throwOnException)
+            {
+                throw;
+            }
+
+            return false;
+        }
     }
 
     private Task RunScheduler(CancellationToken cancellationToken)
@@ -297,6 +361,16 @@ internal sealed partial class RecurringJobHostedService
             await scheduler.Sleep(interval - elapsed, cancellationToken).ConfigureAwait(false);
             elapsed = TimeSpan.Zero;
 
+            // we check if the job is enabled. If it isn't, we sleep for 10x the interval to reduce usage for disabled jobs.
+            // this still allows enabling jobs via feature-flags without having to restart the host.
+            var isEnabled = await IsEnabled(registration, throwOnException: false, "scheduler", cancellationToken);
+            if (!isEnabled)
+            {
+                // 8x, cause we already waited for `interval` once, and we continue so it will wait for another `interval` before checking again
+                await scheduler.Sleep(interval * 8, cancellationToken).ConfigureAwait(false);
+                continue;
+            }
+
             // run the job
             await RunJob(registration, throwOnException: false, "scheduler", cancellationToken);
         }
@@ -317,6 +391,16 @@ internal sealed partial class RecurringJobHostedService
             DateTimeOffset lastCompleted;
 
             {
+                // check if the job is enabled. If it isn't, we can skip the lease acquisition.
+                var isEnabled = await IsEnabled(registration, throwOnException: false, "lease-scheduler", cancellationToken);
+                if (!isEnabled)
+                {
+                    // here, we just sleep for 10x the interval to reduce usage for disabled jobs.
+                    // this still allows enabling jobs via feature-flags without having to restart the host.
+                    await scheduler.Sleep(interval * 10, cancellationToken).ConfigureAwait(false);
+                    continue;
+                }
+
                 // we try to grab the lease first, as it might have been longer than `interval` time since we last ran
                 await using var lease = await _leaseManager.AcquireLease(
                     leaseName,
@@ -393,7 +477,55 @@ internal sealed partial class RecurringJobHostedService
         }
     }
 
-    private sealed record JobRunResult(string Name, TimeSpan Duration, ExceptionDispatchInfo? Exception);
+    private sealed record JobRunResult
+    {
+        public static JobRunResult Disabled { get; } = new(Outcome.Disabled, exception: null);
+        
+        public static JobRunResult Success(string name, TimeSpan duration)
+            => new(Outcome.Success, exception: null) { Name = name, Duration = duration };
+
+        public static JobRunResult Failure(string name, TimeSpan duration, ExceptionDispatchInfo exception)
+            => new(Outcome.Failure, exception) { Name = name, Duration = duration };
+
+        public static JobRunResult Skipped(string name)
+            => new(Outcome.Skipped, exception: null) { Name = name };
+
+        private readonly Outcome _outcome;
+        private readonly ExceptionDispatchInfo? _exception;
+
+        public string? Name { get; private init; }
+
+        public TimeSpan Duration { get; private init; }
+
+        private JobRunResult(Outcome outcome, ExceptionDispatchInfo? exception)
+        {
+            _outcome = outcome;
+            _exception = exception;
+        }
+
+        private enum Outcome
+        {
+            /// <summary>
+            /// Indicates that <see cref="JobRegistration.Enabled(IServiceProvider, CancellationToken)"/> returned <see langword="false"/>.
+            /// </summary>
+            Disabled,
+
+            /// <summary>
+            /// Indicates that <see cref="IJob.ShouldRun(CancellationToken)"/> returned <see langword="false"/>.
+            /// </summary>
+            Skipped,
+
+            /// <summary>
+            /// Indicates that the job ran successfully.
+            /// </summary>
+            Success,
+
+            /// <summary>
+            /// Indicates that the job ran, but failed with an exception.
+            /// </summary>
+            Failure,
+        }
+    }
 
     private sealed class ScheduledJobTracker
         : IValueTaskSource
@@ -671,5 +803,11 @@ internal sealed partial class RecurringJobHostedService
 
         [LoggerMessage(3, LogLevel.Information, "Skipping job as lease {LeaseName} not acquired for lifecycle event {Lifecycle}")]
         public static partial void LeaseNotAcquired(ILogger logger, string leaseName, JobHostLifecycles lifecycle);
+
+        [LoggerMessage(4, LogLevel.Error, "Job registration enabled check failed")]
+        public static partial void JobIsEnabledFailed(ILogger logger, Exception exception);
+
+        [LoggerMessage(5, LogLevel.Information, "Job {JobName} skipped as it is not enabled")]
+        public static partial void JobSkipped(ILogger logger, string jobName);
     }
 }
