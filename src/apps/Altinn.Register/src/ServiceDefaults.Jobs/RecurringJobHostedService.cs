@@ -32,6 +32,7 @@ internal sealed partial class RecurringJobHostedService
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<RecurringJobHostedService> _logger;
     private readonly ImmutableArray<JobRegistration> _registrations;
+    private readonly ImmutableArray<IJobCondition> _conditions;
     private Task? _schedulerTask;
     private CancellationTokenSource? _stoppingCts;
 
@@ -58,7 +59,8 @@ internal sealed partial class RecurringJobHostedService
         IServiceProvider serviceProvider,
         IServiceScopeFactory serviceScopeFactory,
         ILogger<RecurringJobHostedService> logger,
-        IEnumerable<JobRegistration> registrations)
+        IEnumerable<JobRegistration> registrations,
+        IEnumerable<IJobCondition> conditions)
     {
         _jobsStarted = telemetry.CreateCounter<int>("register.jobs.started", unit: "jobs", description: "The number of jobs that have been started");
         _jobsFailed = telemetry.CreateCounter<int>("register.jobs.failed", unit: "jobs", description: "The number of jobs that have failed");
@@ -71,6 +73,7 @@ internal sealed partial class RecurringJobHostedService
         _serviceScopeFactory = serviceScopeFactory;
         _logger = logger;
         _registrations = registrations.ToImmutableArray();
+        _conditions = conditions.ToImmutableArray();
         _tracker = new(_timeProvider);
     }
 
@@ -290,6 +293,40 @@ internal sealed partial class RecurringJobHostedService
     {
         using var activity = JobsTelemetry.StartActivity($"check job-registration enabled", ActivityKind.Internal, tags: [new("job.source", source)]);
 
+        foreach (var condition in _conditions)
+        {
+            if (!AppliesTo(condition, registration))
+            {
+                continue;
+            }
+
+            bool canRun;
+            using var conditionActivity = JobsTelemetry.StartActivity($"check job-registration condition", ActivityKind.Internal, tags: [new("condition.name", condition.Name)]);
+            try
+            {
+                canRun = await condition.ShouldRun(cancellationToken);
+            }
+            catch (Exception e)
+            {
+                Log.JobConditionFailed(_logger, condition.Name, e);
+                conditionActivity?.SetStatus(ActivityStatusCode.Error);
+
+                if (throwOnException)
+                {
+                    throw;
+                }
+
+                return false;
+            }
+
+            if (!canRun)
+            {
+                Log.JobBlockedByCondition(_logger, condition.Name);
+
+                return false;
+            }
+        }
+
         try
         {
             return await registration.Enabled(_serviceProvider, cancellationToken);
@@ -304,6 +341,19 @@ internal sealed partial class RecurringJobHostedService
             }
 
             return false;
+        }
+
+        static bool AppliesTo(IJobCondition condition, JobRegistration registration)
+        {
+            foreach (var tag in condition.JobTags)
+            {
+                if (!registration.HasTag(tag))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 
@@ -810,5 +860,11 @@ internal sealed partial class RecurringJobHostedService
 
         [LoggerMessage(5, LogLevel.Information, "Job {JobName} skipped as it is not enabled")]
         public static partial void JobSkipped(ILogger logger, string jobName);
+
+        [LoggerMessage(6, LogLevel.Error, "Job condition {ConditionName} failed")]
+        public static partial void JobConditionFailed(ILogger logger, string conditionName, Exception exception);
+
+        [LoggerMessage(7, LogLevel.Information, "Job blocked by condition {ConditionName}")]
+        public static partial void JobBlockedByCondition(ILogger logger, string conditionName);
     }
 }
