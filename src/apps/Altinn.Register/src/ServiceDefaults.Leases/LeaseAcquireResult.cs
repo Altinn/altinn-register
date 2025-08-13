@@ -1,8 +1,6 @@
-﻿#nullable enable
+﻿using System.Diagnostics.CodeAnalysis;
 
-using System.Diagnostics.CodeAnalysis;
-
-namespace Altinn.Register.Core.Leases;
+namespace Altinn.Authorization.ServiceDefaults.Leases;
 
 /// <summary>
 /// A result of attempting to acquire a lease.

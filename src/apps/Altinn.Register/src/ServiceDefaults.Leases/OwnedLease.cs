@@ -1,10 +1,8 @@
-﻿#nullable enable
-
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.Logging;
 
-namespace Altinn.Register.Core.Leases;
+namespace Altinn.Authorization.ServiceDefaults.Leases;
 
 /// <summary>
 /// An owned lease that auto-renews and releases the lease when disposed.
@@ -18,7 +16,7 @@ internal sealed partial class OwnedLease
     public static readonly TimeSpan LeaseRenewalInterval = TimeSpan.FromMinutes(2);
     private static readonly TimeSpan RenewalSafetyMargin = TimeSpan.FromSeconds(5);
 
-    private static readonly TimerCallback _timerCallback = static (object? state) =>
+    private static readonly TimerCallback _timerCallback = static (state) =>
     {
         Debug.Assert(state is TimerState, $"Expected {typeof(TimerState)}, got {state}");
         ((TimerState)state!).Tick();
@@ -156,7 +154,7 @@ internal sealed partial class OwnedLease
         var ticket = Volatile.Read(ref _ticket);
         var expiry = ticket.Expires;
         var now = _timeProvider.GetUtcNow();
-        var duration = (expiry - now) - RenewalSafetyMargin;
+        var duration = expiry - now - RenewalSafetyMargin;
 
         if (duration <= TimeSpan.Zero)
         {

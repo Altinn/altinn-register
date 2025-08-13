@@ -1,6 +1,4 @@
-﻿#nullable enable
-
-namespace Altinn.Register.Core.Leases;
+﻿namespace Altinn.Authorization.ServiceDefaults.Leases;
 
 /// <summary>
 /// A ticket representing a lease.

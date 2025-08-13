@@ -3,7 +3,7 @@
 using System.Data;
 using System.Diagnostics;
 using Altinn.Authorization.ModelUtils;
-using Altinn.Register.Core.Leases;
+using Altinn.Authorization.ServiceDefaults.Leases;
 using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Npgsql;

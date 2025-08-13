@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Core.Leases;
+﻿using Altinn.Authorization.ServiceDefaults.Leases;
 using Altinn.Register.TestUtils;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
