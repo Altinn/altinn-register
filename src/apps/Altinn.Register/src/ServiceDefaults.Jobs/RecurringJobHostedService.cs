@@ -1,15 +1,16 @@
-﻿#nullable enable
-
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Metrics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks.Sources;
+using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Authorization.ServiceDefaults.Leases;
-using Altinn.Register.Core;
 using CommunityToolkit.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Altinn.Register.Jobs;
 
@@ -51,7 +52,7 @@ internal sealed partial class RecurringJobHostedService
     /// Initializes a new instance of the <see cref="RecurringJobHostedService"/> class.
     /// </summary>
     public RecurringJobHostedService(
-        RegisterTelemetry telemetry,
+        JobsTelemetry telemetry,
         TimeProvider timeProvider,
         LeaseManager leaseManager,
         IServiceProvider serviceProvider,
@@ -200,11 +201,11 @@ internal sealed partial class RecurringJobHostedService
                         new("job.source", source),
                     ]);
 
-                    using var outerActivity = RegisterTelemetry.StartActivity($"job {name}", ActivityKind.Internal, tags: in jobTags);
+                    using var outerActivity = JobsTelemetry.StartActivity($"job {name}", ActivityKind.Internal, tags: in jobTags);
 
                     try
                     {
-                        using var shouldRunActivity = RegisterTelemetry.StartActivity($"should run job {name}", ActivityKind.Internal, tags: in jobTags);
+                        using var shouldRunActivity = JobsTelemetry.StartActivity($"should run job {name}", ActivityKind.Internal, tags: in jobTags);
                         var shouldRun = await job.ShouldRun(cancellationToken);
                         if (!shouldRun)
                         {
@@ -233,7 +234,7 @@ internal sealed partial class RecurringJobHostedService
                     }
 
                     var start = _timeProvider.GetTimestamp();
-                    using var activity = RegisterTelemetry.StartActivity($"run job {name}", ActivityKind.Internal, tags: in jobTags);
+                    using var activity = JobsTelemetry.StartActivity($"run job {name}", ActivityKind.Internal, tags: in jobTags);
                     try
                     {
                         _jobsStarted.Add(1, in jobTags);
@@ -287,7 +288,7 @@ internal sealed partial class RecurringJobHostedService
 
     private async ValueTask<bool> IsEnabled(JobRegistration registration, bool throwOnException, string source, CancellationToken cancellationToken)
     {
-        using var activity = RegisterTelemetry.StartActivity($"check job-registration enabled", ActivityKind.Internal, tags: [new("job.source", source)]);
+        using var activity = JobsTelemetry.StartActivity($"check job-registration enabled", ActivityKind.Internal, tags: [new("job.source", source)]);
 
         try
         {

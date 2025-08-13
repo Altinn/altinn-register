@@ -1,6 +1,6 @@
-﻿#nullable enable
+﻿using Microsoft.Extensions.Hosting;
 
-namespace Altinn.Register.Jobs;
+namespace Altinn.Authorization.ServiceDefaults.Jobs;
 
 /// <summary>
 /// Host lifecycle events that a job can be run at (in addition to the regular scheduled run).

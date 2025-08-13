@@ -33,6 +33,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Altinn.Register.Core\Altinn.Register.Core.csproj" />
     <ProjectReference Include="..\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
+    <ProjectReference Include="..\ServiceDefaults.Jobs\Altinn.Authorization.ServiceDefaults.Jobs.csproj" />
     <ProjectReference Include="..\ServiceDefaults.MassTransit\Altinn.Authorization.ServiceDefaults.MassTransit.csproj" />
   </ItemGroup>
 

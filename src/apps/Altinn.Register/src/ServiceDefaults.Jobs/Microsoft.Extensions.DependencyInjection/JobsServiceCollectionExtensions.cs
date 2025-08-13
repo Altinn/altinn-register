@@ -1,5 +1,4 @@
-﻿#nullable enable
-
+﻿using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Register.Jobs;
 using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -7,9 +6,9 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
-/// Extension methods for adding recurring jobs to the <see cref="IServiceCollection"/>.
+/// Extension methods for <see cref="IServiceCollection"/>.
 /// </summary>
-public static class RecurringJobServiceCollectionExtensions
+public static class JobsServiceCollectionExtensions
 {
     /// <summary>
     /// Adds a recurring job to the <see cref="IServiceCollection"/>.
@@ -82,7 +81,19 @@ public static class RecurringJobServiceCollectionExtensions
     {
         Guard.IsNotNull(services);
 
+        if (services.Contains(Marker.ServiceDescriptor))
+        {
+            // already registered
+            return services;
+        }
+
+        services.Add(Marker.ServiceDescriptor);
+        services.TryAddSingleton<JobsTelemetry>();
         services.AddHostedService<RecurringJobHostedService>();
+
+        services.AddOpenTelemetry()
+            .WithTracing(t => t.AddSource(JobsTelemetry.Name))
+            .WithMetrics(t => t.AddMeter(JobsTelemetry.Name));
 
         return services;
     }
@@ -118,5 +129,10 @@ public static class RecurringJobServiceCollectionExtensions
 
         /// <inheritdoc/>
         public Func<IServiceProvider, CancellationToken, ValueTask>? WaitForReady { get; set; } = null;
+    }
+
+    private sealed class Marker
+    {
+        public static readonly ServiceDescriptor ServiceDescriptor = ServiceDescriptor.Singleton<Marker, Marker>();
     }
 }
