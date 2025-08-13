@@ -1,13 +1,13 @@
 ﻿using System.Collections.Immutable;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Altinn.Authorization.ServiceDefaults.Leases;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Authorization.ServiceDefaults.Npgsql.TestSeed;
 using Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.ImportJobs;
-using Altinn.Register.Core.Leases;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Persistence;

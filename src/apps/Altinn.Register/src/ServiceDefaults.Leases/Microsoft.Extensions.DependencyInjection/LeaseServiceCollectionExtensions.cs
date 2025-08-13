@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Core.Leases;
+﻿using Altinn.Authorization.ServiceDefaults.Leases;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Microsoft.Extensions.DependencyInjection;

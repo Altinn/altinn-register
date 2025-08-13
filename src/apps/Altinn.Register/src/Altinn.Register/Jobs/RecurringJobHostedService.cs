@@ -7,8 +7,8 @@ using System.Diagnostics.Metrics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks.Sources;
+using Altinn.Authorization.ServiceDefaults.Leases;
 using Altinn.Register.Core;
-using Altinn.Register.Core.Leases;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.Jobs;

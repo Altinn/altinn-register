@@ -1,9 +1,7 @@
-﻿#nullable enable
-
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Altinn.Register.Core.Leases;
+namespace Altinn.Authorization.ServiceDefaults.Leases;
 
 /// <summary>
 /// Result from calling <see cref="LeaseManager.AcquireLease(string, CancellationToken)"/>, either a

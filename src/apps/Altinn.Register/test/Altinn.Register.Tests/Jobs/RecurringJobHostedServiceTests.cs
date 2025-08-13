@@ -1,7 +1,7 @@
 ﻿#nullable enable
 
+using Altinn.Authorization.ServiceDefaults.Leases;
 using Altinn.Register.Core;
-using Altinn.Register.Core.Leases;
 using Altinn.Register.Jobs;
 using Altinn.Register.Tests.Utils;
 using Altinn.Register.TestUtils;
