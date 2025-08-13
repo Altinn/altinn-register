@@ -1,5 +1,6 @@
 ﻿#nullable enable
 
+using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Authorization.ServiceDefaults.Leases;
 using Altinn.Register.Core;
 using Altinn.Register.Jobs;
@@ -34,6 +35,7 @@ public class RecurringJobHostedServiceTests
 
         services.AddLeaseManager();
         services.TryAddSingleton<RegisterTelemetry>();
+        services.TryAddSingleton<JobsTelemetry>();
     }
 
     private ILeaseProvider Provider

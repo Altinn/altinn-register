@@ -1,11 +1,11 @@
 ﻿#nullable enable
 
 using System.Collections.Frozen;
+using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
-using Altinn.Register.Jobs;
 
 namespace Altinn.Register.PartyImport.A2;
 

@@ -1,6 +1,4 @@
-﻿#nullable enable
-
-namespace Altinn.Register.Jobs;
+﻿namespace Altinn.Authorization.ServiceDefaults.Jobs;
 
 /// <summary>
 /// A registration for a job.
