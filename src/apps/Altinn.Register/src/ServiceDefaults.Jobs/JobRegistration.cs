@@ -1,4 +1,7 @@
-﻿namespace Altinn.Authorization.ServiceDefaults.Jobs;
+﻿using System.Collections.Immutable;
+using CommunityToolkit.Diagnostics;
+
+namespace Altinn.Authorization.ServiceDefaults.Jobs;
 
 /// <summary>
 /// A registration for a job.
@@ -7,9 +10,11 @@ public abstract class JobRegistration(
     string? leaseName,
     TimeSpan interval,
     JobHostLifecycles runAt,
+    IEnumerable<string> tags,
     Func<IServiceProvider, CancellationToken, ValueTask<bool>>? enabled,
     Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady)
 {
+    private readonly ImmutableArray<string> _tags = ToTagArray(tags);
     private readonly Lock _lock = new();
     private Task? _ready;
 
@@ -34,6 +39,20 @@ public abstract class JobRegistration(
     /// Gets the <see cref="JobHostLifecycles"/> that the job should run at.
     /// </summary>
     public JobHostLifecycles RunAt => runAt;
+
+    /// <summary>
+    /// Checks if the job has a specific tag.
+    /// </summary>
+    /// <param name="tag">The tag name.</param>
+    /// <returns><see langword="true"/> if the job has the tag <paramref name="tag"/>, otherwise <see langword="false"/>.</returns>
+    public bool HasTag(string tag)
+    {
+        Guard.IsNotNullOrEmpty(tag);
+
+        // _tags is immutable and sorted, so we can use binary search
+        int index = _tags.AsSpan().BinarySearch(tag, StringComparer.Ordinal);
+        return index >= 0;
+    }
 
     /// <summary>
     /// Checks if the job is enabled or not.
@@ -82,5 +101,17 @@ public abstract class JobRegistration(
         }
 
         return task.WaitAsync(cancellationToken);
+    }
+
+    private static ImmutableArray<string> ToTagArray(IEnumerable<string> tags)
+    {
+        if (tags is IReadOnlyCollection<string> { Count: 0 }
+            || tags is ICollection<string> { Count: 0 })
+        {
+            return [];
+        }
+
+        var set = new SortedSet<string>(tags, StringComparer.Ordinal);
+        return [.. set];
     }
 }

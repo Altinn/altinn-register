@@ -26,6 +26,11 @@ public interface IJobSettings
     JobHostLifecycles RunAt { get; set; }
 
     /// <summary>
+    /// Gets a collection of tags that can be used to categorize the job.
+    /// </summary>
+    ISet<string> Tags { get; }
+
+    /// <summary>
     /// Gets or sets a delegate that will be called to check if the job is enabled or not.
     /// </summary>
     /// <remarks>
