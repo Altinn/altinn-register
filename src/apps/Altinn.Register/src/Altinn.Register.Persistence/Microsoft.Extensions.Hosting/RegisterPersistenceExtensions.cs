@@ -10,6 +10,7 @@ using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
+using Altinn.Register.Core.Utils;
 using Altinn.Register.Persistence;
 using Altinn.Register.Persistence.DbArgTypes;
 using Altinn.Register.Persistence.ImportJobs;
@@ -39,6 +40,34 @@ public static class RegisterPersistenceExtensions
         builder.AddPartyPersistence();
         builder.AddPostgresLeaseProvider();
         builder.AddPostgresImportTracker();
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a job condition that checks if the PostgreSQL database is smaller than the specified size.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder"/>.</param>
+    /// <param name="maxSize">The max size of the database.</param>
+    /// <param name="jobConditionName">The name of the job condition.</param>
+    /// <param name="jobTags">Tags used to target specific jobs the condition applies to.</param>
+    /// <returns><paramref name="builder"/>.</returns>
+    public static IHostApplicationBuilder AddDatabaseSizeJobCondition(
+        this IHostApplicationBuilder builder,
+        ByteSize maxSize,
+        string? jobConditionName = null,
+        IEnumerable<string>? jobTags = null)
+    {
+        AddDatabase(builder);
+        builder.Services.TryAddSingleton<PostgreSqlSizeService>();
+
+        jobConditionName ??= $"PostgreSQL database smaller than {maxSize}";
+        jobTags ??= ImmutableArray<string>.Empty;
+
+        builder.Services.AddJobCondition(
+            jobConditionName,
+            jobTags,
+            (PostgreSqlSizeService service, CancellationToken ct) => service.IsDatabaseSmallerThan(maxSize, ct));
 
         return builder;
     }
