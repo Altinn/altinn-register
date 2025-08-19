@@ -1,4 +1,5 @@
-﻿using Altinn.Authorization.ServiceDefaults.Jobs;
+﻿using System.Collections.Immutable;
+using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Register.Jobs;
 using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -73,6 +74,184 @@ public static class JobsServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Adds a job condition to the <see cref="IServiceCollection"/>.
+    /// </summary>
+    /// <typeparam name="T">The job condition type.</typeparam>
+    /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+    /// <returns><paramref name="services"/>.</returns>
+    public static IServiceCollection AddJobCondition<T>(this IServiceCollection services)
+        where T : class, IJobCondition
+    {
+        Guard.IsNotNull(services);
+
+        services.AddRecurringJobHostedService();
+
+        services.Add(ServiceDescriptor.Singleton<IJobCondition, T>());
+        return services;
+    }
+
+    private static IServiceCollection AddJobCondition(
+        IServiceCollection services,
+        string name,
+        IEnumerable<string> tags,
+        Func<IServiceProvider, Func<CancellationToken, ValueTask<bool>>> shouldRunFactory)
+    {
+        Guard.IsNotNull(services);
+        Guard.IsNotNullOrWhiteSpace(name);
+        Guard.IsNotNull(tags);
+        Guard.IsNotNull(shouldRunFactory);
+
+        services.AddRecurringJobHostedService();
+
+        services.AddSingleton<IJobCondition>(s =>
+        {
+            var shouldRun = shouldRunFactory(s);
+
+            return new FuncCondition(name, tags, shouldRun);
+        });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds a job condition to the <see cref="IServiceCollection"/>.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="name">The name of the condition.</param>
+    /// <param name="tags">The job-tags the condition targets.</param>
+    /// <param name="shouldRun">The function that determines if the job condition should run.</param>
+    /// <returns><paramref name="services"/>.</returns>
+    public static IServiceCollection AddJobCondition(
+        this IServiceCollection services,
+        string name,
+        IEnumerable<string> tags,
+        Func<CancellationToken, ValueTask<bool>> shouldRun)
+        => AddJobCondition(
+            services,
+            name,
+            tags,
+            _ => shouldRun);
+
+    /// <summary>
+    /// Adds a job condition to the <see cref="IServiceCollection"/>.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="name">The name of the condition.</param>
+    /// <param name="tags">The job-tags the condition targets.</param>
+    /// <param name="shouldRun">The function that determines if the job condition should run.</param>
+    /// <returns><paramref name="services"/>.</returns>
+    public static IServiceCollection AddJobCondition(
+        this IServiceCollection services,
+        string name,
+        IEnumerable<string> tags,
+        Func<bool> shouldRun)
+        => AddJobCondition(
+            services,
+            name,
+            tags,
+            _ => _ => ValueTask.FromResult(shouldRun()));
+
+    /// <summary>
+    /// Adds a job condition to the <see cref="IServiceCollection"/>.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="name">The name of the condition.</param>
+    /// <param name="tags">The job-tags the condition targets.</param>
+    /// <param name="shouldRun">The function that determines if the job condition should run.</param>
+    /// <returns><paramref name="services"/>.</returns>
+    public static IServiceCollection AddJobCondition<T>(
+        this IServiceCollection services,
+        string name,
+        IEnumerable<string> tags,
+        Func<T, CancellationToken, ValueTask<bool>> shouldRun)
+        where T : notnull
+        => AddJobCondition(
+            services,
+            name,
+            tags,
+            s =>
+            {
+                var dep = s.GetRequiredService<T>();
+                return (cancellationToken) => shouldRun(dep, cancellationToken);
+            });
+
+    /// <summary>
+    /// Adds a job condition to the <see cref="IServiceCollection"/>.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="name">The name of the condition.</param>
+    /// <param name="tags">The job-tags the condition targets.</param>
+    /// <param name="shouldRun">The function that determines if the job condition should run.</param>
+    /// <returns><paramref name="services"/>.</returns>
+    public static IServiceCollection AddJobCondition<T>(
+        this IServiceCollection services,
+        string name,
+        IEnumerable<string> tags,
+        Func<T, bool> shouldRun)
+        where T : notnull
+        => AddJobCondition(
+            services,
+            name,
+            tags,
+            s =>
+            {
+                var dep = s.GetRequiredService<T>();
+                return _ => ValueTask.FromResult(shouldRun(dep));
+            });
+
+    /// <summary>
+    /// Adds a job condition to the <see cref="IServiceCollection"/>.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="name">The name of the condition.</param>
+    /// <param name="tags">The job-tags the condition targets.</param>
+    /// <param name="shouldRun">The function that determines if the job condition should run.</param>
+    /// <returns><paramref name="services"/>.</returns>
+    public static IServiceCollection AddJobCondition<T1, T2>(
+        this IServiceCollection services,
+        string name,
+        IEnumerable<string> tags,
+        Func<T1, T2, CancellationToken, ValueTask<bool>> shouldRun)
+        where T1 : notnull
+        where T2 : notnull
+        => AddJobCondition(
+            services,
+            name,
+            tags,
+            s =>
+            {
+                var dep1 = s.GetRequiredService<T1>();
+                var dep2 = s.GetRequiredService<T2>();
+                return (cancellationToken) => shouldRun(dep1, dep2, cancellationToken);
+            });
+
+    /// <summary>
+    /// Adds a job condition to the <see cref="IServiceCollection"/>.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="name">The name of the condition.</param>
+    /// <param name="tags">The job-tags the condition targets.</param>
+    /// <param name="shouldRun">The function that determines if the job condition should run.</param>
+    /// <returns><paramref name="services"/>.</returns>
+    public static IServiceCollection AddJobCondition<T1, T2>(
+        this IServiceCollection services,
+        string name,
+        IEnumerable<string> tags,
+        Func<T1, T2, bool> shouldRun)
+        where T1 : notnull
+        where T2 : notnull
+        => AddJobCondition(
+            services,
+            name,
+            tags,
+            s =>
+            {
+                var dep1 = s.GetRequiredService<T1>();
+                var dep2 = s.GetRequiredService<T2>();
+                return _ => ValueTask.FromResult(shouldRun(dep1, dep2));
+            });
+
+    /// <summary>
     /// Adds the job-runner as a hosted service.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>
@@ -133,6 +312,22 @@ public static class JobsServiceCollectionExtensions
 
         /// <inheritdoc/>
         public Func<IServiceProvider, CancellationToken, ValueTask>? WaitForReady { get; set; } = null;
+    }
+
+    private sealed class FuncCondition(
+        string name,
+        IEnumerable<string> tags,
+        Func<CancellationToken, ValueTask<bool>> shouldRun)
+        : IJobCondition
+    {
+        public string Name { get; } = name;
+
+        public ImmutableArray<string> JobTags { get; } = [.. tags];
+
+        public ValueTask<bool> ShouldRun(CancellationToken cancellationToken = default)
+        {
+            return shouldRun(cancellationToken);
+        }
     }
 
     private sealed class Marker
