@@ -736,9 +736,8 @@ internal sealed partial class RecurringJobHostedService
                     // this should be the first thing that happens to a scheduler, and schedulers starts as running
                     Debug.Assert(scheduler._state == STATE_RUNNING);
                     scheduler._state = STATE_SLEEPING;
+                    scheduler._tracker.TrackSleeping();
                 }
-
-                scheduler._tracker.TrackSleeping();
 
                 try
                 {
@@ -751,9 +750,8 @@ internal sealed partial class RecurringJobHostedService
                         // still nothing should have invoked the scheduler
                         Debug.Assert(scheduler._state == STATE_SLEEPING);
                         scheduler._state = STATE_RUNNING;
+                        scheduler._tracker.TrackAwake();
                     }
-
-                    scheduler._tracker.TrackAwake();
                 }
             }
         }
@@ -767,13 +765,13 @@ internal sealed partial class RecurringJobHostedService
                 {
                     _state = STATE_RUNNING;
                     transition = true;
+                    _tracker.TrackAwake();
                 }
             }
 
             if (transition)
             {
                 _cancellationRegistration.Unregister();
-                _tracker.TrackAwake();
                 _source.SetResult(null);
             }
         }
@@ -787,13 +785,13 @@ internal sealed partial class RecurringJobHostedService
                 {
                     _state = STATE_RUNNING;
                     transition = true;
+                    _tracker.TrackAwake();
                 }
             }
 
             if (transition)
             {
                 _cancellationRegistration.Unregister();
-                _tracker.TrackAwake();
                 _source.SetException(new OperationCanceledException(cancellationToken));
             }
         }
@@ -806,19 +804,13 @@ internal sealed partial class RecurringJobHostedService
 
         void IValueTaskSource.OnCompleted(Action<object?> continuation, object? state, short token, ValueTaskSourceOnCompletedFlags flags)
         {
-            var transition = false;
             lock (_lock)
             {
                 if (_state == STATE_RUNNING)
                 {
                     _state = STATE_SLEEPING;
-                    transition = true;
+                    _tracker.TrackSleeping();
                 }
-            }
-
-            if (transition)
-            {
-                _tracker.TrackSleeping();
             }
 
             _source.OnCompleted(continuation, state, token, flags);
@@ -831,16 +823,16 @@ internal sealed partial class RecurringJobHostedService
             {
                 oldState = _state;
                 _state = STATE_DISPOSED;
+
+                if (oldState == STATE_SLEEPING)
+                {
+                    _tracker.TrackAwake();
+                }
             }
 
             if (oldState == STATE_DISPOSED)
             {
                 return;
-            }
-
-            if (oldState == STATE_SLEEPING)
-            {
-                _tracker.TrackAwake();
             }
 
             _cancellationRegistration.Dispose();
