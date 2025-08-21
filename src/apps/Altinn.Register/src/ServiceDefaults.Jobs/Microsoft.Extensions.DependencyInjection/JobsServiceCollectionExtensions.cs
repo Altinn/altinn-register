@@ -2,6 +2,7 @@
 using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Register.Jobs;
 using CommunityToolkit.Diagnostics;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -269,6 +270,15 @@ public static class JobsServiceCollectionExtensions
         services.Add(Marker.ServiceDescriptor);
         services.TryAddSingleton<JobsTelemetry>();
         services.AddHostedService<RecurringJobHostedService>();
+        services.AddOptions<RecurringJobHostedSettings>()
+            .Configure((RecurringJobHostedSettings settings, IConfiguration configuration) =>
+            {
+                // TODO: this should be a const originating in ServiceDefaults
+                if (configuration.GetValue("Altinn:RunInitOnly", defaultValue: false))
+                {
+                    settings.DisableScheduler = true;
+                }
+            });
 
         services.AddOpenTelemetry()
             .WithTracing(t => t.AddSource(JobsTelemetry.Name))

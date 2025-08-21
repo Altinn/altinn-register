@@ -11,6 +11,7 @@ using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Altinn.Register.Jobs;
 
@@ -33,6 +34,7 @@ internal sealed partial class RecurringJobHostedService
     private readonly ILogger<RecurringJobHostedService> _logger;
     private readonly ImmutableArray<JobRegistration> _registrations;
     private readonly ImmutableArray<IJobCondition> _conditions;
+    private readonly IOptionsMonitor<RecurringJobHostedSettings> _settings;
     private Task? _schedulerTask;
     private CancellationTokenSource? _stoppingCts;
 
@@ -60,7 +62,8 @@ internal sealed partial class RecurringJobHostedService
         IServiceScopeFactory serviceScopeFactory,
         ILogger<RecurringJobHostedService> logger,
         IEnumerable<JobRegistration> registrations,
-        IEnumerable<IJobCondition> conditions)
+        IEnumerable<IJobCondition> conditions,
+        IOptionsMonitor<RecurringJobHostedSettings> settings)
     {
         _jobsStarted = telemetry.CreateCounter<int>("register.jobs.started", unit: "jobs", description: "The number of jobs that have been started");
         _jobsFailed = telemetry.CreateCounter<int>("register.jobs.failed", unit: "jobs", description: "The number of jobs that have failed");
@@ -72,6 +75,7 @@ internal sealed partial class RecurringJobHostedService
         _serviceProvider = serviceProvider;
         _serviceScopeFactory = serviceScopeFactory;
         _logger = logger;
+        _settings = settings;
         _registrations = registrations.ToImmutableArray();
         _conditions = conditions.ToImmutableArray();
         _tracker = new(_timeProvider);
@@ -98,6 +102,11 @@ internal sealed partial class RecurringJobHostedService
     {
         // First, run all lifecycle jobs that should run at the start of the host
         await RunLifecycleJobs(JobHostLifecycles.Start, cancellationToken);
+
+        if (_settings.CurrentValue.DisableScheduler)
+        {
+            return;
+        }
 
         // Create linked token to allow cancelling executing task from provided token
         _stoppingCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -132,7 +141,7 @@ internal sealed partial class RecurringJobHostedService
 
     private async Task StopScheduler(CancellationToken cancellationToken)
     {
-        // Stop called without start
+        // Stop called without start, or scheduler was disabled
         if (_schedulerTask is null)
         {
             return;

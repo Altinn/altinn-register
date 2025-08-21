@@ -10,7 +10,6 @@ using Altinn.Register.Tests.Mocks;
 using Altinn.Register.Tests.Mocks.Authentication;
 using Altinn.Register.Tests.TestingControllers.Utils;
 using Altinn.Register.Tests.Utils;
-using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Http;
 using AltinnCore.Authentication.JwtCookie;
 using Microsoft.Extensions.DependencyInjection;

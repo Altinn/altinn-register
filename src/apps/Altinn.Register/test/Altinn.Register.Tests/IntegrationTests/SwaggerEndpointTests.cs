@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Altinn.Authorization.ServiceDefaults;
 using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Altinn.Register.Tests.IntegrationTests;
@@ -10,7 +11,11 @@ public class SwaggerEndpointTests
 
     public SwaggerEndpointTests(WebApplicationFactory<Program> factory)
     {
-        _factory = factory;
+        _factory = factory.WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("Altinn:IsTest", "true");
+            builder.UseSetting(AltinnPreStartLogger.DisableConfigKey, "true");
+        });
     }
 
     [Fact]

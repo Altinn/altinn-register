@@ -29,12 +29,11 @@ namespace Altinn.Register.Tests.TestingControllers
         /// <param name="factory">The WebApplicationFactory to use when creating a test server.</param>
         public OrganizationsControllerTests(WebApplicationFactory<OrganizationsController> factory)
         {
-            _factory = factory.WithWebHostBuilder(b => b.ConfigureAppConfiguration((ctx, c) =>
+            _factory = factory.WithWebHostBuilder(builder =>
             {
-                c.AddInMemoryCollection([
-                    new(AltinnPreStartLogger.DisableConfigKey, "true"),
-                ]);
-            }));
+                builder.UseSetting("Altinn:IsTest", "true");
+                builder.UseSetting(AltinnPreStartLogger.DisableConfigKey, "true");
+            });
         }
 
         [Fact]

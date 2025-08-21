@@ -193,7 +193,8 @@ internal static partial class RegisterHost
         }
 
         var initOnly = config.GetValue<bool>("Altinn:RunInitOnly");
-        if (!initOnly)
+        var isTest = config.GetValue<bool>("Altinn:IsTest");
+        if (!initOnly && !isTest)
         {
             if (config.GetValue<bool>("Altinn:MassTransit:register:Enable"))
             {

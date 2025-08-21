@@ -53,6 +53,7 @@ public class WebApplicationFixture
             var settings = new ConfigurationBuilder()
                 .AddInMemoryCollection([
                     new(AltinnPreStartLogger.DisableConfigKey, "true"),
+                    new("Altinn:IsTest", "true"),
                 ])
                 .Build();
             
