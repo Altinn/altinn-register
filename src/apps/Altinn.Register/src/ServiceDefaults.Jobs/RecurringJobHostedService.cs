@@ -20,7 +20,7 @@ namespace Altinn.Register.Jobs;
 /// </summary>
 internal sealed partial class RecurringJobHostedService
     : IHostedLifecycleService
-    , IDisposable
+    , IAsyncDisposable
 {
     private readonly Counter<int> _jobsStarted;
     private readonly Counter<int> _jobsFailed;
@@ -134,9 +134,23 @@ internal sealed partial class RecurringJobHostedService
     }
 
     /// <inheritdoc/>
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        _stoppingCts?.Cancel();
+        if (_stoppingCts is not null)
+        {
+            await _stoppingCts.CancelAsync();
+        }
+
+        if (_schedulerTask is not null)
+        {
+            await _schedulerTask.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            _schedulerTask = null;
+        }
+
+        _stoppingCts?.Dispose();
+        _stoppingCts = null;
+
+        _tracker.Dispose();
     }
 
     private async Task StopScheduler(CancellationToken cancellationToken)
@@ -586,6 +600,7 @@ internal sealed partial class RecurringJobHostedService
 
     private sealed class ScheduledJobTracker
         : IValueTaskSource
+        , IDisposable
     {
         private readonly TimeProvider _timeProvider;
         private readonly Lock _lock = new();
@@ -653,6 +668,13 @@ internal sealed partial class RecurringJobHostedService
                 Debug.Assert(_awakeSchedulers >= 0);
                 Debug.Assert(_awakeSchedulers <= _totalSchedulers);
             }
+        }
+
+        public void Dispose()
+        {
+            _source.Reset();
+            Debug.Assert(_awakeSchedulers == 0);
+            Debug.Assert(_totalSchedulers == 0);
         }
 
         public ValueTask WaitForRunningScheduledJobs()

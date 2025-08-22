@@ -1,6 +1,7 @@
 ﻿#nullable enable
 
 using System.Collections.Immutable;
+using System.Runtime.InteropServices;
 using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Authorization.ServiceDefaults.Leases;
 using Altinn.Register.Core;
@@ -45,7 +46,7 @@ public class RecurringJobHostedServiceTests
     [Fact]
     public async Task CanRun_WithNo_JobRegistrations()
     {
-        using var sut = CreateService([]);
+        await using var sut = CreateService([]);
 
         await Run(sut);
     }
@@ -54,7 +55,7 @@ public class RecurringJobHostedServiceTests
     public async Task CanRun_JobAt_Starting()
     {
         var counter = new AtomicCounter();
-        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Starting, counter)]);
+        await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Starting, counter)]);
 
         counter.Value.Should().Be(0);
         await sut.StartingAsync(CancellationToken.None);
@@ -73,7 +74,7 @@ public class RecurringJobHostedServiceTests
     public async Task CanRun_JobAt_Start()
     {
         var counter = new AtomicCounter();
-        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Start, counter)]);
+        await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Start, counter)]);
 
         await sut.StartingAsync(CancellationToken.None);
 
@@ -93,7 +94,7 @@ public class RecurringJobHostedServiceTests
     public async Task CanRun_JobAt_Started()
     {
         var counter = new AtomicCounter();
-        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Started, counter)]);
+        await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Started, counter)]);
 
         await sut.StartingAsync(CancellationToken.None);
         await sut.StartAsync(CancellationToken.None);
@@ -113,7 +114,7 @@ public class RecurringJobHostedServiceTests
     public async Task CanRun_JobAt_Stopping()
     {
         var counter = new AtomicCounter();
-        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stopping, counter)]);
+        await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stopping, counter)]);
 
         await sut.StartingAsync(CancellationToken.None);
         await sut.StartAsync(CancellationToken.None);
@@ -133,7 +134,7 @@ public class RecurringJobHostedServiceTests
     public async Task CanRun_JobAt_Stop()
     {
         var counter = new AtomicCounter();
-        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stop, counter)]);
+        await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stop, counter)]);
 
         await sut.StartingAsync(CancellationToken.None);
         await sut.StartAsync(CancellationToken.None);
@@ -153,7 +154,7 @@ public class RecurringJobHostedServiceTests
     public async Task CanRun_JobAt_Stopped()
     {
         var counter = new AtomicCounter();
-        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stopped, counter)]);
+        await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stopped, counter)]);
 
         await sut.StartingAsync(CancellationToken.None);
         await sut.StartAsync(CancellationToken.None);
@@ -170,7 +171,7 @@ public class RecurringJobHostedServiceTests
     public async Task CanRun_JobAt_All()
     {
         var counter = new AtomicCounter();
-        using var sut = CreateService([Counter.RunAt(
+        await using var sut = CreateService([Counter.RunAt(
             JobHostLifecycles.Starting | JobHostLifecycles.Start | JobHostLifecycles.Started | JobHostLifecycles.Stopping | JobHostLifecycles.Stop | JobHostLifecycles.Stopped,
             counter)]);
 
@@ -193,7 +194,7 @@ public class RecurringJobHostedServiceTests
     public async Task Cannot_UseLease_At_Starting()
     {
         var counter = new AtomicCounter();
-        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Starting, "test", counter)]);
+        await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Starting, "test", counter)]);
 
         await sut.Invoking(s => s.StartingAsync(CancellationToken.None)).Should().ThrowAsync<InvalidOperationException>();
     }
@@ -203,7 +204,7 @@ public class RecurringJobHostedServiceTests
     {
         var counter = new AtomicCounter();
         var start = TimeProvider.GetUtcNow();
-        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Start, "test", counter)]);
+        await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Start, "test", counter)]);
 
         await Run(sut);
         var end = TimeProvider.GetUtcNow();
@@ -221,7 +222,7 @@ public class RecurringJobHostedServiceTests
     {
         var counter = new AtomicCounter();
         var start = TimeProvider.GetUtcNow();
-        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Started, "test", counter)]);
+        await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Started, "test", counter)]);
 
         await Run(sut);
         var end = TimeProvider.GetUtcNow();
@@ -239,7 +240,7 @@ public class RecurringJobHostedServiceTests
     {
         var counter = new AtomicCounter();
         var start = TimeProvider.GetUtcNow();
-        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stopping, "test", counter)]);
+        await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stopping, "test", counter)]);
 
         await Run(sut);
         var end = TimeProvider.GetUtcNow();
@@ -257,7 +258,7 @@ public class RecurringJobHostedServiceTests
     {
         var counter = new AtomicCounter();
         var start = TimeProvider.GetUtcNow();
-        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stop, "test", counter)]);
+        await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stop, "test", counter)]);
 
         await Run(sut);
         var end = TimeProvider.GetUtcNow();
@@ -275,7 +276,7 @@ public class RecurringJobHostedServiceTests
     {
         var counter = new AtomicCounter();
         var start = TimeProvider.GetUtcNow();
-        using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stopped, "test", counter)]);
+        await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stopped, "test", counter)]);
 
         await Run(sut);
         var end = TimeProvider.GetUtcNow();
@@ -297,7 +298,7 @@ public class RecurringJobHostedServiceTests
     [InlineData(JobHostLifecycles.Stopped)]
     public async Task LifecycleJobs_Propagate_Errors(JobHostLifecycles lifecycle)
     {
-        using var sut = CreateService([Registration.RunAt(lifecycle, new Func<IServiceProvider, Task>(_ => throw new InvalidOperationException("I died miserably")), services => ValueTask.FromResult(true))]);
+        await using var sut = CreateService([Registration.RunAt(lifecycle, new Func<IServiceProvider, Task>(_ => throw new InvalidOperationException("I died miserably")), services => ValueTask.FromResult(true))]);
 
         var assert = await sut.Invoking(s => Run(s)).Should().ThrowExactlyAsync<InvalidOperationException>();
         assert.WithMessage("I died miserably");
@@ -312,7 +313,7 @@ public class RecurringJobHostedServiceTests
     [InlineData(JobHostLifecycles.Stopped)]
     public async Task LifecycleJobs_Propagate_ShouldRun_Errors(JobHostLifecycles lifecycle)
     {
-        using var sut = CreateService([Registration.RunAt(lifecycle, new Func<IServiceProvider, Task>(_ => throw new InvalidOperationException("I died miserably")), services => throw new InvalidOperationException("I died miserably (shouldrun)"))]);
+        await using var sut = CreateService([Registration.RunAt(lifecycle, new Func<IServiceProvider, Task>(_ => throw new InvalidOperationException("I died miserably")), services => throw new InvalidOperationException("I died miserably (shouldrun)"))]);
 
         var assert = await sut.Invoking(s => Run(s)).Should().ThrowExactlyAsync<InvalidOperationException>();
         assert.WithMessage("I died miserably (shouldrun)");
@@ -329,7 +330,7 @@ public class RecurringJobHostedServiceTests
     {
         var counter = new AtomicCounter();
 
-        using var sut = CreateService([
+        await using var sut = CreateService([
             Counter.RunAt(lifecycle, counter, enabled: (_, _) => ValueTask.FromResult(false)),
         ]);
 
@@ -350,7 +351,7 @@ public class RecurringJobHostedServiceTests
         var condition = new ConstCondition(true, tags: []);
         var counter = new AtomicCounter();
 
-        using var sut = CreateService(
+        await using var sut = CreateService(
             [Counter.RunAt(lifecycle, counter)], 
             [condition]);
 
@@ -371,7 +372,7 @@ public class RecurringJobHostedServiceTests
         var condition = new ConstCondition(false, tags: []);
         var counter = new AtomicCounter();
 
-        using var sut = CreateService(
+        await using var sut = CreateService(
             [Counter.RunAt(lifecycle, counter)],
             [condition]);
 
@@ -392,7 +393,7 @@ public class RecurringJobHostedServiceTests
         var counter = new AtomicCounter();
 
         var tcs = new TaskCompletionSource();
-        using var sut = CreateService([
+        await using var sut = CreateService([
             Counter.RunAt(lifecycle, counter, tcs.Task),
         ]);
 
@@ -418,7 +419,7 @@ public class RecurringJobHostedServiceTests
         var counter = new AtomicCounter();
 
         await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1));
-        using var sut = CreateService([Counter.RunAt(lifecycle, "test", counter)]);
+        await using var sut = CreateService([Counter.RunAt(lifecycle, "test", counter)]);
 
         await Run(sut);
 
@@ -447,7 +448,7 @@ public class RecurringJobHostedServiceTests
                 return false;
             });
 
-        using var sut = CreateService([
+        await using var sut = CreateService([
             Counter.RunAt(lifecycle, leaseName, counter, enabled: (_, _) => ValueTask.FromResult(false)),
         ]);
 
@@ -475,7 +476,7 @@ public class RecurringJobHostedServiceTests
         var job3Dispose = new AtomicCounter();
         var job3DisposeAsync = new AtomicCounter();
 
-        using var sut = CreateService([
+        await using var sut = CreateService([
             Registration.RunAt(JobHostLifecycles.Start, _ => new DisposableJob(job1Dispose)),
             Registration.RunAt(JobHostLifecycles.Start, _ => new AsyncDisposableJob(job2DisposeAsync)),
             Registration.RunAt(JobHostLifecycles.Start, _ => new BothDisposableJob(job3Dispose, job3DisposeAsync)),
@@ -496,7 +497,7 @@ public class RecurringJobHostedServiceTests
     {
         var counter = new AtomicCounter();
 
-        using var sut = CreateService([
+        await using var sut = CreateService([
             Counter.Scheduled(TimeSpan.FromHours(1), counter, enabled: (_, _) => ValueTask.FromResult(false)),
         ]);
 
@@ -512,7 +513,7 @@ public class RecurringJobHostedServiceTests
     {
         var counter = new AtomicCounter();
 
-        using var sut = CreateService([
+        await using var sut = CreateService([
             Counter.Scheduled(TimeSpan.FromHours(1), counter),
         ]);
 
@@ -527,7 +528,7 @@ public class RecurringJobHostedServiceTests
         var counter = new AtomicCounter();
         var tcs = new TaskCompletionSource();
 
-        using var sut = CreateService([
+        await using var sut = CreateService([
             Counter.Scheduled(TimeSpan.FromHours(1), counter, tcs.Task),
         ]);
 
@@ -547,7 +548,7 @@ public class RecurringJobHostedServiceTests
     {
         var counter = new AtomicCounter();
 
-        using var sut = CreateService([
+        await using var sut = CreateService([
             Counter.Scheduled(TimeSpan.FromHours(1), counter),
         ]);
 
@@ -570,7 +571,7 @@ public class RecurringJobHostedServiceTests
         var counter = new AtomicCounter();
         var enabled = new AtomicBool();
 
-        using var sut = CreateService([
+        await using var sut = CreateService([
             Counter.Scheduled(TimeSpan.FromHours(1), counter, enabled: (_, _) => 
             {
                 return ValueTask.FromResult(enabled.Value);
@@ -602,7 +603,7 @@ public class RecurringJobHostedServiceTests
     {
         var counter = new AtomicCounter();
 
-        using var sut = CreateService([
+        await using var sut = CreateService([
             Registration.Scheduled(
                 TimeSpan.FromHours(1),
                 services =>
@@ -644,7 +645,7 @@ public class RecurringJobHostedServiceTests
     {
         var counter = new AtomicCounter();
 
-        using var sut = CreateService([
+        await using var sut = CreateService([
             Counter.Scheduled(TimeSpan.FromHours(1), "test", counter),
         ]);
 
@@ -662,7 +663,7 @@ public class RecurringJobHostedServiceTests
 
         var counter = new AtomicCounter();
 
-        using var sut = CreateService([
+        await using var sut = CreateService([
             Counter.Scheduled(TimeSpan.FromHours(1), "test", counter),
         ]);
 
@@ -689,7 +690,7 @@ public class RecurringJobHostedServiceTests
                 return false;
             });
 
-        using var sut = CreateService([
+        await using var sut = CreateService([
             Counter.Scheduled(TimeSpan.FromHours(1), "test", counter, enabled: (_, _) =>
             {
                 return ValueTask.FromResult(enabled.Value);
@@ -747,7 +748,7 @@ public class RecurringJobHostedServiceTests
 
         var counter = new AtomicCounter();
 
-        using var sut = CreateService([
+        await using var sut = CreateService([
             Counter.Scheduled(TimeSpan.FromHours(1), "test", counter),
         ]);
 
@@ -786,7 +787,7 @@ public class RecurringJobHostedServiceTests
         var conditions = Enumerable.Range(0, 10).Select(_ => new ConstCondition(true, tags: []));
         var counter = new AtomicCounter();
 
-        using var sut = CreateService(
+        await using var sut = CreateService(
             [Counter.RunAt(JobHostLifecycles.Start, counter)],
             [.. conditions]);
 
@@ -801,7 +802,7 @@ public class RecurringJobHostedServiceTests
         var conditions = Enumerable.Range(0, 10).Select(_ => new ConstCondition(true, tags: []));
         var counter = new AtomicCounter();
 
-        using var sut = CreateService(
+        await using var sut = CreateService(
             [Counter.RunAt(JobHostLifecycles.Start, counter)],
             [.. conditions, new ConstCondition(false, tags: [])]);
 
@@ -816,7 +817,7 @@ public class RecurringJobHostedServiceTests
         var condition = new ConstCondition(false, tags: []);
         var counter = new AtomicCounter();
 
-        using var sut = CreateService(
+        await using var sut = CreateService(
             [Counter.RunAt(JobHostLifecycles.Start, counter, tags: ["foo"]), Counter.RunAt(JobHostLifecycles.Start, counter, tags: ["bar"]), Counter.RunAt(JobHostLifecycles.Start, counter)],
             [condition]);
 
@@ -833,7 +834,7 @@ public class RecurringJobHostedServiceTests
         var barCounter = new AtomicCounter();
         var noTag = new AtomicCounter();
 
-        using var sut = CreateService(
+        await using var sut = CreateService(
             [Counter.RunAt(JobHostLifecycles.Start, fooCounter, tags: ["foo"]), Counter.RunAt(JobHostLifecycles.Start, barCounter, tags: ["bar"]), Counter.RunAt(JobHostLifecycles.Start, noTag)],
             [condition]);
 
@@ -842,6 +843,16 @@ public class RecurringJobHostedServiceTests
         fooCounter.Value.Should().Be(0);
         barCounter.Value.Should().Be(1);
         noTag.Value.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task CanBeDisposed_MultipleTimes()
+    {
+        await using var sut = CreateService([]);
+
+        await Run(sut);
+        await sut.DisposeAsync();
+        await sut.DisposeAsync(); // should not throw
     }
 
     private RecurringJobHostedService CreateService(IEnumerable<JobRegistration> registrations, IEnumerable<IJobCondition>? conditions = null)
