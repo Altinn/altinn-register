@@ -383,26 +383,15 @@ internal sealed partial class RecurringJobHostedService
             var leaseName = registration.LeaseName;
             if (leaseName is null)
             {
-                tasks.Add(Using(RunNormalScheduler(scheduler, interval, registration, cancellationToken), scheduler));
+                tasks.Add(RunNormalScheduler(scheduler, interval, registration, cancellationToken));
             }
             else
             {
-                tasks.Add(Using(RunLeaseScheduler(scheduler, leaseName, interval, registration, cancellationToken), scheduler));
+                tasks.Add(RunLeaseScheduler(scheduler, leaseName, interval, registration, cancellationToken));
             }
         }
 
         return Task.WhenAll(tasks);
-
-        static Task Using(Task inner, IDisposable resource)
-        {
-            return inner.ContinueWith(
-                static (Task task, object? disposable) 
-                    => ((IDisposable)disposable!).Dispose(),
-                resource,
-                CancellationToken.None,
-                TaskContinuationOptions.ExecuteSynchronously,
-                TaskScheduler.Default);
-        }
     }
 
     private async Task RunNormalScheduler(
@@ -411,6 +400,10 @@ internal sealed partial class RecurringJobHostedService
         JobRegistration registration,
         CancellationToken cancellationToken)
     {
+#pragma warning disable SA1312 // Variable names should begin with lower-case letter
+        using var _scheduler = scheduler;
+#pragma warning restore SA1312 // Variable names should begin with lower-case letter
+
         var start = _timeProvider.GetTimestamp();
         await scheduler.WaitForReady(registration, _serviceProvider, cancellationToken);
         var elapsed = _timeProvider.GetElapsedTime(start);
@@ -443,6 +436,10 @@ internal sealed partial class RecurringJobHostedService
         JobRegistration registration,
         CancellationToken cancellationToken)
     {
+#pragma warning disable SA1312 // Variable names should begin with lower-case letter
+        using var _scheduler = scheduler;
+#pragma warning restore SA1312 // Variable names should begin with lower-case letter
+
         await scheduler.WaitForReady(registration, _serviceProvider, cancellationToken);
 
         while (!cancellationToken.IsCancellationRequested)
@@ -643,12 +640,17 @@ internal sealed partial class RecurringJobHostedService
             }
         }
 
+        /// <remarks>
+        /// This method should only be called by schedulers that are in the awake state.
+        /// </remarks>
         public void Unregister()
         {
             lock (_lock)
             {
+                _awakeSchedulers--;
                 _totalSchedulers--;
                 Debug.Assert(_totalSchedulers >= 0);
+                Debug.Assert(_awakeSchedulers >= 0);
                 Debug.Assert(_awakeSchedulers <= _totalSchedulers);
             }
         }
