@@ -58,12 +58,8 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
         {
             return _webApplicationFactory.WithWebHostBuilder(builder =>
             {
-                builder.ConfigureAppConfiguration((ctx, c) =>
-                {
-                    c.AddInMemoryCollection([
-                        new(AltinnPreStartLogger.DisableConfigKey, "true"),
-                    ]);
-                });
+                builder.UseSetting("Altinn:IsTest", "true");
+                builder.UseSetting(AltinnPreStartLogger.DisableConfigKey, "true");
 
                 builder.ConfigureTestServices(services =>
                 {

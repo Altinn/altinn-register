@@ -11,6 +11,7 @@ using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Altinn.Register.Jobs;
 
@@ -33,6 +34,7 @@ internal sealed partial class RecurringJobHostedService
     private readonly ILogger<RecurringJobHostedService> _logger;
     private readonly ImmutableArray<JobRegistration> _registrations;
     private readonly ImmutableArray<IJobCondition> _conditions;
+    private readonly IOptionsMonitor<RecurringJobHostedSettings> _settings;
     private Task? _schedulerTask;
     private CancellationTokenSource? _stoppingCts;
 
@@ -60,7 +62,8 @@ internal sealed partial class RecurringJobHostedService
         IServiceScopeFactory serviceScopeFactory,
         ILogger<RecurringJobHostedService> logger,
         IEnumerable<JobRegistration> registrations,
-        IEnumerable<IJobCondition> conditions)
+        IEnumerable<IJobCondition> conditions,
+        IOptionsMonitor<RecurringJobHostedSettings> settings)
     {
         _jobsStarted = telemetry.CreateCounter<int>("register.jobs.started", unit: "jobs", description: "The number of jobs that have been started");
         _jobsFailed = telemetry.CreateCounter<int>("register.jobs.failed", unit: "jobs", description: "The number of jobs that have failed");
@@ -72,6 +75,7 @@ internal sealed partial class RecurringJobHostedService
         _serviceProvider = serviceProvider;
         _serviceScopeFactory = serviceScopeFactory;
         _logger = logger;
+        _settings = settings;
         _registrations = registrations.ToImmutableArray();
         _conditions = conditions.ToImmutableArray();
         _tracker = new(_timeProvider);
@@ -98,6 +102,11 @@ internal sealed partial class RecurringJobHostedService
     {
         // First, run all lifecycle jobs that should run at the start of the host
         await RunLifecycleJobs(JobHostLifecycles.Start, cancellationToken);
+
+        if (_settings.CurrentValue.DisableScheduler)
+        {
+            return;
+        }
 
         // Create linked token to allow cancelling executing task from provided token
         _stoppingCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -132,7 +141,7 @@ internal sealed partial class RecurringJobHostedService
 
     private async Task StopScheduler(CancellationToken cancellationToken)
     {
-        // Stop called without start
+        // Stop called without start, or scheduler was disabled
         if (_schedulerTask is null)
         {
             return;
@@ -374,26 +383,15 @@ internal sealed partial class RecurringJobHostedService
             var leaseName = registration.LeaseName;
             if (leaseName is null)
             {
-                tasks.Add(Using(RunNormalScheduler(scheduler, interval, registration, cancellationToken), scheduler));
+                tasks.Add(RunNormalScheduler(scheduler, interval, registration, cancellationToken));
             }
             else
             {
-                tasks.Add(Using(RunLeaseScheduler(scheduler, leaseName, interval, registration, cancellationToken), scheduler));
+                tasks.Add(RunLeaseScheduler(scheduler, leaseName, interval, registration, cancellationToken));
             }
         }
 
         return Task.WhenAll(tasks);
-
-        static Task Using(Task inner, IDisposable resource)
-        {
-            return inner.ContinueWith(
-                static (Task task, object? disposable) 
-                    => ((IDisposable)disposable!).Dispose(),
-                resource,
-                CancellationToken.None,
-                TaskContinuationOptions.ExecuteSynchronously,
-                TaskScheduler.Default);
-        }
     }
 
     private async Task RunNormalScheduler(
@@ -402,6 +400,10 @@ internal sealed partial class RecurringJobHostedService
         JobRegistration registration,
         CancellationToken cancellationToken)
     {
+#pragma warning disable SA1312 // Variable names should begin with lower-case letter
+        using var _scheduler = scheduler;
+#pragma warning restore SA1312 // Variable names should begin with lower-case letter
+
         var start = _timeProvider.GetTimestamp();
         await scheduler.WaitForReady(registration, _serviceProvider, cancellationToken);
         var elapsed = _timeProvider.GetElapsedTime(start);
@@ -434,6 +436,10 @@ internal sealed partial class RecurringJobHostedService
         JobRegistration registration,
         CancellationToken cancellationToken)
     {
+#pragma warning disable SA1312 // Variable names should begin with lower-case letter
+        using var _scheduler = scheduler;
+#pragma warning restore SA1312 // Variable names should begin with lower-case letter
+
         await scheduler.WaitForReady(registration, _serviceProvider, cancellationToken);
 
         while (!cancellationToken.IsCancellationRequested)
@@ -634,12 +640,17 @@ internal sealed partial class RecurringJobHostedService
             }
         }
 
+        /// <remarks>
+        /// This method should only be called by schedulers that are in the awake state.
+        /// </remarks>
         public void Unregister()
         {
             lock (_lock)
             {
+                _awakeSchedulers--;
                 _totalSchedulers--;
                 Debug.Assert(_totalSchedulers >= 0);
+                Debug.Assert(_awakeSchedulers >= 0);
                 Debug.Assert(_awakeSchedulers <= _totalSchedulers);
             }
         }
@@ -727,9 +738,8 @@ internal sealed partial class RecurringJobHostedService
                     // this should be the first thing that happens to a scheduler, and schedulers starts as running
                     Debug.Assert(scheduler._state == STATE_RUNNING);
                     scheduler._state = STATE_SLEEPING;
+                    scheduler._tracker.TrackSleeping();
                 }
-
-                scheduler._tracker.TrackSleeping();
 
                 try
                 {
@@ -742,9 +752,8 @@ internal sealed partial class RecurringJobHostedService
                         // still nothing should have invoked the scheduler
                         Debug.Assert(scheduler._state == STATE_SLEEPING);
                         scheduler._state = STATE_RUNNING;
+                        scheduler._tracker.TrackAwake();
                     }
-
-                    scheduler._tracker.TrackAwake();
                 }
             }
         }
@@ -758,13 +767,13 @@ internal sealed partial class RecurringJobHostedService
                 {
                     _state = STATE_RUNNING;
                     transition = true;
+                    _tracker.TrackAwake();
                 }
             }
 
             if (transition)
             {
                 _cancellationRegistration.Unregister();
-                _tracker.TrackAwake();
                 _source.SetResult(null);
             }
         }
@@ -778,13 +787,13 @@ internal sealed partial class RecurringJobHostedService
                 {
                     _state = STATE_RUNNING;
                     transition = true;
+                    _tracker.TrackAwake();
                 }
             }
 
             if (transition)
             {
                 _cancellationRegistration.Unregister();
-                _tracker.TrackAwake();
                 _source.SetException(new OperationCanceledException(cancellationToken));
             }
         }
@@ -797,19 +806,13 @@ internal sealed partial class RecurringJobHostedService
 
         void IValueTaskSource.OnCompleted(Action<object?> continuation, object? state, short token, ValueTaskSourceOnCompletedFlags flags)
         {
-            var transition = false;
             lock (_lock)
             {
                 if (_state == STATE_RUNNING)
                 {
                     _state = STATE_SLEEPING;
-                    transition = true;
+                    _tracker.TrackSleeping();
                 }
-            }
-
-            if (transition)
-            {
-                _tracker.TrackSleeping();
             }
 
             _source.OnCompleted(continuation, state, token, flags);
@@ -822,16 +825,16 @@ internal sealed partial class RecurringJobHostedService
             {
                 oldState = _state;
                 _state = STATE_DISPOSED;
+
+                if (oldState == STATE_SLEEPING)
+                {
+                    _tracker.TrackAwake();
+                }
             }
 
             if (oldState == STATE_DISPOSED)
             {
                 return;
-            }
-
-            if (oldState == STATE_SLEEPING)
-            {
-                _tracker.TrackAwake();
             }
 
             _cancellationRegistration.Dispose();
