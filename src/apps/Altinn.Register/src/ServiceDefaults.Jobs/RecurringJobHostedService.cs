@@ -20,7 +20,7 @@ namespace Altinn.Register.Jobs;
 /// </summary>
 internal sealed partial class RecurringJobHostedService
     : IHostedLifecycleService
-    , IDisposable
+    , IAsyncDisposable
 {
     private readonly Counter<int> _jobsStarted;
     private readonly Counter<int> _jobsFailed;
@@ -39,6 +39,7 @@ internal sealed partial class RecurringJobHostedService
     private CancellationTokenSource? _stoppingCts;
 
     private readonly ScheduledJobTracker _tracker;
+    private readonly DisposeHelper _dispose = new(nameof(RecurringJobHostedService));
 
     /// <summary>
     /// Wait for all scheduled jobs that are currently running to complete.
@@ -126,6 +127,12 @@ internal sealed partial class RecurringJobHostedService
     /// <inheritdoc/>
     public async Task StopAsync(CancellationToken cancellationToken)
     {
+        // https://github.com/dotnet/aspnetcore/issues/40271
+        if (_dispose.IsDisposed)
+        {
+            return;
+        }
+
         // First, stop the scheduler
         await StopScheduler(cancellationToken);
 
@@ -134,10 +141,26 @@ internal sealed partial class RecurringJobHostedService
     }
 
     /// <inheritdoc/>
-    public void Dispose()
-    {
-        _stoppingCts?.Cancel();
-    }
+    public ValueTask DisposeAsync()
+        => _dispose.DisposeAsync(
+            this,
+            static async (self) =>
+            {
+                if (self._stoppingCts is not null)
+                {
+                    await self._stoppingCts.CancelAsync().WaitAsync(TimeSpan.FromMinutes(1));
+                }
+
+                if (self._schedulerTask is not null)
+                {
+                    await self._schedulerTask.WaitAsync(TimeSpan.FromMinutes(1)).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+                }
+
+                self._stoppingCts?.Dispose();
+                self._stoppingCts = null;
+
+                self._tracker.Dispose();
+            });
 
     private async Task StopScheduler(CancellationToken cancellationToken)
     {
@@ -149,11 +172,11 @@ internal sealed partial class RecurringJobHostedService
 
         try
         {
-            await _stoppingCts!.CancelAsync();
+            await _stoppingCts!.CancelAsync().WaitAsync(TimeSpan.FromMinutes(1), cancellationToken);
         }
         finally
         {
-            await _schedulerTask.WaitAsync(cancellationToken).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            await _schedulerTask.WaitAsync(cancellationToken).WaitAsync(TimeSpan.FromMinutes(1), cancellationToken).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         }
     }
 
@@ -161,6 +184,14 @@ internal sealed partial class RecurringJobHostedService
         JobHostLifecycles lifecycle,
         CancellationToken cancellationToken)
     {
+        // https://github.com/dotnet/aspnetcore/issues/40271
+        if (_dispose.IsDisposed)
+        {
+            return;
+        }
+
+        _dispose.EnsureNotDisposed();
+
         var registrations = WhenReady(_registrations.Where(r => r.RunAt.HasFlag(lifecycle)), cancellationToken);
         await foreach (var registration in registrations)
         {
@@ -309,11 +340,17 @@ internal sealed partial class RecurringJobHostedService
                 continue;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             bool canRun;
             using var conditionActivity = JobsTelemetry.StartActivity($"check job-registration condition", ActivityKind.Internal, tags: [new("condition.name", condition.Name)]);
             try
             {
                 canRun = await condition.ShouldRun(cancellationToken);
+            }
+            catch (OperationCanceledException e) when (e.CancellationToken == cancellationToken)
+            {
+                throw;
             }
             catch (Exception e)
             {
@@ -336,9 +373,15 @@ internal sealed partial class RecurringJobHostedService
             }
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
+
         try
         {
             return await registration.Enabled(_serviceProvider, cancellationToken);
+        }
+        catch (OperationCanceledException e) when (e.CancellationToken == cancellationToken)
+        {
+            throw;
         }
         catch (Exception e)
         {
@@ -586,6 +629,7 @@ internal sealed partial class RecurringJobHostedService
 
     private sealed class ScheduledJobTracker
         : IValueTaskSource
+        , IDisposable
     {
         private readonly TimeProvider _timeProvider;
         private readonly Lock _lock = new();
@@ -655,6 +699,13 @@ internal sealed partial class RecurringJobHostedService
             }
         }
 
+        public void Dispose()
+        {
+            _source.Reset();
+            Debug.Assert(_awakeSchedulers == 0);
+            Debug.Assert(_totalSchedulers == 0);
+        }
+
         public ValueTask WaitForRunningScheduledJobs()
             => new(this, _source.Version);
 
@@ -672,9 +723,10 @@ internal sealed partial class RecurringJobHostedService
         : IValueTaskSource
         , IDisposable
     {
-        private const int STATE_RUNNING = 0;
-        private const int STATE_SLEEPING = 1;
-        private const int STATE_DISPOSED = 2;
+        private const byte STATE_RUNNING = 0;
+        private const byte STATE_SLEEPING = 1;
+        private const byte STATE_DISPOSED = 2;
+        private const byte STATE_REGISTERING = 3;
 
         private static readonly TimerCallback _timerCallback = static state =>
         {
@@ -693,7 +745,7 @@ internal sealed partial class RecurringJobHostedService
         private readonly ScheduledJobTracker _tracker;
         private ManualResetValueTaskSourceCore<object?> _source; // mutable struct; do not make this readonly
         private CancellationTokenRegistration _cancellationRegistration;
-        private int _state = STATE_RUNNING;
+        private byte _state = STATE_RUNNING;
 
         public JobScheduler(ScheduledJobTracker tracker, TimeProvider timeProvider)
         {
@@ -713,7 +765,19 @@ internal sealed partial class RecurringJobHostedService
             _timer.Change(duration, Timeout.InfiniteTimeSpan);
             if (cancellationToken.CanBeCanceled)
             {
+                lock (_lock)
+                {
+                    Debug.Assert(_state == STATE_RUNNING);
+                    _state = STATE_REGISTERING;
+                }
+
                 _cancellationRegistration = cancellationToken.UnsafeRegister(_cancellationCallback, this);
+
+                lock (_lock)
+                {
+                    Debug.Assert(_state == STATE_REGISTERING);
+                    _state = STATE_RUNNING;
+                }
             }
 
             return new(this, _source.Version);
@@ -788,6 +852,11 @@ internal sealed partial class RecurringJobHostedService
                     _state = STATE_RUNNING;
                     transition = true;
                     _tracker.TrackAwake();
+                }
+                else if (_state == STATE_REGISTERING)
+                {
+                    // this happens if cancellation was requested before we started sleeping
+                    transition = true;
                 }
             }
 

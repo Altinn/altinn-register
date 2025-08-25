@@ -1,4 +1,5 @@
-﻿using Altinn.Register.IntegrationTests.TestServices;
+﻿using Altinn.Register.Core.Utils;
+using Altinn.Register.IntegrationTests.TestServices;
 using Altinn.Register.IntegrationTests.Tracing;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Database;
@@ -81,7 +82,7 @@ public sealed class TestWebApplication
             }
         }
 
-        await _factory.DisposeAsync();
+        await _factory.DisposeAsync().WaitAsync(timeout: TimeSpan.FromMinutes(5), timeProvider: TimeProvider.System);
         await ((IAsyncDisposable)_db).DisposeAsync();
     }
 
