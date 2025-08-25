@@ -491,8 +491,6 @@ internal partial class PostgresImportJobTracker
             var result = await _retryPipeline.ExecuteAsync(
                 static async (ResilienceContext ctx, WithConnectionContext<TResult, TState> connCtx) =>
                 {
-                    await Task.Delay(500);
-
                     var cancellationToken = ctx.CancellationToken;
                     var (id, state, action, conn) = connCtx;
 

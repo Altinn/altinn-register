@@ -18,6 +18,7 @@ using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.Core.Utils;
 using Altinn.Register.Extensions;
+using Altinn.Register.Model.Extensions;
 using Altinn.Register.ModelBinding;
 using Altinn.Register.PartyImport.A2;
 using Altinn.Register.Services;
@@ -211,21 +212,33 @@ internal static partial class RegisterHost
             services.AddRecurringJob<A2PartyImportJob>(settings =>
             {
                 settings.Tags.Add("a2-import");
-                settings.LeaseName = LeaseNames.A2PartyImport;
+                settings.LeaseName = A2PartyImportJob.JOB_NAME;
                 settings.Interval = TimeSpan.FromMinutes(1);
                 settings.WaitForReady = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
                 settings.Enabled = JobEnabledBuilder.Default
                     .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:Enable");
             });
 
-            services.AddRecurringJob<A2PartyUserIdImportJob>(settings =>
+            services.AddRecurringJob<A2PartyCCRRolesImportJob>(settings =>
             {
                 settings.Tags.Add("a2-import");
-                settings.LeaseName = LeaseNames.A2PartyUserIdImport;
+                settings.LeaseName = A2PartyCCRRolesImportJob.JOB_NAME;
                 settings.Interval = TimeSpan.FromMinutes(1);
                 settings.WaitForReady = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
                 settings.Enabled = JobEnabledBuilder.Default
-                    .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:PartyUserId:Enable");
+                    .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:Enable")
+                    .WithRequireImportJobFinished(A2PartyImportJob.JOB_NAME, threshold: 5_000);
+            });
+
+            services.AddRecurringJob<A2PartyUserIdImportJob>(settings =>
+            {
+                settings.Tags.Add("a2-import");
+                settings.LeaseName = A2PartyUserIdImportJob.JOB_NAME;
+                settings.Interval = TimeSpan.FromMinutes(1);
+                settings.WaitForReady = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
+                settings.Enabled = JobEnabledBuilder.Default
+                    .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:PartyUserId:Enable")
+                    .WithRequireImportJobFinished(A2PartyImportJob.JOB_NAME, threshold: 5_000);
             });
         }
 
