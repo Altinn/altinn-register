@@ -172,11 +172,11 @@ internal sealed partial class RecurringJobHostedService
 
         try
         {
-            await _stoppingCts!.CancelAsync().WaitAsync(TimeSpan.FromMinutes(1));
+            await _stoppingCts!.CancelAsync().WaitAsync(TimeSpan.FromMinutes(1), cancellationToken);
         }
         finally
         {
-            await _schedulerTask.WaitAsync(cancellationToken).WaitAsync(TimeSpan.FromMinutes(1)).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            await _schedulerTask.WaitAsync(cancellationToken).WaitAsync(TimeSpan.FromMinutes(1), cancellationToken).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         }
     }
 
@@ -723,9 +723,10 @@ internal sealed partial class RecurringJobHostedService
         : IValueTaskSource
         , IDisposable
     {
-        private const int STATE_RUNNING = 0;
-        private const int STATE_SLEEPING = 1;
-        private const int STATE_DISPOSED = 2;
+        private const byte STATE_RUNNING = 0;
+        private const byte STATE_SLEEPING = 1;
+        private const byte STATE_DISPOSED = 2;
+        private const byte STATE_REGISTERING = 3;
 
         private static readonly TimerCallback _timerCallback = static state =>
         {
@@ -744,7 +745,7 @@ internal sealed partial class RecurringJobHostedService
         private readonly ScheduledJobTracker _tracker;
         private ManualResetValueTaskSourceCore<object?> _source; // mutable struct; do not make this readonly
         private CancellationTokenRegistration _cancellationRegistration;
-        private int _state = STATE_RUNNING;
+        private byte _state = STATE_RUNNING;
 
         public JobScheduler(ScheduledJobTracker tracker, TimeProvider timeProvider)
         {
@@ -764,7 +765,19 @@ internal sealed partial class RecurringJobHostedService
             _timer.Change(duration, Timeout.InfiniteTimeSpan);
             if (cancellationToken.CanBeCanceled)
             {
+                lock (_lock)
+                {
+                    Debug.Assert(_state == STATE_RUNNING);
+                    _state = STATE_REGISTERING;
+                }
+
                 _cancellationRegistration = cancellationToken.UnsafeRegister(_cancellationCallback, this);
+
+                lock (_lock)
+                {
+                    Debug.Assert(_state == STATE_REGISTERING);
+                    _state = STATE_RUNNING;
+                }
             }
 
             return new(this, _source.Version);
@@ -839,6 +852,11 @@ internal sealed partial class RecurringJobHostedService
                     _state = STATE_RUNNING;
                     transition = true;
                     _tracker.TrackAwake();
+                }
+                else if (_state == STATE_REGISTERING)
+                {
+                    // this happens if cancellation was requested before we started sleeping
+                    transition = true;
                 }
             }
 
