@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Threading.Tasks.Sources;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Authorization.ServiceDefaults.Jobs;
@@ -28,12 +27,18 @@ internal sealed class DisposeHelper
     }
 
     /// <summary>
+    /// Gets a value indicating whether the object has been disposed.
+    /// </summary>
+    public bool IsDisposed
+        => Volatile.Read(ref _state) != STATE_ALIVE;
+
+    /// <summary>
     /// Ensures that the object has not been disposed.
     /// </summary>
     /// <exception cref="ObjectDisposedException">Thrown if the object has been disposed.</exception>
     public void EnsureNotDisposed()
     {
-        if (Volatile.Read(ref _state) != STATE_ALIVE)
+        if (IsDisposed)
         {
             ThrowHelper.ThrowObjectDisposedException(_objectName);
         }

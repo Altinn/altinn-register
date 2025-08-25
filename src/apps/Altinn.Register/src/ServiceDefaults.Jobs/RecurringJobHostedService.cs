@@ -127,6 +127,12 @@ internal sealed partial class RecurringJobHostedService
     /// <inheritdoc/>
     public async Task StopAsync(CancellationToken cancellationToken)
     {
+        // https://github.com/dotnet/aspnetcore/issues/40271
+        if (_dispose.IsDisposed)
+        {
+            return;
+        }
+
         // First, stop the scheduler
         await StopScheduler(cancellationToken);
 
@@ -135,20 +141,19 @@ internal sealed partial class RecurringJobHostedService
     }
 
     /// <inheritdoc/>
-    public ValueTask DisposeAsync() 
+    public ValueTask DisposeAsync()
         => _dispose.DisposeAsync(
             this,
             static async (self) =>
             {
                 if (self._stoppingCts is not null)
                 {
-                    await self._stoppingCts.CancelAsync();
+                    await self._stoppingCts.CancelAsync().WaitAsync(TimeSpan.FromMinutes(1));
                 }
 
                 if (self._schedulerTask is not null)
                 {
-                    await self._schedulerTask.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
-                    self._schedulerTask = null;
+                    await self._schedulerTask.WaitAsync(TimeSpan.FromMinutes(1)).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
                 }
 
                 self._stoppingCts?.Dispose();
@@ -167,11 +172,11 @@ internal sealed partial class RecurringJobHostedService
 
         try
         {
-            await _stoppingCts!.CancelAsync();
+            await _stoppingCts!.CancelAsync().WaitAsync(TimeSpan.FromMinutes(1));
         }
         finally
         {
-            await _schedulerTask.WaitAsync(cancellationToken).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            await _schedulerTask.WaitAsync(cancellationToken).WaitAsync(TimeSpan.FromMinutes(1)).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         }
     }
 
@@ -179,6 +184,12 @@ internal sealed partial class RecurringJobHostedService
         JobHostLifecycles lifecycle,
         CancellationToken cancellationToken)
     {
+        // https://github.com/dotnet/aspnetcore/issues/40271
+        if (_dispose.IsDisposed)
+        {
+            return;
+        }
+
         _dispose.EnsureNotDisposed();
 
         var registrations = WhenReady(_registrations.Where(r => r.RunAt.HasFlag(lifecycle)), cancellationToken);
@@ -329,11 +340,17 @@ internal sealed partial class RecurringJobHostedService
                 continue;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             bool canRun;
             using var conditionActivity = JobsTelemetry.StartActivity($"check job-registration condition", ActivityKind.Internal, tags: [new("condition.name", condition.Name)]);
             try
             {
                 canRun = await condition.ShouldRun(cancellationToken);
+            }
+            catch (OperationCanceledException e) when (e.CancellationToken == cancellationToken)
+            {
+                throw;
             }
             catch (Exception e)
             {
@@ -356,9 +373,15 @@ internal sealed partial class RecurringJobHostedService
             }
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
+
         try
         {
             return await registration.Enabled(_serviceProvider, cancellationToken);
+        }
+        catch (OperationCanceledException e) when (e.CancellationToken == cancellationToken)
+        {
+            throw;
         }
         catch (Exception e)
         {
