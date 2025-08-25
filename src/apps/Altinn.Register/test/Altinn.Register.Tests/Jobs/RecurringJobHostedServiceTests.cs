@@ -855,6 +855,38 @@ public class RecurringJobHostedServiceTests
         await sut.DisposeAsync(); // should not throw
     }
 
+    [Fact]
+    public async Task CanBeDisposed_MultipleTimes_InParallel()
+    {
+        const int THREAD_COUNT = 10;
+
+        await using var sut = CreateService([]);
+
+        await Run(sut);
+
+        var rst = new ManualResetEventSlim();
+        var threads = Enumerable.Range(0, THREAD_COUNT).Select(_ =>
+        {
+            var thread = new Thread(async () =>
+            {
+                rst.Wait();
+                await sut.DisposeAsync();
+            });
+
+            thread.Start();
+            return thread;
+        }).ToList();
+
+        // wait for all the threads to be ready
+        await Task.Delay(10);
+        rst.Set();
+
+        foreach (var thread in threads)
+        {
+            thread.Join();
+        }
+    }
+
     private RecurringJobHostedService CreateService(IEnumerable<JobRegistration> registrations, IEnumerable<IJobCondition>? conditions = null)
         => _factory(Services, [registrations, conditions ?? []]);
 

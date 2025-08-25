@@ -39,6 +39,7 @@ internal sealed partial class RecurringJobHostedService
     private CancellationTokenSource? _stoppingCts;
 
     private readonly ScheduledJobTracker _tracker;
+    private readonly DisposeHelper _dispose = new(nameof(RecurringJobHostedService));
 
     /// <summary>
     /// Wait for all scheduled jobs that are currently running to complete.
@@ -134,24 +135,27 @@ internal sealed partial class RecurringJobHostedService
     }
 
     /// <inheritdoc/>
-    public async ValueTask DisposeAsync()
-    {
-        if (_stoppingCts is not null)
-        {
-            await _stoppingCts.CancelAsync();
-        }
+    public ValueTask DisposeAsync() 
+        => _dispose.DisposeAsync(
+            this,
+            static async (self) =>
+            {
+                if (self._stoppingCts is not null)
+                {
+                    await self._stoppingCts.CancelAsync();
+                }
 
-        if (_schedulerTask is not null)
-        {
-            await _schedulerTask.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
-            _schedulerTask = null;
-        }
+                if (self._schedulerTask is not null)
+                {
+                    await self._schedulerTask.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+                    self._schedulerTask = null;
+                }
 
-        _stoppingCts?.Dispose();
-        _stoppingCts = null;
+                self._stoppingCts?.Dispose();
+                self._stoppingCts = null;
 
-        _tracker.Dispose();
-    }
+                self._tracker.Dispose();
+            });
 
     private async Task StopScheduler(CancellationToken cancellationToken)
     {
@@ -175,6 +179,8 @@ internal sealed partial class RecurringJobHostedService
         JobHostLifecycles lifecycle,
         CancellationToken cancellationToken)
     {
+        _dispose.EnsureNotDisposed();
+
         var registrations = WhenReady(_registrations.Where(r => r.RunAt.HasFlag(lifecycle)), cancellationToken);
         await foreach (var registration in registrations)
         {
