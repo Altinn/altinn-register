@@ -220,7 +220,7 @@ internal sealed partial class RecurringJobHostedService
                 }
                 else
                 {
-                    Log.LeaseNotAcquired(_logger, registration.LeaseName, lifecycle);
+                    Log.LeaseNotAcquired(_logger, jobName: registration.JobName, registration.LeaseName, lifecycle);
                 }
             }
         }
@@ -238,7 +238,7 @@ internal sealed partial class RecurringJobHostedService
                 {
                     await using var scope = _serviceScopeFactory.CreateAsyncScope();
                     job = registration.Create(scope.ServiceProvider);
-                    var name = job.Name;
+                    var name = registration.JobName;
                     var jobTags = new TagList([
                         new("job.name", name),
                         new("job.source", source),
@@ -354,7 +354,7 @@ internal sealed partial class RecurringJobHostedService
             }
             catch (Exception e)
             {
-                Log.JobConditionFailed(_logger, condition.Name, e);
+                Log.JobConditionFailed(_logger, jobName: registration.JobName, condition.Name, e);
                 conditionActivity?.SetStatus(ActivityStatusCode.Error);
 
                 if (throwOnException)
@@ -367,7 +367,7 @@ internal sealed partial class RecurringJobHostedService
 
             if (!canRun)
             {
-                Log.JobBlockedByCondition(_logger, condition.Name);
+                Log.JobBlockedByCondition(_logger, jobName: registration.JobName, condition.Name);
 
                 return false;
             }
@@ -385,7 +385,7 @@ internal sealed partial class RecurringJobHostedService
         }
         catch (Exception e)
         {
-            Log.JobIsEnabledFailed(_logger, e);
+            Log.JobIsEnabledFailed(_logger, jobName: registration.JobName, e);
 
             if (throwOnException)
             {
@@ -924,19 +924,19 @@ internal sealed partial class RecurringJobHostedService
         [LoggerMessage(2, LogLevel.Error, "Job {JobName} failed in {Duration}")]
         public static partial void JobFailed(ILogger logger, string jobName, TimeSpan duration, Exception exception);
 
-        [LoggerMessage(3, LogLevel.Information, "Skipping job as lease {LeaseName} not acquired for lifecycle event {Lifecycle}")]
-        public static partial void LeaseNotAcquired(ILogger logger, string leaseName, JobHostLifecycles lifecycle);
+        [LoggerMessage(3, LogLevel.Information, "Skipping job {JobName} as lease {LeaseName} not acquired for lifecycle event {Lifecycle}")]
+        public static partial void LeaseNotAcquired(ILogger logger, string jobName, string leaseName, JobHostLifecycles lifecycle);
 
-        [LoggerMessage(4, LogLevel.Error, "Job registration enabled check failed")]
-        public static partial void JobIsEnabledFailed(ILogger logger, Exception exception);
+        [LoggerMessage(4, LogLevel.Error, "Job registration enabled check for {JobName} failed")]
+        public static partial void JobIsEnabledFailed(ILogger logger, string jobName, Exception exception);
 
         [LoggerMessage(5, LogLevel.Information, "Job {JobName} skipped as it is not enabled")]
         public static partial void JobSkipped(ILogger logger, string jobName);
 
-        [LoggerMessage(6, LogLevel.Error, "Job condition {ConditionName} failed")]
-        public static partial void JobConditionFailed(ILogger logger, string conditionName, Exception exception);
+        [LoggerMessage(6, LogLevel.Error, "Job condition {ConditionName} for job {JobName} failed")]
+        public static partial void JobConditionFailed(ILogger logger, string jobName, string conditionName, Exception exception);
 
-        [LoggerMessage(7, LogLevel.Information, "Job blocked by condition {ConditionName}")]
-        public static partial void JobBlockedByCondition(ILogger logger, string conditionName);
+        [LoggerMessage(7, LogLevel.Information, "Job {JobName} blocked by condition {ConditionName}")]
+        public static partial void JobBlockedByCondition(ILogger logger, string jobName, string conditionName);
     }
 }

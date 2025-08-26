@@ -14,7 +14,11 @@ namespace Altinn.Register.PartyImport.A2;
 /// </summary>
 internal sealed partial class A2PartyUserIdImportJob
     : Job
+    , IHasJobName<A2PartyUserIdImportJob>
 {
+    /// <inheritdoc/>
+    public static string JobName => JobNames.A2PartyUserIdImport;
+
     private readonly static FrozenSet<PartyRecordType> _partyTypes = [
         PartyRecordType.Person, 
         PartyRecordType.SelfIdentifiedUser,
@@ -43,7 +47,6 @@ internal sealed partial class A2PartyUserIdImportJob
     /// <inheritdoc/>
     protected override async Task RunAsync(CancellationToken cancellationToken)
     {
-        const string JOB_NAME = JobNames.A2PartyUserIdImport;
         const int CHUNK_SIZE = 100;
 
         await using var uow = await _uowManager.CreateAsync(cancellationToken, activityName: nameof(A2PartyUserIdImportJob));
@@ -53,22 +56,22 @@ internal sealed partial class A2PartyUserIdImportJob
         var enqueuedMax = progress.EnqueuedMax;
         var startEnqueuedMax = enqueuedMax;
         List<ImportA2UserIdForPartyCommand> messages = new(100);
-        await foreach (var party in service.GetPartiesWithoutUserIdAndJobState(JobNames.A2PartyUserIdImport, _partyTypes, cancellationToken))
+        await foreach (var party in service.GetPartiesWithoutUserIdAndJobState(JobName, _partyTypes, cancellationToken))
         {
             if (messages.Count == 0)
             {
                 // we update the tracker early, cause it's just for checking the progress for this job, and has no functional use.
                 // but there is a database constraint that processed_max <= enqueued_max, so we just make sure enqueued_max is bigger.
-                (progress, _) = await _tracker.TrackQueueStatus(JobNames.A2PartyUserIdImport, new ImportJobQueueStatus { EnqueuedMax = enqueuedMax + CHUNK_SIZE, SourceMax = null }, cancellationToken);
+                (progress, _) = await _tracker.TrackQueueStatus(JobName, new ImportJobQueueStatus { EnqueuedMax = enqueuedMax + CHUNK_SIZE, SourceMax = null }, cancellationToken);
             }
 
             enqueuedMax += 1;
-            messages.Add(new ImportA2UserIdForPartyCommand { PartyUuid = party.PartyUuid, PartyType = party.PartyType, Tracking = new(JobNames.A2PartyUserIdImport, enqueuedMax) });
+            messages.Add(new ImportA2UserIdForPartyCommand { PartyUuid = party.PartyUuid, PartyType = party.PartyType, Tracking = new(JobName, enqueuedMax) });
 
             if (messages.Count >= CHUNK_SIZE)
             {
-                (progress, _) = await _tracker.TrackQueueStatus(JobNames.A2PartyUserIdImport, new ImportJobQueueStatus { EnqueuedMax = enqueuedMax, SourceMax = null }, cancellationToken);
-                await SendAndUpdateState(messages, cancellationToken);
+                (progress, _) = await _tracker.TrackQueueStatus(JobName, new ImportJobQueueStatus { EnqueuedMax = enqueuedMax, SourceMax = null }, cancellationToken);
+                await SendAndUpdateState(JobName, messages, cancellationToken);
                 messages.Clear();
 
                 if (enqueuedMax - progress.ProcessedMax > 50_000)
@@ -79,26 +82,29 @@ internal sealed partial class A2PartyUserIdImportJob
             }
         }
 
-        await _tracker.TrackQueueStatus(JobNames.A2PartyUserIdImport, new ImportJobQueueStatus { EnqueuedMax = enqueuedMax, SourceMax = null }, cancellationToken);
+        await _tracker.TrackQueueStatus(JobName, new ImportJobQueueStatus { EnqueuedMax = enqueuedMax, SourceMax = null }, cancellationToken);
         if (messages.Count > 0)
         {
-            await SendAndUpdateState(messages, cancellationToken);
+            await SendAndUpdateState(JobName, messages, cancellationToken);
         }
         else if (startEnqueuedMax == enqueuedMax && progress.ProcessedMax == enqueuedMax)
         {
             // we've processed all parties, so we can clear up temporary state.
-            await service.ClearJobStateForPartiesWithUserId(JobNames.A2PartyUserIdImport, cancellationToken);
+            await service.ClearJobStateForPartiesWithUserId(JobName, cancellationToken);
         }
     }
 
-    private async Task SendAndUpdateState(IEnumerable<ImportA2UserIdForPartyCommand> messages, CancellationToken cancellationToken)
+    private async Task SendAndUpdateState(
+        string jobName,
+        IEnumerable<ImportA2UserIdForPartyCommand> messages,
+        CancellationToken cancellationToken)
     {
         await using var uow = await _uowManager.CreateAsync(cancellationToken);
         var persistence = uow.GetRequiredService<IImportJobStatePersistence>();
 
         foreach (var msg in messages)
         {
-            await persistence.SetPartyState(JobNames.A2PartyUserIdImport, msg.PartyUuid, new ImportPartyUserIdJobState { }, cancellationToken);
+            await persistence.SetPartyState(jobName, msg.PartyUuid, new ImportPartyUserIdJobState { }, cancellationToken);
         }
 
         await _sender.Send(messages, cancellationToken);

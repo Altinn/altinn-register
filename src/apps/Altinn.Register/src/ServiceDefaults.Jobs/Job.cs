@@ -7,9 +7,6 @@ public abstract class Job
     : IJob
 {
     /// <inheritdoc/>
-    string IJob.Name => GetType().Name;
-
-    /// <inheritdoc/>
     ValueTask<bool> IJob.ShouldRun(CancellationToken cancellationToken)
         => ShouldRun(cancellationToken);
 

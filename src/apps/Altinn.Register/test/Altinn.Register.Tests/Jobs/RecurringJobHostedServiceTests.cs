@@ -926,13 +926,14 @@ public class RecurringJobHostedServiceTests
 
     private sealed class Registration(
         Func<IServiceProvider, IJob> job,
+        string name,
         string? leaseName,
         TimeSpan interval,
         JobHostLifecycles runAt,
         IEnumerable<string> tags,
         Func<IServiceProvider, CancellationToken, ValueTask<bool>>? enabled,
         Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady)
-        : JobRegistration(leaseName, interval, runAt, tags, enabled, waitForReady)
+        : JobRegistration(name, leaseName, interval, runAt, tags, enabled, waitForReady)
     {
         public static JobRegistration Create(
             Func<IServiceProvider, IJob> job,
@@ -942,7 +943,7 @@ public class RecurringJobHostedServiceTests
             IEnumerable<string> tags,
             Func<IServiceProvider, CancellationToken, ValueTask<bool>>? enabled,
             Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady)
-            => new Registration(job, leaseName, interval, runAt, tags, enabled, waitForReady);
+            => new Registration(job, "test", leaseName, interval, runAt, tags, enabled, waitForReady);
 
         public static JobRegistration Create(
             Func<IServiceProvider, Task> job,
@@ -953,7 +954,7 @@ public class RecurringJobHostedServiceTests
             IEnumerable<string> tags,
             Func<IServiceProvider, CancellationToken, ValueTask<bool>>? enabled,
             Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady)
-            => new Registration(services => new DelegateJob(job, shouldRun, services), leaseName, interval, runAt, tags, enabled, waitForReady);
+            => new Registration(services => new DelegateJob(job, shouldRun, services), "test", leaseName, interval, runAt, tags, enabled, waitForReady);
 
         public static new JobRegistration RunAt(JobHostLifecycles runAt, Func<IServiceProvider, IJob> job)
             => Create(job, null, TimeSpan.Zero, runAt, [], null, null);
