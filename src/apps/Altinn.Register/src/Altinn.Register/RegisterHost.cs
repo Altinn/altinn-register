@@ -20,6 +20,7 @@ using Altinn.Register.Core.Utils;
 using Altinn.Register.Extensions;
 using Altinn.Register.Model.Extensions;
 using Altinn.Register.ModelBinding;
+using Altinn.Register.PartyImport;
 using Altinn.Register.PartyImport.A2;
 using Altinn.Register.Services;
 using Altinn.Register.Services.Implementation;
@@ -208,6 +209,7 @@ internal static partial class RegisterHost
 
             var maxDbSizeInGib = config.GetValue("Altinn:register:PartyImport:A2:MaxDbSizeInGib", 20UL);
             builder.AddDatabaseSizeJobCondition(maxSize: ByteSize.FromGibibytes(maxDbSizeInGib), jobTags: ["a2-import"]);
+            builder.Services.AddSingleton<JobCleanupHelper>();
 
             services.AddRecurringJob<A2PartyImportJob>(settings =>
             {

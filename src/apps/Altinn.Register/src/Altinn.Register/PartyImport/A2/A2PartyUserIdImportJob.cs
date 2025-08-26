@@ -28,6 +28,7 @@ internal sealed partial class A2PartyUserIdImportJob
     private readonly IImportJobTracker _tracker;
     private readonly ICommandSender _sender;
     private readonly IUnitOfWorkManager _uowManager;
+    private readonly JobCleanupHelper _cleanupHelper;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="A2PartyUserIdImportJob"/> class.
@@ -36,12 +37,14 @@ internal sealed partial class A2PartyUserIdImportJob
         ILogger<A2PartyUserIdImportJob> logger,
         IImportJobTracker tracker,
         ICommandSender sender,
-        IUnitOfWorkManager uowManager)
+        IUnitOfWorkManager uowManager,
+        JobCleanupHelper cleanupHelper)
     {
         _logger = logger;
         _tracker = tracker;
         _sender = sender;
         _uowManager = uowManager;
+        _cleanupHelper = cleanupHelper;
     }
 
     /// <inheritdoc/>
@@ -82,7 +85,7 @@ internal sealed partial class A2PartyUserIdImportJob
             }
         }
 
-        await _tracker.TrackQueueStatus(JobName, new ImportJobQueueStatus { EnqueuedMax = enqueuedMax, SourceMax = null }, cancellationToken);
+        (progress, _) = await _tracker.TrackQueueStatus(JobName, new ImportJobQueueStatus { EnqueuedMax = enqueuedMax, SourceMax = null }, cancellationToken);
         if (messages.Count > 0)
         {
             await SendAndUpdateState(JobName, messages, cancellationToken);
@@ -92,6 +95,8 @@ internal sealed partial class A2PartyUserIdImportJob
             // we've processed all parties, so we can clear up temporary state.
             await service.ClearJobStateForPartiesWithUserId(JobName, cancellationToken);
         }
+
+        await _cleanupHelper.MaybeRunCleanup(startEnqueuedMax, in progress, cancellationToken);
     }
 
     private async Task SendAndUpdateState(
