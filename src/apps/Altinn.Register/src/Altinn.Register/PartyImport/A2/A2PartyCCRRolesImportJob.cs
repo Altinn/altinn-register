@@ -24,6 +24,7 @@ public sealed partial class A2PartyCCRRolesImportJob
     private readonly IImportJobTracker _tracker;
     private readonly ICommandSender _sender;
     private readonly IA2PartyImportService _importService;
+    private readonly JobCleanupHelper _cleanupHelper;
     private readonly TimeProvider _timeProvider;
     private readonly ImportMeters _meters;
 
@@ -35,6 +36,7 @@ public sealed partial class A2PartyCCRRolesImportJob
         IImportJobTracker tracker,
         ICommandSender sender,
         IA2PartyImportService importService,
+        JobCleanupHelper cleanupHelper,
         TimeProvider timeProvider,
         RegisterTelemetry telemetry)
     {
@@ -42,6 +44,7 @@ public sealed partial class A2PartyCCRRolesImportJob
         _tracker = tracker;
         _sender = sender;
         _importService = importService;
+        _cleanupHelper = cleanupHelper;
         _timeProvider = timeProvider;
         _meters = telemetry.GetServiceMeters<ImportMeters>();
     }
@@ -57,6 +60,7 @@ public sealed partial class A2PartyCCRRolesImportJob
         var partyProgress = await _tracker.GetStatus(A2PartyImportJob.JobName, cancellationToken);
         var maxChangeId = partyProgress.ProcessedMax;
         Log.RoleImportInitialProgress(_logger, in progress, maxChangeId);
+        var startEnqueuedMax = progress.EnqueuedMax;
 
         var changes = _importService.GetChanges(checked((uint)progress.EnqueuedMax), cancellationToken);
         await foreach (var page in changes.WithCancellation(cancellationToken))
@@ -100,6 +104,8 @@ public sealed partial class A2PartyCCRRolesImportJob
 
         var duration = _timeProvider.GetElapsedTime(start);
         Log.FinishedCCRRoleImport(_logger, duration);
+
+        await _cleanupHelper.MaybeRunCleanup(startEnqueuedMax, in progress, cancellationToken);
     }
 
     private async Task<ImportJobStatus> TrackQueueStatus(string name, ImportJobStatus current, ImportJobQueueStatus newStatus, CancellationToken cancellationToken)

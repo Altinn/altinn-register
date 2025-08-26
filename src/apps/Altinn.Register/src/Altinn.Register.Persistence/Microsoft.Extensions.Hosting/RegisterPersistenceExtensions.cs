@@ -93,6 +93,7 @@ public static class RegisterPersistenceExtensions
         builder.Services.AddSingleton<PostgreSqlExternalRoleDefinitionPersistence.Cache>();
         builder.Services.AddScoped<PostgreSqlExternalRoleDefinitionPersistence>();
         builder.Services.AddScoped<IExternalRoleDefinitionPersistence>(static s => s.GetRequiredService<PostgreSqlExternalRoleDefinitionPersistence>());
+        builder.Services.AddSingleton<IPartyPersistenceCleanupService, PartyPostgreSqlPersistenceCleanupService>();
 
         return builder;
     }
@@ -151,6 +152,8 @@ public static class RegisterPersistenceExtensions
                 y.MigrationsTable.Schema = yuniqlSchema;
                 y.MigrationsTable.Name = yuniqlTable;
             });
+
+        builder.Services.AddSingleton<PostgreSqlVacuumService>();
     }
 
     private static INpgsqlDatabaseBuilder MapRegisterTypes(this INpgsqlDatabaseBuilder builder)
