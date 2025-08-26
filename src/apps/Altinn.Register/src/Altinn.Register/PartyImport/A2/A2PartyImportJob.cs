@@ -15,11 +15,10 @@ namespace Altinn.Register.PartyImport.A2;
 /// </summary>
 public sealed partial class A2PartyImportJob
     : Job
+    , IHasJobName<A2PartyImportJob>
 {
-    /// <summary>
-    /// The job name.
-    /// </summary>
-    internal const string JOB_NAME = JobNames.A2PartyImportParty;
+    /// <inheritdoc/>
+    public static string JobName => JobNames.A2PartyImportParty;
 
     private readonly ILogger<A2PartyImportJob> _logger;
     private readonly IImportJobTracker _tracker;
@@ -54,7 +53,7 @@ public sealed partial class A2PartyImportJob
         Log.StartingPartyImport(_logger);
 
         using var activity = RegisterTelemetry.StartActivity("import a2-parties", ActivityKind.Internal);
-        var progress = await _tracker.GetStatus(JOB_NAME, cancellationToken);
+        var progress = await _tracker.GetStatus(JobName, cancellationToken);
         Log.PartyImportInitialProgress(_logger, in progress);
 
         var changes = _importService.GetChanges(checked((uint)progress.EnqueuedMax), cancellationToken);
@@ -78,7 +77,7 @@ public sealed partial class A2PartyImportJob
 
             var enqueuedMax = page[^1].ChangeId;
             var sourceMax = page.LastKnownChangeId;
-            progress = await TrackQueueStatus(JOB_NAME, progress, new() { EnqueuedMax = enqueuedMax, SourceMax = sourceMax }, cancellationToken);
+            progress = await TrackQueueStatus(JobName, progress, new() { EnqueuedMax = enqueuedMax, SourceMax = sourceMax }, cancellationToken);
             _meters.PartiesEnqueued.Add(page.Count);
 
             if (enqueuedMax - progress.ProcessedMax > 50_000)

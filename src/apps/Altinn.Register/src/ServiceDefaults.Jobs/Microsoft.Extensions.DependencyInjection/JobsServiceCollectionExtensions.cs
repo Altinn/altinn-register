@@ -19,7 +19,7 @@ public static class JobsServiceCollectionExtensions
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>
     /// <param name="configure">A configuration delegate.</param>
     /// <returns><paramref name="services"/>.</returns>
-    public static IServiceCollection AddRecurringJob<T>(this IServiceCollection services, Action<IJobSettings> configure)
+    public static IJobRegistration AddRecurringJob<T>(this IServiceCollection services, Action<IJobSettings> configure)
         where T : class, IJob
         => services.AddRecurringJob<T>(serviceKey: null, configure);
 
@@ -31,20 +31,20 @@ public static class JobsServiceCollectionExtensions
     /// <param name="serviceKey">A key to use when resolving the job from the service provider.</param>
     /// <param name="configure">A configuration delegate.</param>
     /// <returns><paramref name="services"/>.</returns>
-    public static IServiceCollection AddRecurringJob<T>(this IServiceCollection services, object? serviceKey, Action<IJobSettings> configure)
+    public static IJobRegistration AddRecurringJob<T>(this IServiceCollection services, object? serviceKey, Action<IJobSettings> configure)
         where T : class, IJob
     {
         Guard.IsNotNull(services);
         Guard.IsNotNull(configure);
 
-        var settings = new JobSettings();
+        var settings = new JobSettings(JobRegistration.GetJobNameForType(typeof(T)));
         configure(settings);
 
         services.TryAddKeyedScoped<T>(serviceKey);
         return services.AddRecurringJob<T>(settings, serviceKey);
     }
 
-    private static IServiceCollection AddRecurringJob<T>(this IServiceCollection services, JobSettings settings, object? serviceKey)
+    private static IJobRegistration AddRecurringJob<T>(this IServiceCollection services, JobSettings settings, object? serviceKey)
         where T : IJob
     {
         Guard.IsNotNull(services);
@@ -53,7 +53,7 @@ public static class JobsServiceCollectionExtensions
             ThrowHelper.ThrowArgumentException(nameof(settings), "Interval must be greater than zero or RunAt must be set.");
         }
 
-        var registration = new JobRegistration<T>(settings.LeaseName, settings.Interval, settings.RunAt, settings.Tags, settings.Enabled, settings.WaitForReady, serviceKey);
+        var registration = new JobRegistration<T>(settings.JobName, settings.LeaseName, settings.Interval, settings.RunAt, settings.Tags, settings.Enabled, settings.WaitForReady, serviceKey);
         return services.AddRecurringJob(registration);
     }
 
@@ -63,7 +63,7 @@ public static class JobsServiceCollectionExtensions
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>
     /// <param name="registration">The <see cref="JobRegistration"/>.</param>
     /// <returns><paramref name="services"/>.</returns>
-    public static IServiceCollection AddRecurringJob(this IServiceCollection services, JobRegistration registration)
+    public static IJobRegistration AddRecurringJob(this IServiceCollection services, JobRegistration registration)
     {
         Guard.IsNotNull(services);
         Guard.IsNotNull(registration);
@@ -71,7 +71,7 @@ public static class JobsServiceCollectionExtensions
         services.AddRecurringJobHostedService();
 
         services.AddSingleton(registration);
-        return services;
+        return registration;
     }
 
     /// <summary>
@@ -288,6 +288,7 @@ public static class JobsServiceCollectionExtensions
     }
 
     private sealed class JobRegistration<T>(
+        string jobName,
         string? leaseName,
         TimeSpan interval,
         JobHostLifecycles runAt,
@@ -295,16 +296,19 @@ public static class JobsServiceCollectionExtensions
         Func<IServiceProvider, CancellationToken, ValueTask<bool>>? enabled,
         Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady,
         object? serviceKey)
-        : JobRegistration(leaseName, interval, runAt, tags, enabled, waitForReady)
+        : JobRegistration(jobName, leaseName, interval, runAt, tags, enabled, waitForReady)
         where T : IJob
     {
         public override IJob Create(IServiceProvider services)
             => services.GetRequiredKeyedService<T>(serviceKey);
     }
 
-    private sealed class JobSettings
+    private sealed class JobSettings(string jobName)
         : IJobSettings
     {
+        /// <inheritdoc/>
+        public string JobName { get; set; } = jobName;
+
         /// <inheritdoc/>
         public string? LeaseName { get; set; } = null;
 

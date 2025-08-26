@@ -15,11 +15,10 @@ namespace Altinn.Register.PartyImport.A2;
 /// </summary>
 public sealed partial class A2PartyCCRRolesImportJob
     : Job
+    , IHasJobName<A2PartyCCRRolesImportJob>
 {
-    /// <summary>
-    /// The job name.
-    /// </summary>
-    internal const string JOB_NAME = JobNames.A2PartyImportCCRRoleAssignments;
+    /// <inheritdoc/>
+    public static string JobName => JobNames.A2PartyImportCCRRoleAssignments;
 
     private readonly ILogger<A2PartyCCRRolesImportJob> _logger;
     private readonly IImportJobTracker _tracker;
@@ -54,8 +53,8 @@ public sealed partial class A2PartyCCRRolesImportJob
         Log.StartingCCRRoleImport(_logger);
 
         using var activity = RegisterTelemetry.StartActivity("import a2-ccr-roles", ActivityKind.Internal);
-        var progress = await _tracker.GetStatus(JOB_NAME, cancellationToken);
-        var partyProgress = await _tracker.GetStatus(A2PartyImportJob.JOB_NAME, cancellationToken);
+        var progress = await _tracker.GetStatus(JobName, cancellationToken);
+        var partyProgress = await _tracker.GetStatus(A2PartyImportJob.JobName, cancellationToken);
         var maxChangeId = partyProgress.ProcessedMax;
         Log.RoleImportInitialProgress(_logger, in progress, maxChangeId);
 
@@ -89,7 +88,7 @@ public sealed partial class A2PartyCCRRolesImportJob
 
             var enqueuedMax = page[^1].ChangeId;
             var sourceMax = page.LastKnownChangeId;
-            progress = await TrackQueueStatus(JOB_NAME, progress, new() { EnqueuedMax = enqueuedMax, SourceMax = sourceMax }, cancellationToken);
+            progress = await TrackQueueStatus(JobName, progress, new() { EnqueuedMax = enqueuedMax, SourceMax = sourceMax }, cancellationToken);
             _meters.OrganizationCCRRolesEnqueued.Add(cmds.Count);
 
             if (enqueuedMax - progress.ProcessedMax > 50_000)

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Reflection;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Authorization.ServiceDefaults.Jobs;
@@ -7,12 +8,14 @@ namespace Altinn.Authorization.ServiceDefaults.Jobs;
 /// A registration for a job.
 /// </summary>
 public abstract class JobRegistration(
+    string name,
     string? leaseName,
     TimeSpan interval,
     JobHostLifecycles runAt,
     IEnumerable<string> tags,
     Func<IServiceProvider, CancellationToken, ValueTask<bool>>? enabled,
     Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady)
+    : IJobRegistration
 {
     private readonly ImmutableArray<string> _tags = ToTagArray(tags);
     private readonly Lock _lock = new();
@@ -25,20 +28,20 @@ public abstract class JobRegistration(
     /// <returns>A new instance of <see cref="IJob"/>.</returns>
     public abstract IJob Create(IServiceProvider services);
 
-    /// <summary>
-    /// Gets the name of the lease that should be acquired before running the job.
-    /// </summary>
+    /// <inheritdoc/>
+    public string JobName => name;
+
+    /// <inheritdoc/>
     public string? LeaseName => leaseName;
 
-    /// <summary>
-    /// Gets the interval at which the job should run.
-    /// </summary>
+    /// <inheritdoc/>
     public TimeSpan Interval => interval;
 
-    /// <summary>
-    /// Gets the <see cref="JobHostLifecycles"/> that the job should run at.
-    /// </summary>
+    /// <inheritdoc/>
     public JobHostLifecycles RunAt => runAt;
+
+    /// <inheritdoc/>
+    public ImmutableArray<string> Tags => _tags;
 
     /// <summary>
     /// Checks if the job has a specific tag.
@@ -114,4 +117,29 @@ public abstract class JobRegistration(
         var set = new SortedSet<string>(tags, StringComparer.Ordinal);
         return [.. set];
     }
+
+    /// <summary>
+    /// Gets the job name for a given job type.
+    /// </summary>
+    /// <param name="jobType">The job type.</param>
+    /// <returns>The job name. Normally same as the type name.</returns>
+    public static string GetJobNameForType(Type jobType)
+    {
+        Guard.IsNotNull(jobType);
+
+        var nameIface = jobType.GetInterfaces()
+            .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHasJobName<>) && i.GetGenericArguments()[0] == jobType);
+
+        if (nameIface is not null)
+        {
+            var genericMethod = typeof(JobRegistration).GetMethod(nameof(GetJobNameFromIfaceImpl), BindingFlags.Static | BindingFlags.NonPublic)!.MakeGenericMethod(jobType);
+            return (string)genericMethod.Invoke(null, [])!;
+        }
+
+        return jobType.Name;
+    }
+
+    private static string GetJobNameFromIfaceImpl<T>()
+        where T : IHasJobName<T>
+        => T.JobName;
 }

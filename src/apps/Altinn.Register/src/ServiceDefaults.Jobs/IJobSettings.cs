@@ -6,6 +6,11 @@
 public interface IJobSettings
 {
     /// <summary>
+    /// Gets or sets the name of the job. This should be unique within the application. It's mostly used for logging and metrics.
+    /// </summary>
+    string JobName { get; }
+
+    /// <summary>
     /// Gets or sets the name of a lease that should be acquired before running the job.
     /// </summary>
     /// <remarks>

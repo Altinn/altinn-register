@@ -212,7 +212,7 @@ internal static partial class RegisterHost
             services.AddRecurringJob<A2PartyImportJob>(settings =>
             {
                 settings.Tags.Add("a2-import");
-                settings.LeaseName = A2PartyImportJob.JOB_NAME;
+                settings.LeaseName = A2PartyImportJob.JobName;
                 settings.Interval = TimeSpan.FromMinutes(1);
                 settings.WaitForReady = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
                 settings.Enabled = JobEnabledBuilder.Default
@@ -222,23 +222,23 @@ internal static partial class RegisterHost
             services.AddRecurringJob<A2PartyCCRRolesImportJob>(settings =>
             {
                 settings.Tags.Add("a2-import");
-                settings.LeaseName = A2PartyCCRRolesImportJob.JOB_NAME;
+                settings.LeaseName = A2PartyCCRRolesImportJob.JobName;
                 settings.Interval = TimeSpan.FromMinutes(1);
                 settings.WaitForReady = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
                 settings.Enabled = JobEnabledBuilder.Default
                     .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:Enable")
-                    .WithRequireImportJobFinished(A2PartyImportJob.JOB_NAME, threshold: 5_000);
+                    .WithRequireImportJobFinished(A2PartyImportJob.JobName, threshold: 5_000);
             });
 
             services.AddRecurringJob<A2PartyUserIdImportJob>(settings =>
             {
                 settings.Tags.Add("a2-import");
-                settings.LeaseName = A2PartyUserIdImportJob.JOB_NAME;
+                settings.LeaseName = A2PartyUserIdImportJob.JobName;
                 settings.Interval = TimeSpan.FromMinutes(1);
                 settings.WaitForReady = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
                 settings.Enabled = JobEnabledBuilder.Default
                     .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:PartyUserId:Enable")
-                    .WithRequireImportJobFinished(A2PartyImportJob.JOB_NAME, threshold: 5_000);
+                    .WithRequireImportJobFinished(A2PartyImportJob.JobName, threshold: 5_000);
             });
         }
 

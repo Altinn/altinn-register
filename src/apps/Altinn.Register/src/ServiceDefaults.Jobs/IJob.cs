@@ -6,11 +6,6 @@
 public interface IJob
 {
     /// <summary>
-    /// Gets the name of the job.
-    /// </summary>
-    public string Name { get; }
-
-    /// <summary>
     /// Checks if the job should run at this time.
     /// </summary>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
