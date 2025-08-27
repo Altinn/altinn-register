@@ -94,7 +94,7 @@ public sealed partial class A2PartyImportJob
         var duration = _timeProvider.GetElapsedTime(start);
         Log.FinishedPartyImport(_logger, duration);
 
-        await _cleanupHelper.MaybeRunCleanup(startEnqueuedMax, in progress, cancellationToken);
+        await _cleanupHelper.MaybeRunCleanup(JobName, startEnqueuedMax, in progress, cancellationToken);
     }
 
     private async Task<ImportJobStatus> TrackQueueStatus(string name, ImportJobStatus current, ImportJobQueueStatus newStatus, CancellationToken cancellationToken)

@@ -34,10 +34,11 @@ public sealed partial class JobCleanupHelper
     /// <summary>
     /// Runs cleanup if new "pages" were enqueued during the job run, and cleanup has not been run in at least 15 minutes.
     /// </summary>
+    /// <param name="jobName">The name of the job running the cleanup.</param>
     /// <param name="startEnqueuedMax">The start "enqueued max" for the job.</param>
     /// <param name="latestStatus">The latest status of the job.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
-    public Task MaybeRunCleanup(ulong startEnqueuedMax, in ImportJobStatus latestStatus, CancellationToken cancellationToken)
+    public Task MaybeRunCleanup(string jobName, ulong startEnqueuedMax, in ImportJobStatus latestStatus, CancellationToken cancellationToken)
     {
         const ulong CLEANUP_PAGE_SIZE = 10_000;
 
@@ -48,14 +49,14 @@ public sealed partial class JobCleanupHelper
         if (endPage <= startPage)
         {
             // No new "pages" were enqueued during this run, so no cleanup is necessary.
-            Log.SkippingCleanup_NoNewPage(_logger);
+            Log.SkippingCleanup_NoNewPage(_logger, jobName, startEnqueuedMax, endEnqueuedMax);
             return Task.CompletedTask;
         }
 
-        return TryRunCleanup(cancellationToken);
+        return TryRunCleanup(jobName, cancellationToken);
     }
 
-    private async Task TryRunCleanup(CancellationToken cancellationToken)
+    private async Task TryRunCleanup(string jobName, CancellationToken cancellationToken)
     {
         var now = _timeProvider.GetUtcNow();
         await using var lease = await _leaseManager.AcquireLease(
@@ -79,30 +80,30 @@ public sealed partial class JobCleanupHelper
 
         if (!lease.Acquired)
         {
-            Log.SkippingCleanup_LeaseNotAcquired(_logger);
+            Log.SkippingCleanup_LeaseNotAcquired(_logger, jobName, lease.LastReleasedAt);
             return;
         }
 
         var start = _timeProvider.GetUtcNow();
-        Log.StartingPeriodicPartyCleanup(_logger);
+        Log.StartingPeriodicPartyCleanup(_logger, jobName);
         await _cleanupService.RunPeriodicPartyCleanup(lease.Token);
 
         var duration = _timeProvider.GetUtcNow() - start;
-        Log.FinishedPeriodicPartyCleanup(_logger, duration);
+        Log.FinishedPeriodicPartyCleanup(_logger, jobName, duration);
     }
 
     private static partial class Log
     {
-        [LoggerMessage(0, LogLevel.Information, "Skipping cleanup since no new pages were enqueued during this run.")]
-        public static partial void SkippingCleanup_NoNewPage(ILogger logger);
+        [LoggerMessage(0, LogLevel.Information, "Skipping cleanup for job {JobName} since no new pages were enqueued during this run. Before job enqueued max: {StartEnqueuedMax}, after job enqueued max: {EndEnqueuedMax}")]
+        public static partial void SkippingCleanup_NoNewPage(ILogger logger, string jobName, ulong startEnqueuedMax, ulong endEnqueuedMax);
 
-        [LoggerMessage(1, LogLevel.Information, "Starting periodic party cleanup.")]
-        public static partial void StartingPeriodicPartyCleanup(ILogger logger);
+        [LoggerMessage(1, LogLevel.Information, "Starting periodic party cleanup for job {JobName}.")]
+        public static partial void StartingPeriodicPartyCleanup(ILogger logger, string jobName);
 
-        [LoggerMessage(2, LogLevel.Information, "Finished periodic party cleanup in {Duration}.")]
-        public static partial void FinishedPeriodicPartyCleanup(ILogger logger, TimeSpan duration);
+        [LoggerMessage(2, LogLevel.Information, "Finished periodic party cleanup for job {JobName} in {Duration}.")]
+        public static partial void FinishedPeriodicPartyCleanup(ILogger logger, string jobName, TimeSpan duration);
 
-        [LoggerMessage(3, LogLevel.Information, "Skipping cleanup since lease could not be acquired or last cleanup was run less than 15 minutes ago.")]
-        public static partial void SkippingCleanup_LeaseNotAcquired(ILogger logger);
+        [LoggerMessage(3, LogLevel.Information, "Skipping cleanup for job {JobName} since lease could not be acquired or last cleanup was run less than 15 minutes ago. Lease last released at: {LeaseLastReleasedAt}")]
+        public static partial void SkippingCleanup_LeaseNotAcquired(ILogger logger, string jobName, DateTimeOffset? leaseLastReleasedAt);
     }
 }

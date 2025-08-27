@@ -96,7 +96,7 @@ internal sealed partial class A2PartyUserIdImportJob
             await service.ClearJobStateForPartiesWithUserId(JobName, cancellationToken);
         }
 
-        await _cleanupHelper.MaybeRunCleanup(startEnqueuedMax, in progress, cancellationToken);
+        await _cleanupHelper.MaybeRunCleanup(JobName, startEnqueuedMax, in progress, cancellationToken);
     }
 
     private async Task SendAndUpdateState(
