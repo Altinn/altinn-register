@@ -531,6 +531,9 @@ internal partial class PostgreSqlPartyPersistence
     {
         const string QUERY =
             /*strpsql*/"""
+            WITH maxval AS (
+                SELECT register.tx_max_safeval('register.external_role_assignment_event_id_seq') maxval
+            )
             SELECT 
                 "id",
                 "type",
@@ -539,8 +542,9 @@ internal partial class PostgreSqlPartyPersistence
                 "from_party",
                 "to_party"
             FROM register.external_role_assignment_event
+            CROSS JOIN maxval mv
             WHERE "id" > @from
-              AND "id" <= register.tx_max_safeval('register.external_role_assignment_event_id_seq')
+              AND "id" <= mv.maxval
             ORDER BY "id"
             LIMIT @limit
             """;

@@ -776,14 +776,23 @@ internal partial class PostgreSqlPartyPersistence
                             Debug.Assert(!includes.HasFlag(PartyFieldIncludes.SubUnits), "A query cannot get both a stream page and subunits");
                             _paramStreamFromExclusive = new(typeof(long), "streamFromExlusive", NpgsqlDbType.Bigint);
                             _paramStreamLimit = new(typeof(int), "streamLimit", NpgsqlDbType.Integer);
+                            
+                            AddCommonTableExpression(
+                                ref firstExpression,
+                                "maxval",
+                                /*strpsql*/"""
+                                SELECT register.tx_max_safeval('register.party_version_id_seq') maxval
+                                """);
+                                
                             AddCommonTableExpression(
                                 ref firstExpression,
                                 "top_level_uuids",
                                 /*strpsql*/"""
                                 SELECT party."uuid", party.version_id
                                 FROM register.party AS party
+                                CROSS JOIN maxval mv
                                 WHERE party.version_id > @streamFromExlusive
-                                  AND party.version_id <= register.tx_max_safeval('register.party_version_id_seq')
+                                  AND party.version_id <= mv.maxval
                                 ORDER BY party.version_id ASC
                                 LIMIT @streamLimit
                                 """);
