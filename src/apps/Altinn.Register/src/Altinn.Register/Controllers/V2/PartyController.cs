@@ -43,7 +43,7 @@ public class PartyController
     /// <remarks>
     /// Changing this number is *not* a breaking change.
     /// </remarks>
-    internal const int PARTY_STREAM_PAGE_SIZE = 100;
+    internal const int PARTY_STREAM_PAGE_SIZE = 5_000;
 
     /// <summary>
     /// The page-size for role-assignments streams.
@@ -51,7 +51,7 @@ public class PartyController
     /// <remarks>
     /// Changing this number is *not* a breaking change.
     /// </remarks>
-    internal const int ROLEASSIGNMENTS_STREAM_PAGE_SIZE = 1_000;
+    internal const int ROLEASSIGNMENTS_STREAM_PAGE_SIZE = 5_000;
 
     /// <summary>
     /// The maximum number of items that can be queried at once.

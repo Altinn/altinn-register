@@ -154,4 +154,79 @@ public class LeaseManagerTests
 
         lease.Token.IsCancellationRequested.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task CanFilterLeases()
+    {
+        DateTimeOffset dt1 = TimeProvider.GetUtcNow();
+        {
+            // lease does not initially exist, so it should be acquired
+            await using var lease = await GetLease();
+            lease.Acquired.Should().BeTrue();
+            lease.LastReleasedAt.Should().BeNull();
+        }
+
+        TimeProvider.Advance(TimeSpan.FromMinutes(1));
+        {
+            // lease was just released, so it should not be acquired
+            await using var lease = await GetLease();
+            lease.Acquired.Should().BeFalse();
+            lease.LastReleasedAt.Should().Be(dt1);
+        }
+
+        TimeProvider.Advance(TimeSpan.FromMinutes(1));
+        {
+            // lease was just released, so it should not be acquired
+            await using var lease = await GetLease();
+            lease.Acquired.Should().BeFalse();
+            lease.LastReleasedAt.Should().Be(dt1);
+        }
+
+        TimeProvider.Advance(TimeSpan.FromMinutes(15));
+        DateTimeOffset dt2 = TimeProvider.GetUtcNow();
+        {
+            // lease was released more than 15 minutes ago, so it should be acquired
+            await using var lease = await GetLease();
+            lease.Acquired.Should().BeTrue();
+            lease.LastReleasedAt.Should().Be(dt1);
+        }
+
+        TimeProvider.Advance(TimeSpan.FromMinutes(1));
+        {
+            // lease was just released, so it should not be acquired
+            await using var lease = await GetLease();
+            lease.Acquired.Should().BeFalse();
+            lease.LastReleasedAt.Should().Be(dt2);
+        }
+
+        TimeProvider.Advance(TimeSpan.FromMinutes(1));
+        {
+            // lease was just released, so it should not be acquired
+            await using var lease = await GetLease();
+            lease.Acquired.Should().BeFalse();
+            lease.LastReleasedAt.Should().Be(dt2);
+        }
+
+        async Task<Lease> GetLease()
+        {
+            var now = TimeProvider.GetUtcNow();
+            return await Manager.AcquireLease(
+                "test",
+                info =>
+                {
+                    // Only run cleanup if the last time it was run was more than 15 minutes ago.
+                    if (info.LastReleasedAt is null)
+                    {
+                        return true;
+                    }
+
+                    if (now - info.LastReleasedAt.Value < TimeSpan.FromMinutes(15))
+                    {
+                        return false;
+                    }
+
+                    return true;
+                });
+        }
+    }
 }
