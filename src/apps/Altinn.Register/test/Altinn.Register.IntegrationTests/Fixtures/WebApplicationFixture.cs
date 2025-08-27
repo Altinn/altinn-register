@@ -4,6 +4,7 @@ using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Authorization.ServiceDefaults.MassTransit.Testing;
 using Altinn.Common.AccessToken.Services;
 using Altinn.Register.Configuration;
+using Altinn.Register.Controllers.V2;
 using Altinn.Register.IntegrationTests.TestServices;
 using Altinn.Register.IntegrationTests.Tracing;
 using Altinn.Register.TestUtils;
@@ -62,6 +63,12 @@ public sealed class WebApplicationFixture
             builder.ConfigureServices(services =>
             {
                 services.AddSingleton(() => db);
+                services.AddOptions<PartyController.Settings>()
+                    .Configure(s =>
+                    {
+                        s.PartyStreamPageSize = 10;
+                        s.RoleAssignmentsStreamPageSize = 10;
+                    });
             });
 
             var settings = new ConfigurationBuilder();

@@ -17,6 +17,7 @@ using Altinn.Register.Models;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace Altinn.Register.Controllers.V2;
 
@@ -38,22 +39,6 @@ public class PartyController
         | PartyFieldIncludes.PartyVersionId;
 
     /// <summary>
-    /// The page-size for party streams.
-    /// </summary>
-    /// <remarks>
-    /// Changing this number is *not* a breaking change.
-    /// </remarks>
-    internal const int PARTY_STREAM_PAGE_SIZE = 5_000;
-
-    /// <summary>
-    /// The page-size for role-assignments streams.
-    /// </summary>
-    /// <remarks>
-    /// Changing this number is *not* a breaking change.
-    /// </remarks>
-    internal const int ROLEASSIGNMENTS_STREAM_PAGE_SIZE = 5_000;
-
-    /// <summary>
     /// The maximum number of items that can be queried at once.
     /// </summary>
     /// <remarks>
@@ -73,13 +58,15 @@ public class PartyController
     public const string ROUTE_GET_EXTERNALROLE_ASSIGNMENTS_STREAM = "external-roles/assignments/stream";
 
     private readonly IUnitOfWorkManager _uowManager;
+    private readonly Settings _settings;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PartyController"/> class.
     /// </summary>
-    public PartyController(IUnitOfWorkManager uowManager)
+    public PartyController(IUnitOfWorkManager uowManager, IOptions<Settings> settings)
     {
         _uowManager = uowManager;
+        _settings = settings.Value;
     }
 
     /// <summary>
@@ -98,7 +85,7 @@ public class PartyController
         [FromQuery(Name = "token")] Opaque<ulong>? token = null,
         CancellationToken cancellationToken = default)
     {
-        const int PAGE_SIZE = PARTY_STREAM_PAGE_SIZE;
+        var pageSize = _settings.PartyStreamPageSize;
 
         ValidationErrorBuilder errors = default;
         if (fields.HasFlag(PartyFieldIncludes.SubUnits))
@@ -117,7 +104,7 @@ public class PartyController
         var maxVersionId = await persistence.GetMaxPartyVersionId(cancellationToken);
         var parties = await persistence.GetPartyStream(
             fromExclusive: token?.Value ?? 0,
-            limit: PAGE_SIZE,
+            limit: pageSize,
             fields | REQUIRED_FIELDS,
             cancellationToken)
             .Select(static p => p.ToPlatformModel())
@@ -151,7 +138,7 @@ public class PartyController
         [FromQuery(Name = "token")] Opaque<ulong>? token = null,
         CancellationToken cancellationToken = default)
     {
-        const int PAGE_SIZE = ROLEASSIGNMENTS_STREAM_PAGE_SIZE;
+        var pageSize = _settings.RoleAssignmentsStreamPageSize;
 
         await using var uow = await _uowManager.CreateAsync(cancellationToken);
         var persistence = uow.GetPartyPersistence();
@@ -159,7 +146,7 @@ public class PartyController
         var maxVersionId = await persistence.GetMaxExternalRoleAssignmentVersionId(cancellationToken);
         var events = await persistence.GetExternalRoleAssignmentStream(
             fromExclusive: token?.Value ?? 0,
-            limit: PAGE_SIZE,
+            limit: pageSize,
             cancellationToken)
             .ToListAsync(cancellationToken);
 
@@ -591,5 +578,27 @@ public class PartyController
     private static T Unreachable<T>()
     {
         throw new InvalidOperationException("This code should never be reached.");
+    }
+
+    /// <summary>
+    /// Settings for the <see cref="PartyController"/>.
+    /// </summary>
+    public sealed class Settings
+    {
+        /// <summary>
+        /// Gets or sets the page-size for party streams.
+        /// </summary>
+        /// <remarks>
+        /// Changing this number is <b>not</b> a breaking change.
+        /// </remarks>
+        public ushort PartyStreamPageSize { get; set; } = 5_000;
+
+        /// <summary>
+        /// Gets or sets the page-size for role-assignments streams.
+        /// </summary>
+        /// <remarks>
+        /// Changing this number is *not* a breaking change.
+        /// </remarks>
+        public ushort RoleAssignmentsStreamPageSize { get; set; } = 5_000;
     }
 }

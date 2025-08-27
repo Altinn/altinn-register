@@ -4,12 +4,15 @@ using Altinn.Register.Controllers.V2;
 using Altinn.Register.Mapping;
 using Altinn.Register.Models;
 using Altinn.Register.TestUtils.TestData;
+using Microsoft.Extensions.Options;
 
 namespace Altinn.Register.IntegrationTests.Party;
 
 public class StreamTests
     : IntegrationTestBase
 {
+    private PartyController.Settings Settings => GetRequiredService<IOptionsMonitor<PartyController.Settings>>().CurrentValue;
+
     [Fact]
     public async Task EmptyStream()
     {
@@ -59,9 +62,11 @@ public class StreamTests
     [Fact]
     public async Task MultiplePages()
     {
+        var pageSize = Settings.RoleAssignmentsStreamPageSize;
+
         var orgs = await Setup(async (uow, ct) =>
         {
-            return await uow.CreateOrgs((PartyController.PARTY_STREAM_PAGE_SIZE * 3) + (PartyController.PARTY_STREAM_PAGE_SIZE / 2), cancellationToken: ct);
+            return await uow.CreateOrgs((pageSize * 3) + (pageSize / 2), cancellationToken: ct);
         });
 
         /*********************************************
@@ -73,7 +78,7 @@ public class StreamTests
         var content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
 
         var items = content.Items.ToList();
-        items.Count.ShouldBe(PartyController.PARTY_STREAM_PAGE_SIZE);
+        items.Count.ShouldBe(pageSize);
 
         for (var i = 0; i < items.Count; i++)
         {
@@ -92,11 +97,11 @@ public class StreamTests
         content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
 
         items = content.Items.ToList();
-        items.Count.ShouldBe(PartyController.PARTY_STREAM_PAGE_SIZE);
+        items.Count.ShouldBe(pageSize);
 
         for (var i = 0; i < items.Count; i++)
         {
-            items[i].Uuid.ShouldBe(orgs[PartyController.PARTY_STREAM_PAGE_SIZE + i].PartyUuid.Value);
+            items[i].Uuid.ShouldBe(orgs[pageSize + i].PartyUuid.Value);
         }
 
         content.Links.Next.ShouldNotBeNull();
@@ -111,11 +116,11 @@ public class StreamTests
         content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
 
         items = content.Items.ToList();
-        items.Count.ShouldBe(PartyController.PARTY_STREAM_PAGE_SIZE);
+        items.Count.ShouldBe(pageSize);
 
         for (var i = 0; i < items.Count; i++)
         {
-            items[i].Uuid.ShouldBe(orgs[(PartyController.PARTY_STREAM_PAGE_SIZE * 2) + i].PartyUuid.Value);
+            items[i].Uuid.ShouldBe(orgs[(pageSize * 2) + i].PartyUuid.Value);
         }
 
         content.Links.Next.ShouldNotBeNull();
@@ -130,11 +135,11 @@ public class StreamTests
         content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
 
         items = content.Items.ToList();
-        items.Count.ShouldBe(PartyController.PARTY_STREAM_PAGE_SIZE / 2);
+        items.Count.ShouldBe(pageSize / 2);
 
         for (var i = 0; i < items.Count; i++)
         {
-            items[i].Uuid.ShouldBe(orgs[(PartyController.PARTY_STREAM_PAGE_SIZE * 3) + i].PartyUuid.Value);
+            items[i].Uuid.ShouldBe(orgs[(pageSize * 3) + i].PartyUuid.Value);
         }
 
         content.Links.Next.ShouldNotBeNull();
