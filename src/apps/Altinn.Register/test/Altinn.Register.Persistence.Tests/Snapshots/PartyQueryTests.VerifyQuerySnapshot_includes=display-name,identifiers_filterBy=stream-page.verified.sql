@@ -1,11 +1,15 @@
 ﻿-- include: display-name,identifiers
 -- filter: stream-page
 
-WITH top_level_uuids AS (
+WITH maxval AS (
+    SELECT register.tx_max_safeval('register.party_version_id_seq') maxval
+),
+top_level_uuids AS (
     SELECT party."uuid", party.version_id
     FROM register.party AS party
+    CROSS JOIN maxval mv
     WHERE party.version_id > @streamFromExlusive
-      AND party.version_id <= register.tx_max_safeval('register.party_version_id_seq')
+      AND party.version_id <= mv.maxval
     ORDER BY party.version_id ASC
     LIMIT @streamLimit
 ),
