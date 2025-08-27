@@ -48,7 +48,7 @@ public sealed partial class JobCleanupHelper
         if (endPage <= startPage)
         {
             // No new "pages" were enqueued during this run, so no cleanup is necessary.
-            Log.SkippingCleanup_NoNewPage(_logger);
+            Log.SkippingCleanup_NoNewPage(_logger, startEnqueuedMax, endEnqueuedMax);
             return Task.CompletedTask;
         }
 
@@ -93,8 +93,8 @@ public sealed partial class JobCleanupHelper
 
     private static partial class Log
     {
-        [LoggerMessage(0, LogLevel.Information, "Skipping cleanup since no new pages were enqueued during this run.")]
-        public static partial void SkippingCleanup_NoNewPage(ILogger logger);
+        [LoggerMessage(0, LogLevel.Information, "Skipping cleanup since no new pages were enqueued during this run. Before job enqueued max: {StartEnqueuedMax}, after job enqueued max: {EndEnqueuedMax}")]
+        public static partial void SkippingCleanup_NoNewPage(ILogger logger, ulong startEnqueuedMax, ulong endEnqueuedMax);
 
         [LoggerMessage(1, LogLevel.Information, "Starting periodic party cleanup.")]
         public static partial void StartingPeriodicPartyCleanup(ILogger logger);
