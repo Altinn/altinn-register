@@ -103,6 +103,7 @@ internal static partial class RegisterHost
         services.Configure<AccessTokenSettings>(config.GetSection("AccessTokenSettings"));
         services.Configure<PlatformSettings>(config.GetSection("PlatformSettings"));
         services.Configure<PersonLookupSettings>(config.GetSection("PersonLookupSettings"));
+        services.AddOptions<Controllers.V2.PartyController.Settings>().ValidateDataAnnotations();
 
         services.AddOptions<A2PartyImportSettings>()
             .Configure((A2PartyImportSettings settings, IConfiguration config) =>

@@ -59,24 +59,25 @@ public sealed partial class JobCleanupHelper
     private async Task TryRunCleanup(string jobName, CancellationToken cancellationToken)
     {
         var now = _timeProvider.GetUtcNow();
-        await using var lease = await _leaseManager.AcquireLease(
-            LeaseNames.PartyCleanup,
-            info =>
-            {
-                // Only run cleanup if the last time it was run was more than 15 minutes ago.
-                if (info.LastReleasedAt is null)
-                {
-                    return true;
-                }
+        ////await using var lease = await _leaseManager.AcquireLease(
+        ////    LeaseNames.PartyCleanup,
+        ////    info =>
+        ////    {
+        ////        // Only run cleanup if the last time it was run was more than 15 minutes ago.
+        ////        if (info.LastReleasedAt is null)
+        ////        {
+        ////            return true;
+        ////        }
 
-                if (now - info.LastReleasedAt.Value < TimeSpan.FromMinutes(15))
-                {
-                    return false;
-                }
+        ////        if (now - info.LastReleasedAt.Value < TimeSpan.FromMinutes(15))
+        ////        {
+        ////            return false;
+        ////        }
 
-                return true;
-            },
-            cancellationToken);
+        ////        return true;
+        ////    },
+        ////    cancellationToken);
+        await using var lease = await _leaseManager.AcquireLease(LeaseNames.PartyCleanup, cancellationToken);
 
         if (!lease.Acquired)
         {

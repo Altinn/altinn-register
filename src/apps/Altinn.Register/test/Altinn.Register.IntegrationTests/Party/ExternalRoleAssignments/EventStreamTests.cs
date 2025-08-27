@@ -5,12 +5,15 @@ using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Models;
 using Altinn.Register.TestUtils.TestData;
+using Microsoft.Extensions.Options;
 
 namespace Altinn.Register.IntegrationTests.Party.ExternalRoleAssignments;
 
 public class EventStreamTests
     : IntegrationTestBase
 {
+    private PartyController.Settings Settings => GetRequiredService<IOptionsMonitor<PartyController.Settings>>().CurrentValue;
+
     [Fact]
     public async Task EmptyStream()
     {
@@ -81,7 +84,8 @@ public class EventStreamTests
     [Fact]
     public async Task MultiplePages()
     {
-        const int MIN_EVENTS = (PartyController.ROLEASSIGNMENTS_STREAM_PAGE_SIZE * 3) + (PartyController.ROLEASSIGNMENTS_STREAM_PAGE_SIZE / 2);
+        var pageSize = Settings.RoleAssignmentsStreamPageSize;
+        var minEvents = (pageSize * 3) + (pageSize / 2);
 
         var evts = await Setup(async (uow, ct) =>
         {
@@ -90,7 +94,7 @@ public class EventStreamTests
 
             var evts = new List<ExternalRoleAssignmentEvent>();
 
-            while (evts.Count < MIN_EVENTS)
+            while (evts.Count < minEvents)
             {
                 foreach (var (source, roles) in allRoles)
                 {
@@ -114,7 +118,7 @@ public class EventStreamTests
             return evts;
         });
 
-        evts.Count.ShouldBeGreaterThanOrEqualTo(MIN_EVENTS);
+        evts.Count.ShouldBeGreaterThanOrEqualTo(minEvents);
 
         var seen = 0;
         var next = "/register/api/v2/internal/parties/external-roles/assignments/events/stream";
@@ -130,7 +134,7 @@ public class EventStreamTests
             var content = await response.ShouldHaveJsonContent<ItemStream<ExternalRoleAssignmentEvent>>();
 
             var items = content.Items.ToList();
-            items.Count.ShouldBe(Math.Min(PartyController.ROLEASSIGNMENTS_STREAM_PAGE_SIZE, evts.Count - seen));
+            items.Count.ShouldBe(Math.Min(pageSize, evts.Count - seen));
 
             for (var i = 0; i < items.Count; i++)
             {
