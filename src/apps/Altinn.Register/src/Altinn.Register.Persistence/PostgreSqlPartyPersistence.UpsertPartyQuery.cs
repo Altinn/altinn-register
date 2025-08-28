@@ -18,7 +18,10 @@ namespace Altinn.Register.Persistence;
 /// </content>
 internal partial class PostgreSqlPartyPersistence
 {
-    private abstract class UpsertPartyQuery
+    /// <summary>
+    /// Upsert party query helper.
+    /// </summary>
+    internal abstract class UpsertPartyQuery
     {
         private const int MAX_BATCH_SIZE = 1_000;
 
@@ -28,6 +31,13 @@ internal partial class PostgreSqlPartyPersistence
         private static readonly UpsertSystemUserQuery _su = new();
         private static readonly UpsertEnterpriseUserQuery _eu = new();
 
+        /// <summary>
+        /// Upserts a party.
+        /// </summary>
+        /// <param name="conn">The connection.</param>
+        /// <param name="party">The party.</param>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+        /// <returns>The updated party.</returns>
         public static ValueTask<Result<PartyRecord>> UpsertParty(
             NpgsqlConnection conn,
             PartyRecord party,
@@ -35,6 +45,13 @@ internal partial class PostgreSqlPartyPersistence
             => UpsertParties(conn, new AsyncSingleton(party), cancellationToken)
                 .FirstAsync(cancellationToken);
 
+        /// <summary>
+        /// Upserts multiple parties.
+        /// </summary>
+        /// <param name="connection">The connection.</param>
+        /// <param name="parties">The parties.</param>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+        /// <returns>The updated parties.</returns>
         public static async IAsyncEnumerable<Result<PartyRecord>> UpsertParties(
             NpgsqlConnection connection,
             IAsyncEnumerable<PartyRecord> parties,
@@ -184,6 +201,14 @@ internal partial class PostgreSqlPartyPersistence
             }
         }
 
+        /// <summary>
+        /// Upsert a party's user information.
+        /// </summary>
+        /// <param name="connection">The connection.</param>
+        /// <param name="partyUuid">The party UUID.</param>
+        /// <param name="user">The user info.</param>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+        /// <returns>The updated party user information.</returns>
         public static async Task<Result<PartyUserRecord>> UpsertPartyUser(
             NpgsqlConnection connection,
             Guid partyUuid,
@@ -192,11 +217,12 @@ internal partial class PostgreSqlPartyPersistence
         {
             const string QUERY =
                 /*strpsql*/"""
-                SELECT (register.upsert_user(
+                SELECT *
+                FROM register.upsert_user(
                     @uuid,
                     @user_ids,
                     @set_username,
-                    @username)).*
+                    @username)
                 """;
 
             await using var cmd = connection.CreateCommand(QUERY);
@@ -222,7 +248,8 @@ internal partial class PostgreSqlPartyPersistence
 
         private const string DEFAULT_QUERY =
             /*strpsql*/"""
-            SELECT (register.upsert_party(
+            SELECT *
+            FROM register.upsert_party(
                 @uuid,
                 @id,
                 @user_ids,
@@ -234,9 +261,12 @@ internal partial class PostgreSqlPartyPersistence
                 @org_id,
                 @created_at,
                 @modified_at,
-                @is_deleted)).*
+                @is_deleted)
             """;
 
+        /// <summary>
+        /// Reads user information from a data reader.
+        /// </summary>
         protected static async Task<FieldValue<PartyUserRecord>> ReadUser(NpgsqlDataReader reader, CancellationToken cancellationToken)
         {
             var fromDbUserIds = await reader.GetConditionalFieldValueAsync<int[]>("p_user_ids", cancellationToken);
@@ -318,7 +348,8 @@ internal partial class PostgreSqlPartyPersistence
         {
             private const string QUERY =
                 /*strpsql*/"""
-                SELECT (register.upsert_party_pers(
+                SELECT *
+                FROM register.upsert_party_pers(
                     @uuid,
                     @id,
                     @user_ids,
@@ -338,7 +369,7 @@ internal partial class PostgreSqlPartyPersistence
                     @date_of_birth,
                     @date_of_death,
                     @address,
-                    @mailing_address)).*
+                    @mailing_address)
                 """;
 
             protected override void ValidateFields(PersonRecord party)
@@ -399,7 +430,8 @@ internal partial class PostgreSqlPartyPersistence
         {
             private const string QUERY =
                 /*strpsql*/"""
-                SELECT (register.upsert_party_org(
+                SELECT *
+                FROM register.upsert_party_org(
                     @uuid,
                     @id,
                     @user_ids,
@@ -420,7 +452,7 @@ internal partial class PostgreSqlPartyPersistence
                     @email_address,
                     @internet_address,
                     @mailing_address,
-                    @business_address)).*
+                    @business_address)
                 """;
 
             protected override void ValidateFields(OrganizationRecord party)
@@ -544,22 +576,29 @@ internal partial class PostgreSqlPartyPersistence
             }
         }
 
-        private sealed class AsyncSingleton(PartyRecord party)
+        /// <summary>
+        /// Singleton <see cref="IAsyncEnumerable{T}"/> for a <see cref="PartyRecord"/>.
+        /// </summary>
+        internal sealed class AsyncSingleton(PartyRecord party)
             : IAsyncEnumerable<PartyRecord>
             , IAsyncEnumerator<PartyRecord>
         {
             private readonly PartyRecord _party = party;
             private int _index = -1;
 
+            /// <inheritdoc/>
             PartyRecord IAsyncEnumerator<PartyRecord>.Current
                 => _party;
 
+            /// <inheritdoc/>
             ValueTask IAsyncDisposable.DisposeAsync()
                 => ValueTask.CompletedTask;
 
+            /// <inheritdoc/>
             IAsyncEnumerator<PartyRecord> IAsyncEnumerable<PartyRecord>.GetAsyncEnumerator(CancellationToken cancellationToken)
                 => this;
 
+            /// <inheritdoc/>
             ValueTask<bool> IAsyncEnumerator<PartyRecord>.MoveNextAsync()
                 => new(Interlocked.Increment(ref _index) == 0);
         }

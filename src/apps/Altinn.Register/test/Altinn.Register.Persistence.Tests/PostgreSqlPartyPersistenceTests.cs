@@ -2240,4 +2240,45 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     }
 
     #endregion
+
+    #region AsyncSingleton
+
+    [Fact]
+    public async Task AsyncSingleton_YieldSingleParty()
+    {
+        var id = await UoW.GetNextPartyId();
+        var birthDate = UoW.GetRandomBirthDate();
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var uuid = Guid.NewGuid();
+
+        var party = new PersonRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            DisplayName = "Test Mid Testson",
+            PersonIdentifier = personId,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            User = new PartyUserRecord(userId: 10U, username: "user1", userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
+            VersionId = FieldValue.Unset,
+            FirstName = "Test",
+            MiddleName = "Mid",
+            LastName = "Testson",
+            ShortName = "TESTSON Test Mid",
+            Address = null,
+            MailingAddress = null,
+            DateOfBirth = birthDate,
+            DateOfDeath = FieldValue.Null,
+        };
+
+        var singleton = new PostgreSqlPartyPersistence.UpsertPartyQuery.AsyncSingleton(party);
+        var list = await singleton.ToListAsync();
+
+        list.Should().ContainSingle().Which.Should().BeSameAs(party);
+    }
+
+    #endregion
 }
