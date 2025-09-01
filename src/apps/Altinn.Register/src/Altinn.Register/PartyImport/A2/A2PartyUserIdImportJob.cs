@@ -52,6 +52,8 @@ internal sealed partial class A2PartyUserIdImportJob
     {
         const int CHUNK_SIZE = 100;
 
+        Log.StartingUserIdImport(_logger);
+
         await using var uow = await _uowManager.CreateAsync(cancellationToken, activityName: nameof(A2PartyUserIdImportJob));
         var service = uow.GetRequiredService<IUserIdImportJobService>();
         var progress = await _tracker.GetStatus(JobNames.A2PartyUserIdImport, cancellationToken);
@@ -93,6 +95,7 @@ internal sealed partial class A2PartyUserIdImportJob
         else if (startEnqueuedMax == enqueuedMax && progress.ProcessedMax == enqueuedMax)
         {
             // we've processed all parties, so we can clear up temporary state.
+            Log.ClearJobState(_logger);
             await service.ClearJobStateForPartiesWithUserId(JobName, cancellationToken);
         }
 
@@ -120,5 +123,11 @@ internal sealed partial class A2PartyUserIdImportJob
     {
         [LoggerMessage(0, LogLevel.Information, "Pausing enqueueing of A2PartyUserIdImport job. Enqueued: {Enqueued}, Processed: {Processed}")]
         public static partial void PausingEnqueueing(ILogger logger, ulong enqueued, ulong processed);
+
+        [LoggerMessage(1, LogLevel.Information, "Starting A2 party user-id import.")]
+        public static partial void StartingUserIdImport(ILogger logger);
+
+        [LoggerMessage(2, LogLevel.Information, "Clearing job state as all parties have been processed.")]
+        public static partial void ClearJobState(ILogger logger);
     }
 }
