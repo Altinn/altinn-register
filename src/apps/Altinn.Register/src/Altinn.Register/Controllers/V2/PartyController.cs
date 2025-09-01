@@ -591,7 +591,7 @@ public class PartyController
         /// <remarks>
         /// Changing this number is <b>not</b> a breaking change.
         /// </remarks>
-        public ushort PartyStreamPageSize { get; set; } = 5_000;
+        public ushort PartyStreamPageSize { get; set; } = 1_000;
 
         /// <summary>
         /// Gets or sets the page-size for role-assignments streams.
@@ -599,6 +599,6 @@ public class PartyController
         /// <remarks>
         /// Changing this number is *not* a breaking change.
         /// </remarks>
-        public ushort RoleAssignmentsStreamPageSize { get; set; } = 5_000;
+        public ushort RoleAssignmentsStreamPageSize { get; set; } = 1_000;
     }
 }
