@@ -175,6 +175,7 @@ internal static partial class PartyMapper
             ModifiedAt = source.ModifiedAt,
             IsDeleted = source.IsDeleted,
             User = source.User.Select(static u => u.ToPlatformModel()),
+            Owner = source.OwnerUuid.Select(static uuid => new PartyOwnerRef { Uuid = uuid }),
         };
     }
 
@@ -208,6 +209,7 @@ internal static partial class PartyMapper
             ModifiedAt = source.ModifiedAt,
             IsDeleted = source.IsDeleted,
             User = source.User.Select(static u => u.ToPlatformModel()),
+            Owner = source.OwnerUuid.Select(static uuid => new PartyOwnerRef { Uuid = uuid }),
         };
     }
 }

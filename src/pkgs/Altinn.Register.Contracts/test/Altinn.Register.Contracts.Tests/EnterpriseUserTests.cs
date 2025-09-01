@@ -18,6 +18,7 @@ public class EnterpriseUserTests
                 ModifiedAt = FieldValue.Unset,
                 IsDeleted = FieldValue.Unset,
                 User = FieldValue.Unset,
+                Owner = FieldValue.Unset,
                 VersionId = VersionId,
             },
             """
@@ -43,6 +44,7 @@ public class EnterpriseUserTests
                 ModifiedAt = ModifiedAt,
                 IsDeleted = false,
                 User = FullUser,
+                Owner = OwnerRef,
                 VersionId = VersionId,
             },
             """
@@ -60,6 +62,10 @@ public class EnterpriseUserTests
                 "userId": 50,
                 "username": "username",
                 "userIds": [ 50, 30, 1 ]
+              },
+              "owner": {
+                "partyUuid": "00000000-0000-0000-0000-000000000002",
+                "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000002"
               }
             }
             """);
