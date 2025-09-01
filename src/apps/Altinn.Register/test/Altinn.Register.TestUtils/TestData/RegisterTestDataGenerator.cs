@@ -154,6 +154,7 @@ public sealed partial class RegisterTestDataGenerator
             IsDeleted = isDeleted.HasValue ? isDeleted.Value : false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             UnitStatus = unitStatus.HasValue ? unitStatus.Value : "N",
             UnitType = unitType.HasValue ? unitType.Value : "AS",
             TelephoneNumber = telephoneNumber.HasValue ? telephoneNumber.Value : null,
@@ -325,6 +326,7 @@ public sealed partial class RegisterTestDataGenerator
             IsDeleted = dateOfDeath.HasValue,
             User = user,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             FirstName = name.Value.FirstName,
             MiddleName = name.Value.MiddleName,
             LastName = name.Value.LastName,
@@ -431,6 +433,7 @@ public sealed partial class RegisterTestDataGenerator
             ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : _timeProvider.GetUtcNow(),
             User = user,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             IsDeleted = isDeleted.OrDefault(defaultValue: false),
         };
     }

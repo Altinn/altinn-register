@@ -261,7 +261,9 @@ internal partial class PostgreSqlPartyPersistence
                 @org_id,
                 @created_at,
                 @modified_at,
-                @is_deleted)
+                @is_deleted,
+                @set_owner,
+                @owner)
             """;
 
         /// <summary>
@@ -330,6 +332,8 @@ internal partial class PostgreSqlPartyPersistence
                 parameters.Add<DateTimeOffset>("created_at", NpgsqlDbType.TimestampTz).TypedValue = party.CreatedAt.Value;
                 parameters.Add<DateTimeOffset>("modified_at", NpgsqlDbType.TimestampTz).TypedValue = party.ModifiedAt.Value;
                 parameters.Add<bool>("is_deleted", NpgsqlDbType.Boolean).TypedValue = party.IsDeleted.Value;
+                parameters.Add<bool>("set_owner", NpgsqlDbType.Boolean).TypedValue = party.OwnerUuid.IsSet;
+                parameters.Add<Guid?>("owner", NpgsqlDbType.Uuid).TypedValue = party.OwnerUuid.HasValue ? party.OwnerUuid.Value : null;
             }
 
             public abstract Task<T> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken);
@@ -362,6 +366,8 @@ internal partial class PostgreSqlPartyPersistence
                     @created_at,
                     @modified_at,
                     @is_deleted,
+                    @set_owner,
+                    @owner,
                     @first_name,
                     @middle_name,
                     @last_name,
@@ -383,6 +389,7 @@ internal partial class PostgreSqlPartyPersistence
                 Debug.Assert(party.MailingAddress.IsSet, "person must have MailingAddress set");
                 Debug.Assert(party.DateOfBirth.IsSet, "person must have DateOfBirth set");
                 Debug.Assert(party.DateOfDeath.IsSet, "person must have DateOfDeath set");
+                Debug.Assert(!party.OwnerUuid.HasValue, "person cannot have OwnerUuid set");
             }
 
             protected override void AddPartyParameters(NpgsqlParameterCollection parameters, PersonRecord party)
@@ -403,6 +410,7 @@ internal partial class PostgreSqlPartyPersistence
                 return new PersonRecord
                 {
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_uuid", cancellationToken),
+                    OwnerUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_owner", cancellationToken),
                     PartyId = await reader.GetConditionalFieldValueAsync<int>("p_id", cancellationToken).Select(static id => checked((uint)id)),
                     User = await ReadUser(reader, cancellationToken),
                     DisplayName = await reader.GetConditionalFieldValueAsync<string>("p_display_name", cancellationToken),
@@ -444,6 +452,8 @@ internal partial class PostgreSqlPartyPersistence
                     @created_at,
                     @modified_at,
                     @is_deleted,
+                    @set_owner,
+                    @owner,
                     @unit_status,
                     @unit_type,
                     @telephone_number,
@@ -467,6 +477,7 @@ internal partial class PostgreSqlPartyPersistence
                 Debug.Assert(party.InternetAddress.IsSet);
                 Debug.Assert(party.MailingAddress.IsSet);
                 Debug.Assert(party.BusinessAddress.IsSet);
+                Debug.Assert(!party.OwnerUuid.HasValue, "organization cannot have OwnerUuid set");
             }
 
             protected override void AddPartyParameters(NpgsqlParameterCollection parameters, OrganizationRecord party)
@@ -488,6 +499,7 @@ internal partial class PostgreSqlPartyPersistence
                 return new OrganizationRecord
                 {
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_uuid", cancellationToken),
+                    OwnerUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_owner", cancellationToken),
                     PartyId = await reader.GetConditionalFieldValueAsync<int>("p_id", cancellationToken).Select(static id => checked((uint)id)),
                     User = await ReadUser(reader, cancellationToken),
                     DisplayName = await reader.GetConditionalFieldValueAsync<string>("p_display_name", cancellationToken),
@@ -521,6 +533,7 @@ internal partial class PostgreSqlPartyPersistence
                 return new SelfIdentifiedUserRecord
                 {
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_uuid", cancellationToken),
+                    OwnerUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_owner", cancellationToken),
                     PartyId = await reader.GetConditionalFieldValueAsync<int>("p_id", cancellationToken).Select(static id => checked((uint)id)),
                     User = await ReadUser(reader, cancellationToken),
                     DisplayName = await reader.GetConditionalFieldValueAsync<string>("p_display_name", cancellationToken),
@@ -542,6 +555,7 @@ internal partial class PostgreSqlPartyPersistence
                 return new SystemUserRecord
                 {
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_uuid", cancellationToken),
+                    OwnerUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_owner", cancellationToken),
                     PartyId = await reader.GetConditionalFieldValueAsync<int>("p_id", cancellationToken).Select(static id => checked((uint)id)),
                     User = await ReadUser(reader, cancellationToken),
                     DisplayName = await reader.GetConditionalFieldValueAsync<string>("p_display_name", cancellationToken),
@@ -563,6 +577,7 @@ internal partial class PostgreSqlPartyPersistence
                 return new EnterpriseUserRecord
                 {
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_uuid", cancellationToken),
+                    OwnerUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_owner", cancellationToken),
                     PartyId = await reader.GetConditionalFieldValueAsync<int>("p_id", cancellationToken).Select(static id => checked((uint)id)),
                     User = await ReadUser(reader, cancellationToken),
                     DisplayName = await reader.GetConditionalFieldValueAsync<string>("p_display_name", cancellationToken),

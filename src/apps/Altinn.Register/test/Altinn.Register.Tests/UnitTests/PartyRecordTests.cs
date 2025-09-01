@@ -29,6 +29,7 @@ public class PartyRecordTests
             IsDeleted = FieldValue.Unset,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Unset,
         };
 
         var json = JsonSerializer.Serialize(record, _options);
@@ -54,23 +55,25 @@ public class PartyRecordTests
             IsDeleted = false,
             User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U, 2U)),
             VersionId = 50,
+            OwnerUuid = Guid.Parse("00000000-0000-0000-0000-000000000002"),
         };
 
         var json = JsonSerializer.SerializeToElement(record, _options);
         json.Should().BeEquivalentTo(
             """
             {
-                "partyUuid":"00000000-0000-0000-0000-000000000001",
-                "partyId":1,
-                "displayName":"1",
-                "createdAt":"2000-01-01T00:00:00+00:00",
-                "modifiedAt":"2000-01-01T00:00:00+00:00",
-                "isDeleted":false,
+                "partyUuid": "00000000-0000-0000-0000-000000000001",
+                "partyId": 1,
+                "displayName": "1",
+                "createdAt": "2000-01-01T00:00:00+00:00",
+                "modifiedAt": "2000-01-01T00:00:00+00:00",
+                "isDeleted": false,
                 "user": {
                     "userId": 1,
                     "userIds": [1, 2]
                 },
-                "versionId":50
+                "versionId": 50,
+                "ownerUuid": "00000000-0000-0000-0000-000000000002"
             }
             """);
 
@@ -94,6 +97,7 @@ public class PartyRecordTests
             IsDeleted = true,
             User = new PartyUserRecord(userId: FieldValue.Unset, username: FieldValue.Unset, userIds: FieldValue.Unset),
             VersionId = 42,
+            OwnerUuid = FieldValue.Null,
         };
 
         var json = JsonSerializer.SerializeToElement(record, _options);
@@ -109,7 +113,8 @@ public class PartyRecordTests
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":true,
                 "user": {},
-                "versionId":42
+                "versionId":42,
+                "ownerUuid": null
             }
             """);
 
@@ -133,6 +138,7 @@ public class PartyRecordTests
             IsDeleted = false,
             User = new PartyUserRecord(userId: FieldValue.Unset, username: FieldValue.Unset, userIds: FieldValue.Unset),
             VersionId = 42,
+            OwnerUuid = FieldValue.Null,
         };
 
         var json = JsonSerializer.SerializeToElement(record, _options);
@@ -148,7 +154,8 @@ public class PartyRecordTests
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":false,
                 "user": {},
-                "versionId":42
+                "versionId":42,
+                "ownerUuid": null
             }
             """);
 
@@ -172,6 +179,7 @@ public class PartyRecordTests
             IsDeleted = true,
             User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
             VersionId = 42,
+            OwnerUuid = FieldValue.Null,
         };
 
         var json = JsonSerializer.SerializeToElement(record, _options);
@@ -190,7 +198,8 @@ public class PartyRecordTests
                     "userId": 1,
                     "userIds": [1]
                 },
-                "versionId":42
+                "versionId":42,
+                "ownerUuid": null
             }
             """);
 
@@ -214,6 +223,7 @@ public class PartyRecordTests
             IsDeleted = FieldValue.Unset,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Unset,
 
             FirstName = FieldValue.Unset,
             MiddleName = FieldValue.Unset,
@@ -253,6 +263,7 @@ public class PartyRecordTests
             IsDeleted = false,
             User = new PartyUserRecord(userId: FieldValue.Unset, username: FieldValue.Unset, userIds: FieldValue.Unset),
             VersionId = 42,
+            OwnerUuid = FieldValue.Null,
 
             FirstName = FieldValue.Unset,
             MiddleName = FieldValue.Unset,
@@ -277,7 +288,8 @@ public class PartyRecordTests
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":false,
                 "user": {},
-                "versionId":42
+                "versionId":42,
+                "ownerUuid": null
             }
             """);
 
@@ -301,6 +313,7 @@ public class PartyRecordTests
             IsDeleted = true,
             User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
             VersionId = 42,
+            OwnerUuid = FieldValue.Null,
 
             FirstName = "First",
             MiddleName = null,
@@ -343,6 +356,7 @@ public class PartyRecordTests
                     "userIds": [1]
                 },
                 "versionId": 42,
+                "ownerUuid": null,
                 "firstName": "First",
                 "middleName": null,
                 "lastName": "Last",
@@ -386,6 +400,7 @@ public class PartyRecordTests
             IsDeleted = FieldValue.Unset,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Unset,
 
             UnitStatus = FieldValue.Unset,
             UnitType = FieldValue.Unset,
@@ -425,6 +440,7 @@ public class PartyRecordTests
             IsDeleted = false,
             User = FieldValue.Null,
             VersionId = 42,
+            OwnerUuid = FieldValue.Null,
 
             UnitStatus = "status",
             UnitType = "type",
@@ -461,6 +477,7 @@ public class PartyRecordTests
                 "isDeleted":false,
                 "user":null,
                 "versionId":42,
+                "ownerUuid": null,
                 "unitStatus":"status",
                 "unitType":"type",
                 "telephoneNumber":"telephone",
@@ -501,6 +518,7 @@ public class PartyRecordTests
             IsDeleted = FieldValue.Unset,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Unset,
 
             UnitStatus = FieldValue.Unset,
             UnitType = FieldValue.Unset,
@@ -550,6 +568,7 @@ public class PartyRecordTests
             IsDeleted = false,
             User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
             VersionId = 42,
+            OwnerUuid = FieldValue.Null,
         };
 
         var json = JsonSerializer.SerializeToElement(record, _options);
@@ -568,7 +587,8 @@ public class PartyRecordTests
                     "userId": 1,
                     "userIds": [1]
                 },
-                "versionId":42
+                "versionId":42,
+                "ownerUuid": null
             }
             """);
 
@@ -594,6 +614,7 @@ public class PartyRecordTests
             IsDeleted = false,
             User = FieldValue.Null,
             VersionId = 42,
+            OwnerUuid = FieldValue.Null,
 
             UnitStatus = "status",
             UnitType = "type",
@@ -630,6 +651,7 @@ public class PartyRecordTests
                 "IsDeleted":false,
                 "User":null,
                 "VersionId":42,
+                "OwnerUuid": null,
                 "UnitStatus":"status",
                 "UnitType":"type",
                 "TelephoneNumber":"telephone",

@@ -244,6 +244,7 @@ internal partial class PostgreSqlPartyPersistence
                     ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyUpdated, cancellationToken),
                     IsDeleted = await reader.GetConditionalFieldValueAsync<bool>(fields.PartyIsDeleted, cancellationToken),
                     VersionId = await reader.GetConditionalFieldValueAsync<long>(fields.PartyVersionId, cancellationToken).Select(static v => (ulong)v),
+                    OwnerUuid = await reader.GetConditionalFieldValueAsync<Guid>(fields.PartyOwnerUuid, cancellationToken),
 
                     // has to be read last as it can be spread over multiple rows
                     User = FieldValue.Unset,
@@ -270,6 +271,7 @@ internal partial class PostgreSqlPartyPersistence
                     ModifiedAt = common.ModifiedAt,
                     IsDeleted = common.IsDeleted,
                     VersionId = common.VersionId,
+                    OwnerUuid = common.OwnerUuid,
                     User = user,
                 };
 
@@ -304,6 +306,7 @@ internal partial class PostgreSqlPartyPersistence
                     ModifiedAt = common.ModifiedAt,
                     IsDeleted = common.IsDeleted,
                     VersionId = common.VersionId,
+                    OwnerUuid = common.OwnerUuid,
                     User = user,
                     FirstName = firstName,
                     MiddleName = middleName,
@@ -353,6 +356,7 @@ internal partial class PostgreSqlPartyPersistence
                     ModifiedAt = common.ModifiedAt,
                     IsDeleted = common.IsDeleted,
                     VersionId = common.VersionId,
+                    OwnerUuid = common.OwnerUuid,
                     User = user,
                     UnitStatus = unitStatus,
                     UnitType = unitType,
@@ -389,6 +393,7 @@ internal partial class PostgreSqlPartyPersistence
                     ModifiedAt = common.ModifiedAt,
                     IsDeleted = common.IsDeleted,
                     VersionId = common.VersionId,
+                    OwnerUuid = common.OwnerUuid,
                     User = user,
                 };
     
@@ -415,6 +420,7 @@ internal partial class PostgreSqlPartyPersistence
                     ModifiedAt = common.ModifiedAt,
                     IsDeleted = common.IsDeleted,
                     VersionId = common.VersionId,
+                    OwnerUuid = common.OwnerUuid,
                     User = user,
                 };
 
@@ -441,6 +447,7 @@ internal partial class PostgreSqlPartyPersistence
                     ModifiedAt = common.ModifiedAt,
                     IsDeleted = common.IsDeleted,
                     VersionId = common.VersionId,
+                    OwnerUuid = common.OwnerUuid,
                     User = user,
                 };
 
@@ -538,6 +545,7 @@ internal partial class PostgreSqlPartyPersistence
                     partyUpdated: builder._partyUpdated,
                     partyIsDeleted: builder._partyIsDeleted,
                     partyVersionId: builder._partyVersionId,
+                    partyOwnerUuid: builder._partyOwnerUuid,
                     personFirstName: builder._personFirstName,
                     personMiddleName: builder._personMiddleName,
                     personLastName: builder._personLastName,
@@ -609,6 +617,7 @@ internal partial class PostgreSqlPartyPersistence
             private sbyte _partyUpdated = -1;
             private sbyte _partyIsDeleted = -1;
             private sbyte _partyVersionId = -1;
+            private sbyte _partyOwnerUuid = -1;
 
             // register.person
             private sbyte _personFirstName = -1;
@@ -653,6 +662,7 @@ internal partial class PostgreSqlPartyPersistence
                 _partyUpdated = AddField("party.updated", "p_updated", includes.HasFlag(PartyFieldIncludes.PartyModifiedAt));
                 _partyIsDeleted = AddField("party.is_deleted", "p_is_deleted", includes.HasFlag(PartyFieldIncludes.PartyIsDeleted));
                 _partyVersionId = AddField("party.version_id", "p_version_id", includes.HasFlag(PartyFieldIncludes.PartyVersionId));
+                _partyOwnerUuid = AddField("party.\"owner\"", "p_owner_uuid", includes.HasFlag(PartyFieldIncludes.PartyOwnerUuid));
 
                 _personFirstName = AddField("person.first_name", "p_first_name", includes.HasFlag(PartyFieldIncludes.PersonFirstName));
                 _personMiddleName = AddField("person.middle_name", "p_middle_name", includes.HasFlag(PartyFieldIncludes.PersonMiddleName));
@@ -1072,6 +1082,7 @@ internal partial class PostgreSqlPartyPersistence
             sbyte partyUpdated,
             sbyte partyIsDeleted,
             sbyte partyVersionId,
+            sbyte partyOwnerUuid,
 
             // register.person
             sbyte personFirstName,
@@ -1112,6 +1123,7 @@ internal partial class PostgreSqlPartyPersistence
             public int PartyUpdated => partyUpdated;
             public int PartyIsDeleted => partyIsDeleted;
             public int PartyVersionId => partyVersionId;
+            public int PartyOwnerUuid => partyOwnerUuid;
 
             // register.person
             public int PersonFirstName => personFirstName;

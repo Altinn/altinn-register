@@ -460,6 +460,7 @@ internal sealed partial class A2PartyImportService
                 CreatedAt = now,
                 ModifiedAt = now,
                 IsDeleted = party.IsDeleted,
+                OwnerUuid = FieldValue.Null,
                 User = FieldValue.Unset,
                 VersionId = FieldValue.Unset,
             };
@@ -553,6 +554,7 @@ internal sealed partial class A2PartyImportService
                 IsDeleted = isDeleted,
                 User = FieldValue.Unset,
                 VersionId = FieldValue.Unset,
+                OwnerUuid = FieldValue.Null,
 
                 // person fields
                 FirstName = firstName,
@@ -655,6 +657,7 @@ internal sealed partial class A2PartyImportService
                 IsDeleted = isDeleted,
                 User = FieldValue.Unset,
                 VersionId = FieldValue.Unset,
+                OwnerUuid = FieldValue.Null,
 
                 // organization fields
                 UnitStatus = unitStatus,

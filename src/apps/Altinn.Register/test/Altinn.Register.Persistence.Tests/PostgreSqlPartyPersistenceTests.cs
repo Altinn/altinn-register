@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using System.Linq.Expressions;
+using System.Text.Json;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.ExternalRoles;
@@ -654,6 +655,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             UnitStatus = "N",
             UnitType = "AS",
             TelephoneNumber = null,
@@ -692,6 +694,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             UnitStatus = "N",
             UnitType = "AS",
             TelephoneNumber = null,
@@ -758,6 +761,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             UnitStatus = "N",
             UnitType = "AS",
             TelephoneNumber = null,
@@ -807,6 +811,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             UnitStatus = "N",
             UnitType = "AS",
             TelephoneNumber = null,
@@ -856,6 +861,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             UnitStatus = "N",
             UnitType = "AS",
             TelephoneNumber = null,
@@ -885,6 +891,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             UnitStatus = "N",
             UnitType = "AS",
             TelephoneNumber = null,
@@ -930,6 +937,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -969,6 +977,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -1044,6 +1053,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -1094,6 +1104,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -1144,6 +1155,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -1172,6 +1184,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -1215,6 +1228,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
         };
 
         var result = await Persistence.UpsertParty(toInsert);
@@ -1246,6 +1260,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
         };
 
         var result = await Persistence.UpsertParty(toInsert);
@@ -1282,6 +1297,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [Fact]
     public async Task UpsertParty_SystemUser_Inserts_New_SystemUser()
     {
+        var org = await UoW.CreateOrg();
         var uuid = Guid.NewGuid();
 
         var toInsert = new SystemUserRecord
@@ -1296,6 +1312,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = org.PartyUuid,
         };
 
         var result = await Persistence.UpsertParty(toInsert);
@@ -1309,6 +1326,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [Fact]
     public async Task UpsertParty_SystemUser_Updates_Name_And_Updated()
     {
+        var org = await UoW.CreateOrg();
         var uuid = Guid.NewGuid();
 
         var toInsert = new SystemUserRecord
@@ -1323,6 +1341,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = org.PartyUuid,
         };
 
         var result = await Persistence.UpsertParty(toInsert);
@@ -1352,6 +1371,97 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
     }
 
+    [Fact]
+    public async Task UpsertParty_SystemUser_CanKeepOwner()
+    {
+        var org = await UoW.CreateOrg();
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new SystemUserRecord
+        {
+            PartyUuid = uuid,
+            PartyId = FieldValue.Null,
+            DisplayName = "Test System User",
+            PersonIdentifier = null,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            User = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
+            OwnerUuid = org.PartyUuid,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue();
+
+        TimeProvider.Advance(TimeSpan.FromDays(30));
+
+        var toUpdate = toInsert with
+        {
+            DisplayName = "Test Updated",
+            OwnerUuid = FieldValue.Unset,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+        };
+
+        result = await Persistence.UpsertParty(toUpdate);
+        result.Should().HaveValue();
+
+        var expected = toUpdate with
+        {
+            OwnerUuid = toInsert.OwnerUuid, // owner should not change
+            CreatedAt = toInsert.CreatedAt, // created at should not change
+        };
+
+        var updated = result.Value.Should().BeOfType<SystemUserRecord>().Which;
+        updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
+
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party).SingleAsync();
+        fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+    }
+
+    [Fact]
+    public async Task UpsertParty_SystemUser_Cannot_Update_Owner()
+    {
+        var org1 = await UoW.CreateOrg();
+        var org2 = await UoW.CreateOrg();
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new SystemUserRecord
+        {
+            PartyUuid = uuid,
+            PartyId = FieldValue.Null,
+            DisplayName = "Test System User",
+            PersonIdentifier = null,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            User = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
+            OwnerUuid = org1.PartyUuid,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue();
+
+        TimeProvider.Advance(TimeSpan.FromDays(30));
+
+        var toUpdate = toInsert with
+        {
+            DisplayName = "Test Updated",
+            OwnerUuid = org2.PartyUuid,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+        };
+
+        result = await Persistence.UpsertParty(toUpdate);
+        var error = result.Should().BeProblem(Problems.InvalidPartyUpdate.ErrorCode).Which;
+        error.Extensions.Should().ContainKey("column")
+            .WhoseValue.Should().Be("owner");
+    }
+
     #endregion
 
     #region Upsert Enterprise User
@@ -1359,8 +1469,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [Fact]
     public async Task UpsertParty_EnterpriseUser_Inserts_New_EnterpriseUser()
     {
-        var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
+        var org = await UoW.CreateOrg();
         var uuid = Guid.NewGuid();
 
         var toInsert = new EnterpriseUserRecord
@@ -1375,6 +1484,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = org.PartyUuid,
         };
 
         var result = await Persistence.UpsertParty(toInsert);
@@ -1388,9 +1498,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [Fact]
     public async Task UpsertParty_EnterpriseUser_Updates_Name_And_Updated()
     {
-        var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var org = await UoW.CreateOrg();
         var uuid = Guid.NewGuid();
 
         var toInsert = new EnterpriseUserRecord
@@ -1405,6 +1513,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = org.PartyUuid,
         };
 
         var result = await Persistence.UpsertParty(toInsert);
@@ -1758,6 +1867,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -1807,6 +1917,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -1860,6 +1971,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -1912,6 +2024,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -1960,6 +2073,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = new PartyUserRecord(userId: 10U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -2003,6 +2117,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = new PartyUserRecord(userId: 10U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -2072,6 +2187,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = new PartyUserRecord(userId: 10U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -2119,6 +2235,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = new PartyUserRecord(userId: 10U, username: "user1", userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -2166,6 +2283,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = new PartyUserRecord(userId: 10U, username: "user1", userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -2213,6 +2331,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = new PartyUserRecord(userId: 10U, username: "user1", userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -2264,6 +2383,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = false,
             User = new PartyUserRecord(userId: 10U, username: "user1", userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
