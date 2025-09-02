@@ -37,6 +37,7 @@ SELECT
     party.updated p_updated,
     party.is_deleted p_is_deleted,
     party.version_id p_version_id,
+    party."owner" p_owner_uuid,
     person.first_name p_first_name,
     person.middle_name p_middle_name,
     person.last_name p_last_name,

@@ -28,6 +28,11 @@ public record PartyRecord
     public required FieldValue<Guid> PartyUuid { get; init; }
 
     /// <summary>
+    /// Gets the UUID of the owner party (if any).
+    /// </summary>
+    public required FieldValue<Guid> OwnerUuid { get; init; }
+
+    /// <summary>
     /// Gets the ID of the party.
     /// </summary>
     public required FieldValue<uint> PartyId { get; init; }

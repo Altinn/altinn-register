@@ -37,6 +37,7 @@ public class PartyImportFlowTests
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
 
             FirstName = "Test",
             MiddleName = "Mid",
@@ -117,6 +118,7 @@ public class PartyImportFlowTests
             IsDeleted = false,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
 
             FirstName = "Test",
             MiddleName = "Mid",
