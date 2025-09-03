@@ -9,4 +9,9 @@ namespace Altinn.Register.Contracts;
 public sealed record SystemUser()
     : Party(PartyType.SystemUser)
 {
+    /// <summary>
+    /// Gets the owner of the system user.
+    /// </summary>
+    [JsonPropertyName("owner")]
+    public required FieldValue<PartyOwnerRef> Owner { get; init; }
 }
