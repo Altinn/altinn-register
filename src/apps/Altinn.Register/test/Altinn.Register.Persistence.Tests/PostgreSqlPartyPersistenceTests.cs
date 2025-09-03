@@ -1290,6 +1290,97 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task UpsertParty_SelfIdentifiedUser_Can_Retain_IsDeleted(bool isDeleted)
+    {
+        var id = await UoW.GetNextPartyId();
+        var birthDate = UoW.GetRandomBirthDate();
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new SelfIdentifiedUserRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            DisplayName = "Test SI User",
+            PersonIdentifier = null,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = isDeleted,
+            User = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue();
+
+        TimeProvider.Advance(TimeSpan.FromDays(30));
+
+        var toUpdate = toInsert with
+        {
+            IsDeleted = FieldValue.Unset,
+        };
+
+        result = await Persistence.UpsertParty(toUpdate);
+        result.Should().HaveValue();
+
+        var expected = toUpdate with
+        {
+            IsDeleted = toInsert.IsDeleted, // IsDeleted should not change
+            CreatedAt = toInsert.CreatedAt, // created at should not change
+        };
+
+        var updated = result.Value.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
+        updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
+
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party).SingleAsync();
+        fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+    }
+
+    [Fact]
+    public async Task UpsertParty_SelfIdentifiedUser_IsDeleted_DefaultsFalse()
+    {
+        var id = await UoW.GetNextPartyId();
+        var birthDate = UoW.GetRandomBirthDate();
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new SelfIdentifiedUserRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            DisplayName = "Test SI User",
+            PersonIdentifier = null,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = FieldValue.Unset,
+            User = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue();
+
+        var expected = toInsert with
+        {
+            IsDeleted = false,
+        };
+
+        var updated = result.Value.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
+        updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
+
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party).SingleAsync();
+        fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+    }
+
     #endregion
 
     #region Upsert System User
