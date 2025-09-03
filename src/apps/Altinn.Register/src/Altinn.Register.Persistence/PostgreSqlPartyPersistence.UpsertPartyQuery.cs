@@ -236,6 +236,7 @@ internal partial class PostgreSqlPartyPersistence
             cmd.Parameters.Add<bool>("set_username", NpgsqlDbType.Boolean).TypedValue = user.Username.IsSet;
             cmd.Parameters.Add<string?>("username", NpgsqlDbType.Text).TypedValue = user.Username.Value;
 
+            await cmd.PrepareAsync(cancellationToken);
             await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow, cancellationToken);
             var read = await reader.ReadAsync(cancellationToken);
             Debug.Assert(read, "Expected a row from upsert_user");
@@ -261,6 +262,7 @@ internal partial class PostgreSqlPartyPersistence
                 @org_id,
                 @created_at,
                 @modified_at,
+                @set_is_deleted,
                 @is_deleted,
                 @set_owner,
                 @owner)
@@ -300,7 +302,7 @@ internal partial class PostgreSqlPartyPersistence
                 Debug.Assert(party.OrganizationIdentifier.IsSet);
                 Debug.Assert(party.CreatedAt.HasValue);
                 Debug.Assert(party.ModifiedAt.HasValue);
-                Debug.Assert(party.IsDeleted.HasValue);
+                Debug.Assert(!party.IsDeleted.IsNull);
 
                 if (type is PartyRecordType.Person or PartyRecordType.Organization or PartyRecordType.SelfIdentifiedUser)
                 {
@@ -331,7 +333,8 @@ internal partial class PostgreSqlPartyPersistence
                 parameters.Add<string>("org_id", NpgsqlDbType.Text).TypedValue = party.OrganizationIdentifier.IsNull ? null : party.OrganizationIdentifier.Value!.ToString();
                 parameters.Add<DateTimeOffset>("created_at", NpgsqlDbType.TimestampTz).TypedValue = party.CreatedAt.Value;
                 parameters.Add<DateTimeOffset>("modified_at", NpgsqlDbType.TimestampTz).TypedValue = party.ModifiedAt.Value;
-                parameters.Add<bool>("is_deleted", NpgsqlDbType.Boolean).TypedValue = party.IsDeleted.Value;
+                parameters.Add<bool>("set_is_deleted", NpgsqlDbType.Boolean).TypedValue = party.IsDeleted.IsSet;
+                parameters.Add<bool?>("is_deleted", NpgsqlDbType.Boolean).TypedValue = party.IsDeleted.HasValue ? party.IsDeleted.Value : null;
                 parameters.Add<bool>("set_owner", NpgsqlDbType.Boolean).TypedValue = party.OwnerUuid.IsSet;
                 parameters.Add<Guid?>("owner", NpgsqlDbType.Uuid).TypedValue = party.OwnerUuid.HasValue ? party.OwnerUuid.Value : null;
             }
@@ -365,6 +368,7 @@ internal partial class PostgreSqlPartyPersistence
                     @org_id,
                     @created_at,
                     @modified_at,
+                    @set_is_deleted,
                     @is_deleted,
                     @set_owner,
                     @owner,
@@ -451,6 +455,7 @@ internal partial class PostgreSqlPartyPersistence
                     @org_id,
                     @created_at,
                     @modified_at,
+                    @set_is_deleted,
                     @is_deleted,
                     @set_owner,
                     @owner,

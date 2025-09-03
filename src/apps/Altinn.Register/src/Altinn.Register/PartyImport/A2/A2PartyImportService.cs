@@ -459,7 +459,7 @@ internal sealed partial class A2PartyImportService
                 OrganizationIdentifier = null,
                 CreatedAt = now,
                 ModifiedAt = now,
-                IsDeleted = party.IsDeleted,
+                IsDeleted = FieldValue.Unset, // we cannot conclude about the is-deleted status of a SI user based on the party object from A2
                 OwnerUuid = FieldValue.Null,
                 User = FieldValue.Unset,
                 VersionId = FieldValue.Unset,
@@ -482,7 +482,7 @@ internal sealed partial class A2PartyImportService
                 middleName: middleName,
                 lastName: lastName,
                 shortName: shortName);
-            var isDeleted = party.IsDeleted;
+            var isDeleted = false; // we cannot conclude about the is-deleted status of a person user based on the party object from A2
 
             var address = MapStreetAddress(
                 municipalNumber: person.AddressMunicipalNumber,

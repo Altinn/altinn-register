@@ -1,6 +1,5 @@
 ﻿#nullable enable
 
-using System.Diagnostics;
 using System.Text;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Core.Errors;
@@ -29,7 +28,7 @@ public static class PartyImportHelper
         CheckRequired(ref builder, party.OrganizationIdentifier.IsSet, "/organizationIdentifier");
         CheckRequired(ref builder, party.CreatedAt.HasValue, "/createdAt");
         CheckRequired(ref builder, party.ModifiedAt.HasValue, "/modifiedAt");
-        CheckRequired(ref builder, party.IsDeleted.HasValue, "/isDeleted");
+        CheckRequired(ref builder, !party.IsDeleted.IsNull, "/isDeleted");
 
         if (party.PartyType.HasValue)
         {
