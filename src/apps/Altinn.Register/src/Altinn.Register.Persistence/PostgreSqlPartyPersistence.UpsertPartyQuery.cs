@@ -6,6 +6,7 @@ using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using CommunityToolkit.Diagnostics;
 using Npgsql;
@@ -256,7 +257,7 @@ internal partial class PostgreSqlPartyPersistence
         /// <param name="username">The username.</param>
         /// <param name="isActive">Whether the user is active.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
-        public static async Task<Result> UpsertUserRecord(
+        public static async Task<Result<UpsertUserRecordResult>> UpsertUserRecord(
             NpgsqlConnection connection,
             Guid partyUuid,
             ulong userId,
@@ -288,7 +289,13 @@ internal partial class PostgreSqlPartyPersistence
             var read = await reader.ReadAsync(cancellationToken);
             Debug.Assert(read, "Expected a row from upsert_user_record");
 
-            return Result.Success;
+            var party_updated = await reader.GetFieldValueAsync<bool>("party_updated", cancellationToken);
+            var result = new UpsertUserRecordResult
+            {
+                PartyUpdated = party_updated,
+            };
+
+            return result;
         }
 
         private const string DEFAULT_QUERY =

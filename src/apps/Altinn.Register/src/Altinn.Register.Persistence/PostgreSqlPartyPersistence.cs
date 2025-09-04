@@ -386,7 +386,7 @@ internal partial class PostgreSqlPartyPersistence
     }
 
     /// <inheritdoc/>
-    public Task<Result> UpsertUserRecord(Guid partyUuid, ulong userId, FieldValue<string> username, bool isActive, CancellationToken cancellationToken = default)
+    public Task<Result<UpsertUserRecordResult>> UpsertUserRecord(Guid partyUuid, ulong userId, FieldValue<string> username, bool isActive, CancellationToken cancellationToken = default)
     {
         _handle.ThrowIfCompleted();
 

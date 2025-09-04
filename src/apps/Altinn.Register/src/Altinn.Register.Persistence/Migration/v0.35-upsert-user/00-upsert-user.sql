@@ -5,7 +5,9 @@ CREATE OR REPLACE FUNCTION register.upsert_user_record(
   IN p_username text,
   IN p_is_active boolean
 )
-RETURNS register."user"
+RETURNS TABLE (
+  party_updated boolean
+)
 AS $$
 DECLARE
   o_user register."user"%ROWTYPE;
@@ -66,8 +68,12 @@ BEGIN
     UPDATE register.party p
     SET is_deleted = p.is_deleted
     WHERE p.uuid = o_user.uuid;
+
+    party_updated := TRUE;
+  ELSE
+    party_updated := FALSE;
   END IF;
 
-  RETURN o_user;
+  RETURN NEXT;
 END;
 $$ LANGUAGE plpgsql;

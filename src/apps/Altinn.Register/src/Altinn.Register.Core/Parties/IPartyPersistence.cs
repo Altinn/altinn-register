@@ -96,7 +96,7 @@ public interface IPartyPersistence
     /// <param name="isActive">Whether or not the user is active.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns></returns>
-    public Task<Result> UpsertUserRecord(
+    public Task<Result<UpsertUserRecordResult>> UpsertUserRecord(
         Guid partyUuid,
         ulong userId,
         FieldValue<string> username,
