@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Altinn.Authorization.ModelUtils" />
+    <PackageReference Include="Altinn.Authorization.ProblemDetails.Abstractions" />
+    <PackageReference Include="Altinn.Authorization.ServiceDefaults.Telemetry" />
+    <PackageReference Include="Altinn.Swashbuckle.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Polly" />
+    <PackageReference Include="System.Linq.Async" />
+    <PackageReference Include="System.Text.RegularExpressions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\pkgs\Altinn.Register.Contracts\src\Altinn.Register.Contracts\Altinn.Register.Contracts.csproj" />
+    <ProjectReference Include="..\Altinn.Register.Contracts.MassTransit\Altinn.Register.Contracts.MassTransit.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Altinn.Register.Persistence.Tests" />
+  </ItemGroup>
+
+</Project>

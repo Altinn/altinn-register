@@ -1,0 +1,29 @@
+name: Register Scan
+
+on:
+  schedule:
+  - cron: '0 8 * * 1,4'
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'Dockerfile'
+  pull_request:
+    branches: [ main ]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'src/**'
+      - 'Dockerfile'
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+    - name: Build the Docker image
+      run: docker build . --tag altinn-register:${{github.sha}}
+
+    - uses: Azure/container-scan@f9af925b897d8af5f7e0026b8bca9346261abc93 # v0.1
+      with:
+        image-name: altinn-register:${{ github.sha }}
+      env:
+        DOCKLE_HOST: "unix:///var/run/docker.sock"

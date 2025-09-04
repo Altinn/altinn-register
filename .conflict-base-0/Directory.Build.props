@@ -1,0 +1,18 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>13.0</LangVersion>
+    <!-- <Nullable>enable</Nullable> -->
+    <EnableStyleCop>true</EnableStyleCop>
+    <BaseArtifactsPath Condition=" '$(BaseArtifactsPath)' == '' ">$(MSBuildThisFileDirectory)artifacts\</BaseArtifactsPath>
+    <CopyArtifactsAfterTargets>Pack</CopyArtifactsAfterTargets>
+    <DefaultArtifactsFileMatch>*nupkg</DefaultArtifactsFileMatch>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <WarnOnPackingNonPackableProject>false</WarnOnPackingNonPackableProject>
+    <Authors>Altinn Platform Contributors</Authors>
+  </PropertyGroup>
+
+</Project>

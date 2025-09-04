@@ -1,0 +1,69 @@
+﻿using Altinn.Authorization.ModelUtils;
+
+namespace Altinn.Register.Contracts.Tests;
+
+public class SystemUserTests
+    : PartyTests
+{
+    [Fact]
+    public async Task MinimalSystemUser()
+    {
+        await ValidateParty(
+            new SystemUser
+            {
+                Uuid = Uuid,
+                PartyId = FieldValue.Unset,
+                DisplayName = FieldValue.Unset,
+                CreatedAt = FieldValue.Unset,
+                ModifiedAt = FieldValue.Unset,
+                IsDeleted = FieldValue.Unset,
+                User = FieldValue.Unset,
+                Owner = FieldValue.Unset,
+                VersionId = VersionId,
+            },
+            """
+            {
+              "partyType": "system-user",
+              "partyUuid": "00000000-0000-0000-0000-000000000001",
+              "versionId": 1,
+              "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000001"
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task MaximalSystemUser()
+    {
+        await ValidateParty(
+            new SystemUser
+            {
+                Uuid = Uuid,
+                PartyId = PartyId,
+                DisplayName = "Display Name",
+                CreatedAt = CreatedAt,
+                ModifiedAt = ModifiedAt,
+                IsDeleted = false,
+                User = FieldValue.Null,
+                Owner = OwnerRef,
+                VersionId = VersionId,
+            },
+            """
+            {
+              "partyType": "system-user",
+              "partyUuid": "00000000-0000-0000-0000-000000000001",
+              "versionId": 1,
+              "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000001",
+              "partyId": 12345678,
+              "displayName": "Display Name",
+              "createdAt": "2020-01-02T03:04:05+00:00",
+              "modifiedAt": "2022-05-06T07:08:09+00:00",
+              "isDeleted": false,
+              "user": null,
+              "owner": {
+                "partyUuid": "00000000-0000-0000-0000-000000000002",
+                "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000002"
+              }
+            }
+            """);
+    }
+}

@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Altinn.Register.TestUtils</RootNamespace>
+    <IsTestProject>false</IsTestProject>
+    <IsTestLibrary>true</IsTestLibrary>
+    <XUnitVersion>v2</XUnitVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Diagnostics" />
+    <PackageReference Include="MassTransit" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="Nerdbank.Streams" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="System.Linq.Async" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Altinn.Register.Core\Altinn.Register.Core.csproj" />
+    <ProjectReference Include="..\..\src\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\Altinn.Register\Altinn.Register.csproj" />
+    <ProjectReference Include="..\..\src\ServiceDefaults.MassTransit.Abstractions\Altinn.Authorization.ServiceDefaults.MassTransit.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\ServiceDefaults.MassTransit\Altinn.Authorization.ServiceDefaults.MassTransit.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Altinn.Register.TestUtils\**\*.cs" />
+  </ItemGroup>
+
+</Project>
