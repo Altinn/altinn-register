@@ -232,11 +232,11 @@ public enum PartyFieldIncludes
     /// The username, if the party has an associated user.
     /// </summary>
     [JsonStringEnumMemberName("user.name")]
-    UserName = 1 << 30,
+    Username = 1 << 30,
 
     /// <summary>
     /// All user fields.
     /// </summary>
     [JsonStringEnumMemberName("user")]
-    User = UserId | UserName,
+    User = UserId | Username,
 }

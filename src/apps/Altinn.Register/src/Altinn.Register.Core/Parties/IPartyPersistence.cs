@@ -1,4 +1,5 @@
-﻿using Altinn.Authorization.ProblemDetails;
+﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties.Records;
 
@@ -84,6 +85,22 @@ public interface IPartyPersistence
     public Task<Result<PartyUserRecord>> UpsertPartyUser(
         Guid partyUuid,
         PartyUserRecord user,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Attempts to upsert a party user record based on userId.
+    /// </summary>
+    /// <param name="partyUuid">The party UUID.</param>
+    /// <param name="userId">The user id.</param>
+    /// <param name="username">The username.</param>
+    /// <param name="isActive">Whether or not the user is active.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns></returns>
+    public Task<Result> UpsertUserRecord(
+        Guid partyUuid,
+        ulong userId,
+        FieldValue<string> username,
+        bool isActive,
         CancellationToken cancellationToken = default);
 
     /// <summary>

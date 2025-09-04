@@ -7,9 +7,14 @@ public sealed record A2UserProfileChange
     : A2Change
 {
     /// <summary>
+    /// Gets the user id that changed.
+    /// </summary>
+    public required uint UserId { get; init; }
+
+    /// <summary>
     /// Gets the user uuid that changed.
     /// </summary>
-    public required Guid UserUuid { get; init; }
+    public required Guid? UserUuid { get; init; }
 
     /// <summary>
     /// Gets the party uuid of the owner of the user profile.

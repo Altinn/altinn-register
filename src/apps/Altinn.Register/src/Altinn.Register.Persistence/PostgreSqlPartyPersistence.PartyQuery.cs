@@ -473,7 +473,8 @@ internal partial class PostgreSqlPartyPersistence
                 {
                     // TODO: read userName too
                     userId = await reader.GetConditionalFieldValueAsync<long>(fields.UserId, cancellationToken).Select(static id => checked((uint)id));
-                    
+                    username = await reader.GetConditionalFieldValueAsync<string>(fields.Username, cancellationToken);
+
                     if (userId.HasValue)
                     {
                         userIdsBuilder.Add(userId.Value);
@@ -564,7 +565,8 @@ internal partial class PostgreSqlPartyPersistence
                     organizationMailingAddress: builder._organizationMailingAddress,
                     organizationBusinessAddress: builder._organizationBusinessAddress,
                     userIsActive: builder._userIsActive,
-                    userId: builder._userId);
+                    userId: builder._userId,
+                    username: builder._username);
 
                 var commandText = builder._builder.ToString();
                 return new(
@@ -643,6 +645,7 @@ internal partial class PostgreSqlPartyPersistence
             // register.user
             private sbyte _userIsActive = -1;
             private sbyte _userId = -1;
+            private sbyte _username = -1;
 
             public void Populate(PartyFieldIncludes includes, PartyQueryFilters filterBy)
             {
@@ -685,6 +688,7 @@ internal partial class PostgreSqlPartyPersistence
 
                 _userIsActive = AddField("\"user\".is_active", "u_is_active", includes.HasAnyFlags(PartyFieldIncludes.User));
                 _userId = AddField("\"user\".user_id", "u_user_id", includes.HasFlag(PartyFieldIncludes.UserId));
+                _username = AddField("\"user\".username", "u_username", includes.HasFlag(PartyFieldIncludes.Username));
 
                 _builder.AppendLine().Append(/*strpsql*/"FROM uuids AS uuids");
                 _builder.AppendLine().Append(/*strpsql*/"INNER JOIN register.party AS party USING (uuid)");
@@ -1107,7 +1111,8 @@ internal partial class PostgreSqlPartyPersistence
             
             // register.user
             sbyte userIsActive,
-            sbyte userId)
+            sbyte userId,
+            sbyte username)
         {
             // meta field
             public int ParentUuid => parentUuid;
@@ -1149,6 +1154,7 @@ internal partial class PostgreSqlPartyPersistence
             // register.user
             public int UserIsActive => userIsActive;
             public int UserId => userId;
+            public int Username => username;
         }
     }
 }
