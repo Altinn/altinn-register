@@ -28,12 +28,20 @@ public sealed class TestHarnessConversation
     /// <summary>
     /// Gets the events in the conversation.
     /// </summary>
-    public AsyncUnwrappedEnumerable<EventBase, IPublishedMessage<EventBase>> Events
-        => new(_harness.Published.SelectAsync<EventBase>(m => m.Context.ConversationId == _conversationId, _cancellationToken), static m => m.Context.Message);
+    public AsyncMessageList<EventBase, IPublishedMessage<EventBase>> Events
+        => new AsyncMessageList<EventBase, IPublishedMessage<EventBase>, IPublishedMessage>(
+            _harness.Published, 
+            (IPublishedMessage m) => m.Context.ConversationId == _conversationId, 
+            static m => m.Context.Message, 
+            _cancellationToken);
 
     /// <summary>
     /// Gets the commands in the conversation.
     /// </summary>
-    public AsyncUnwrappedEnumerable<CommandBase, ISentMessage<CommandBase>> Commands
-        => new(_harness.Sent.SelectAsync<CommandBase>(m => m.Context.ConversationId == _conversationId, _cancellationToken), static m => m.Context.Message);
+    public AsyncMessageList<CommandBase, IReceivedMessage<CommandBase>> Commands
+        => new AsyncMessageList<CommandBase, IReceivedMessage<CommandBase>, IReceivedMessage>(
+            _harness.Consumed, 
+            (IReceivedMessage m) => m.Context.ConversationId == _conversationId, 
+            static m => m.Context.Message, 
+            _cancellationToken);
 }
