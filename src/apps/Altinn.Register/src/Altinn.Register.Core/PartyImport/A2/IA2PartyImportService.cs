@@ -56,4 +56,12 @@ public interface IA2PartyImportService
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>User information for the party.</returns>
     Task<Result<PartyUserRecord>> GetPartyUser(Guid partyUuid, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets profile information based on user id.
+    /// </summary>
+    /// <param name="userId">The user id.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>User profile.</returns>
+    Task<Result<A2ProfileRecord>> GetProfile(ulong userId, CancellationToken cancellationToken = default);
 }

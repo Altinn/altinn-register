@@ -6,6 +6,7 @@ using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using CommunityToolkit.Diagnostics;
 using Npgsql;
@@ -245,6 +246,56 @@ internal partial class PostgreSqlPartyPersistence
             Debug.Assert(result.HasValue, "Expected a user record from upsert_user");
 
             return result.Value;
+        }
+
+        /// <summary>
+        /// Upserts a user record for a party.
+        /// </summary>
+        /// <param name="connection">The connection</param>
+        /// <param name="partyUuid">The party UUID.</param>
+        /// <param name="userId">The user id.</param>
+        /// <param name="username">The username.</param>
+        /// <param name="isActive">Whether the user is active.</param>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+        public static async Task<Result<UpsertUserRecordResult>> UpsertUserRecord(
+            NpgsqlConnection connection,
+            Guid partyUuid,
+            ulong userId,
+            FieldValue<string> username,
+            bool isActive,
+            CancellationToken cancellationToken)
+        {
+            const string QUERY =
+                /*strpsql*/"""
+                SELECT *
+                FROM register.upsert_user_record(
+                    @party_uuid,
+                    @user_id,
+                    @set_username,
+                    @username,
+                    @is_active)
+                """;
+
+            await using var cmd = connection.CreateCommand(QUERY);
+
+            cmd.Parameters.Add<Guid>("party_uuid", NpgsqlDbType.Uuid).TypedValue = partyUuid;
+            cmd.Parameters.Add<long>("user_id", NpgsqlDbType.Bigint).TypedValue = checked((long)userId);
+            cmd.Parameters.Add<bool>("set_username", NpgsqlDbType.Boolean).TypedValue = username.IsSet;
+            cmd.Parameters.Add<string?>("username", NpgsqlDbType.Text).TypedValue = username.HasValue ? username.Value : null;
+            cmd.Parameters.Add<bool>("is_active", NpgsqlDbType.Boolean).TypedValue = isActive;
+
+            await cmd.PrepareAsync(cancellationToken);
+            await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow, cancellationToken);
+            var read = await reader.ReadAsync(cancellationToken);
+            Debug.Assert(read, "Expected a row from upsert_user_record");
+
+            var party_updated = await reader.GetFieldValueAsync<bool>("party_updated", cancellationToken);
+            var result = new UpsertUserRecordResult
+            {
+                PartyUpdated = party_updated,
+            };
+
+            return result;
         }
 
         private const string DEFAULT_QUERY =

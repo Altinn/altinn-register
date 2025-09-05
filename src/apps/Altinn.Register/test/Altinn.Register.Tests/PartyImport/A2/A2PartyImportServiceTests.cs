@@ -8,6 +8,7 @@ using System.Text.Json;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties.Records;
+using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.PartyImport.A2;
 using Altinn.Register.Tests.Utils;
 using Altinn.Register.TestUtils;
@@ -452,6 +453,213 @@ public class A2PartyImportServiceTests
         thirdPage[0].PartyId.Should().Be(5);
         thirdPage[0].PartyUuid.Should().Be(Guid.Parse("00000000-0000-0000-0000-000000000005"));
         thirdPage[0].ChangeTime.Should().Be(new DateTimeOffset(2020, 1, 5, 0, 0, 0, TimeSpan.Zero));
+    }
+
+    [Fact]
+    public async Task GetProfile_Person_MapsCorrectly()
+    {
+        using var handler = new FakeHttpMessageHandler();
+        handler.Expect(HttpMethod.Get, "profile/api/users/{userId}")
+            .WithRouteValue("userId", "20002097")
+            .Respond(
+                contentType: "application/json",
+                """
+                {
+                  "UserId": 20002097,
+                  "UserUUID": "76bc6f6e-8090-4ca6-8fd0-57054ffe1daf",
+                  "UserType": 1,
+                  "UserName": "",
+                  "ExternalIdentity": "",
+                  "IsReserved": false,
+                  "PhoneNumber": null,
+                  "Email": null,
+                  "PartyId": 50004205,
+                  "Party": {
+                    "PartyTypeName": 1,
+                    "SSN": "63074821024",
+                    "OrgNumber": "",
+                    "Person": {
+                      "SSN": "63074821024",
+                      "Name": "SAMIRA AASGAARD",
+                      "FirstName": "SAMIRA",
+                      "MiddleName": "",
+                      "LastName": "AASGAARD",
+                      "TelephoneNumber": "",
+                      "MobileNumber": "",
+                      "MailingAddress": "Amalie Jessens vei 26",
+                      "MailingPostalCode": "3182",
+                      "MailingPostalCity": "HORTEN",
+                      "AddressMunicipalNumber": "",
+                      "AddressMunicipalName": "",
+                      "AddressStreetName": "",
+                      "AddressHouseNumber": "",
+                      "AddressHouseLetter": "",
+                      "AddressPostalCode": "3182",
+                      "AddressCity": "HORTEN",
+                      "DateOfDeath": null
+                    },
+                    "Organization": null,
+                    "PartyId": 50004205,
+                    "PartyUUID": "76bc6f6e-8090-4ca6-8fd0-57054ffe1daf",
+                    "UnitType": null,
+                    "LastChangedInAltinn": "2009-06-06T15:12:18.787+02:00",
+                    "LastChangedInExternalRegister": null,
+                    "Name": "SAMIRA AASGAARD",
+                    "IsDeleted": false,
+                    "OnlyHierarchyElementWithNoAccess": false,
+                    "ChildParties": null
+                  },
+                  "ProfileSettingPreference": {
+                    "Language": "nb",
+                    "PreSelectedPartyId": 0,
+                    "DoNotPromptForParty": false
+                  }
+                }
+                """);
+
+        var logger = GetRequiredService<ILogger<A2PartyImportService>>();
+        var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
+        var profileResult = await client.GetProfile(20002097);
+
+        var profile = profileResult.Should().HaveValue().Which;
+        profile.PartyId.Should().Be(50004205);
+        profile.PartyUuid.Should().Be(Guid.Parse("76bc6f6e-8090-4ca6-8fd0-57054ffe1daf"));
+        profile.UserId.Should().Be(20002097);
+        profile.UserUuid.Should().Be(Guid.Parse("76bc6f6e-8090-4ca6-8fd0-57054ffe1daf"));
+        profile.UserName.Should().BeNull();
+        profile.IsActive.Should().BeNull();
+        profile.ProfileType.Should().Be(A2UserProfileType.Person);
+    }
+
+    [Fact]
+    public async Task GetProfile_SelfIdentified_MapsCorrectly()
+    {
+        using var handler = new FakeHttpMessageHandler();
+        handler.Expect(HttpMethod.Get, "profile/api/users/{userId}")
+            .WithRouteValue("userId", "20002139")
+            .Respond(
+                contentType: "application/json",
+                """
+                {
+                  "UserId": 20002139,
+                  "UserUUID": "4fe860c4-bc65-4d2f-a288-f825b460f26b",
+                  "UserType": 2,
+                  "UserName": "TestSelfIdentifiedUser",
+                  "ExternalIdentity": "",
+                  "IsReserved": false,
+                  "PhoneNumber": null,
+                  "Email": null,
+                  "PartyId": 50006237,
+                  "Party": {
+                    "PartyTypeName": 3,
+                    "SSN": "",
+                    "OrgNumber": "",
+                    "Person": null,
+                    "Organization": null,
+                    "PartyId": 50006237,
+                    "PartyUUID": "4fe860c4-bc65-4d2f-a288-f825b460f26b",
+                    "UnitType": null,
+                    "LastChangedInAltinn": "2010-03-02T01:53:44.87+01:00",
+                    "LastChangedInExternalRegister": null,
+                    "Name": "TestSelfIdentifiedUser",
+                    "IsDeleted": false,
+                    "OnlyHierarchyElementWithNoAccess": false,
+                    "ChildParties": null
+                  },
+                  "ProfileSettingPreference": {
+                    "Language": "nb",
+                    "PreSelectedPartyId": 0,
+                    "DoNotPromptForParty": false
+                  }
+                }
+                """);
+
+        var logger = GetRequiredService<ILogger<A2PartyImportService>>();
+        var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
+        var profileResult = await client.GetProfile(20002139);
+
+        var profile = profileResult.Should().HaveValue().Which;
+        profile.PartyId.Should().Be(50006237);
+        profile.PartyUuid.Should().Be(Guid.Parse("4fe860c4-bc65-4d2f-a288-f825b460f26b"));
+        profile.UserId.Should().Be(20002139);
+        profile.UserUuid.Should().Be(Guid.Parse("4fe860c4-bc65-4d2f-a288-f825b460f26b"));
+        profile.UserName.Should().Be("TestSelfIdentifiedUser");
+        profile.IsActive.Should().BeNull();
+        profile.ProfileType.Should().Be(A2UserProfileType.SelfIdentifiedUser);
+    }
+
+    [Fact]
+    public async Task GetProfile_Enterprise_MapsCorrectly()
+    {
+        using var handler = new FakeHttpMessageHandler();
+        handler.Expect(HttpMethod.Get, "profile/api/users/{userId}")
+            .WithRouteValue("userId", "20005073")
+            .Respond(
+                contentType: "application/json",
+                """
+                {
+                  "UserId": 20005073,
+                  "UserUUID": "869a3a5f-02db-402c-823a-94584afea394",
+                  "UserType": 3,
+                  "UserName": "PKQHFDZGLDRIRGJU",
+                  "ExternalIdentity": "",
+                  "IsReserved": false,
+                  "PhoneNumber": null,
+                  "Email": null,
+                  "PartyId": 50066480,
+                  "Party": {
+                    "PartyTypeName": 2,
+                    "SSN": "",
+                    "OrgNumber": "910514318",
+                    "Person": null,
+                    "Organization": {
+                      "OrgNumber": "910514318",
+                      "Name": "KYSTBASEN ÅGOTNES OG ILSENG",
+                      "UnitType": "ASA",
+                      "TelephoneNumber": "12345678",
+                      "MobileNumber": "99999999",
+                      "FaxNumber": "12345679",
+                      "EMailAddress": "test@test.test",
+                      "InternetAddress": null,
+                      "MailingAddress": "Markalléen 19",
+                      "MailingPostalCode": "1368",
+                      "MailingPostalCity": "STABEKK",
+                      "BusinessAddress": "Markalléen 19",
+                      "BusinessPostalCode": "1368",
+                      "BusinessPostalCity": "STABEKK",
+                      "UnitStatus": "N",
+                      "Established": "2017-09-11T00:00:00+02:00"
+                    },
+                    "PartyId": 50066480,
+                    "PartyUUID": "ec061efa-4c2a-4dbd-87f5-bcb59cdeaf91",
+                    "UnitType": "ASA",
+                    "LastChangedInAltinn": "2023-02-08T10:22:30.973+01:00",
+                    "LastChangedInExternalRegister": "2017-09-11T00:00:00+02:00",
+                    "Name": "KYSTBASEN ÅGOTNES OG ILSENG",
+                    "IsDeleted": false,
+                    "OnlyHierarchyElementWithNoAccess": false,
+                    "ChildParties": null
+                  },
+                  "ProfileSettingPreference": {
+                    "Language": "nb",
+                    "PreSelectedPartyId": 0,
+                    "DoNotPromptForParty": false
+                  }
+                }
+                """);
+
+        var logger = GetRequiredService<ILogger<A2PartyImportService>>();
+        var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
+        var profileResult = await client.GetProfile(20005073);
+
+        var profile = profileResult.Should().HaveValue().Which;
+        profile.PartyId.Should().Be(50066480);
+        profile.PartyUuid.Should().Be(Guid.Parse("ec061efa-4c2a-4dbd-87f5-bcb59cdeaf91"));
+        profile.UserId.Should().Be(20005073);
+        profile.UserUuid.Should().Be(Guid.Parse("869a3a5f-02db-402c-823a-94584afea394"));
+        profile.UserName.Should().Be("PKQHFDZGLDRIRGJU");
+        profile.IsActive.Should().BeNull();
+        profile.ProfileType.Should().Be(A2UserProfileType.EnterpriseUser);
     }
 
     private static async Task<SequenceHttpContent> TestDataParty(uint id)

@@ -2449,6 +2449,76 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         user.Username.Should().Be("user1");
     }
 
+    [Fact]
+    public async Task UpsertUserRecord_CanCreate_New_UserRecord()
+    {
+        var person = await UoW.CreatePerson(user: FieldValue.Null);
+
+        var userIds = await TestDataGenerator.GetNextUserIds();
+        await Persistence.UpsertUserRecord(person.PartyUuid.Value, userIds[0], "test-user", isActive: true);
+
+        var updated = await Persistence.GetPartyById(person.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User).FirstOrDefaultAsync();
+        updated.Should().NotBeNull();
+        updated.User.Should().HaveValue();
+        updated.User.Value!.UserId.Should().Be(userIds[0]);
+        updated.User.Value!.Username.Should().Be("test-user");
+    }
+
+    [Fact]
+    public async Task UpsertUserRecord_CanUpdate_ExistingRecord()
+    {
+        var ids = await TestDataGenerator.GetNextUserIds();
+        var person = await UoW.CreatePerson(user: new PartyUserRecord(ids[0], "test-user-name", ImmutableValueArray.ToImmutableValueArray(ids)));
+
+        await Persistence.UpsertUserRecord(person.PartyUuid.Value, ids[0], "updated-user-name", isActive: true);
+
+        var updated = await Persistence.GetPartyById(person.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User).FirstOrDefaultAsync();
+        updated.Should().NotBeNull();
+        updated.User.Should().HaveValue();
+        updated.User.Value!.UserId.Should().Be(ids[0]);
+        updated.User.Value!.Username.Should().Be("updated-user-name");
+    }
+
+    [Fact]
+    public async Task UpsertUserRecord_CanDeactivate_User()
+    {
+        var ids = await TestDataGenerator.GetNextUserIds();
+        var person = await UoW.CreatePerson(user: new PartyUserRecord(ids[0], "test-user-name", ImmutableValueArray.ToImmutableValueArray(ids)));
+
+        await Persistence.UpsertUserRecord(person.PartyUuid.Value, ids[0], FieldValue.Unset, isActive: false);
+
+        var updated = await Persistence.GetPartyById(person.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User).FirstOrDefaultAsync();
+        updated.Should().NotBeNull();
+        updated.User.Should().BeNull();
+        updated.VersionId.Should().HaveValue().Which.Should().BeGreaterThan(person.VersionId.Value);
+    }
+
+    [Fact]
+    public async Task UpsertUserRecord_Inactive_DoesNotUpdatePartyVersionId()
+    {
+        var ids = await TestDataGenerator.GetNextUserIds(count: 2);
+        var person = await UoW.CreatePerson(user: new PartyUserRecord(ids[1], "test-user-name", ImmutableValueArray.Create(ids[1])));
+
+        await Persistence.UpsertUserRecord(person.PartyUuid.Value, ids[0], "old-user-name", isActive: false);
+
+        var updated = await Persistence.GetPartyById(person.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User).FirstOrDefaultAsync();
+        updated.Should().NotBeNull();
+        updated.VersionId.Should().HaveValue().Which.Should().Be(person.VersionId.Value);
+    }
+
+    [Fact]
+    public async Task UpsertUserRecord_Active_UpdatesPartyVersionId()
+    {
+        var ids = await TestDataGenerator.GetNextUserIds(count: 2);
+        var person = await UoW.CreatePerson(user: new PartyUserRecord(ids[1], "test-user-name", ImmutableValueArray.Create(ids[1])));
+
+        await Persistence.UpsertUserRecord(person.PartyUuid.Value, ids[1], "old-user-name", isActive: true);
+
+        var updated = await Persistence.GetPartyById(person.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User).FirstOrDefaultAsync();
+        updated.Should().NotBeNull();
+        updated.VersionId.Should().HaveValue().Which.Should().BeGreaterThan(person.VersionId.Value);
+    }
+
     #endregion
 
     #region AsyncSingleton

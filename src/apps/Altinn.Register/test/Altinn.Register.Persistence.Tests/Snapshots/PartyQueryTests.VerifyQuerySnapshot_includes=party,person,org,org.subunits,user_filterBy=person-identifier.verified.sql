@@ -68,7 +68,8 @@ SELECT
     org.mailing_address p_org_mailing_address,
     org.business_address p_business_address,
     "user".is_active u_is_active,
-    "user".user_id u_user_id
+    "user".user_id u_user_id,
+    "user".username u_username
 FROM uuids AS uuids
 INNER JOIN register.party AS party USING (uuid)
 LEFT JOIN register.person AS person USING (uuid)

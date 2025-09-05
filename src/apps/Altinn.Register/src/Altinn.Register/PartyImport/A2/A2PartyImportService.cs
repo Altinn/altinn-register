@@ -1,6 +1,7 @@
 ﻿#nullable enable
 
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Runtime.CompilerServices;
@@ -143,32 +144,59 @@ internal sealed partial class A2PartyImportService
         return GetPartyUser(url, partyUuid, cancellationToken);
     }
 
+    /// <inheritdoc />
+    public async Task<Result<A2ProfileRecord>> GetProfile(ulong userId, CancellationToken cancellationToken = default)
+    {
+        var url = $"profile/api/users/{userId}";
+
+        var profileResult = await GetPartyProfile(url, [new("userId", userId.ToString())], cancellationToken);
+        if (profileResult.IsProblem)
+        {
+            return profileResult.Problem;
+        }
+
+        var profile = profileResult.Value;
+        Assert(profile.UserId == userId);
+        return MapProfile(profile);
+    }
+
     private async Task<Result<PartyUserRecord>> GetPartyUser(
         string url,
         Guid partyUuid,
         CancellationToken cancellationToken)
     {
+        var profileResult = await GetPartyProfile(url, [new("partyUuid", partyUuid.ToString())], cancellationToken);
+        if (profileResult.IsProblem)
+        {
+            return profileResult.Problem;
+        }
+
+        var profile = profileResult.Value;
+        Assert(profile.UserUuid == partyUuid);
+        Assert(profile.Party.PartyUuid == partyUuid);
+        return MapPartyUser(profile);
+    }
+
+    private async Task<Result<PartyProfile>> GetPartyProfile(
+        string url,
+        ProblemExtensionData diagnostics,
+        CancellationToken cancellationToken)
+    {
         using var responseMessage = await _httpClient.GetAsync(url, cancellationToken);
         if (responseMessage.StatusCode == HttpStatusCode.Gone)
         {
-            return Problems.PartyGone.Create([
-                new("partyUuid", partyUuid.ToString()),
-            ]);
+            return Problems.PartyGone.Create(diagnostics);
         }
 
         if (responseMessage.StatusCode == HttpStatusCode.NotFound)
         {
-            return Problems.PartyNotFound.Create([
-                new("partyUuid", partyUuid.ToString()),
-            ]);
+            return Problems.PartyNotFound.Create(diagnostics);
         }
 
         if (!responseMessage.IsSuccessStatusCode)
         {
             Log.FailedToFetchPartyProfile(_logger, url, responseMessage.StatusCode);
-            return Problems.PartyFetchFailed.Create([
-                new("partyUuid", partyUuid.ToString()),
-            ]);
+            return Problems.PartyFetchFailed.Create(diagnostics);
         }
 
         PartyProfile? response;
@@ -180,21 +208,15 @@ internal sealed partial class A2PartyImportService
         catch (JsonException ex)
         {
             Log.FailedToDeserializePartyProfile(_logger, url, ex);
-            return Problems.PartyFetchFailed.Create([
-                new("partyUuid", partyUuid.ToString()),
-            ]);
-        }
-        
-        if (response is null)
-        {
-            return Problems.PartyFetchFailed.Create([
-                new("partyUuid", partyUuid.ToString()),
-            ]);
+            return Problems.PartyFetchFailed.Create(diagnostics);
         }
 
-        Assert(response.UserUuid == partyUuid);
-        Assert(response.Party.PartyUuid == partyUuid);
-        return MapPartyUser(response);
+        if (response is null)
+        {
+            return Problems.PartyFetchFailed.Create(diagnostics);
+        }
+
+        return response;
     }
 
     /// <inheritdoc />
@@ -274,9 +296,40 @@ internal sealed partial class A2PartyImportService
     {
         var userId = checked((uint)profile.UserId);
         var userIds = ImmutableValueArray.Create(userId);
+        var userName = Normalize(profile.UserName);
 
-        return new PartyUserRecord(userId: userId, username: FieldValue.Unset, userIds: userIds);
+        return new PartyUserRecord(userId: userId, username: userName, userIds: userIds);
     }
+
+    private A2ProfileRecord MapProfile(PartyProfile profile)
+    {
+        var userId = checked((uint)profile.UserId);
+        var userName = Normalize(profile.UserName);
+        var userUuid = profile.UserUuid;
+        var profileType = MapUserType(profile.UserType);
+        var partyUuid = profile.Party.PartyUuid;
+        var partyId = profile.Party.PartyId;
+
+        return new A2ProfileRecord
+        {
+            UserId = userId,
+            UserUuid = userUuid,
+            IsActive = profile.IsActive,
+            UserName = userName,
+            ProfileType = profileType,
+            PartyUuid = partyUuid,
+            PartyId = partyId,
+        };
+    }
+
+    private static A2UserProfileType MapUserType(byte value)
+        => value switch
+        {
+            1 => A2UserProfileType.Person,
+            2 => A2UserProfileType.SelfIdentifiedUser,
+            3 => A2UserProfileType.EnterpriseUser,
+            _ => ThrowHelper.ThrowArgumentOutOfRangeException<A2UserProfileType>(nameof(value), value, "Unknown user type."),
+        };
 
     private A2PartyChangePage MapPartyChangePage(PartyChangesResponse response)
     {
@@ -295,6 +348,7 @@ internal sealed partial class A2PartyImportService
     {
         var changes = response.Data.Select(static change => new A2UserProfileChange
         {
+            UserId = change.UserId,
             ChangeId = change.UserChangeEventId,
             UserUuid = change.UserUuid,
             OwnerPartyUuid = change.OwnerPartyUuid,
@@ -321,9 +375,6 @@ internal sealed partial class A2PartyImportService
             V1PartyType.SelfIdentified => MapSelfIdentifiedUser(party, _timeProvider.GetUtcNow()),
             _ => ThrowHelper.ThrowNotSupportedException<PartyRecord>($"Party type {party.PartyTypeName} is not supported."),
         };
-
-        static string? Normalize(string? value)
-            => string.IsNullOrWhiteSpace(value) ? null : value;
 
         static StreetAddressRecord? MapStreetAddress(
             string? municipalNumber,
@@ -693,6 +744,9 @@ internal sealed partial class A2PartyImportService
             || string.Equals(name, "Inserted By FReg Import", StringComparison.OrdinalIgnoreCase);
     }
 
+    private static string? Normalize(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value;
+
     private static void Assert([DoesNotReturnIf(false)] bool condition, [CallerArgumentExpression(nameof(condition))] string? conditionString = null)
     {
         if (!condition)
@@ -794,13 +848,31 @@ internal sealed partial class A2PartyImportService
         /// Gets the user id.
         /// </summary>
         [JsonPropertyName("UserId")]
-        public required int UserId { get; init; }
+        public required ulong UserId { get; init; }
 
         /// <summary>
         /// Gets the user UUID (should be the same as the party UUID).
         /// </summary>
         [JsonPropertyName("UserUUID")]
-        public required Guid UserUuid { get; init; }
+        public required Guid? UserUuid { get; init; }
+
+        /// <summary>
+        /// Gets a value indicating whether the profile is active or not.
+        /// </summary>
+        [JsonPropertyName("IsActive")]
+        public bool? IsActive { get; init; }
+
+        /// <summary>
+        /// Gets the user name, if any.
+        /// </summary>
+        [JsonPropertyName("UserName")]
+        public required string? UserName { get; init; }
+
+        /// <summary>
+        /// Gets the user type.
+        /// </summary>
+        [JsonPropertyName("UserType")]
+        public required byte UserType { get; init; }
 
         /// <summary>
         /// Gets the party object.
@@ -814,6 +886,12 @@ internal sealed partial class A2PartyImportService
     /// </summary>
     internal sealed class PartyProfileParty
     {
+        /// <summary>
+        /// Gets the party id.
+        /// </summary>
+        [JsonPropertyName("PartyId")]
+        public required uint PartyId { get; init; }
+
         /// <summary>
         /// Gets the party UUID.
         /// </summary>
@@ -950,5 +1028,8 @@ internal sealed partial class A2PartyImportService
 
         [LoggerMessage(4, LogLevel.Debug, "Fetching user profile changes from {FromExclusive}.")]
         public static partial void FetchingUserProfileChangesPage(ILogger logger, uint fromExclusive);
+
+        [LoggerMessage(5, LogLevel.Error, "Failed to fetch profile from {Url}. Status code: {StatusCode}.")]
+        public static partial void FailedToFetchProfile(ILogger logger, string url, HttpStatusCode statusCode);
     }
 }
