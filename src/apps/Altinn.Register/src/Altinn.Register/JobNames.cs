@@ -21,4 +21,9 @@ internal static class JobNames
     /// Job name for A2 party import-userid job.
     /// </summary>
     internal const string A2PartyUserIdImport = $"{LeaseNames.A2PartyUserIdImport}:userid";
+
+    /// <summary>
+    /// Job name for A2 profile-changes import job.
+    /// </summary>
+    internal const string A2ProfileChangesImport = $"{LeaseNames.A2ProfileImport}:profile-changes";
 }

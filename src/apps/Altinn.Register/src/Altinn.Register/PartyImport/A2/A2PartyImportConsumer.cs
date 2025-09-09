@@ -52,7 +52,13 @@ public sealed partial class A2PartyImportConsumer
         }
 
         partyResult.EnsureSuccess();
-        await _sender.Send(new UpsertPartyCommand { Party = partyResult.Value, Tracking = new(JobNames.A2PartyImportParty, context.Message.ChangeId) }, context.CancellationToken);
+        await _sender.Send(
+            new UpsertPartyCommand 
+            { 
+                Party = partyResult.Value, 
+                Tracking = new(JobNames.A2PartyImportParty, context.Message.ChangeId),
+            }, 
+            context.CancellationToken);
         _meters.PartiesFetched.Add(1);
     }
 
