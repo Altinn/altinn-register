@@ -199,6 +199,8 @@ internal static partial class RegisterHost
         var isTest = config.GetValue<bool>("Altinn:IsTest");
         if (!initOnly && !isTest)
         {
+            const string A2PartyImportJobTag = "a2-import";
+
             if (config.GetValue<bool>("Altinn:MassTransit:register:Enable"))
             {
                 builder.AddAltinnMassTransit(
@@ -214,7 +216,7 @@ internal static partial class RegisterHost
 
             services.AddRecurringJob<A2PartyImportJob>(settings =>
             {
-                settings.Tags.Add("a2-import");
+                settings.Tags.Add(A2PartyImportJobTag);
                 settings.LeaseName = A2PartyImportJob.JobName;
                 settings.Interval = TimeSpan.FromMinutes(1);
                 settings.WaitForReady = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
@@ -224,7 +226,7 @@ internal static partial class RegisterHost
 
             services.AddRecurringJob<A2PartyCCRRolesImportJob>(settings =>
             {
-                settings.Tags.Add("a2-import");
+                settings.Tags.Add(A2PartyImportJobTag);
                 settings.LeaseName = A2PartyCCRRolesImportJob.JobName;
                 settings.Interval = TimeSpan.FromMinutes(1);
                 settings.WaitForReady = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
@@ -235,12 +237,23 @@ internal static partial class RegisterHost
 
             services.AddRecurringJob<A2PartyUserIdImportJob>(settings =>
             {
-                settings.Tags.Add("a2-import");
+                settings.Tags.Add(A2PartyImportJobTag);
                 settings.LeaseName = A2PartyUserIdImportJob.JobName;
                 settings.Interval = TimeSpan.FromMinutes(1);
                 settings.WaitForReady = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
                 settings.Enabled = JobEnabledBuilder.Default
                     .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:PartyUserId:Enable")
+                    .WithRequireImportJobFinished(A2PartyImportJob.JobName, threshold: 5_000);
+            });
+
+            services.AddRecurringJob<A2ProfileImportJob>(settings =>
+            {
+                settings.Tags.Add(A2PartyImportJobTag);
+                settings.LeaseName = A2ProfileImportJob.JobName;
+                settings.Interval = TimeSpan.FromMinutes(1);
+                settings.WaitForReady = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
+                settings.Enabled = JobEnabledBuilder.Default
+                    .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:Profiles:Enable")
                     .WithRequireImportJobFinished(A2PartyImportJob.JobName, threshold: 5_000);
             });
         }
