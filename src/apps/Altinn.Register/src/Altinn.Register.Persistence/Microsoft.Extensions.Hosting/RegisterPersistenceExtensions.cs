@@ -190,6 +190,13 @@ public static class RegisterPersistenceExtensions
             _ => null,
         }));
 
+        builder.MapEnum<SystemUserRecordType>("register.system_user_type", new EnumNameTranslator<SystemUserRecordType>(static value => value switch
+        {
+            SystemUserRecordType.Standard => "standard",
+            SystemUserRecordType.Agent => "agent",
+            _ => null,
+        }));
+
         builder.MapComposite<MailingAddressRecord>("register.co_mailing_address", new CompositeNameTranslator<MailingAddressRecord>(static member => member.Name switch
         {
             nameof(MailingAddressRecord.Address) => "address",

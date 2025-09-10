@@ -604,8 +604,44 @@ internal partial class PostgreSqlPartyPersistence
         }
 
         private sealed class UpsertSystemUserQuery()
-            : Typed<SystemUserRecord>(PartyRecordType.SystemUser)
+            : Typed<SystemUserRecord>(PartyRecordType.SystemUser, QUERY)
         {
+            private const string QUERY =
+                /*strpsql*/"""
+                SELECT *
+                FROM register.upsert_system_user(
+                    @uuid,
+                    @id,
+                    @user_ids,
+                    @set_username,
+                    @username,
+                    @party_type,
+                    @display_name,
+                    @person_id,
+                    @org_id,
+                    @created_at,
+                    @modified_at,
+                    @set_is_deleted,
+                    @is_deleted,
+                    @set_owner,
+                    @owner,
+                    @system_user_type)
+                """;
+
+            protected override void ValidateFields(SystemUserRecord party)
+            {
+                base.ValidateFields(party);
+
+                Debug.Assert(party.SystemUserType.HasValue, "system user must have SystemUserType set");
+            }
+
+            protected override void AddPartyParameters(NpgsqlParameterCollection parameters, SystemUserRecord party)
+            {
+                base.AddPartyParameters(parameters, party);
+
+                parameters.Add<SystemUserRecordType>("system_user_type").TypedValue = party.SystemUserType.Value;
+            }
+
             public override async Task<SystemUserRecord> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken)
             {
                 return new SystemUserRecord
@@ -621,6 +657,7 @@ internal partial class PostgreSqlPartyPersistence
                     ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_updated", cancellationToken),
                     IsDeleted = await reader.GetConditionalFieldValueAsync<bool>("p_is_deleted", cancellationToken),
                     VersionId = await reader.GetConditionalFieldValueAsync<long>("o_version_id", cancellationToken).Select(static v => (ulong)v),
+                    SystemUserType = await reader.GetConditionalFieldValueAsync<SystemUserRecordType>("p_system_user_type", cancellationToken),
                 };
             }
         }

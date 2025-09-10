@@ -78,7 +78,7 @@ public class PartyQueryTests
         // full includes
         foreach (var filter in filters)
         {
-            var allFields = PartyFieldIncludes.Party | PartyFieldIncludes.User | PartyFieldIncludes.Organization | PartyFieldIncludes.Person;
+            var allFields = PartyFieldIncludes.Party | PartyFieldIncludes.User | PartyFieldIncludes.Organization | PartyFieldIncludes.Person | PartyFieldIncludes.SystemUser;
             data.Add(allFields, filter);
 
             if (!filter.HasFlag(PartyQueryFilters.StreamPage))
