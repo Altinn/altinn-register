@@ -20,6 +20,11 @@ internal static class LeaseNames
     internal const string A2PartyUserIdImport = "a2-party-userid-import";
 
     /// <summary>
+    /// Lease name for <see cref="A2ProfileImportJob"/>.
+    /// </summary>
+    internal const string A2ProfileImport = "a2-profile-import";
+
+    /// <summary>
     /// Lease name for party cleanup job.
     /// </summary>
     internal const string PartyCleanup = "db:party-cleanup";

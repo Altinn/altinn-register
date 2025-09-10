@@ -82,9 +82,9 @@ internal sealed partial class A2PartyImportService
                 break;
             }
 
+            Assert(response.Stats.PageEnd is { } pageEnd && pageEnd > fromExclusive);
             yield return MapUserProfileChangePage(response);
 
-            Assert(response.Stats.PageEnd is { } pageEnd && pageEnd > fromExclusive);
             fromExclusive = response.Stats.PageEnd.Value;
         }
     }
@@ -289,6 +289,24 @@ internal sealed partial class A2PartyImportService
             throw new InvalidOperationException("Failed to parse user profile changes.");
         }
 
+        if (response.Stats is { PageStart: null, PageEnd: null })
+        {
+            var (pageStart, pageEnd) = response.Data.Count switch
+            {
+                0 => (response.Stats.SequenceMax, response.Stats.SequenceMax),
+                _ => (response.Data[0].UserChangeEventId, response.Data[^1].UserChangeEventId),
+            };
+
+            response = response with
+            {
+                Stats = response.Stats with
+                {
+                    PageStart = pageStart,
+                    PageEnd = pageEnd,
+                },
+            };
+        }
+        
         return response;
     }
 
@@ -903,7 +921,7 @@ internal sealed partial class A2PartyImportService
     /// A "page" of items in a stream from the A2 system.
     /// </summary>
     /// <typeparam name="T">The data type.</typeparam>
-    internal sealed class ItemStreamPage<T>
+    internal sealed record ItemStreamPage<T>
     {
         /// <summary>
         /// Gets stats for the page.
@@ -921,7 +939,7 @@ internal sealed partial class A2PartyImportService
     /// <summary>
     /// Stats for a stream page in the A2 system.
     /// </summary>
-    internal sealed class StreamPageStats
+    internal sealed record StreamPageStats
     {
         /// <summary>
         /// Gets the first item in the page.

@@ -377,7 +377,14 @@ internal sealed partial class RecurringJobHostedService
 
         try
         {
-            return await registration.Enabled(_serviceProvider, cancellationToken);
+            var isEnabled = await registration.Enabled(_serviceProvider, cancellationToken);
+
+            if (!isEnabled)
+            {
+                Log.JobIsDisabledByDelegate(_logger, jobName: registration.JobName);
+            }
+
+            return isEnabled;
         }
         catch (OperationCanceledException e) when (e.CancellationToken == cancellationToken)
         {
@@ -938,5 +945,8 @@ internal sealed partial class RecurringJobHostedService
 
         [LoggerMessage(7, LogLevel.Information, "Job {JobName} blocked by condition {ConditionName}")]
         public static partial void JobBlockedByCondition(ILogger logger, string jobName, string conditionName);
+
+        [LoggerMessage(8, LogLevel.Information, "Job {JobName} is disabled by registration enabled delegate")]
+        public static partial void JobIsDisabledByDelegate(ILogger logger, string jobName);
     }
 }

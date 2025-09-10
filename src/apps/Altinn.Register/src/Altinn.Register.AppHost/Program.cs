@@ -61,6 +61,7 @@ var registerApi = builder.AddProject<Projects.Altinn_Register>("register")
     ////.WithEnvironment("Altinn__Npgsql__register__Migrate__Enabled", "false") // TODO: re-enable once quartz migrations can run in the init-container
     .WithEnvironment("Altinn__register__PartyImport__A2__Enable", "true")
     .WithEnvironment("Altinn__register__PartyImport__A2__PartyUserId__Enable", "false")
+    .WithEnvironment("Altinn__register__PartyImport__A2__Profiles__Enable", "true")
     .WithHttpHealthCheck("/health");
 
 await builder.Build().RunAsync();
