@@ -41,7 +41,69 @@ public class PostgresImportJobStatePersistenceTests
         => _persistence!;
 
     [Fact]
-    public async Task CanRoundTrip_StringState()
+    public async Task JobState_CanRoundTrip_StringState()
+    {
+        var jobId = "test";
+
+        var state = new StringState { Value = "test" };
+        await Persistence.SetState(jobId, state);
+
+        var result = await Persistence.GetState<StringState>(jobId);
+        result.Should().HaveValue()
+            .Which.Value.Should().Be(state.Value);
+    }
+
+    [Fact]
+    public async Task JobState_CanRoundTrip_IntState()
+    {
+        var jobId = "test";
+
+        var state = new IntState { Value = 42 };
+        await Persistence.SetState(jobId, state);
+
+        var result = await Persistence.GetState<IntState>(jobId);
+        result.Should().HaveValue()
+            .Which.Value.Should().Be(state.Value);
+    }
+
+    [Fact]
+    public async Task JobState_GetState_ReturnsUnset_WhenMissing()
+    {
+        var result = await Persistence.GetState<StringState>("test");
+
+        result.Should().BeUnset();
+    }
+
+    [Fact]
+    public async Task JobState_GetState_ReturnsNull_WhenWrongStateType()
+    {
+        var jobId = "test";
+
+        var state = new StringState { Value = "test" };
+        await Persistence.SetState(jobId, state);
+
+        var result = await Persistence.GetState<IntState>(jobId);
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task JobState_ClearState_ClearsState()
+    {
+        var jobId = "test";
+
+        var state = new StringState { Value = "test" };
+        await Persistence.SetState(jobId, state);
+        var result = await Persistence.GetState<StringState>(jobId);
+        result.Should().NotBeNull();
+
+        await Persistence.ClearState(jobId);
+
+        result = await Persistence.GetState<StringState>(jobId);
+        result.Should().BeUnset();
+    }
+
+    [Fact]
+    public async Task PartyState_CanRoundTrip_StringState()
     {
         var party = await UoW.CreateOrg();
         var jobId = "test";
@@ -57,7 +119,7 @@ public class PostgresImportJobStatePersistenceTests
     }
 
     [Fact]
-    public async Task CanRoundTrip_IntState()
+    public async Task PartyState_CanRoundTrip_IntState()
     {
         var party = await UoW.CreateOrg();
         var jobId = "test";
@@ -73,7 +135,7 @@ public class PostgresImportJobStatePersistenceTests
     }
 
     [Fact]
-    public async Task GetPartyState_ReturnsUnset_WhenMissing()
+    public async Task PartyState_GetPartyState_ReturnsUnset_WhenMissing()
     {
         var result = await Persistence.GetPartyState<StringState>("test", Guid.NewGuid());
 
@@ -81,7 +143,7 @@ public class PostgresImportJobStatePersistenceTests
     }
 
     [Fact]
-    public async Task GetPartyState_ReturnsNull_WhenWrongStateType()
+    public async Task PartyState_GetPartyState_ReturnsNull_WhenWrongStateType()
     {
         var party = await UoW.CreateOrg();
         var jobId = "test";
@@ -96,7 +158,7 @@ public class PostgresImportJobStatePersistenceTests
     }
 
     [Fact]
-    public async Task ClearState_ClearsState()
+    public async Task PartyState_ClearState_ClearsState()
     {
         var party = await UoW.CreateOrg();
         var jobId = "test";
