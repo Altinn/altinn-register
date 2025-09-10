@@ -403,6 +403,7 @@ internal partial class PostgreSqlPartyPersistence
             static async ValueTask<(PartyRecord Party, bool HasMore)> ReadSystemUserParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
             {
                 var common = await ReadCommonFields(reader, fields, cancellationToken);
+                var systemUserType = await reader.GetConditionalFieldValueAsync<SystemUserRecordType>(fields.SystemUserType, cancellationToken);
 
                 // must be the last read-access to the reader
                 Debug.Assert(common.PartyUuid.HasValue);
@@ -422,6 +423,7 @@ internal partial class PostgreSqlPartyPersistence
                     VersionId = common.VersionId,
                     OwnerUuid = common.OwnerUuid,
                     User = user,
+                    SystemUserType = systemUserType,
                 };
 
                 return (party, hasMore);
@@ -564,6 +566,7 @@ internal partial class PostgreSqlPartyPersistence
                     organizationInternetAddress: builder._organizationInternetAddress,
                     organizationMailingAddress: builder._organizationMailingAddress,
                     organizationBusinessAddress: builder._organizationBusinessAddress,
+                    systemUserType: builder._systemUserType,
                     userIsActive: builder._userIsActive,
                     userId: builder._userId,
                     username: builder._username);
@@ -642,6 +645,9 @@ internal partial class PostgreSqlPartyPersistence
             private sbyte _organizationMailingAddress = -1;
             private sbyte _organizationBusinessAddress = -1;
 
+            // register.system_user
+            private sbyte _systemUserType = -1;
+
             // register.user
             private sbyte _userIsActive = -1;
             private sbyte _userId = -1;
@@ -686,6 +692,8 @@ internal partial class PostgreSqlPartyPersistence
                 _organizationMailingAddress = AddField("org.mailing_address", "p_org_mailing_address", includes.HasFlag(PartyFieldIncludes.OrganizationMailingAddress));
                 _organizationBusinessAddress = AddField("org.business_address", "p_business_address", includes.HasFlag(PartyFieldIncludes.OrganizationBusinessAddress));
 
+                _systemUserType = AddField("sys_u.\"type\"", "p_system_user_type", includes.HasFlag(PartyFieldIncludes.SystemUserType));
+
                 _userIsActive = AddField("\"user\".is_active", "u_is_active", includes.HasAnyFlags(PartyFieldIncludes.User));
                 _userId = AddField("\"user\".user_id", "u_user_id", includes.HasFlag(PartyFieldIncludes.UserId));
                 _username = AddField("\"user\".username", "u_username", includes.HasFlag(PartyFieldIncludes.Username));
@@ -701,6 +709,11 @@ internal partial class PostgreSqlPartyPersistence
                 if (includes.HasAnyFlags(PartyFieldIncludes.Organization))
                 {
                     _builder.AppendLine().Append(/*strpsql*/"LEFT JOIN register.organization AS org USING (uuid)");
+                }
+
+                if (includes.HasAnyFlags(PartyFieldIncludes.SystemUser))
+                {
+                    _builder.AppendLine().Append(/*strpsql*/"""LEFT JOIN register.system_user AS sys_u USING (uuid)""");
                 }
 
                 if (includes.HasAnyFlags(PartyFieldIncludes.User))
@@ -1108,7 +1121,10 @@ internal partial class PostgreSqlPartyPersistence
             sbyte organizationInternetAddress,
             sbyte organizationMailingAddress,
             sbyte organizationBusinessAddress,
-            
+
+            // register.system_user
+            sbyte systemUserType,
+
             // register.user
             sbyte userIsActive,
             sbyte userId,
@@ -1150,6 +1166,9 @@ internal partial class PostgreSqlPartyPersistence
             public int OrganizationInternetAddress => organizationInternetAddress;
             public int OrganizationMailingAddress => organizationMailingAddress;
             public int OrganizationBusinessAddress => organizationBusinessAddress;
+
+            // register.system_user
+            public int SystemUserType => systemUserType;
 
             // register.user
             public int UserIsActive => userIsActive;

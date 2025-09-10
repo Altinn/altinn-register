@@ -16,4 +16,9 @@ public sealed record SystemUserRecord
         : base(PartyRecordType.SystemUser)
     {
     }
+
+    /// <summary>
+    /// Gets the type of the system user.
+    /// </summary>
+    public required FieldValue<SystemUserRecordType> SystemUserType { get; init; }
 }

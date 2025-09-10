@@ -1,13 +1,41 @@
-﻿-- include: party,person,org,user
--- filter: user-id,multiple
+﻿-- include: party,person,org,sysuser,user
+-- filter: party-id,party-uuid,person-identifier,organization-identifier,user-id,multiple
 
-WITH uuids_by_user_id AS (
+WITH uuids_by_party_uuid AS (
+    SELECT party."uuid", party.version_id
+    FROM register.party AS party
+    WHERE party."uuid" = ANY (@partyUuids)
+),
+uuids_by_party_id AS (
+    SELECT party."uuid", party.version_id
+    FROM register.party AS party
+    WHERE party."id" = ANY (@partyIds)
+),
+uuids_by_person_identifier AS (
+    SELECT party."uuid", party.version_id
+    FROM register.party AS party
+    WHERE party."person_identifier" = ANY (@personIdentifiers)
+),
+uuids_by_organization_identifier AS (
+    SELECT party."uuid", party.version_id
+    FROM register.party AS party
+    WHERE party."organization_identifier" = ANY (@organizationIdentifiers)
+),
+uuids_by_user_id AS (
     SELECT "user"."uuid", party.version_id
     FROM register."user" AS "user"
     INNER JOIN register.party AS party USING (uuid)
     WHERE "user".user_id = ANY (@userIds)
 ),
 top_level_uuids AS (
+    SELECT "uuid", version_id FROM uuids_by_party_uuid
+    UNION
+    SELECT "uuid", version_id FROM uuids_by_party_id
+    UNION
+    SELECT "uuid", version_id FROM uuids_by_person_identifier
+    UNION
+    SELECT "uuid", version_id FROM uuids_by_organization_identifier
+    UNION
     SELECT "uuid", version_id FROM uuids_by_user_id
 ),
 filtered_users AS (
@@ -53,6 +81,7 @@ SELECT
     org.internet_address p_internet_address,
     org.mailing_address p_org_mailing_address,
     org.business_address p_business_address,
+    sys_u."type" p_system_user_type,
     "user".is_active u_is_active,
     "user".user_id u_user_id,
     "user".username u_username
@@ -60,6 +89,7 @@ FROM uuids AS uuids
 INNER JOIN register.party AS party USING (uuid)
 LEFT JOIN register.person AS person USING (uuid)
 LEFT JOIN register.organization AS org USING (uuid)
+LEFT JOIN register.system_user AS sys_u USING (uuid)
 LEFT JOIN filtered_users AS "user" USING (uuid)
 ORDER BY
     uuids.sort_first,
