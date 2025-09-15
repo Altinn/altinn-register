@@ -1,17 +1,13 @@
-﻿-- include: party,person,org,user
--- filter: stream-page
+﻿-- include: party,person,org,sysuser,user
+-- filter: person-identifier,multiple
 
-WITH maxval AS (
-    SELECT register.tx_max_safeval('register.party_version_id_seq') maxval
-),
-top_level_uuids AS (
+WITH uuids_by_person_identifier AS (
     SELECT party."uuid", party.version_id
     FROM register.party AS party
-    CROSS JOIN maxval mv
-    WHERE party.version_id > @streamFromExlusive
-      AND party.version_id <= mv.maxval
-    ORDER BY party.version_id ASC
-    LIMIT @streamLimit
+    WHERE party."person_identifier" = ANY (@personIdentifiers)
+),
+top_level_uuids AS (
+    SELECT "uuid", version_id FROM uuids_by_person_identifier
 ),
 filtered_users AS (
     SELECT "user".*
@@ -55,6 +51,7 @@ SELECT
     org.internet_address p_internet_address,
     org.mailing_address p_org_mailing_address,
     org.business_address p_business_address,
+    sys_u."type" p_system_user_type,
     "user".is_active u_is_active,
     "user".user_id u_user_id,
     "user".username u_username
@@ -62,6 +59,7 @@ FROM uuids AS uuids
 INNER JOIN register.party AS party USING (uuid)
 LEFT JOIN register.person AS person USING (uuid)
 LEFT JOIN register.organization AS org USING (uuid)
+LEFT JOIN register.system_user AS sys_u USING (uuid)
 LEFT JOIN filtered_users AS "user" USING (uuid)
 ORDER BY
     uuids.sort_first,

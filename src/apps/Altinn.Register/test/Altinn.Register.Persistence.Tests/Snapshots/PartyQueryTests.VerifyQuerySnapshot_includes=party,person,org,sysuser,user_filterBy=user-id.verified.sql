@@ -1,15 +1,17 @@
-﻿-- include: party,person,org,user
--- filter: party-id
+﻿-- include: party,person,org,sysuser,user
+-- filter: user-id
 
 WITH top_level_uuids AS (
-    SELECT party."uuid", party.version_id
-    FROM register.party AS party
-    WHERE party."id" = @partyId
+    SELECT "user"."uuid", party.version_id
+    FROM register."user" AS "user"
+    INNER JOIN register.party AS party USING (uuid)
+    WHERE "user".user_id = @userId
 ),
 filtered_users AS (
     SELECT "user".*
     FROM register."user" AS "user"
     WHERE "user".is_active
+       OR "user".user_id = @userId
 ),
 uuids AS (
     SELECT
@@ -48,6 +50,7 @@ SELECT
     org.internet_address p_internet_address,
     org.mailing_address p_org_mailing_address,
     org.business_address p_business_address,
+    sys_u."type" p_system_user_type,
     "user".is_active u_is_active,
     "user".user_id u_user_id,
     "user".username u_username
@@ -55,6 +58,7 @@ FROM uuids AS uuids
 INNER JOIN register.party AS party USING (uuid)
 LEFT JOIN register.person AS person USING (uuid)
 LEFT JOIN register.organization AS org USING (uuid)
+LEFT JOIN register.system_user AS sys_u USING (uuid)
 LEFT JOIN filtered_users AS "user" USING (uuid)
 ORDER BY
     uuids.sort_first,

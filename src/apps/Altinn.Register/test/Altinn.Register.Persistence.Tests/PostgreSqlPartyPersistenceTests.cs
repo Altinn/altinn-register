@@ -1385,8 +1385,10 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
     #region Upsert System User
 
-    [Fact]
-    public async Task UpsertParty_SystemUser_Inserts_New_SystemUser()
+    [Theory]
+    [InlineData(SystemUserRecordType.Standard)]
+    [InlineData(SystemUserRecordType.Agent)]
+    public async Task UpsertParty_SystemUser_Inserts_New_SystemUser(SystemUserRecordType type)
     {
         var org = await UoW.CreateOrg();
         var uuid = Guid.NewGuid();
@@ -1404,13 +1406,14 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = org.PartyUuid,
+            SystemUserType = type,
         };
 
         var result = await Persistence.UpsertParty(toInsert);
         var inserted = result.Should().HaveValue().Which.Should().BeOfType<SystemUserRecord>().Which;
         inserted.Should().BeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party).SingleAsync();
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SystemUser).SingleAsync();
         fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
@@ -1433,6 +1436,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = org.PartyUuid,
+            SystemUserType = SystemUserRecordType.Standard,
         };
 
         var result = await Persistence.UpsertParty(toInsert);
@@ -1458,7 +1462,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var updated = result.Value.Should().BeOfType<SystemUserRecord>().Which;
         updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party).SingleAsync();
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SystemUser).SingleAsync();
         fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
     }
 
@@ -1481,6 +1485,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = org.PartyUuid,
+            SystemUserType = SystemUserRecordType.Standard,
         };
 
         var result = await Persistence.UpsertParty(toInsert);
@@ -1508,7 +1513,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var updated = result.Value.Should().BeOfType<SystemUserRecord>().Which;
         updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party).SingleAsync();
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SystemUser).SingleAsync();
         fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
     }
 
@@ -1532,6 +1537,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = org1.PartyUuid,
+            SystemUserType = SystemUserRecordType.Agent,
         };
 
         var result = await Persistence.UpsertParty(toInsert);
