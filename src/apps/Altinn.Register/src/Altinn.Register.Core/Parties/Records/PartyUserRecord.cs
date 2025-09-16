@@ -1,4 +1,5 @@
-﻿using Altinn.Authorization.ModelUtils;
+﻿using System.Text.Json.Serialization;
+using Altinn.Authorization.ModelUtils;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.Core.Parties.Records;
@@ -33,6 +34,7 @@ public sealed record PartyUserRecord
     /// <param name="userId">The current active user id.</param>
     /// <param name="username">The username of the party.</param>
     /// <param name="userIds">The user ids of the party.</param>
+    [JsonConstructor]
     public PartyUserRecord(
         FieldValue<uint> userId,
         FieldValue<string> username,
@@ -64,5 +66,17 @@ public sealed record PartyUserRecord
         UserId = userId;
         Username = username;
         UserIds = userIds;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PartyUserRecord"/> class.
+    /// </summary>
+    /// <param name="userId">The current active user id.</param>
+    /// <param name="username">The username of the party.</param>
+    public PartyUserRecord(
+        FieldValue<uint> userId,
+        FieldValue<string> username)
+        : this(userId, username, userId.Select(ImmutableValueArray.Create))
+    {
     }
 }
