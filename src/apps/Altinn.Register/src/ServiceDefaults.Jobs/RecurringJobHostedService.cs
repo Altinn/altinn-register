@@ -377,14 +377,14 @@ internal sealed partial class RecurringJobHostedService
 
         try
         {
-            var isEnabled = await registration.Enabled(_serviceProvider, cancellationToken);
+            var enabledResult = await registration.Enabled(_serviceProvider, cancellationToken);
 
-            if (!isEnabled)
+            if (!enabledResult.ShouldRun)
             {
-                Log.JobIsDisabledByDelegate(_logger, jobName: registration.JobName);
+                Log.JobIsDisabledByDelegate(_logger, jobName: registration.JobName, reason: enabledResult.Reason);
             }
 
-            return isEnabled;
+            return enabledResult.ShouldRun;
         }
         catch (OperationCanceledException e) when (e.CancellationToken == cancellationToken)
         {
@@ -536,12 +536,14 @@ internal sealed partial class RecurringJobHostedService
             }
 
             // calculate when next the job should run, and wait for that, then loop
+            now = _timeProvider.GetUtcNow();
             var nextStart = lastCompleted + interval;
             var tilThen = nextStart - now;
 
             if (tilThen > TimeSpan.Zero)
             {
                 // note, we grab the new delay task here to make sure we schedule the next run before releasing the tracker
+                Log.Sleep(_logger, registration.JobName, tilThen);
                 await scheduler.Sleep(tilThen, cancellationToken).ConfigureAwait(false);
             }
         }
@@ -946,7 +948,10 @@ internal sealed partial class RecurringJobHostedService
         [LoggerMessage(7, LogLevel.Information, "Job {JobName} blocked by condition {ConditionName}")]
         public static partial void JobBlockedByCondition(ILogger logger, string jobName, string conditionName);
 
-        [LoggerMessage(8, LogLevel.Information, "Job {JobName} is disabled by registration enabled delegate")]
-        public static partial void JobIsDisabledByDelegate(ILogger logger, string jobName);
+        [LoggerMessage(8, LogLevel.Information, "Job {JobName} is disabled by registration enabled delegate: {Reason}")]
+        public static partial void JobIsDisabledByDelegate(ILogger logger, string jobName, string reason);
+
+        [LoggerMessage(9, LogLevel.Debug, "Sleep before re-attempting job {JobName} for {SleepDuration}")]
+        public static partial void Sleep(ILogger logger, string jobName, TimeSpan sleepDuration);
     }
 }

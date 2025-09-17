@@ -14,9 +14,9 @@ public class JobEnabledBuilder
     /// </summary>
     public static JobEnabledBuilder Default { get; } = new([]);
 
-    private readonly ImmutableList<Func<IServiceProvider, CancellationToken, ValueTask<bool>>> _checks;
+    private readonly ImmutableList<Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>> _checks;
 
-    private JobEnabledBuilder(ImmutableList<Func<IServiceProvider, CancellationToken, ValueTask<bool>>> checks)
+    private JobEnabledBuilder(ImmutableList<Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>> checks)
     {
         _checks = checks;
     }
@@ -26,27 +26,27 @@ public class JobEnabledBuilder
     /// </summary>
     /// <param name="check">The check to add.</param>
     /// <returns>A new <see cref="JobEnabledBuilder"/> with <paramref name="check"/> added.</returns>
-    public JobEnabledBuilder WithCheck(Func<IServiceProvider, CancellationToken, ValueTask<bool>> check)
+    public JobEnabledBuilder WithCheck(Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>> check)
         => new(_checks.Add(check));
 
     /// <summary>
     /// Creates a check function from this builder.
     /// </summary>
     /// <returns>A check function.</returns>
-    public Func<IServiceProvider, CancellationToken, ValueTask<bool>> ToFunc()
+    public Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>> ToFunc()
     {
         var checks = _checks.ToImmutableArray();
 
         return ToFunc(checks);
 
         // This needs to be a static method to make sure we avoid capturing the builder instance
-        static Func<IServiceProvider, CancellationToken, ValueTask<bool>> ToFunc(ImmutableArray<Func<IServiceProvider, CancellationToken, ValueTask<bool>>> checks)
+        static Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>> ToFunc(ImmutableArray<Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>> checks)
         {
             return (sp, ct) => RunChecksSync(checks, sp, ct);
         }
 
         // This needs to be a static method to make sure we avoid capturing the builder instance
-        static ValueTask<bool> RunChecksSync(ImmutableArray<Func<IServiceProvider, CancellationToken, ValueTask<bool>>> checks, IServiceProvider services, CancellationToken cancellationToken)
+        static ValueTask<JobShouldRunResult> RunChecksSync(ImmutableArray<Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>> checks, IServiceProvider services, CancellationToken cancellationToken)
         {
             for (int index = 0; index < checks.Length; index++)
             {
@@ -57,34 +57,37 @@ public class JobEnabledBuilder
                     return RunChecksAsync(task, index, checks, services, cancellationToken);
                 }
 
-                if (!task.Result)
+                var result = task.Result;
+                if (!result.ShouldRun)
                 {
-                    return ValueTask.FromResult(false);
+                    return ValueTask.FromResult(result);
                 }
             }
 
-            return ValueTask.FromResult(true);
+            return ValueTask.FromResult(JobShouldRunResult.Yes);
         }
 
         // This needs to be a static method to make sure we avoid capturing the builder instance
-        static async ValueTask<bool> RunChecksAsync(ValueTask<bool> task, int index, ImmutableArray<Func<IServiceProvider, CancellationToken, ValueTask<bool>>> checks, IServiceProvider services, CancellationToken cancellationToken)
+        static async ValueTask<JobShouldRunResult> RunChecksAsync(ValueTask<JobShouldRunResult> task, int index, ImmutableArray<Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>> checks, IServiceProvider services, CancellationToken cancellationToken)
         {
-            if (!await task)
+            var result = await task;
+            if (!result.ShouldRun)
             {
-                return false;
+                return result;
             }
 
             index++;
             for (; index < checks.Length; index++)
             {
                 var check = checks[index];
-                if (!await check(services, cancellationToken))
+                result = await check(services, cancellationToken);
+                if (!result.ShouldRun)
                 {
-                    return false;
+                    return result;
                 }
             }
 
-            return true;
+            return JobShouldRunResult.Yes;
         }
     }
 
@@ -92,7 +95,7 @@ public class JobEnabledBuilder
     /// Creates a check function from the specified builder.
     /// </summary>
     /// <param name="builder">The builder.</param>
-    public static implicit operator Func<IServiceProvider, CancellationToken, ValueTask<bool>>(JobEnabledBuilder builder)
+    public static implicit operator Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>(JobEnabledBuilder builder)
     {
         return builder.ToFunc();
     }
@@ -109,7 +112,7 @@ public static class JobEnabledBuilderExtensions
     /// <param name="builder">The <see cref="JobEnabledBuilder"/>.</param>
     /// <param name="check">The check to add.</param>
     /// <returns>A new <see cref="JobEnabledBuilder"/> with <paramref name="check"/> added.</returns>
-    public static JobEnabledBuilder WithCheck(this JobEnabledBuilder builder, Func<IServiceProvider, bool> check)
+    public static JobEnabledBuilder WithCheck(this JobEnabledBuilder builder, Func<IServiceProvider, JobShouldRunResult> check)
         => builder.WithCheck((sp, _) => ValueTask.FromResult(check(sp)));
 
     /// <summary>
@@ -119,7 +122,7 @@ public static class JobEnabledBuilderExtensions
     /// <param name="builder">The <see cref="JobEnabledBuilder"/>.</param>
     /// <param name="check">The check to add.</param>
     /// <returns>A new <see cref="JobEnabledBuilder"/> with <paramref name="check"/> added.</returns>
-    public static JobEnabledBuilder WithCheck<T>(this JobEnabledBuilder builder, Func<T, CancellationToken, ValueTask<bool>> check)
+    public static JobEnabledBuilder WithCheck<T>(this JobEnabledBuilder builder, Func<T, CancellationToken, ValueTask<JobShouldRunResult>> check)
         where T : notnull
         => builder.WithCheck((sp, ct) => check(sp.GetRequiredService<T>(), ct));
 
@@ -130,7 +133,7 @@ public static class JobEnabledBuilderExtensions
     /// <param name="builder">The <see cref="JobEnabledBuilder"/>.</param>
     /// <param name="check">The check to add.</param>
     /// <returns>A new <see cref="JobEnabledBuilder"/> with <paramref name="check"/> added.</returns>
-    public static JobEnabledBuilder WithCheck<T>(this JobEnabledBuilder builder, Func<T, bool> check)
+    public static JobEnabledBuilder WithCheck<T>(this JobEnabledBuilder builder, Func<T, JobShouldRunResult> check)
         where T : notnull
         => builder.WithCheck((sp, _) => ValueTask.FromResult(check(sp.GetRequiredService<T>())));
 
@@ -140,7 +143,7 @@ public static class JobEnabledBuilderExtensions
     /// <param name="builder">The <see cref="JobEnabledBuilder"/>.</param>
     /// <param name="check">The check to add.</param>
     /// <returns>A new <see cref="JobEnabledBuilder"/> with <paramref name="check"/> added.</returns>
-    public static JobEnabledBuilder WithConfigurationCheck(this JobEnabledBuilder builder, Func<IConfiguration, bool> check)
+    public static JobEnabledBuilder WithConfigurationCheck(this JobEnabledBuilder builder, Func<IConfiguration, JobShouldRunResult> check)
         => builder.WithCheck(check);
 
     /// <summary>
@@ -152,11 +155,14 @@ public static class JobEnabledBuilderExtensions
     /// <param name="value">The configuration value.</param>
     /// <returns>A new <see cref="JobEnabledBuilder"/> with configuration-value check added.</returns>
     public static JobEnabledBuilder WithRequireConfigurationValue<T>(this JobEnabledBuilder builder, string key, T value)
-        => builder.WithConfigurationCheck(config =>
+    {
+        var reason = $"Configuration key '{key}' does not match the required value '{value}'.";
+        return builder.WithConfigurationCheck(config =>
         {
             var actualValue = config.GetValue<T>(key);
-            return EqualityComparer<T>.Default.Equals(actualValue, value);
+            return JobShouldRunResult.Conditional(reason, EqualityComparer<T>.Default.Equals(actualValue, value));
         });
+    }
 
     /// <summary>
     /// Adds a check to the job enabled condition that checks the configuration that a specific key is set to <see langword="true"/>.

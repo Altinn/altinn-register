@@ -20,7 +20,7 @@ public class JobEnabledBuilderTests
             .ToFunc();
 
         var result = await check(null!, default);
-        result.Should().BeTrue();
+        result.ShouldRun.Should().BeTrue();
         counter.Value.Should().Be(5);
     }
 
@@ -37,7 +37,7 @@ public class JobEnabledBuilderTests
             .ToFunc();
 
         var result = await check(null!, default);
-        result.Should().BeTrue();
+        result.ShouldRun.Should().BeTrue();
         counter.Value.Should().Be(5);
     }
 
@@ -54,7 +54,7 @@ public class JobEnabledBuilderTests
             .ToFunc();
 
         var result = await check(null!, default);
-        result.Should().BeTrue();
+        result.ShouldRun.Should().BeTrue();
         counter.Value.Should().Be(5);
     }
 
@@ -76,7 +76,7 @@ public class JobEnabledBuilderTests
         var check = builder.ToFunc();
 
         var result = await check(null!, default);
-        result.Should().BeFalse();
+        result.ShouldRun.Should().BeFalse();
         counter.Value.Should().Be((uint)(index + 1));
     }
 
@@ -92,13 +92,14 @@ public class JobEnabledBuilderTests
         var builder = JobEnabledBuilder.Default;
         for (var i = 0; i < 5; i++)
         {
-            builder = builder.WithCheck(CreateDeferredCheck(counter, i != index));
+            builder = builder.WithCheck(CreateDeferredCheck(counter, i != index, reason: i.ToString()));
         }
 
         var check = builder.ToFunc();
 
         var result = await check(null!, default);
-        result.Should().BeFalse();
+        result.ShouldRun.Should().BeFalse();
+        result.Reason.Should().Be(index.ToString());
         counter.Value.Should().Be((uint)(index + 1));
     }
 
@@ -116,33 +117,34 @@ public class JobEnabledBuilderTests
         {
             if (i == index)
             {
-                builder = builder.WithCheck(CreateDeferredCheck(counter, false));
+                builder = builder.WithCheck(CreateDeferredCheck(counter, false, reason: i.ToString()));
             }
             else
             {
-                builder = builder.WithCheck(CreateImmediateCheck(counter));
+                builder = builder.WithCheck(CreateImmediateCheck(counter, reason: i.ToString()));
             }
         }
 
         var check = builder.ToFunc();
 
         var result = await check(null!, default);
-        result.Should().BeFalse();
+        result.ShouldRun.Should().BeFalse();
+        result.Reason.Should().Be(index.ToString());
         counter.Value.Should().Be((uint)(index + 1));
     }
 
-    private static Func<IServiceProvider, CancellationToken, ValueTask<bool>> CreateImmediateCheck(AtomicCounter counter, bool result = true)
+    private static Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>> CreateImmediateCheck(AtomicCounter counter, bool result = true, string reason = "test")
         => (_, _) =>
         {
             counter.Increment();
-            return ValueTask.FromResult(result);
+            return ValueTask.FromResult(JobShouldRunResult.Conditional(reason, result));
         };
 
-    private static Func<IServiceProvider, CancellationToken, ValueTask<bool>> CreateDeferredCheck(AtomicCounter counter, bool result = true)
+    private static Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>> CreateDeferredCheck(AtomicCounter counter, bool result = true, string reason = "test")
         => async (_, _) =>
         {
             await Task.Yield();
             counter.Increment();
-            return result;
+            return JobShouldRunResult.Conditional(reason, result);
         };
 }

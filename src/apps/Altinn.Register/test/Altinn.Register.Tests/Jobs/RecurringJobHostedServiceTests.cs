@@ -331,7 +331,7 @@ public class RecurringJobHostedServiceTests
         var counter = new AtomicCounter();
 
         await using var sut = CreateService([
-            Counter.RunAt(lifecycle, counter, enabled: (_, _) => ValueTask.FromResult(false)),
+            Counter.RunAt(lifecycle, counter, enabled: (_, _) => ValueTask.FromResult(JobShouldRunResult.No("test"))),
         ]);
 
         await Run(sut);
@@ -449,7 +449,7 @@ public class RecurringJobHostedServiceTests
             });
 
         await using var sut = CreateService([
-            Counter.RunAt(lifecycle, leaseName, counter, enabled: (_, _) => ValueTask.FromResult(false)),
+            Counter.RunAt(lifecycle, leaseName, counter, enabled: (_, _) => ValueTask.FromResult(JobShouldRunResult.No("test"))),
         ]);
 
         await Run(sut);
@@ -498,7 +498,7 @@ public class RecurringJobHostedServiceTests
         var counter = new AtomicCounter();
 
         await using var sut = CreateService([
-            Counter.Scheduled(TimeSpan.FromHours(1), counter, enabled: (_, _) => ValueTask.FromResult(false)),
+            Counter.Scheduled(TimeSpan.FromHours(1), counter, enabled: (_, _) => ValueTask.FromResult(JobShouldRunResult.No("test"))),
         ]);
 
         await Start(sut);
@@ -574,7 +574,7 @@ public class RecurringJobHostedServiceTests
         await using var sut = CreateService([
             Counter.Scheduled(TimeSpan.FromHours(1), counter, enabled: (_, _) => 
             {
-                return ValueTask.FromResult(enabled.Value);
+                return ValueTask.FromResult(JobShouldRunResult.Conditional(nameof(enabled), enabled.Value));
             }),
         ]);
 
@@ -693,7 +693,7 @@ public class RecurringJobHostedServiceTests
         await using var sut = CreateService([
             Counter.Scheduled(TimeSpan.FromHours(1), "test", counter, enabled: (_, _) =>
             {
-                return ValueTask.FromResult(enabled.Value);
+                return ValueTask.FromResult(JobShouldRunResult.Conditional(nameof(enabled), enabled.Value));
             }),
         ]);
 
@@ -931,7 +931,7 @@ public class RecurringJobHostedServiceTests
         TimeSpan interval,
         JobHostLifecycles runAt,
         IEnumerable<string> tags,
-        Func<IServiceProvider, CancellationToken, ValueTask<bool>>? enabled,
+        Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>? enabled,
         Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady)
         : JobRegistration(name, leaseName, interval, runAt, tags, enabled, waitForReady)
     {
@@ -941,7 +941,7 @@ public class RecurringJobHostedServiceTests
             TimeSpan interval,
             JobHostLifecycles runAt,
             IEnumerable<string> tags,
-            Func<IServiceProvider, CancellationToken, ValueTask<bool>>? enabled,
+            Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>? enabled,
             Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady)
             => new Registration(job, "test", leaseName, interval, runAt, tags, enabled, waitForReady);
 
@@ -952,7 +952,7 @@ public class RecurringJobHostedServiceTests
             TimeSpan interval,
             JobHostLifecycles runAt,
             IEnumerable<string> tags,
-            Func<IServiceProvider, CancellationToken, ValueTask<bool>>? enabled,
+            Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>? enabled,
             Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady)
             => new Registration(services => new DelegateJob(job, shouldRun, services), "test", leaseName, interval, runAt, tags, enabled, waitForReady);
 
@@ -984,7 +984,7 @@ public class RecurringJobHostedServiceTests
             TimeSpan interval,
             JobHostLifecycles runAt,
             IEnumerable<string>? tags = null,
-            Func<IServiceProvider, CancellationToken, ValueTask<bool>>? enabled = null,
+            Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>? enabled = null,
             Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady = null)
         {
             var shouldRunFn = (IServiceProvider services) =>
@@ -1009,7 +1009,7 @@ public class RecurringJobHostedServiceTests
             JobHostLifecycles runAt,
             AtomicCounter counter,
             IEnumerable<string>? tags = null,
-            Func<IServiceProvider, CancellationToken, ValueTask<bool>>? enabled = null,
+            Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>? enabled = null,
             Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady = null)
             => Create(counter, new AtomicBool(true), null, TimeSpan.Zero, runAt, tags, enabled, waitForReady);
 
@@ -1018,7 +1018,7 @@ public class RecurringJobHostedServiceTests
             string? leaseName,
             AtomicCounter counter,
             IEnumerable<string>? tags = null,
-            Func<IServiceProvider, CancellationToken, ValueTask<bool>>? enabled = null,
+            Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>? enabled = null,
             Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady = null)
             => Create(counter, new AtomicBool(true), leaseName, TimeSpan.Zero, runAt, tags, enabled, waitForReady);
 
@@ -1032,7 +1032,7 @@ public class RecurringJobHostedServiceTests
             TimeSpan interval,
             AtomicCounter counter,
             IEnumerable<string>? tags = null,
-            Func<IServiceProvider, CancellationToken, ValueTask<bool>>? enabled = null,
+            Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>? enabled = null,
             Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady = null)
             => Create(counter, new AtomicBool(true), null, interval, JobHostLifecycles.None, tags, enabled, waitForReady);
 
@@ -1041,7 +1041,7 @@ public class RecurringJobHostedServiceTests
             string? leaseName,
             AtomicCounter counter,
             IEnumerable<string>? tags = null,
-            Func<IServiceProvider, CancellationToken, ValueTask<bool>>? enabled = null,
+            Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>? enabled = null,
             Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady = null)
             => Create(counter, new AtomicBool(true), leaseName, interval, JobHostLifecycles.None, tags, enabled, waitForReady);
 

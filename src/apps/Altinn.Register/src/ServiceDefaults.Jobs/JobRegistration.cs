@@ -13,7 +13,7 @@ public abstract class JobRegistration(
     TimeSpan interval,
     JobHostLifecycles runAt,
     IEnumerable<string> tags,
-    Func<IServiceProvider, CancellationToken, ValueTask<bool>>? enabled,
+    Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>? enabled,
     Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady)
     : IJobRegistration
 {
@@ -73,11 +73,11 @@ public abstract class JobRegistration(
     /// instantiated.
     /// </remarks>
     /// <returns><see langword="true"/> if the job is enabled, otherwise <see langword="false"/>.</returns>
-    public ValueTask<bool> Enabled(IServiceProvider services, CancellationToken cancellationToken = default)
+    public ValueTask<JobShouldRunResult> Enabled(IServiceProvider services, CancellationToken cancellationToken = default)
     {
         return enabled switch
         {
-            null => ValueTask.FromResult(true),
+            null => ValueTask.FromResult(JobShouldRunResult.Yes),
             { } fn => fn(services, cancellationToken),
         };
     }

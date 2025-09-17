@@ -293,7 +293,7 @@ public static class JobsServiceCollectionExtensions
         TimeSpan interval,
         JobHostLifecycles runAt,
         IEnumerable<string> tags,
-        Func<IServiceProvider, CancellationToken, ValueTask<bool>>? enabled,
+        Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>? enabled,
         Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady,
         object? serviceKey)
         : JobRegistration(jobName, leaseName, interval, runAt, tags, enabled, waitForReady)
@@ -322,7 +322,7 @@ public static class JobsServiceCollectionExtensions
         public ISet<string> Tags { get; } = new HashSet<string>(StringComparer.Ordinal);
 
         /// <inheritdoc/>
-        public Func<IServiceProvider, CancellationToken, ValueTask<bool>>? Enabled { get; set; } = null;
+        public Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>? Enabled { get; set; } = null;
 
         /// <inheritdoc/>
         public Func<IServiceProvider, CancellationToken, ValueTask>? WaitForReady { get; set; } = null;
