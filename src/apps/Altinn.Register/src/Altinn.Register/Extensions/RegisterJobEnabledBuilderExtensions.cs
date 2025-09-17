@@ -16,16 +16,25 @@ public static class RegisterJobEnabledBuilderExtensions
     /// <param name="threshold">How many pending items are allowed before the job is considered finished.</param>
     /// <returns>A new <see cref="JobEnabledBuilder"/> with the job finished check added.</returns>
     public static JobEnabledBuilder WithRequireImportJobFinished(this JobEnabledBuilder builder, string jobName, ulong threshold)
-        => builder.WithCheck(async (IImportJobTracker tracker, CancellationToken cancellationToken) =>
+    {
+        var noSourceMaxReason = $"Job '{jobName}' does not have a source-max, hence we can't know if it's finished or not";
+
+        return builder.WithCheck(async (IImportJobTracker tracker, CancellationToken cancellationToken) =>
         {
             var status = await tracker.GetStatus(jobName, cancellationToken);
             if (status.SourceMax is not { } sourceMax)
             {
                 // Job does not have a source-max, hence we can't know if it's finished or not
-                return false;
+                return JobShouldRunResult.No(noSourceMaxReason);
             }
 
-            var pending = status.ProcessedMax - sourceMax;
-            return pending <= threshold;
+            var pending = sourceMax - status.ProcessedMax;
+            if (pending > threshold)
+            {
+                return JobShouldRunResult.No($"Job '{jobName}' is not finished ({pending} items pending, more than {threshold} theshold)");
+            }
+
+            return JobShouldRunResult.Yes;
         });
+    }
 }
