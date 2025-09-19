@@ -111,7 +111,7 @@ public sealed partial class A2ProfileImportConsumer
         var partyRecord = new SelfIdentifiedUserRecord
         {
             PartyUuid = profile.UserUuid.Value,
-            OwnerUuid = profile.PartyUuid,
+            OwnerUuid = FieldValue.Null,
             PartyId = profile.PartyId,
             DisplayName = profile.UserName,
             PersonIdentifier = FieldValue.Null,

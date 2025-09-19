@@ -1,4 +1,7 @@
-﻿using Altinn.Register.Contracts.Parties;
+﻿using System.Diagnostics;
+using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.ServiceDefaults.MassTransit;
+using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
@@ -495,7 +498,7 @@ public class ProfileImportFlowTests
             var updated = await persistence.GetPartyById(siUser.PartyUuid.Value, PartyFieldIncludes.User | PartyFieldIncludes.Party, ct).FirstOrDefaultAsync(ct);
             updated.ShouldNotBeNull();
             updated.User.ShouldHaveValue();
-            updated.User.Value!.Username.ShouldBe("updated-name");
+            updated.User.Value!.Username.ShouldBeNull();
             updated.DisplayName.ShouldBe("updated-name");
             updated.IsDeleted.ShouldBe(true);
         });
@@ -707,9 +710,139 @@ public class ProfileImportFlowTests
             updated.ShouldBeOfType<EnterpriseUserRecord>();
             updated.OwnerUuid.ShouldBe(org.PartyUuid.Value);
             updated.User.ShouldHaveValue();
-            updated.User.Value!.Username.ShouldBe("enterprise-user-name");
+            updated.User.Value!.Username.ShouldBeNull();
             updated.DisplayName.ShouldBe("enterprise-user-name");
             updated.IsDeleted.ShouldBe(true);
         });
+    }
+
+    [Fact]
+    public async Task Absorbed_SelfIdentified_User()
+    {
+        var person = await Setup(async (uow, ct) =>
+        {
+            await uow.GetRequiredService<IImportJobTracker>().TrackQueueStatus("test", new() { SourceMax = 100, EnqueuedMax = 100 }, ct);
+            return await uow.CreatePerson(cancellationToken: ct);
+        });
+
+        Debug.Assert(person.User.HasValue);
+        Debug.Assert(person.User.Value.UserId.HasValue);
+        Debug.Assert(person.User.Value.Username.IsNull);
+
+        var username = "the-user-name";
+        var siUuid = Guid.NewGuid();
+        var siPartyId = (await GetRequiredService<RegisterTestDataGenerator>().GetNextUserIds(cancellationToken: CancellationToken))[0];
+        var siUserId = (await GetRequiredService<RegisterTestDataGenerator>().GetNextUserIds(cancellationToken: CancellationToken))[0];
+        var pUserId = person.User.Value.UserId.Value;
+        var pUuid = person.PartyUuid.Value;
+
+        var profileJson =
+            $$"""
+            {
+                "UserId": {{siUserId}},
+                "UserUUID": "{{siUuid}}",
+                "UserType": 2,
+                "UserName": "{{username}}",
+                "ExternalIdentity": "",
+                "IsReserved": false,
+                "PhoneNumber": null,
+                "Email": null,
+                "PartyId": {{siPartyId}},
+                "Party": {
+                    "PartyTypeName": 3,
+                    "SSN": "",
+                    "OrgNumber": "",
+                    "Person": null,
+                    "Organization": null,
+                    "PartyId": {{siPartyId}},
+                    "PartyUUID": "{{siUuid}}",
+                    "UnitType": null,
+                    "LastChangedInAltinn": "2010-03-02T01:53:44.87+01:00",
+                    "LastChangedInExternalRegister": null,
+                    "Name": "{{username}}",
+                    "IsDeleted": false,
+                    "OnlyHierarchyElementWithNoAccess": false,
+                    "ChildParties": null
+                },
+                "ProfileSettingPreference": {
+                    "Language": "nb",
+                    "PreSelectedPartyId": 0,
+                    "DoNotPromptForParty": false
+                }
+            }
+            """;
+
+        FakeHttpHandlers.For<IA2PartyImportService>()
+            .Expect(HttpMethod.Get, "/profile/api/users/{userId}")
+            .WithRouteValue("userId", siUserId.ToString())
+            .Respond("application/json", profileJson);
+
+        FakeHttpHandlers.For<IA2PartyImportService>()
+            .Expect(HttpMethod.Get, "/profile/api/users/{userId}")
+            .WithRouteValue("userId", siUserId.ToString())
+            .Respond("application/json", profileJson);
+
+        // First: SI user is created
+        await UpsertParty(new ImportA2UserProfileCommand
+        {
+            UserId = siUserId,
+            OwnerPartyUuid = siUuid,
+            IsDeleted = false,
+            Tracking = new("test", 10),
+        });
+
+        await Check(async (uow, ct) =>
+        {
+            var party = await uow.GetPartyPersistence().GetPartyById(siUuid, PartyFieldIncludes.Party | PartyFieldIncludes.User, ct).FirstOrDefaultAsync(ct);
+            var si = party.ShouldNotBeNull().ShouldBeOfType<SelfIdentifiedUserRecord>();
+            si.User.ShouldHaveValue();
+            si.User.Value!.Username.ShouldBe(username);
+        });
+
+        // Second: SI user is deleted
+        await UpsertParty(new ImportA2UserProfileCommand
+        {
+            UserId = siUserId,
+            OwnerPartyUuid = siUuid,
+            IsDeleted = true,
+            Tracking = new("test", 11),
+        });
+
+        await Check(async (uow, ct) =>
+        {
+            var party = await uow.GetPartyPersistence().GetPartyById(siUuid, PartyFieldIncludes.Party | PartyFieldIncludes.User, ct).FirstOrDefaultAsync(ct);
+            var si = party.ShouldNotBeNull().ShouldBeOfType<SelfIdentifiedUserRecord>();
+            si.User.ShouldHaveValue();
+            si.User.Value!.Username.ShouldBeNull();
+        });
+
+        // Last: Person is updated with username from deleted SI user
+        await UpsertParty(new UpsertPartyCommand
+        {
+            Party = person with 
+            {
+                User = new PartyUserRecord(userId: pUserId, username: username, userIds: ImmutableValueArray.Create(pUserId)),
+            },
+            Tracking = new("test", 12),
+        });
+
+        await Check(async (uow, ct) =>
+        {
+            var party = await uow.GetPartyPersistence().GetPartyById(pUuid, PartyFieldIncludes.Party | PartyFieldIncludes.User, ct).FirstOrDefaultAsync(ct);
+            var pers = party.ShouldNotBeNull().ShouldBeOfType<PersonRecord>();
+            pers.User.ShouldHaveValue();
+            pers.User.Value!.Username.ShouldBe(username);
+        });
+    }
+
+    private async Task<PartyUpdatedEvent> UpsertParty<T>(T cmd)
+        where T : CommandBase
+    {
+        await CommandSender.Send(cmd, cancellationToken: CancellationToken);
+        var conversation = await TestHarness.Conversation(cmd, CancellationToken);
+        var evt = await conversation.Events.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync(CancellationToken);
+
+        evt.ShouldNotBeNull($"{nameof(PartyUpdatedEvent)} was not published");
+        return evt;
     }
 }

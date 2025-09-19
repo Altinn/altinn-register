@@ -1,7 +1,10 @@
-﻿using MassTransit.Testing;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using MassTransit.Testing;
 
 namespace Altinn.Register.TestUtils.MassTransit;
 
+[ExcludeFromCodeCoverage]
 public abstract class AsyncMessageList<T, TOuter>
     : IAsyncEnumerable<T>
     where TOuter : class, IAsyncListElement
@@ -25,11 +28,14 @@ public abstract class AsyncMessageList<T, TOuter>
 /// </summary>
 /// <typeparam name="T">The inner item type.</typeparam>
 /// <typeparam name="TOuter">The outer item type.</typeparam>
+[ExcludeFromCodeCoverage]
 internal sealed class AsyncMessageList<T, TOuter, TBase>
     : AsyncMessageList<T, TOuter>
     where TOuter : class, IAsyncListElement, TBase
     where TBase : class, IAsyncListElement
 {
+    private readonly ITestHarness _harness;
+    private readonly Predicate<IReceivedMessage> _faultFilter;
     private readonly IAsyncElementList<TBase> _source;
     private readonly FilterDelegate<TBase> _filter;
     private readonly Func<TOuter, T> _selector;
@@ -41,11 +47,15 @@ internal sealed class AsyncMessageList<T, TOuter, TBase>
     /// <param name="source">The source <see cref="IAsyncElementList{T}"/>.</param>
     /// <param name="selector">The selector that unwraps <typeparamref name="TOuter"/>s to <typeparamref name="T"/>s.</param>
     public AsyncMessageList(
+        ITestHarness harness,
+        Predicate<IReceivedMessage> faultFilter,
         IAsyncElementList<TBase> source,
         FilterDelegate<TBase> filter,
         Func<TOuter, T> selector,
         CancellationToken cancellationToken)
     {
+        _harness = harness;
+        _faultFilter = faultFilter;
         _source = source;
         _filter = filter;
         _selector = selector;
@@ -53,19 +63,89 @@ internal sealed class AsyncMessageList<T, TOuter, TBase>
     }
 
     /// <inheritdoc/>
-    public override async IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
-    {
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, cancellationToken);
-
-        await foreach (TOuter outer in _source.SelectAsync(_filter, cts.Token).OfType<TOuter>())
-        {
-            yield return _selector(outer);
-        }
-    }
+    public override IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+        => GetOuterEnumerator(throwOnFaults: true, cancellationToken).Select(_selector).GetAsyncEnumerator(cancellationToken);
 
     /// <inheritdoc/>
     public override IAsyncEnumerable<T> Completed => _source.SelectExisting(_filter).OfType<TOuter>().Select(_selector);
 
     /// <inheritdoc/>
-    public override IAsyncEnumerable<TOuter> Outer => _source.SelectAsync(_filter, _cancellationToken).OfType<TOuter>();
+    public override IAsyncEnumerable<TOuter> Outer => GetOuterEnumerator(throwOnFaults: true, default);
+
+    private IAsyncEnumerable<TOuter> GetOuterEnumerator(bool throwOnFaults, CancellationToken cancellationToken)
+        => throwOnFaults
+        ? GetOuterEnumeratorThrowOnFaults(cancellationToken)
+        : GetOuterEnumeratorIgnoreFaults(cancellationToken);
+
+    private async IAsyncEnumerable<TOuter> GetOuterEnumeratorThrowOnFaults([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, cancellationToken);
+        
+        var faults = _harness.Consumed.SelectAsync(m => m.Exception is not null && _faultFilter(m), cts.Token);
+        var exnLock = new Lock();
+        Exception? exn = null;
+
+        var faultsConsumerTask = Task.Run(
+            async () =>
+            {
+                await foreach (var fault in faults)
+                {
+                    if (fault.Exception is { } faultExn)
+                    {
+                        lock (exnLock)
+                        {
+                            exn = faultExn;
+                        }
+
+                        await cts.CancelAsync();
+                        break;
+                    }
+                }
+            },
+            cts.Token);
+
+        {
+            await using var messages = _source.SelectAsync(_filter, _cancellationToken).OfType<TOuter>().GetAsyncEnumerator(cts.Token);
+            while (!cts.IsCancellationRequested)
+            {
+                bool hasNext;
+                try
+                {
+                    hasNext = await messages.MoveNextAsync();
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+
+                if (!hasNext)
+                {
+                    break;
+                }
+
+                yield return messages.Current;
+            }
+        }
+
+        await cts.CancelAsync();
+        await faultsConsumerTask.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+
+        lock (exnLock)
+        {
+            if (exn is not null)
+            {
+                throw new AggregateException(exn);
+            }
+        }
+    }
+
+    private async IAsyncEnumerable<TOuter> GetOuterEnumeratorIgnoreFaults([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, cancellationToken);
+
+        await foreach (TOuter outer in _source.SelectAsync(_filter, cts.Token).OfType<TOuter>())
+        {
+            yield return outer;
+        }
+    }
 }
