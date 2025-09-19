@@ -1,4 +1,5 @@
-﻿using Altinn.Authorization.ServiceDefaults.MassTransit;
+﻿using System.Diagnostics.CodeAnalysis;
+using Altinn.Authorization.ServiceDefaults.MassTransit;
 using MassTransit.Testing;
 
 namespace Altinn.Register.TestUtils.MassTransit;
@@ -6,6 +7,7 @@ namespace Altinn.Register.TestUtils.MassTransit;
 /// <summary>
 /// A conversation helper for the test harness.
 /// </summary>
+[ExcludeFromCodeCoverage]
 public sealed class TestHarnessConversation
 {
     private readonly ITestHarness _harness;
@@ -30,6 +32,8 @@ public sealed class TestHarnessConversation
     /// </summary>
     public AsyncMessageList<EventBase, IPublishedMessage<EventBase>> Events
         => new AsyncMessageList<EventBase, IPublishedMessage<EventBase>, IPublishedMessage>(
+            _harness,
+            (IReceivedMessage m) => m.Context.ConversationId == _conversationId,
             _harness.Published, 
             (IPublishedMessage m) => m.Context.ConversationId == _conversationId, 
             static m => m.Context.Message, 
@@ -40,6 +44,8 @@ public sealed class TestHarnessConversation
     /// </summary>
     public AsyncMessageList<CommandBase, IReceivedMessage<CommandBase>> Commands
         => new AsyncMessageList<CommandBase, IReceivedMessage<CommandBase>, IReceivedMessage>(
+            _harness,
+            (IReceivedMessage m) => m.Context.ConversationId == _conversationId,
             _harness.Consumed, 
             (IReceivedMessage m) => m.Context.ConversationId == _conversationId, 
             static m => m.Context.Message, 
