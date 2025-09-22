@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Contracts.ExternalRoles;
+﻿using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.TestUtils;
 using Xunit.Abstractions;

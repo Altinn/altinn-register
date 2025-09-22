@@ -2,7 +2,7 @@
 
 using System.Diagnostics.Metrics;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
-using Altinn.Register.Contracts.ExternalRoles;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core;
 using Altinn.Register.Core.ExternalRoles;
 using MassTransit;

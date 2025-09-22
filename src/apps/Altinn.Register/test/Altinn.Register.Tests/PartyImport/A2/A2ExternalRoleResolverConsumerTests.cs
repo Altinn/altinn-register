@@ -1,6 +1,6 @@
 ﻿#nullable enable
 
-using Altinn.Register.Contracts.ExternalRoles;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.PartyImport;

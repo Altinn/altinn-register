@@ -1,8 +1,6 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
 using Altinn.Register.Contracts;
-using Altinn.Register.Contracts.ExternalRoles;
-using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Models;
 using Altinn.Register.TestUtils.TestData;
 

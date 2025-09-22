@@ -1,9 +1,7 @@
 ﻿using System.Data;
 using System.Linq.Expressions;
-using System.Text.Json;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
-using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;

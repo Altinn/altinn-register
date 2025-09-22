@@ -1,7 +1,7 @@
 ﻿#nullable enable
 
 using Altinn.Authorization.ServiceDefaults.MassTransit;
-using Altinn.Register.Contracts.ExternalRoles;
+using Altinn.Register.Contracts;
 
 namespace Altinn.Register.PartyImport;
 

@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics;
-using Altinn.Register.Contracts.ExternalRoles;
+using Altinn.Register.Contracts;
 
 namespace Altinn.Register.Core.Parties.Records;
 
