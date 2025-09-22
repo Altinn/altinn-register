@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties.Records;
@@ -10,6 +11,7 @@ namespace Altinn.Register.TestUtils.TestData;
 /// <summary>
 /// Generator for test data.
 /// </summary>
+[ExcludeFromCodeCoverage]
 public sealed partial class RegisterTestDataGenerator
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
@@ -484,6 +486,194 @@ public sealed partial class RegisterTestDataGenerator
         return WithIdentifiers(
             (self: this, count),
             static (used, rng, data) => data.self.GetSelfIdentifiedUsersData(used, data.count),
+            cancellationToken);
+    }
+
+    private EnterpriseUserRecord GetEnterpriseUserData(
+        UsedIdentifiers used,
+        Guid owner,
+        FieldValue<Guid> uuid = default,
+        FieldValue<string> name = default,
+        FieldValue<DateTimeOffset> createdAt = default,
+        FieldValue<DateTimeOffset> modifiedAt = default,
+        FieldValue<bool> isDeleted = default,
+        FieldValue<PartyUserRecord> user = default)
+    {
+        if (!uuid.HasValue)
+        {
+            uuid = Guid.NewGuid();
+        }
+
+        if (user.IsUnset)
+        {
+            var userIdsEnumerable = used.GetNextUserIds(1);
+            var userIds = userIdsEnumerable.Select(static id => (uint)id).OrderByDescending(static id => id).ToImmutableValueArray();
+            var userId = userIds[0];
+
+            user = new PartyUserRecord(userId: userId, username: FieldValue.Unset, userIds: userIds);
+        }
+
+        if (name.IsUnset)
+        {
+            name = $"enterprise-user-{uuid.HasValue}";
+        }
+
+        return new EnterpriseUserRecord
+        {
+            PartyUuid = uuid.Value,
+            PartyId = FieldValue.Null,
+            DisplayName = name,
+            PersonIdentifier = null,
+            OrganizationIdentifier = null,
+            CreatedAt = createdAt.HasValue ? createdAt.Value : _timeProvider.GetUtcNow(),
+            ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : _timeProvider.GetUtcNow(),
+            User = user,
+            VersionId = FieldValue.Unset,
+            OwnerUuid = owner,
+            IsDeleted = isDeleted.OrDefault(defaultValue: false),
+        };
+    }
+
+    public ValueTask<EnterpriseUserRecord> GetEnterpriseUserData(
+        Guid owner,
+        FieldValue<Guid> uuid = default,
+        FieldValue<string> name = default,
+        FieldValue<DateTimeOffset> createdAt = default,
+        FieldValue<DateTimeOffset> modifiedAt = default,
+        FieldValue<bool> isDeleted = default,
+        FieldValue<PartyUserRecord> user = default,
+        CancellationToken cancellationToken = default)
+    {
+        return WithIdentifiers(
+            (self: this, owner, uuid, name, createdAt, modifiedAt, isDeleted, user),
+            static (used, rng, data)
+                => data.self.GetEnterpriseUserData(
+                    used,
+                    data.owner,
+                    data.uuid,
+                    data.name,
+                    data.createdAt,
+                    data.modifiedAt,
+                    data.isDeleted,
+                    data.user),
+            cancellationToken);
+    }
+
+    private ImmutableArray<EnterpriseUserRecord> GetEnterpriseUsersData(
+        UsedIdentifiers used,
+        Guid owner,
+        int count)
+    {
+        var builder = ImmutableArray.CreateBuilder<EnterpriseUserRecord>(count);
+        for (int i = 0; i < count; i++)
+        {
+            var user = GetEnterpriseUserData(used, owner);
+            builder.Add(user);
+        }
+
+        return builder.DrainToImmutable();
+    }
+
+    public ValueTask<ImmutableArray<EnterpriseUserRecord>> GetEnterpriseUsersData(
+        Guid owner,
+        int count,
+        CancellationToken cancellationToken = default)
+    {
+        return WithIdentifiers(
+            (self: this, owner, count),
+            static (used, rng, data) => data.self.GetEnterpriseUsersData(used, data.owner, data.count),
+            cancellationToken);
+    }
+
+    private SystemUserRecord GetSystemUserData(
+        UsedIdentifiers used,
+        Guid owner,
+        FieldValue<Guid> uuid = default,
+        FieldValue<string> name = default,
+        FieldValue<DateTimeOffset> createdAt = default,
+        FieldValue<DateTimeOffset> modifiedAt = default,
+        FieldValue<bool> isDeleted = default,
+        FieldValue<SystemUserRecordType> type = default)
+    {
+        if (!uuid.HasValue)
+        {
+            uuid = Guid.NewGuid();
+        }
+
+        if (type.IsUnset)
+        {
+            ReadOnlySpan<SystemUserRecordType> types = [SystemUserRecordType.Standard, SystemUserRecordType.Agent];
+            type = types[Random.Shared.Next(types.Length)];
+        }
+
+        if (name.IsUnset)
+        {
+            name = $"enterprise-user-{uuid.Value}";
+        }
+
+        return new SystemUserRecord
+        {
+            PartyUuid = uuid.Value,
+            PartyId = FieldValue.Null,
+            DisplayName = name,
+            PersonIdentifier = null,
+            OrganizationIdentifier = null,
+            CreatedAt = createdAt.HasValue ? createdAt.Value : _timeProvider.GetUtcNow(),
+            ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : _timeProvider.GetUtcNow(),
+            User = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
+            OwnerUuid = owner,
+            IsDeleted = isDeleted.OrDefault(defaultValue: false),
+            SystemUserType = type,
+        };
+    }
+
+    public ValueTask<SystemUserRecord> GetSystemUserData(
+        Guid owner,
+        FieldValue<Guid> uuid = default,
+        FieldValue<string> name = default,
+        FieldValue<DateTimeOffset> createdAt = default,
+        FieldValue<DateTimeOffset> modifiedAt = default,
+        FieldValue<bool> isDeleted = default,
+        CancellationToken cancellationToken = default)
+    {
+        return WithIdentifiers(
+            (self: this, owner, uuid, name, createdAt, modifiedAt, isDeleted),
+            static (used, rng, data)
+                => data.self.GetSystemUserData(
+                    used,
+                    data.owner,
+                    data.uuid,
+                    data.name,
+                    data.createdAt,
+                    data.modifiedAt,
+                    data.isDeleted),
+            cancellationToken);
+    }
+
+    private ImmutableArray<SystemUserRecord> GetSystemUsersData(
+        UsedIdentifiers used,
+        Guid owner,
+        int count)
+    {
+        var builder = ImmutableArray.CreateBuilder<SystemUserRecord>(count);
+        for (int i = 0; i < count; i++)
+        {
+            var user = GetSystemUserData(used, owner);
+            builder.Add(user);
+        }
+
+        return builder.DrainToImmutable();
+    }
+
+    public ValueTask<ImmutableArray<SystemUserRecord>> GetSystemUsersData(
+        Guid owner,
+        int count,
+        CancellationToken cancellationToken = default)
+    {
+        return WithIdentifiers(
+            (self: this, owner, count),
+            static (used, rng, data) => data.self.GetSystemUsersData(used, data.owner, data.count),
             cancellationToken);
     }
 }

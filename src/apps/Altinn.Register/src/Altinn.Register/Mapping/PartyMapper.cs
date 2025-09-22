@@ -25,6 +25,8 @@ internal static partial class PartyMapper
             PersonRecord pers => pers.ToPlatformModel(),
             OrganizationRecord org => org.ToPlatformModel(),
             SelfIdentifiedUserRecord siUser => siUser.ToPlatformModel(),
+            EnterpriseUserRecord entUser => entUser.ToPlatformModel(),
+            SystemUserRecord sysUser => sysUser.ToPlatformModel(),
             _ => ThrowHelper.ThrowInvalidOperationException<Party>("Unsupported party type"),
         };
 

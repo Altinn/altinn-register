@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Register.Contracts;
@@ -15,6 +16,7 @@ namespace Altinn.Register.TestUtils.TestData;
 /// <summary>
 /// Test helpers for <see cref="IPartyPersistence"/>, <see cref="IPartyExternalRolePersistence"/>.
 /// </summary>
+[ExcludeFromCodeCoverage]
 public static class PartyPersistenceExtensions
 {
     public static ValueTask<OrganizationIdentifier> GetNewOrgNumber(
@@ -238,6 +240,106 @@ public static class PartyPersistenceExtensions
         {
             result.EnsureSuccess();
             builder.Add((SelfIdentifiedUserRecord)result.Value);
+        }
+
+        return builder.DrainToImmutable();
+    }
+
+    public static async Task<EnterpriseUserRecord> CreateEnterpriseUser(
+        this IUnitOfWork uow,
+        Guid owner,
+        FieldValue<Guid> uuid = default,
+        FieldValue<string> name = default,
+        FieldValue<DateTimeOffset> createdAt = default,
+        FieldValue<DateTimeOffset> modifiedAt = default,
+        FieldValue<bool> isDeleted = default,
+        FieldValue<PartyUserRecord> user = default,
+        CancellationToken cancellationToken = default)
+    {
+        var toInsert = await uow.GetRequiredService<RegisterTestDataGenerator>()
+            .GetEnterpriseUserData(
+                owner,
+                uuid,
+                name,
+                createdAt,
+                modifiedAt,
+                isDeleted,
+                user,
+                cancellationToken);
+
+        var result = await uow.GetRequiredService<IPartyPersistence>()
+            .UpsertParty(toInsert, cancellationToken);
+
+        result.EnsureSuccess();
+        return (EnterpriseUserRecord)result.Value;
+    }
+
+    public static async Task<ImmutableArray<EnterpriseUserRecord>> CreateSelfIdentifiedUsers(
+        this IUnitOfWork uow,
+        Guid owner,
+        int count,
+        FieldValue<uint> idOffset = default,
+        CancellationToken cancellationToken = default)
+    {
+        var toInsert = await uow.GetRequiredService<RegisterTestDataGenerator>()
+            .GetEnterpriseUsersData(owner, count, cancellationToken);
+
+        var persistence = uow.GetRequiredService<IPartyPersistence>();
+        var builder = ImmutableArray.CreateBuilder<EnterpriseUserRecord>(count);
+
+        await foreach (var result in persistence.UpsertParties(toInsert, cancellationToken))
+        {
+            result.EnsureSuccess();
+            builder.Add((EnterpriseUserRecord)result.Value);
+        }
+
+        return builder.DrainToImmutable();
+    }
+
+    public static async Task<SystemUserRecord> CreateSystemUser(
+        this IUnitOfWork uow,
+        Guid owner,
+        FieldValue<Guid> uuid = default,
+        FieldValue<string> name = default,
+        FieldValue<DateTimeOffset> createdAt = default,
+        FieldValue<DateTimeOffset> modifiedAt = default,
+        FieldValue<bool> isDeleted = default,
+        CancellationToken cancellationToken = default)
+    {
+        var toInsert = await uow.GetRequiredService<RegisterTestDataGenerator>()
+            .GetSystemUserData(
+                owner,
+                uuid,
+                name,
+                createdAt,
+                modifiedAt,
+                isDeleted,
+                cancellationToken);
+
+        var result = await uow.GetRequiredService<IPartyPersistence>()
+            .UpsertParty(toInsert, cancellationToken);
+
+        result.EnsureSuccess();
+        return (SystemUserRecord)result.Value;
+    }
+
+    public static async Task<ImmutableArray<SystemUserRecord>> CreateSystemUsers(
+        this IUnitOfWork uow,
+        Guid owner,
+        int count,
+        FieldValue<uint> idOffset = default,
+        CancellationToken cancellationToken = default)
+    {
+        var toInsert = await uow.GetRequiredService<RegisterTestDataGenerator>()
+            .GetSystemUsersData(owner, count, cancellationToken);
+
+        var persistence = uow.GetRequiredService<IPartyPersistence>();
+        var builder = ImmutableArray.CreateBuilder<SystemUserRecord>(count);
+
+        await foreach (var result in persistence.UpsertParties(toInsert, cancellationToken))
+        {
+            result.EnsureSuccess();
+            builder.Add((SystemUserRecord)result.Value);
         }
 
         return builder.DrainToImmutable();
