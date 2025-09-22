@@ -279,4 +279,136 @@ public class StreamTests
             p => p.DateOfBirth.ShouldBe(dbPers.DateOfBirth),
             p => p.DateOfDeath.ShouldBe(dbPers.DateOfDeath));
     }
+
+    [Fact]
+    public async Task Person()
+    {
+        var party = await Setup(async (uow, ct) =>
+        {
+            var party = await uow.CreatePerson(cancellationToken: ct);
+
+            return party;
+        });
+
+        var response = await HttpClient.GetAsync("/register/api/v2/internal/parties/stream?fields=person,party,org", TestContext.Current.CancellationToken);
+
+        await response.ShouldHaveSuccessStatusCode();
+        var content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
+
+        var nextLink = content.Links.Next.ShouldNotBeNull();
+        nextLink.ShouldContain("fields=party,person,org");
+
+        var items = content.Items.ToList();
+        items.Count.ShouldBe(1);
+
+        var apiParty = items[0];
+
+        apiParty.ShouldBeOfType<Person>();
+    }
+
+    [Fact]
+    public async Task Org()
+    {
+        var party = await Setup(async (uow, ct) =>
+        {
+            var party = await uow.CreateOrg(cancellationToken: ct);
+
+            return party;
+        });
+
+        var response = await HttpClient.GetAsync("/register/api/v2/internal/parties/stream?fields=person,party,org", TestContext.Current.CancellationToken);
+
+        await response.ShouldHaveSuccessStatusCode();
+        var content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
+
+        var nextLink = content.Links.Next.ShouldNotBeNull();
+        nextLink.ShouldContain("fields=party,person,org");
+
+        var items = content.Items.ToList();
+        items.Count.ShouldBe(1);
+
+        var apiParty = items[0];
+
+        apiParty.ShouldBeOfType<Organization>();
+    }
+
+    [Fact]
+    public async Task SelfIdentified()
+    {
+        var party = await Setup(async (uow, ct) =>
+        {
+            var party = await uow.CreateSelfIdentifiedUser(cancellationToken: ct);
+
+            return party;
+        });
+
+        var response = await HttpClient.GetAsync("/register/api/v2/internal/parties/stream?fields=person,party,org", TestContext.Current.CancellationToken);
+
+        await response.ShouldHaveSuccessStatusCode();
+        var content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
+
+        var nextLink = content.Links.Next.ShouldNotBeNull();
+        nextLink.ShouldContain("fields=party,person,org");
+
+        var items = content.Items.ToList();
+        items.Count.ShouldBe(1);
+
+        var apiParty = items[0];
+
+        apiParty.ShouldBeOfType<SelfIdentifiedUser>();
+    }
+
+    [Fact]
+    public async Task Enterprise()
+    {
+        var party = await Setup(async (uow, ct) =>
+        {
+            var owner = await uow.CreateOrg(cancellationToken: ct);
+            var party = await uow.CreateEnterpriseUser(owner.PartyUuid.Value, cancellationToken: ct);
+
+            return party;
+        });
+
+        var response = await HttpClient.GetAsync("/register/api/v2/internal/parties/stream?fields=person,party,org", TestContext.Current.CancellationToken);
+
+        await response.ShouldHaveSuccessStatusCode();
+        var content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
+
+        var nextLink = content.Links.Next.ShouldNotBeNull();
+        nextLink.ShouldContain("fields=party,person,org");
+
+        var items = content.Items.ToList();
+        items.Count.ShouldBe(2);
+
+        var apiParty = items.FirstOrDefault(i => i.Type == PartyType.EnterpriseUser);
+
+        apiParty.ShouldBeOfType<EnterpriseUser>();
+    }
+
+    [Fact]
+    public async Task SystemUser()
+    {
+        var party = await Setup(async (uow, ct) =>
+        {
+            var owner = await uow.CreateOrg(cancellationToken: ct);
+            var party = await uow.CreateSystemUser(owner.PartyUuid.Value, cancellationToken: ct);
+
+            return party;
+        });
+
+        var response = await HttpClient.GetAsync("/register/api/v2/internal/parties/stream?fields=person,party,org", TestContext.Current.CancellationToken);
+
+        await response.ShouldHaveSuccessStatusCode();
+        var content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
+
+        var nextLink = content.Links.Next.ShouldNotBeNull();
+        nextLink.ShouldContain("fields=party,person,org");
+
+        var items = content.Items.ToList();
+        items.Count.ShouldBe(2);
+
+        var apiParty = items.FirstOrDefault(i => i.Type == PartyType.SystemUser);
+
+        apiParty.ShouldBeOfType<SystemUser>();
+    }
 }
