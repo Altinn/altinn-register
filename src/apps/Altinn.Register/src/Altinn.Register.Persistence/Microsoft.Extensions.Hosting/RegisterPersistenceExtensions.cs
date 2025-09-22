@@ -5,7 +5,7 @@ using Altinn.Authorization.ServiceDefaults.Leases;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Authorization.ServiceDefaults.Npgsql.TestSeed;
 using Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql;
-using Altinn.Register.Contracts.ExternalRoles;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;

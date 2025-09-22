@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Contracts.ExternalRoles;
+﻿using Altinn.Register.Contracts;
 using Altinn.Register.Controllers.V2;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;

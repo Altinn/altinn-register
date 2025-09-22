@@ -1,4 +1,5 @@
 ﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core.ImportJobs;

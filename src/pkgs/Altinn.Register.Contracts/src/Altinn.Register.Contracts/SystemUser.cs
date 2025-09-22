@@ -13,5 +13,5 @@ public sealed record SystemUser()
     /// Gets the owner of the system user.
     /// </summary>
     [JsonPropertyName("owner")]
-    public required FieldValue<PartyOwnerRef> Owner { get; init; }
+    public required FieldValue<PartyRef> Owner { get; init; }
 }

@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text.Json.Serialization;
-using Altinn.Register.Contracts.ExternalRoles;
+using Altinn.Register.Contracts;
 
 namespace Altinn.Register.Core.Parties.Records;
 

@@ -5,7 +5,7 @@ namespace Altinn.Register.Contracts;
 /// <summary>
 /// A reference to the owner of a party.
 /// </summary>
-public sealed record PartyOwnerRef
+public sealed record PartyRef
 {
     private readonly Guid _uuid;
     private readonly PartyUrn.PartyUuid _urn = null!;

@@ -1,6 +1,6 @@
 ﻿using System.Net.Http.Json;
 using Altinn.Authorization.ServiceDefaults.MassTransit.Commands;
-using Altinn.Register.Contracts.ExternalRoles;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;

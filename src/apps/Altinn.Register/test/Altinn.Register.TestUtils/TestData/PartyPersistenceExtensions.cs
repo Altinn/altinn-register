@@ -2,7 +2,6 @@
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Register.Contracts;
-using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;

@@ -1,6 +1,5 @@
 ﻿using System.Net;
-using Altinn.Register.Contracts.ExternalRoles;
-using Altinn.Register.Core.Parties.Records;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Models;
 using Altinn.Register.TestUtils.TestData;
