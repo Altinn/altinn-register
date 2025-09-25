@@ -220,46 +220,54 @@ internal sealed partial class A2PartyImportService
     }
 
     /// <inheritdoc />
-    public async IAsyncEnumerable<A2PartyExternalRoleAssignment> GetExternalRoleAssignmentsFrom(
+    public IAsyncEnumerable<A2PartyExternalRoleAssignment> GetExternalRoleAssignmentsFrom(
         uint fromPartyId,
         Guid fromPartyUuid,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
-        var url = $"register/api/parties/partyroles/{fromPartyId}";
+        return Core(fromPartyId, fromPartyUuid, cancellationToken).Distinct();
 
-        using var response = await _httpClient.GetAsync(url, cancellationToken);
-
-        // TODO: remove once SBL bridge is fixed.
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        async IAsyncEnumerable<A2PartyExternalRoleAssignment> Core(
+            uint fromPartyId,
+            Guid fromPartyUuid,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            // SBL bridge return 404 if no role-assignments exist.
-            yield break;
-        }
+            var url = $"register/api/parties/partyroles/{fromPartyId}";
 
-        await foreach (var item in response.Content.ReadFromJsonAsAsyncEnumerable<PartyRoleAssignmentItem>(_options, cancellationToken))
-        {
-            if (item is null)
+            using var response = await _httpClient.GetAsync(url, cancellationToken);
+
+            // TODO: remove once SBL bridge is fixed.
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                ThrowHelper.ThrowInvalidOperationException("Failed to parse party role assignment.");
+                // SBL bridge return 404 if no role-assignments exist.
+                yield break;
             }
 
-            var assignment = new A2PartyExternalRoleAssignment
+            await foreach (var item in response.Content.ReadFromJsonAsAsyncEnumerable<PartyRoleAssignmentItem>(_options, cancellationToken))
             {
-                ToPartyUuid = item.ToPartyUuid,
-                RoleCode = item.RoleCode,
-            };
+                if (item is null)
+                {
+                    ThrowHelper.ThrowInvalidOperationException("Failed to parse party role assignment.");
+                }
 
-            yield return assignment;
+                var assignment = new A2PartyExternalRoleAssignment
+                {
+                    ToPartyUuid = item.ToPartyUuid,
+                    RoleCode = item.RoleCode,
+                };
 
-            switch (item.RoleCode)
-            {
-                case "KOMK":
-                case "SREVA":
-                case "KNUF":
-                case "KEMN":
-                    assignment = assignment with { RoleCode = "KONT" };
-                    yield return assignment;
-                    break;
+                yield return assignment;
+
+                switch (item.RoleCode)
+                {
+                    case "KOMK":
+                    case "SREVA":
+                    case "KNUF":
+                    case "KEMN":
+                        assignment = assignment with { RoleCode = "KONT" };
+                        yield return assignment;
+                        break;
+                }
             }
         }
     }
