@@ -4,6 +4,7 @@
 /// Represents an external role assignment from a party.
 /// </summary>
 public sealed record A2PartyExternalRoleAssignment
+    : IEquatable<A2PartyExternalRoleAssignment>
 {
     /// <summary>
     /// Gets the party uuid of the receiving party.
@@ -14,4 +15,16 @@ public sealed record A2PartyExternalRoleAssignment
     /// Gets the role code.
     /// </summary>
     public required string RoleCode { get; init; }
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+        => HashCode.Combine(
+            ToPartyUuid,
+            string.GetHashCode(RoleCode, StringComparison.OrdinalIgnoreCase));
+
+    /// <inheritdoc/>
+    public bool Equals(A2PartyExternalRoleAssignment? other)
+        => other is not null
+            && ToPartyUuid == other.ToPartyUuid
+            && string.Equals(RoleCode, other.RoleCode, StringComparison.OrdinalIgnoreCase);
 }
