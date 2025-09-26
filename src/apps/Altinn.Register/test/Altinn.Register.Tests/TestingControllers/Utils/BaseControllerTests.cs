@@ -1,5 +1,7 @@
 ﻿#nullable enable
 
+using Altinn.Common.AccessTokenClient.Services;
+using Altinn.Register.Tests.IntegrationTests.Utils;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +28,7 @@ public abstract class BaseControllerTests
 
     protected virtual void ConfigureTestServices(IServiceCollection services)
     {
+        services.AddSingleton<IAccessTokenGenerator, TestAccessTokenGenerator>();
     }
 
     protected virtual void ConfigureTestConfiguration(IConfigurationBuilder builder)

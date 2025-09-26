@@ -3,15 +3,14 @@
 using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ServiceDefaults;
 using Altinn.Common.AccessToken.Services;
+using Altinn.Common.AccessTokenClient.Services;
 using Altinn.Register.Clients;
 using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Configuration;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Tests.Mocks;
 using Altinn.Register.Tests.Mocks.Authentication;
-
 using AltinnCore.Authentication.JwtCookie;
-
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -22,7 +21,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-
 using Moq;
 
 namespace Altinn.Register.Tests.IntegrationTests.Utils
@@ -66,6 +64,7 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
                     services.AddSingleton<IPostConfigureOptions<JwtCookieOptions>, JwtCookiePostConfigureOptionsStub>();
                     services.AddSingleton<IPublicSigningKeyProvider, PublicSigningKeyProviderMock>();
                     services.AddSingleton<IMemoryCache>(MemoryCache);
+                    services.AddSingleton<IAccessTokenGenerator, TestAccessTokenGenerator>();
 
                     // Using the real/actual implementation of IParties and IPersons, but with a mocked message handler.
                     // Haven't found any other ways of injecting a mocked message handler to simulate SBL Bridge.
