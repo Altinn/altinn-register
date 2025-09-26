@@ -3,6 +3,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Altinn.Register.Contracts;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Models;
 using Asp.Versioning;
@@ -18,7 +19,7 @@ namespace Altinn.Register.Controllers;
 [ApiVersion(1.0)]
 [Authorize(Policy = "InternalOrPlatformAccess")]
 [Route("register/api/v{version:apiVersion}/correspondence/parties")]
-public class CorrespondenceController(IUnitOfWorkManager uowManager)
+public class CorrespondenceController(IUnitOfWorkManager uowManager, V2.PartyController inner)
     : ControllerBase
 {
     /// <summary>
@@ -82,4 +83,19 @@ public class CorrespondenceController(IUnitOfWorkManager uowManager)
         // No pagination for now
         return Paginated.Create(assignments, next: null);
     }
+
+    /// <summary>
+    /// Gets the main units of an organization (if any).
+    /// </summary>
+    /// <param name="request">The request body.</param>
+    /// <param name="fields">The fields to include in the response.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>All organizations that are the main-units of the input organization.</returns>
+    [HttpPost("main-units")]
+    [ProducesResponseType<ListObject<Organization>>(StatusCodes.Status200OK)]
+    public Task<ActionResult<ListObject<Organization>>> GetMainUnits(
+        [FromBody] DataObject<OrganizationUrn> request,
+        [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
+        CancellationToken cancellationToken = default)
+        => inner.GetMainUnits(request, fields, cancellationToken);
 }

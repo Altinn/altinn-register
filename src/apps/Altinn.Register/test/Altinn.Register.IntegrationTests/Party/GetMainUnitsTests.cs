@@ -9,8 +9,9 @@ namespace Altinn.Register.IntegrationTests.Party;
 public class GetMainUnitsTests
     : IntegrationTestBase
 {
-    [Fact]
-    public async Task ByUuid()
+    [Theory]
+    [MemberData(nameof(MainUnitsPaths))]
+    public async Task ByUuid(string path)
     {
         var (subUnit, mainUnit) = await Setup(async (uow, ct) =>
         {
@@ -24,7 +25,7 @@ public class GetMainUnitsTests
 
         var requestContent = DataObject.Create(OrganizationUrn.PartyUuid.Create(subUnit.PartyUuid.Value));
 
-        var response = await HttpClient.PostAsJsonAsync("register/api/v2/internal/parties/main-units", requestContent, JsonOptions, TestContext.Current.CancellationToken);
+        var response = await HttpClient.PostAsJsonAsync(path, requestContent, JsonOptions, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
         var content = await response.ShouldHaveJsonContent<ListObject<Organization>>();
@@ -34,8 +35,9 @@ public class GetMainUnitsTests
         items[0].Uuid.ShouldBe(mainUnit.PartyUuid.Value);
     }
 
-    [Fact]
-    public async Task ById()
+    [Theory]
+    [MemberData(nameof(MainUnitsPaths))]
+    public async Task ById(string path)
     {
         var (subUnit, mainUnit) = await Setup(async (uow, ct) =>
         {
@@ -49,7 +51,7 @@ public class GetMainUnitsTests
 
         var requestContent = DataObject.Create(OrganizationUrn.PartyId.Create(subUnit.PartyId.Value));
 
-        var response = await HttpClient.PostAsJsonAsync("register/api/v2/internal/parties/main-units", requestContent, JsonOptions, TestContext.Current.CancellationToken);
+        var response = await HttpClient.PostAsJsonAsync(path, requestContent, JsonOptions, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
         var content = await response.ShouldHaveJsonContent<ListObject<Organization>>();
@@ -59,8 +61,9 @@ public class GetMainUnitsTests
         items[0].Uuid.ShouldBe(mainUnit.PartyUuid.Value);
     }
 
-    [Fact]
-    public async Task ByOrganizationIdentifier()
+    [Theory]
+    [MemberData(nameof(MainUnitsPaths))]
+    public async Task ByOrganizationIdentifier(string path)
     {
         var (subUnit, mainUnit) = await Setup(async (uow, ct) =>
         {
@@ -74,7 +77,7 @@ public class GetMainUnitsTests
 
         var requestContent = DataObject.Create(OrganizationUrn.OrganizationId.Create(subUnit.OrganizationIdentifier.Value!));
 
-        var response = await HttpClient.PostAsJsonAsync("register/api/v2/internal/parties/main-units", requestContent, JsonOptions, TestContext.Current.CancellationToken);
+        var response = await HttpClient.PostAsJsonAsync(path, requestContent, JsonOptions, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
         var content = await response.ShouldHaveJsonContent<ListObject<Organization>>();
@@ -84,8 +87,9 @@ public class GetMainUnitsTests
         items[0].Uuid.ShouldBe(mainUnit.PartyUuid.Value);
     }
 
-    [Fact]
-    public async Task MultipleMainUnits()
+    [Theory]
+    [MemberData(nameof(MainUnitsPaths))]
+    public async Task MultipleMainUnits(string path)
     {
         var (subUnit, mainUnit1, mainUnit2) = await Setup(async (uow, ct) =>
         {
@@ -101,7 +105,7 @@ public class GetMainUnitsTests
 
         var requestContent = DataObject.Create(OrganizationUrn.PartyUuid.Create(subUnit.PartyUuid.Value));
 
-        var response = await HttpClient.PostAsJsonAsync("register/api/v2/internal/parties/main-units", requestContent, JsonOptions, TestContext.Current.CancellationToken);
+        var response = await HttpClient.PostAsJsonAsync(path, requestContent, JsonOptions, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
         var content = await response.ShouldHaveJsonContent<ListObject<Organization>>();
@@ -112,18 +116,24 @@ public class GetMainUnitsTests
         items[1].Uuid.ShouldBe(mainUnit2.PartyUuid.Value);
     }
 
-    [Fact]
-    public async Task NoMainUnits()
+    [Theory]
+    [MemberData(nameof(MainUnitsPaths))]
+    public async Task NoMainUnits(string path)
     {
         var subUnit = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
 
         var requestContent = DataObject.Create(OrganizationUrn.PartyUuid.Create(subUnit.PartyUuid.Value));
 
-        var response = await HttpClient.PostAsJsonAsync("register/api/v2/internal/parties/main-units", requestContent, JsonOptions, TestContext.Current.CancellationToken);
+        var response = await HttpClient.PostAsJsonAsync(path, requestContent, JsonOptions, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
         var content = await response.ShouldHaveJsonContent<ListObject<Organization>>();
 
         content.Items.ShouldBeEmpty();
     }
+
+    public static TheoryData<string> MainUnitsPaths => new([
+        "register/api/v2/internal/parties/main-units",
+        "register/api/v1/correspondence/parties/main-units",
+    ]);
 }
