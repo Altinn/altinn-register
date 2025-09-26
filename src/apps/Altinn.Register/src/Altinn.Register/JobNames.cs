@@ -26,4 +26,9 @@ internal static class JobNames
     /// Job name for A2 profile-changes import job.
     /// </summary>
     internal const string A2ProfileChangesImport = $"{LeaseNames.A2ProfileImport}:profile-changes";
+
+    /// <summary>
+    /// Job name for system user import job.
+    /// </summary>
+    internal const string SystemUserImport = $"{LeaseNames.SystemUserImport}:systemuser";
 }

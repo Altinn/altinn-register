@@ -1,9 +1,11 @@
 ﻿using System.Net;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
+using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
+using Altinn.Register.PartyImport.SystemUser;
 using Altinn.Register.TestUtils.Http;
 
 namespace Altinn.Register.IntegrationTests.PartyImport;
@@ -400,5 +402,128 @@ public class A2PartyImportServiceTests
                 change => change.IsDeleted.ShouldBeTrue(),
                 change => change.ProfileType.ShouldBe(A2UserProfileType.Person));
         }
+    }
+}
+
+public class SystemUserImportServiceTests
+    : IntegrationTestBase
+{
+    [Fact]
+    public async Task GetStream_Empty()
+    {
+        FakeHttpHandlers.For<SystemUserImportService>()
+            .Expect(HttpMethod.Get, "api/v1/systemuser/internal/systemusers/stream")
+            .WithPlatformToken("platform:register")
+            .Respond(
+                "application/json",
+                """
+                {
+                  "stats": {
+                    "pageStart": 0,
+                    "pageEnd": 0,
+                    "sequenceMax": 0
+                  },
+                  "links": {},
+                  "data": []
+                }
+                """);
+
+        var service = GetRequiredService<SystemUserImportService>();
+        var result = await service.GetStream(cancellationToken: CancellationToken)
+            .ToListAsync(CancellationToken);
+
+        result.Count.ShouldBe(1);
+        result[0].SequenceMax.ShouldBe(0UL);
+        result[0].Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task Multiple_Page()
+    {
+        FakeHttpHandlers.For<SystemUserImportService>()
+            .Expect(HttpMethod.Get, "api/v1/systemuser/internal/systemusers/stream")
+            .WithPlatformToken("platform:register")
+            .Respond(
+                "application/json",
+                $$"""
+                {
+                  "stats": {
+                    "pageStart": 1,
+                    "pageEnd": 2,
+                    "sequenceMax": 2
+                  },
+                  "links": {
+                    "next": "{{FakeHttpEndpoint.HttpsUri}}api/v1/systemuser/internal/systemusers/stream?token=fake-2"
+                  },
+                  "data": [
+                    {
+                      "id": "2cacc11b-6960-413f-9894-c330f99ed7e4",
+                      "partyOrgNo": "",
+                      "partyId": "50692553",
+                      "integrationTitle": "56a981cf-d7a2-4727-a3a4-f314530ff9cd",
+                      "isDeleted": true,
+                      "lastChanged": "2024-11-14T14:17:19.644093Z",
+                      "created": "2024-11-14T14:17:19.644093Z",
+                      "sequenceNo": 1,
+                      "systemUserType": "standard"
+                    },
+                    {
+                      "id": "704013ee-e82a-433e-83c5-a40e6e00d746",
+                      "partyOrgNo": "313775429",
+                      "partyId": "51655537",
+                      "integrationTitle": "SmartCloud",
+                      "isDeleted": false,
+                      "lastChanged": "2024-11-15T09:36:50.451886Z",
+                      "created": "2024-11-15T09:36:50.451886Z",
+                      "sequenceNo": 2,
+                      "systemUserType": "standard"
+                    }
+                  ]
+                }
+                """);
+
+        FakeHttpHandlers.For<SystemUserImportService>()
+            .Expect(HttpMethod.Get, "api/v1/systemuser/internal/systemusers/stream")
+            .WithPlatformToken("platform:register")
+            .WithQuery("token", "fake-2")
+            .Respond(
+                "application/json",
+                """
+                {
+                  "stats": {
+                    "pageStart": 3,
+                    "pageEnd": 3,
+                    "sequenceMax": 3
+                  },
+                  "links": {},
+                  "data": []
+                }
+                """);
+
+        var service = GetRequiredService<SystemUserImportService>();
+        var result = await service.GetStream(cancellationToken: CancellationToken)
+            .ToListAsync(CancellationToken);
+
+        result.Count.ShouldBe(2);
+        result[0].SequenceMax.ShouldBe(2UL);
+        result[0].Count.ShouldBe(2);
+        
+        var item1 = result[0][0];
+        var item2 = result[0][1];
+
+        item1.ShouldSatisfyAllConditions(
+            s => s.Id.ShouldBe(Guid.Parse("2cacc11b-6960-413f-9894-c330f99ed7e4")),
+            s => s.IsDeleted.ShouldBe(true),
+            s => s.Name.ShouldBe("56a981cf-d7a2-4727-a3a4-f314530ff9cd"),
+            s => s.OwnerPartyId.ShouldBe((SystemUserItem.GuidOrUint)50692553));
+
+        item2.ShouldSatisfyAllConditions(
+            s => s.Id.ShouldBe(Guid.Parse("704013ee-e82a-433e-83c5-a40e6e00d746")),
+            s => s.IsDeleted.ShouldBe(false),
+            s => s.Name.ShouldBe("SmartCloud"),
+            s => s.OwnerPartyId.ShouldBe((SystemUserItem.GuidOrUint)51655537));
+
+        result[1].SequenceMax.ShouldBe(3UL);
+        result[1].Count.ShouldBe(0);
     }
 }

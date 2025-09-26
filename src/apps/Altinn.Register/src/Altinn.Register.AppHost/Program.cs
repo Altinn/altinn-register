@@ -1,9 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
 using Altinn.Register.AppHost;
-using Aspire.Hosting;
 using Microsoft.Extensions.Configuration;
 
 var builder = DistributedApplication.CreateBuilder(args);
+var altinnEnv = "LOCAL-AT22"; // TODO: use AltinnEnvironment from service defaults (move to abstractions package)
+var authenticationEnvFragment = altinnEnv.Split('-')[1].ToLowerInvariant();
 
 // random port number - don't reuse if copy-pasting this code.
 var postgresPort = builder.Configuration.GetValue("Postgres:Port", defaultValue: 28215);
@@ -30,16 +31,22 @@ var rabbitMq = builder.AddRabbitMQ("rabbitmq", userName: rabbitMqUsername, port:
     .WithLifetime(ContainerLifetime.Persistent)
     .WithPublicEndpoints();
 
+// dependencies
+var authentication = builder.AddExternalService("altinn-authentication", $"https://platform.{authenticationEnvFragment}.altinn.cloud/");
+
 var registerInit = builder.AddProject<Projects.Altinn_Register>("register-init", launchProfileName: "Init Altinn.Register")
     .WithReference(registerDb, "register")
     .WithEnvironment("ASPNET_ENVIRONMENT", "Development")
+    .WithEnvironment("ALTINN_ENVIRONMENT", altinnEnv)
     .WithEnvironment("Altinn__Npgsql__register__Enable", "true")
     .WithEnvironment("Altinn__RunInitOnly", "true");
 
 var registerApi = builder.AddProject<Projects.Altinn_Register>("register")
     .WithReference(registerDb, "register")
+    .WithReference(authentication)
     .WaitFor(rabbitMq)
     .WaitForCompletion(registerInit)
+    .WithEnvironment("ALTINN_ENVIRONMENT", altinnEnv)
     .WithEnvironment(ctx =>
     {
         var env = ctx.EnvironmentVariables;
@@ -62,6 +69,7 @@ var registerApi = builder.AddProject<Projects.Altinn_Register>("register")
     .WithEnvironment("Altinn__register__PartyImport__A2__Enable", "true")
     .WithEnvironment("Altinn__register__PartyImport__A2__PartyUserId__Enable", "false")
     .WithEnvironment("Altinn__register__PartyImport__A2__Profiles__Enable", "true")
+    .WithEnvironment("Altinn__register__PartyImport__SystemUsers__Enable", "true")
     .WithHttpHealthCheck("/health");
 
 await builder.Build().RunAsync();

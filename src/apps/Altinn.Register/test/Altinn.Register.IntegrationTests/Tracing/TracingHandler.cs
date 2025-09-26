@@ -1,8 +1,9 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Immutable;
+using System.Diagnostics;
 
 namespace Altinn.Register.IntegrationTests.Tracing;
 
-internal class TracingHandler(string? prefix = null)
+internal class TracingHandler(ImmutableArray<string> prefixes)
     : DelegatingHandler
 {
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -14,9 +15,16 @@ internal class TracingHandler(string? prefix = null)
             var path => path.AsSpan(),
         };
 
-        if (!string.IsNullOrEmpty(prefix) && relPath.StartsWith(prefix))
+        if (!prefixes.IsDefaultOrEmpty)
         {
-            relPath = relPath[prefix.Length..];
+            foreach (var prefix in prefixes)
+            {
+                if (relPath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    relPath = relPath[prefix.Length..];
+                    break;
+                }
+            }
         }
 
         using var activity = IntegrationTestsActivities.Source.StartActivity(ActivityKind.Client, name: $"{activityVerb} {relPath}");

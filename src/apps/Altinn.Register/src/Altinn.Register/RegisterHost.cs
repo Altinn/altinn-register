@@ -22,6 +22,7 @@ using Altinn.Register.Model.Extensions;
 using Altinn.Register.ModelBinding;
 using Altinn.Register.PartyImport;
 using Altinn.Register.PartyImport.A2;
+using Altinn.Register.PartyImport.SystemUser;
 using Altinn.Register.Services;
 using Altinn.Register.Services.Implementation;
 using Altinn.Register.Services.Interfaces;
@@ -32,7 +33,6 @@ using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OpenTelemetry.Metrics;
@@ -55,6 +55,7 @@ internal static partial class RegisterHost
         var builder = AltinnHost.CreateWebApplicationBuilder("register", args);
         var services = builder.Services;
         var config = builder.Configuration;
+        var descriptor = builder.GetAltinnServiceDescriptor();
 
         services.AddMemoryCache();
 
@@ -171,17 +172,18 @@ internal static partial class RegisterHost
         services.AddHttpClient<IAuthorizationClient, AuthorizationClient>();
 
         services.AddHttpClient<IA2PartyImportService, A2PartyImportService>()
-            .ConfigureHttpClient((s, c) =>
-            {
-                var config = s.GetRequiredService<IOptions<A2PartyImportSettings>>();
-
-                c.BaseAddress = config.Value.BridgeApiEndpoint;
-            })
-            .ReplaceResilienceHandler(c =>
+            .ConfigureBaseAddressFromOptions(static (A2PartyImportSettings settings) => settings.BridgeApiEndpoint)
+            .ReplaceResilienceHandler(static c =>
             {
                 // Do not retry in the IA2PartyImportService, it's handled by MassTransit
                 c.Retry.ShouldHandle = static _ => ValueTask.FromResult(false);
             });
+
+        services.AddHttpClient<SystemUserImportService>()
+            .ConfigureBaseAddress("https+http://altinn-authentication/authentication/")
+            .AddPlatformAccessTokenHandler();
+
+        services.TryAddPlatformTokenProvider();
 
         services.AddUnitOfWorkManager();
 
@@ -200,6 +202,7 @@ internal static partial class RegisterHost
         if (!initOnly && !isTest)
         {
             const string A2PartyImportJobTag = "a2-import";
+            Func<IServiceProvider, CancellationToken, ValueTask> waitForBus = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
 
             if (config.GetValue<bool>("Altinn:MassTransit:register:Enable"))
             {
@@ -219,7 +222,7 @@ internal static partial class RegisterHost
                 settings.Tags.Add(A2PartyImportJobTag);
                 settings.LeaseName = A2PartyImportJob.JobName;
                 settings.Interval = TimeSpan.FromMinutes(1);
-                settings.WaitForReady = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
+                settings.WaitForReady = waitForBus;
                 settings.Enabled = JobEnabledBuilder.Default
                     .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:Enable");
             });
@@ -229,7 +232,7 @@ internal static partial class RegisterHost
                 settings.Tags.Add(A2PartyImportJobTag);
                 settings.LeaseName = A2PartyCCRRolesImportJob.JobName;
                 settings.Interval = TimeSpan.FromMinutes(1);
-                settings.WaitForReady = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
+                settings.WaitForReady = waitForBus;
                 settings.Enabled = JobEnabledBuilder.Default
                     .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:Enable")
                     .WithRequireImportJobFinished(A2PartyImportJob.JobName, threshold: 5_000);
@@ -240,7 +243,7 @@ internal static partial class RegisterHost
                 settings.Tags.Add(A2PartyImportJobTag);
                 settings.LeaseName = A2PartyUserIdImportJob.JobName;
                 settings.Interval = TimeSpan.FromMinutes(1);
-                settings.WaitForReady = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
+                settings.WaitForReady = waitForBus;
                 settings.Enabled = JobEnabledBuilder.Default
                     .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:PartyUserId:Enable")
                     .WithRequireImportJobFinished(A2PartyImportJob.JobName, threshold: 5_000);
@@ -251,9 +254,20 @@ internal static partial class RegisterHost
                 settings.Tags.Add(A2PartyImportJobTag);
                 settings.LeaseName = A2ProfileImportJob.JobName;
                 settings.Interval = TimeSpan.FromMinutes(1);
-                settings.WaitForReady = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
+                settings.WaitForReady = waitForBus;
                 settings.Enabled = JobEnabledBuilder.Default
                     .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:Profiles:Enable")
+                    .WithRequireImportJobFinished(A2PartyImportJob.JobName, threshold: 5_000);
+            });
+
+            services.AddRecurringJob<SystemUserImportJob>(settings =>
+            {
+                settings.Tags.Add(A2PartyImportJobTag);
+                settings.LeaseName = SystemUserImportJob.JobName;
+                settings.Interval = TimeSpan.FromMinutes(1);
+                settings.WaitForReady = waitForBus;
+                settings.Enabled = JobEnabledBuilder.Default
+                    .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:SystemUsers:Enable")
                     .WithRequireImportJobFinished(A2PartyImportJob.JobName, threshold: 5_000);
             });
         }

@@ -2,14 +2,16 @@
 using Altinn.Authorization.ServiceDefaults;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Authorization.ServiceDefaults.MassTransit.Testing;
+using Altinn.Authorization.TestUtils.Http;
 using Altinn.Common.AccessToken.Services;
+using Altinn.Common.AccessTokenClient.Services;
 using Altinn.Register.Configuration;
 using Altinn.Register.Controllers.V2;
 using Altinn.Register.IntegrationTests.TestServices;
 using Altinn.Register.IntegrationTests.Tracing;
+using Altinn.Register.PartyImport.SystemUser;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Database;
-using Altinn.Register.TestUtils.Http;
 using Altinn.Register.TestUtils.TestData;
 using AltinnCore.Authentication.JwtCookie;
 using CommunityToolkit.Diagnostics;
@@ -24,6 +26,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.ServiceDiscovery;
 using Microsoft.Extensions.Time.Testing;
 
 namespace Altinn.Register.IntegrationTests.Fixtures;
@@ -148,8 +151,8 @@ public sealed class WebApplicationFixture
                 services.AddSingleton<FakeTimeProvider>();
                 services.AddSingleton<RegisterTestDataGenerator>();
                 services.AddSingleton<TimeProvider>(s => s.GetRequiredService<FakeTimeProvider>());
-
                 services.AddSingleton<IPublicSigningKeyProvider, TestPublicSigningKeyProvider>();
+                services.AddSingleton<IAccessTokenGenerator, TestAccessTokenGenerator>();
                 services.AddSingleton<TestCertificateService>();
                 services.AddSingleton<TestOpenIdConnectConfigurationManager>();
                 services.AddSingleton<TestJwtService>();
@@ -158,14 +161,15 @@ public sealed class WebApplicationFixture
                 {
                     builder.ConfigureAdditionalHttpMessageHandlers((handlers, _) =>
                     {
-                        handlers.Add(new TracingHandler(FakeHttpMessageHandler.FakeBasePath.LocalPath[..^1]));
+                        handlers.Add(new TracingHandler([FakeHttpEndpoint.BasePath[..^1]]));
                     });
                 });
                 services.AddFakeHttpHandlers();
                 services.AddOptions<GeneralSettings>()
-                    .PostConfigure(s => s.BridgeApiEndpoint = FakeHttpMessageHandler.FakeBasePath.ToString());
+                    .PostConfigure(s => s.BridgeApiEndpoint = FakeHttpEndpoint.HttpsUri.ToString());
                 services.AddOptions<A2PartyImportSettings>()
-                    .PostConfigure(s => s.BridgeApiEndpoint = FakeHttpMessageHandler.FakeBasePath);
+                    .PostConfigure(s => s.BridgeApiEndpoint = FakeHttpEndpoint.HttpsUri);
+                services.AddHttpClient<SystemUserImportService>().ConfigureBaseAddress(FakeHttpEndpoint.HttpsUri);
 
                 AltinnServiceDefaultsMassTransitTestingExtensions.AddAltinnMassTransitTestHarness(
                     services,
