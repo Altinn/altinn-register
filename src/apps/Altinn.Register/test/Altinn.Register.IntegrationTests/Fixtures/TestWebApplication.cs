@@ -43,7 +43,7 @@ public sealed class TestWebApplication
         return _factory.CreateDefaultClient(
             new Uri("http://register.test/"),
             [
-                new TracingHandler(),
+                new TracingHandler([]),
                 new DefaultTestAuthorizationHandler(jwtService),
                 new RedirectHandler(),
                 new CookieContainerHandler(),

@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Json;
 using Altinn.Authorization.ServiceDefaults.MassTransit.Commands;
+using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties.Records;
@@ -7,7 +8,6 @@ using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.PartyImport;
 using Altinn.Register.PartyImport.A2;
-using Altinn.Register.TestUtils.Http;
 using Altinn.Register.TestUtils.MassTransit;
 using Altinn.Register.TestUtils.TestData;
 using Xunit.Sdk;
@@ -26,7 +26,8 @@ public class A2PartyImportConsumerTests
     {
         var partyId = 50004216U;
         var partyUuid = Guid.Parse("7aa53da8-836c-4812-afcb-76d39f5ebb0e");
-        FakeHttpHandlers.For<IA2PartyImportService>().Expect(HttpMethod.Get, "/register/api/parties")
+        FakeHttpHandlers.For<IA2PartyImportService>()
+            .Expect(HttpMethod.Get, "/register/api/parties")
             .WithQuery("partyuuid", partyUuid.ToString())
             .Respond(
                 "application/json",
@@ -79,7 +80,8 @@ public class A2PartyImportConsumerTests
     {
         var partyId = 50006237U;
         var partyUuid = Guid.Parse("4fe860c4-bc65-4d2f-a288-f825b460f26b");
-        FakeHttpHandlers.For<IA2PartyImportService>().Expect(HttpMethod.Get, "/register/api/parties")
+        FakeHttpHandlers.For<IA2PartyImportService>()
+            .Expect(HttpMethod.Get, "/register/api/parties")
             .WithQuery("partyuuid", partyUuid.ToString())
             .Respond(
                 "application/json",
@@ -120,7 +122,8 @@ public class A2PartyImportConsumerTests
         var partyUuid = Guid.CreateVersion7();
         var partyType = PartyRecordType.Person;
 
-        FakeHttpHandlers.For<IA2PartyImportService>().Expect(HttpMethod.Get, "/profile/api/users/getorcreate/{partyUuid:guid}")
+        FakeHttpHandlers.For<IA2PartyImportService>()
+            .Expect(HttpMethod.Get, "/profile/api/users/getorcreate/{partyUuid:guid}")
             .WithRouteValue("partyUuid", partyUuid.ToString())
             .Respond(
                 "application/json",
@@ -206,7 +209,8 @@ public class A2PartyImportConsumerTests
             return (org, person1, person2);
         });
 
-        FakeHttpHandlers.For<IA2PartyImportService>().Expect(HttpMethod.Get, "/register/api/parties/partyroles/{fromPartyId}")
+        FakeHttpHandlers.For<IA2PartyImportService>()
+            .Expect(HttpMethod.Get, "/register/api/parties/partyroles/{fromPartyId}")
             .WithRouteValue("fromPartyId", org.PartyId.Value.ToString())
             .Respond(
                 "application/json",
@@ -293,7 +297,8 @@ public class A2PartyImportConsumerTests
         party.Person.LastName = input.LastName;
 
         var partyUuid = party.PartyUuid!.Value;
-        FakeHttpHandlers.For<IA2PartyImportService>().Expect(HttpMethod.Get, "/register/api/parties")
+        FakeHttpHandlers.For<IA2PartyImportService>()
+            .Expect(HttpMethod.Get, "/register/api/parties")
             .WithQuery("partyuuid", partyUuid.ToString())
             .Respond(() => JsonContent.Create(party));
 

@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
+using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
@@ -9,7 +10,6 @@ using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.PartyImport;
 using Altinn.Register.PartyImport.A2;
-using Altinn.Register.TestUtils.Http;
 using Altinn.Register.TestUtils.MassTransit;
 using Altinn.Register.TestUtils.TestData;
 using Microsoft.Extensions.DependencyInjection;

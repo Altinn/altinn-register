@@ -6,7 +6,7 @@ using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
-using Altinn.Register.TestUtils.Http;
+using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.TestUtils.Utils;
 using Nerdbank.Streams;
 

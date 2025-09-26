@@ -3,9 +3,11 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using Altinn.Authorization.ServiceDefaults;
 using Altinn.Common.AccessToken.Services;
+using Altinn.Common.AccessTokenClient.Services;
 using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Contracts.V1;
 using Altinn.Register.Controllers;
+using Altinn.Register.Tests.IntegrationTests.Utils;
 using Altinn.Register.Tests.Mocks;
 using Altinn.Register.Tests.Mocks.Authentication;
 using Altinn.Register.Tests.Utils;
@@ -33,6 +35,10 @@ namespace Altinn.Register.Tests.TestingControllers
             {
                 builder.UseSetting("Altinn:IsTest", "true");
                 builder.UseSetting(AltinnPreStartLogger.DisableConfigKey, "true");
+                builder.ConfigureTestServices(services =>
+                {
+                    services.AddSingleton<IAccessTokenGenerator, TestAccessTokenGenerator>();
+                });
             });
         }
 

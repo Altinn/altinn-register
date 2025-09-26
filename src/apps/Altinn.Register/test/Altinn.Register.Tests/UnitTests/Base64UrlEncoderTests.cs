@@ -1,7 +1,6 @@
 ﻿#nullable enable
 
 using System.Buffers;
-using System.Text.Json;
 using Altinn.Register.Utils;
 
 namespace Altinn.Register.Tests.UnitTests;
