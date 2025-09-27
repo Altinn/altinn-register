@@ -16,10 +16,10 @@
     <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql" Version="4.1.0" />
     <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Telemetry" Version="4.1.0" />
     <PackageVersion Include="Altinn.Authorization.ServiceDefaults" Version="4.1.0" />
-    <PackageVersion Include="Altinn.Authorization.TestUtils" Version="2.1.0" />
+    <PackageVersion Include="Altinn.Authorization.TestUtils" Version="2.2.1" />
     <PackageVersion Include="Altinn.Authorization.TestUtils.Http" Version="3.0.0" />
     <PackageVersion Include="Altinn.Common.AccessToken" Version="5.0.5" />
-    <PackageVersion Include="Altinn.Common.PEP" Version="4.1.2" />
+    <PackageVersion Include="Altinn.Common.PEP" Version="4.2.1" />
     <PackageVersion Include="Altinn.Swashbuckle.Abstractions" Version="3.0.0" />
     <PackageVersion Include="Altinn.Swashbuckle" Version="3.0.0" />
     <PackageVersion Include="Altinn.Urn" Version="3.0.0" />
@@ -75,8 +75,8 @@
     <PackageVersion Include="System.Text.Json" Version="9.0.9" />
     <PackageVersion Include="System.Text.RegularExpressions" Version="4.3.1" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.7.0" />
-    <PackageVersion Include="Verify.Xunit" Version="30.13.0" />
-    <PackageVersion Include="Verify.XunitV3" Version="30.13.0" />
+    <PackageVersion Include="Verify.Xunit" Version="30.18.0" />
+    <PackageVersion Include="Verify.XunitV3" Version="30.18.0" />
     <PackageVersion Include="xunit.assert" Version="2.9.3" />
     <PackageVersion Include="xunit.extensibility.core" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
