@@ -10,6 +10,7 @@ namespace Altinn.Register.Contracts;
 /// </remarks>
 [StringEnumConverter]
 public enum PartyType
+    : uint
 {
     /// <summary>
     /// Person party type.

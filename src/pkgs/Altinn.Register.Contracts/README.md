@@ -44,7 +44,7 @@ Here's a basic example of how you might use this package with an HTTP client:
 ```csharp
 using System.Net.Http;
 using System.Text.Json;
-using Altinn.Register.Contracts.Models;
+using Altinn.Register.Contracts;
 
 using var client = new HttpClient();
 client.BaseAddress = new Uri("BASE_ADDRESS");
