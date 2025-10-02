@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.1.0...Altinn.Register.Contracts-v1.1.1) (2025-10-02)
+
+
+### Bug Fixes
+
+* change PartyType to unsigned ([#583](https://github.com/Altinn/altinn-register/issues/583)) ([6e13977](https://github.com/Altinn/altinn-register/commit/6e13977208b14a2765ced410d4cf61b0ff94b70c))
+
 ## [1.1.0](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.0.1...Altinn.Register.Contracts-v1.1.0) (2025-09-22)
 
 
