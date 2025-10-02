@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Json;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ServiceDefaults.MassTransit.Commands;
 using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Contracts;
@@ -10,6 +11,7 @@ using Altinn.Register.PartyImport;
 using Altinn.Register.PartyImport.A2;
 using Altinn.Register.TestUtils.MassTransit;
 using Altinn.Register.TestUtils.TestData;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit.Sdk;
 using V1Models = Altinn.Register.Contracts.V1;
 
@@ -119,7 +121,15 @@ public class A2PartyImportConsumerTests
     [Fact]
     public async Task ImportA2UserIdForPartyCommand_ForPerson_FetchesUserId_AndSendsUpsertCommand()
     {
-        var partyUuid = Guid.CreateVersion7();
+        var person = await Setup(async (uow, ct) =>
+        {
+            await uow.GetRequiredService<IImportJobTracker>().TrackQueueStatus("test", new() { EnqueuedMax = 10, SourceMax = 100 }, ct);
+            var person = await uow.CreatePerson(user: FieldValue.Null, cancellationToken: ct);
+            return person;
+        });
+
+        var partyUuid = person.PartyUuid.Value;
+        var partyId = person.PartyId.Value;
         var partyType = PartyRecordType.Person;
 
         FakeHttpHandlers.For<IA2PartyImportService>()
@@ -137,14 +147,14 @@ public class A2PartyImportConsumerTests
                   "IsReserved": false,
                   "PhoneNumber": null,
                   "Email": "AdvancedSettingsTest@AdvancedSettingsTest.no",
-                  "PartyId": 50068492,
+                  "PartyId": {{partyId}},
                   "Party": {
                     "PartyTypeName": 1,
                     "SSN": "",
                     "OrgNumber": "",
                     "Person": null,
                     "Organization": null,
-                    "PartyId": 50068492,
+                    "PartyId": {{partyId}},
                     "PartyUUID": "{{partyUuid}}",
                     "UnitType": null,
                     "LastChangedInAltinn": "2021-02-08T05:07:09.677+01:00",
@@ -166,7 +176,7 @@ public class A2PartyImportConsumerTests
         {
             PartyUuid = partyUuid,
             PartyType = partyType,
-            Tracking = new("test", 101),
+            Tracking = new("test", 2),
         };
 
         await CommandSender.Send(cmd, TestContext.Current.CancellationToken);
