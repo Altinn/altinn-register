@@ -15,6 +15,13 @@ namespace Altinn.Register.Mapping;
 /// </summary>
 internal static partial class PartyMapper
 {
+    private static readonly string PARTY_TYPE_NAME = typeof(Party).FullName!;
+    private static readonly string PERSON_TYPE_NAME = typeof(Person).FullName!;
+    private static readonly string ORGANIZATION_TYPE_NAME = typeof(Organization).FullName!;
+    private static readonly string SELF_IDENTIFIED_USER_TYPE_NAME = typeof(SelfIdentifiedUser).FullName!;
+    private static readonly string ENTERPRISE_USER_TYPE_NAME = typeof(EnterpriseUser).FullName!;
+    private static readonly string SYSTEM_USER_TYPE_NAME = typeof(SystemUser).FullName!;
+
     [return: NotNullIfNotNull(nameof(source))]
     private static Person? MapPerson(PersonRecord? source)
     {
@@ -25,17 +32,17 @@ internal static partial class PartyMapper
 
         if (!source.PartyUuid.HasValue)
         {
-            ThrowHelper.ThrowInvalidOperationException("Platform.Models.Register.Party requires a PartyUuid to be set.");
+            ThrowHelper.ThrowInvalidOperationException($"{PARTY_TYPE_NAME} requires a {nameof(Party.Uuid)} to be set.");
         }
 
         if (!source.VersionId.HasValue)
         {
-            ThrowHelper.ThrowInvalidOperationException("Platform.Models.Register.Party requires a VersionId to be set.");
+            ThrowHelper.ThrowInvalidOperationException($"{PARTY_TYPE_NAME} requires a {nameof(Party.VersionId)} to be set.");
         }
 
         if (!source.PersonIdentifier.HasValue)
         {
-            ThrowHelper.ThrowInvalidOperationException("Platform.Models.Register.Person requires a PersonIdentifier to be set.");
+            ThrowHelper.ThrowInvalidOperationException($"{PERSON_TYPE_NAME} requires a {nameof(Person.PersonIdentifier)} to be set.");
         }
 
         Debug.Assert(source.PartyType.IsSet && source.PartyType.Value == PartyRecordType.Person);
@@ -73,17 +80,17 @@ internal static partial class PartyMapper
 
         if (!source.PartyUuid.HasValue)
         {
-            ThrowHelper.ThrowInvalidOperationException("Platform.Models.Register.Party requires a PartyUuid to be set.");
+            ThrowHelper.ThrowInvalidOperationException($"{PARTY_TYPE_NAME} requires a {nameof(Party.Uuid)} to be set.");
         }
 
         if (!source.VersionId.HasValue)
         {
-            ThrowHelper.ThrowInvalidOperationException("Platform.Models.Register.Party requires a VersionId to be set.");
+            ThrowHelper.ThrowInvalidOperationException($"{PARTY_TYPE_NAME} requires a {nameof(Party.VersionId)} to be set.");
         }
 
         if (!source.OrganizationIdentifier.HasValue)
         {
-            ThrowHelper.ThrowInvalidOperationException("Platform.Models.Register.Organization requires an OrganizationIdentifier to be set.");
+            ThrowHelper.ThrowInvalidOperationException($"{ORGANIZATION_TYPE_NAME} requires an {nameof(Organization.OrganizationIdentifier)} to be set.");
         }
 
         Debug.Assert(source.PartyType.IsSet && source.PartyType.Value == PartyRecordType.Organization);
@@ -122,12 +129,12 @@ internal static partial class PartyMapper
 
         if (!source.PartyUuid.HasValue)
         {
-            ThrowHelper.ThrowInvalidOperationException("Platform.Models.Register.Party requires a PartyUuid to be set.");
+            ThrowHelper.ThrowInvalidOperationException($"{PARTY_TYPE_NAME} requires a {nameof(Party.Uuid)} to be set.");
         }
 
         if (!source.VersionId.HasValue)
         {
-            ThrowHelper.ThrowInvalidOperationException("Platform.Models.Register.Party requires a VersionId to be set.");
+            ThrowHelper.ThrowInvalidOperationException($"{PARTY_TYPE_NAME} requires a {nameof(Party.VersionId)} to be set.");
         }
 
         Debug.Assert(source.PartyType.IsSet && source.PartyType.Value == PartyRecordType.SelfIdentifiedUser);
@@ -155,12 +162,17 @@ internal static partial class PartyMapper
 
         if (!source.PartyUuid.HasValue)
         {
-            ThrowHelper.ThrowInvalidOperationException("Platform.Models.Register.Party requires a PartyUuid to be set.");
+            ThrowHelper.ThrowInvalidOperationException($"{PARTY_TYPE_NAME} requires a {nameof(Party.Uuid)} to be set.");
         }
 
         if (!source.VersionId.HasValue)
         {
-            ThrowHelper.ThrowInvalidOperationException("Platform.Models.Register.Party requires a VersionId to be set.");
+            ThrowHelper.ThrowInvalidOperationException($"{PARTY_TYPE_NAME} requires a {nameof(Party.VersionId)} to be set.");
+        }
+
+        if (source.OwnerUuid.IsNull)
+        {
+            ThrowHelper.ThrowInvalidOperationException($"{ENTERPRISE_USER_TYPE_NAME} requires {nameof(EnterpriseUser.Owner)} to not be null.");
         }
 
         Debug.Assert(source.PartyType.IsSet && source.PartyType.Value == PartyRecordType.EnterpriseUser);
@@ -189,17 +201,22 @@ internal static partial class PartyMapper
 
         if (!source.PartyUuid.HasValue)
         {
-            ThrowHelper.ThrowInvalidOperationException("Platform.Models.Register.Party requires a PartyUuid to be set.");
+            ThrowHelper.ThrowInvalidOperationException($"{PARTY_TYPE_NAME} requires a {nameof(Party.Uuid)} to be set.");
         }
 
         if (!source.VersionId.HasValue)
         {
-            ThrowHelper.ThrowInvalidOperationException("Platform.Models.Register.Party requires a VersionId to be set.");
+            ThrowHelper.ThrowInvalidOperationException($"{PARTY_TYPE_NAME} requires a {nameof(Party.VersionId)} to be set.");
+        }
+
+        if (source.OwnerUuid.IsNull)
+        {
+            ThrowHelper.ThrowInvalidOperationException($"{SYSTEM_USER_TYPE_NAME} requires {nameof(SystemUser.Owner)} to not be null.");
         }
 
         if (source.SystemUserType.IsNull)
         {
-            ThrowHelper.ThrowInvalidOperationException($"Platform.Models.Register.SystemUser requires {nameof(SystemUser.SystemUserType)} to not be null.");
+            ThrowHelper.ThrowInvalidOperationException($"{SYSTEM_USER_TYPE_NAME} requires {nameof(SystemUser.SystemUserType)} to not be null.");
         }
 
         Debug.Assert(source.PartyType.IsSet && source.PartyType.Value == PartyRecordType.SystemUser);
