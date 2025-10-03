@@ -5,6 +5,7 @@ using System.Diagnostics.Metrics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks.Sources;
+using Altinn.Authorization.ServiceDefaults;
 using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Authorization.ServiceDefaults.Leases;
 using CommunityToolkit.Diagnostics;
@@ -27,6 +28,7 @@ internal sealed partial class RecurringJobHostedService
     private readonly Counter<int> _jobsSucceeded;
     private readonly Counter<int> _jobsSkipped;
 
+    private readonly AltinnServiceDescriptor _serviceDescriptor;
     private readonly TimeProvider _timeProvider;
     private readonly LeaseManager _leaseManager;
     private readonly IServiceProvider _serviceProvider;
@@ -56,6 +58,7 @@ internal sealed partial class RecurringJobHostedService
     /// Initializes a new instance of the <see cref="RecurringJobHostedService"/> class.
     /// </summary>
     public RecurringJobHostedService(
+        AltinnServiceDescriptor serviceDescriptor,
         JobsTelemetry telemetry,
         TimeProvider timeProvider,
         LeaseManager leaseManager,
@@ -71,6 +74,7 @@ internal sealed partial class RecurringJobHostedService
         _jobsSucceeded = telemetry.CreateCounter<int>("register.jobs.succeeded", unit: "jobs", description: "The number of jobs that have succeeded");
         _jobsSkipped = telemetry.CreateCounter<int>("register.jobs.skipped", unit: "jobs", description: "The number of jobs that have been skipped");
 
+        _serviceDescriptor = serviceDescriptor;
         _timeProvider = timeProvider;
         _leaseManager = leaseManager;
         _serviceProvider = serviceProvider;
@@ -80,6 +84,11 @@ internal sealed partial class RecurringJobHostedService
         _registrations = registrations.ToImmutableArray();
         _conditions = conditions.ToImmutableArray();
         _tracker = new(_timeProvider);
+
+        foreach (var registration in _registrations)
+        {
+            Log.RegisteredJob(_logger, registration.JobName, registration.Interval, registration.LeaseName, registration.RunAt);
+        }
     }
 
     /// <inheritdoc/>
@@ -104,8 +113,9 @@ internal sealed partial class RecurringJobHostedService
         // First, run all lifecycle jobs that should run at the start of the host
         await RunLifecycleJobs(JobHostLifecycles.Start, cancellationToken);
 
-        if (_settings.CurrentValue.DisableScheduler)
+        if (_serviceDescriptor.RunInitOnly || _settings.CurrentValue.DisableScheduler)
         {
+            Log.SchedulerDisabled(_logger);
             return;
         }
 
@@ -429,6 +439,7 @@ internal sealed partial class RecurringJobHostedService
                 throw new InvalidOperationException($"Minimum interval for background jobs is currently set at 30 seconds");
             }
 
+            Log.CreatingSchedulerForJob(_logger, registration.JobName, interval, registration.LeaseName);
             var scheduler = _tracker.CreateScheduler();
             var leaseName = registration.LeaseName;
             if (leaseName is null)
@@ -526,6 +537,8 @@ internal sealed partial class RecurringJobHostedService
                 }
                 else
                 {
+                    Log.LeaseNotAcquired(_logger, registration.JobName, leaseName, JobHostLifecycles.None);
+
                     // else record when it was last ran
                     lastCompleted = lease.Expires;
                     if (lease.LastReleasedAt.HasValue && lease.LastReleasedAt > lastCompleted)
@@ -953,5 +966,14 @@ internal sealed partial class RecurringJobHostedService
 
         [LoggerMessage(9, LogLevel.Debug, "Sleep before re-attempting job {JobName} for {SleepDuration}")]
         public static partial void Sleep(ILogger logger, string jobName, TimeSpan sleepDuration);
+
+        [LoggerMessage(10, LogLevel.Information, "Scheduler disabled")]
+        public static partial void SchedulerDisabled(ILogger logger);
+
+        [LoggerMessage(11, LogLevel.Information, "Creating scheduler for job {JobName} with interval {Interval} and lease {LeaseName}")]
+        public static partial void CreatingSchedulerForJob(ILogger logger, string jobName, TimeSpan interval, string? leaseName);
+
+        [LoggerMessage(12, LogLevel.Information, "Registered job {JobName} with interval {Interval}, runs at {RunAt}, and lease {LeaseName}")]
+        public static partial void RegisteredJob(ILogger logger, string jobName, TimeSpan interval, string? leaseName, JobHostLifecycles runAt);
     }
 }
