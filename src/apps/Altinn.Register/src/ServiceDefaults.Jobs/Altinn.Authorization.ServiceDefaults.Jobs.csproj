@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Altinn.Authorization.ServiceDefaults.Abstractions" />
     <PackageReference Include="Altinn.Authorization.ServiceDefaults.Telemetry" />
     <PackageReference Include="CommunityToolkit.Diagnostics" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
@@ -18,8 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Altinn.Register.Tests"/>
-    <InternalsVisibleTo Include="Altinn.Register.Persistence.Tests"/>
+    <InternalsVisibleTo Include="Altinn.Register.Tests" />
+    <InternalsVisibleTo Include="Altinn.Register.Persistence.Tests" />
   </ItemGroup>
 		
 </Project>
