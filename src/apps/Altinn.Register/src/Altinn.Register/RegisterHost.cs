@@ -5,6 +5,7 @@ using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Common.AccessToken;
 using Altinn.Common.AccessToken.Configuration;
 using Altinn.Common.AccessToken.Services;
+using Altinn.Common.AccessTokenClient.Services;
 using Altinn.Common.PEP.Authorization;
 using Altinn.Register.ApiDescriptions;
 using Altinn.Register.Authorization;
@@ -184,6 +185,11 @@ internal static partial class RegisterHost
             .AddPlatformAccessTokenHandler();
 
         services.TryAddPlatformTokenProvider();
+        if (!descriptor.IsLocalDev && !descriptor.IsTest)
+        {
+            services.AddSingleton<IAccessTokenGenerator, AccessTokenGenerator>();
+            services.AddTransient<ISigningCredentialsResolver, SigningCredentialsResolver>();
+        }
 
         services.AddUnitOfWorkManager();
 
