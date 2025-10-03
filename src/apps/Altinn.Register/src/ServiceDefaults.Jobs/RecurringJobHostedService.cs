@@ -83,7 +83,7 @@ internal sealed partial class RecurringJobHostedService
         _settings = settings;
         _registrations = registrations.ToImmutableArray();
         _conditions = conditions.ToImmutableArray();
-        _tracker = new(_timeProvider);
+        _tracker = new ScheduledJobTracker(_timeProvider, _logger);
 
         foreach (var registration in _registrations)
         {
@@ -246,15 +246,26 @@ internal sealed partial class RecurringJobHostedService
                 IJob? job = null;
                 try
                 {
-                    await using var scope = _serviceScopeFactory.CreateAsyncScope();
-                    job = registration.Create(scope.ServiceProvider);
                     var name = registration.JobName;
                     var jobTags = new TagList([
                         new("job.name", name),
                         new("job.source", source),
                     ]);
 
+                    await using var scope = _serviceScopeFactory.CreateAsyncScope();
                     using var outerActivity = JobsTelemetry.StartActivity($"job {name}", ActivityKind.Internal, tags: in jobTags);
+
+                    try
+                    {
+                        job = registration.Create(scope.ServiceProvider);
+                    }
+                    catch (Exception e)
+                    {
+                        _jobsFailed.Add(1, in jobTags);
+                        Log.JobCreationFailed(_logger, name, e);
+                        var exception = ExceptionDispatchInfo.Capture(e);
+                        return JobRunResult.Failure(name, duration: TimeSpan.Zero, exception);
+                    }
 
                     try
                     {
@@ -440,7 +451,7 @@ internal sealed partial class RecurringJobHostedService
             }
 
             Log.CreatingSchedulerForJob(_logger, registration.JobName, interval, registration.LeaseName);
-            var scheduler = _tracker.CreateScheduler();
+            var scheduler = _tracker.CreateScheduler(registration.JobName);
             var leaseName = registration.LeaseName;
             if (leaseName is null)
             {
@@ -654,28 +665,30 @@ internal sealed partial class RecurringJobHostedService
         , IDisposable
     {
         private readonly TimeProvider _timeProvider;
+        private readonly ILogger _logger;
         private readonly Lock _lock = new();
         private ManualResetValueTaskSourceCore<object?> _source; // mutable struct; do not make this readonly
         private int _totalSchedulers;
         private int _awakeSchedulers;
 
-        public ScheduledJobTracker(TimeProvider timeProvider)
+        public ScheduledJobTracker(TimeProvider timeProvider, ILogger logger)
         {
             _timeProvider = timeProvider;
+            _logger = logger;
 
             // initially set
             _source.SetResult(null);
             _source.RunContinuationsAsynchronously = true;
         }
 
-        public JobScheduler CreateScheduler()
+        public JobScheduler CreateScheduler(string jobName)
         {
             lock (_lock)
             {
                 _totalSchedulers++;
             }
 
-            return new(this, _timeProvider);
+            return new(this, _timeProvider, jobName);
         }
 
         public void TrackAwake() 
@@ -709,8 +722,10 @@ internal sealed partial class RecurringJobHostedService
         /// <remarks>
         /// This method should only be called by schedulers that are in the awake state.
         /// </remarks>
-        public void Unregister()
+        public void Unregister(string jobName)
         {
+            Log.SchedulerDisposed(_logger, jobName);
+
             lock (_lock)
             {
                 _awakeSchedulers--;
@@ -763,14 +778,16 @@ internal sealed partial class RecurringJobHostedService
         };
 
         private readonly Lock _lock = new();
+        private readonly string _jobName;
         private readonly ITimer _timer;
         private readonly ScheduledJobTracker _tracker;
         private ManualResetValueTaskSourceCore<object?> _source; // mutable struct; do not make this readonly
         private CancellationTokenRegistration _cancellationRegistration;
         private byte _state = STATE_RUNNING;
 
-        public JobScheduler(ScheduledJobTracker tracker, TimeProvider timeProvider)
+        public JobScheduler(ScheduledJobTracker tracker, TimeProvider timeProvider, string jobName)
         {
+            _jobName = jobName;
             _timer = timeProvider.CreateTimer(_timerCallback, this, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             _tracker = tracker;
             _tracker.TrackAwake();
@@ -931,7 +948,7 @@ internal sealed partial class RecurringJobHostedService
             _cancellationRegistration.Dispose();
             _timer.Dispose();
             _source.Reset();
-            _tracker.Unregister();
+            _tracker.Unregister(_jobName);
         }
     }
 
@@ -975,5 +992,11 @@ internal sealed partial class RecurringJobHostedService
 
         [LoggerMessage(12, LogLevel.Information, "Registered job {JobName} with interval {Interval}, runs at {RunAt}, and lease {LeaseName}")]
         public static partial void RegisteredJob(ILogger logger, string jobName, TimeSpan interval, string? leaseName, JobHostLifecycles runAt);
+
+        [LoggerMessage(13, LogLevel.Information, "Scheduler for job {JobName} disposed")]
+        public static partial void SchedulerDisposed(ILogger logger, string jobName);
+
+        [LoggerMessage(14, LogLevel.Error, "Job {JobName} creation failed")]
+        public static partial void JobCreationFailed(ILogger logger, string jobName, Exception exception);
     }
 }
