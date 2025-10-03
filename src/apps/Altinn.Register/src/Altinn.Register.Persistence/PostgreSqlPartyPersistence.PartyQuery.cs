@@ -36,13 +36,9 @@ internal partial class PostgreSqlPartyPersistence
         /// <returns>A <see cref="PartyQuery"/>.</returns>
         internal static PartyQuery Get(PartyFieldIncludes includes, PartyQueryFilters filterBy)
         {
-            if (filterBy is PartyQueryFilters.None)
-            {
-                ThrowHelper.ThrowArgumentException(nameof(filterBy), "Filter cannot be none");
-            }
-
             includes |= PartyFieldIncludes.PartyUuid | PartyFieldIncludes.PartyType; // always include the UUID and type
 
+            filterBy.Validate(nameof(filterBy));
             return _queries.GetOrAdd((Includes: includes, FilterBy: filterBy), static (key) => Builder.Create(key.Includes, key.FilterBy));
         }
 
@@ -54,11 +50,14 @@ internal partial class PostgreSqlPartyPersistence
             FilterParameter paramPersonIdentifier,
             FilterParameter paramOrganizationIdentifier,
             FilterParameter paramUserId,
+            FilterParameter paramUsername,
             FilterParameter paramPartyUuidList,
             FilterParameter paramPartyIdList,
             FilterParameter paramPersonIdentifierList,
             FilterParameter paramOrganizationIdentifierList,
             FilterParameter paramUserIdList,
+            FilterParameter paramUsernameList,
+            FilterParameter paramPartyTypeList,
             FilterParameter paramStreamFrom,
             FilterParameter paramStreamLimit)
         {
@@ -69,12 +68,15 @@ internal partial class PostgreSqlPartyPersistence
             _paramPersonIdentifier = paramPersonIdentifier;
             _paramOrganizationIdentifier = paramOrganizationIdentifier;
             _paramUserId = paramUserId;
+            _paramUsername = paramUsername;
             _paramPartyUuidList = paramPartyUuidList;
             _paramPartyIdList = paramPartyIdList;
             _paramPersonIdentifierList = paramPersonIdentifierList;
             _paramOrganizationIdentifierList = paramOrganizationIdentifierList;
             _paramUserIdList = paramUserIdList;
-            _paramStreamFromExlusive = paramStreamFrom;
+            _paramUsernameList = paramUsernameList;
+            _paramPartyTypeList = paramPartyTypeList;
+            _paramStreamFromExclusive = paramStreamFrom;
             _paramStreamLimit = paramStreamLimit;
 
             HasSubUnits = _fields.ParentUuid != -1;
@@ -86,12 +88,15 @@ internal partial class PostgreSqlPartyPersistence
         private readonly FilterParameter _paramPersonIdentifier;
         private readonly FilterParameter _paramOrganizationIdentifier;
         private readonly FilterParameter _paramUserId;
+        private readonly FilterParameter _paramUsername;
         private readonly FilterParameter _paramPartyUuidList;
         private readonly FilterParameter _paramPartyIdList;
         private readonly FilterParameter _paramPersonIdentifierList;
         private readonly FilterParameter _paramOrganizationIdentifierList;
         private readonly FilterParameter _paramUserIdList;
-        private readonly FilterParameter _paramStreamFromExlusive;
+        private readonly FilterParameter _paramUsernameList;
+        private readonly FilterParameter _paramPartyTypeList;
+        private readonly FilterParameter _paramStreamFromExclusive;
         private readonly FilterParameter _paramStreamLimit;
 
         /// <summary>
@@ -135,6 +140,12 @@ internal partial class PostgreSqlPartyPersistence
             => AddParameter(cmd, in _paramUserId, value);
 
         /// <summary>
+        /// Adds a username parameter to the command.
+        /// </summary>
+        public NpgsqlParameter<string> AddUsernameParameter(NpgsqlCommand cmd, string value)
+            => AddParameter(cmd, in _paramUsername, value);
+
+        /// <summary>
         /// Adds a party UUID list parameter to the command.
         /// </summary>
         public NpgsqlParameter<IList<Guid>> AddPartyUuidListParameter(NpgsqlCommand cmd, IList<Guid> value)
@@ -165,11 +176,23 @@ internal partial class PostgreSqlPartyPersistence
             => AddParameter(cmd, in _paramUserIdList, value);
 
         /// <summary>
+        /// Adds a username list parameter to the command.
+        /// </summary>
+        public NpgsqlParameter<IList<string>> AddUsernameListParameter(NpgsqlCommand cmd, IList<string> value)
+            => AddParameter(cmd, in _paramUsernameList, value);
+
+        /// <summary>
+        /// Adds a party type list parameter to the command.
+        /// </summary>
+        public NpgsqlParameter<IList<PartyRecordType>> AddPartyTypeListParameter(NpgsqlCommand cmd, IList<PartyRecordType> value)
+            => AddParameter(cmd, in _paramPartyTypeList, value);
+
+        /// <summary>
         /// Adds stream page parameters to the command.
         /// </summary>
         public (NpgsqlParameter<long> From, NpgsqlParameter<int> Limit) AddStreamPageParameters(NpgsqlCommand cmd, ulong fromExclusive, ushort limit)
         {
-            var fromParam = AddParameter(cmd, in _paramStreamFromExlusive, (long)fromExclusive);
+            var fromParam = AddParameter(cmd, in _paramStreamFromExclusive, (long)fromExclusive);
             var limitParam = AddParameter(cmd, in _paramStreamLimit, (int)limit);
 
             return (fromParam, limitParam);
@@ -580,11 +603,14 @@ internal partial class PostgreSqlPartyPersistence
                     paramPersonIdentifier: builder._paramPersonIdentifier,
                     paramOrganizationIdentifier: builder._paramOrganizationIdentifier,
                     paramUserId: builder._paramUserId,
+                    paramUsername: builder._paramUsername,
                     paramPartyUuidList: builder._paramPartyUuidList,
                     paramPartyIdList: builder._paramPartyIdList,
                     paramPersonIdentifierList: builder._paramPersonIdentifierList,
                     paramOrganizationIdentifierList: builder._paramOrganizationIdentifierList,
                     paramUserIdList: builder._paramUserIdList,
+                    paramUsernameList: builder._paramUsernameList,
+                    paramPartyTypeList: builder._paramPartyTypeList,
                     paramStreamFrom: builder._paramStreamFromExclusive,
                     paramStreamLimit: builder._paramStreamLimit);
             }
@@ -597,11 +623,14 @@ internal partial class PostgreSqlPartyPersistence
             private FilterParameter _paramPersonIdentifier;
             private FilterParameter _paramOrganizationIdentifier;
             private FilterParameter _paramUserId;
+            private FilterParameter _paramUsername;
             private FilterParameter _paramPartyUuidList;
             private FilterParameter _paramPartyIdList;
             private FilterParameter _paramPersonIdentifierList;
             private FilterParameter _paramOrganizationIdentifierList;
             private FilterParameter _paramUserIdList;
+            private FilterParameter _paramUsernameList;
+            private FilterParameter _paramPartyTypeList;
             private FilterParameter _paramStreamFromExclusive;
             private FilterParameter _paramStreamLimit;
 
@@ -732,244 +761,75 @@ internal partial class PostgreSqlPartyPersistence
 
             private void PopulateCommonTableExpressions(PartyFieldIncludes includes, PartyQueryFilters filterBy)
             {
+                const string TOP_LEVEL_UUIDS = "top_level_uuids";
+                const string TOP_LEVEL_UNFILTERED = "top_level_uuids_unfiltered";
+
                 var firstExpression = true;
-                if (!filterBy.HasFlag(PartyQueryFilters.Multiple))
+                switch (filterBy.Mode)
                 {
-                    // if we are not filtering on multiple values, we only allow a single filter type
-                    switch (filterBy)
+                    case PartyQueryFilters.QueryMode.LookupOne:
+                        PopulateLookupOneCommonTableExpression(TOP_LEVEL_UUIDS, filterBy.LookupIdentifiers, ref firstExpression);
+                        break;
+
+                    case PartyQueryFilters.QueryMode.LookupMultiple:
+                        var hasFilters = filterBy.ListFilters is not PartyListFilters.None;
+                        var cteName = !hasFilters ? TOP_LEVEL_UUIDS : TOP_LEVEL_UNFILTERED;
+                        PopulateLookupMultipleCommonTableExpression(cteName, filterBy.LookupIdentifiers, ref firstExpression);
+                        if (hasFilters)
+                        {
+                            PopulateListFilterCommonTableExpression(TOP_LEVEL_UUIDS, source: TOP_LEVEL_UNFILTERED, filterBy.ListFilters, streamPage: false, ref firstExpression);
+                        }
+
+                        break;
+
+                    case PartyQueryFilters.QueryMode.FilteredStream:
+                        PopulateListFilterCommonTableExpression(TOP_LEVEL_UUIDS, source: null, filterBy.ListFilters, streamPage: true, ref firstExpression);
+                        break;
+
+                    default:
+                        ThrowHelper.ThrowArgumentOutOfRangeException(nameof(filterBy), filterBy, "Unsupported filter mode");
+                        break;
+                }
+
+                if (includes.HasAnyFlags(PartyFieldIncludes.User))
+                {
+                    switch ((filterBy.LookupIdentifiers.HasFlag(PartyLookupIdentifiers.UserId), filterBy.Mode))
                     {
-                        case PartyQueryFilters.PartyUuid:
-                            _paramPartyUuid = new(typeof(Guid), "partyUuid", NpgsqlDbType.Uuid);
+                        case (false, _):
                             AddCommonTableExpression(
                                 ref firstExpression,
-                                "top_level_uuids",
+                                "filtered_users",
                                 /*strpsql*/"""
-                                SELECT party."uuid", party.version_id
-                                FROM register.party AS party
-                                WHERE party."uuid" = @partyUuid
-                                """);
-                            break;
-
-                        case PartyQueryFilters.PartyId:
-                            _paramPartyId = new(typeof(long), "partyId", NpgsqlDbType.Bigint);
-                            AddCommonTableExpression(
-                                ref firstExpression,
-                                "top_level_uuids",
-                                /*strpsql*/"""
-                                SELECT party."uuid", party.version_id
-                                FROM register.party AS party
-                                WHERE party."id" = @partyId
-                                """);
-                            break;
-
-                        case PartyQueryFilters.PersonIdentifier:
-                            _paramPersonIdentifier = new(typeof(string), "personIdentifier", NpgsqlDbType.Text);
-                            AddCommonTableExpression(
-                                ref firstExpression,
-                                "top_level_uuids",
-                                /*strpsql*/"""
-                                SELECT party."uuid", party.version_id
-                                FROM register.party AS party
-                                WHERE party."person_identifier" = @personIdentifier
-                                """);
-                            break;
-
-                        case PartyQueryFilters.OrganizationIdentifier:
-                            _paramOrganizationIdentifier = new(typeof(string), "organizationIdentifier", NpgsqlDbType.Text);
-                            AddCommonTableExpression(
-                                ref firstExpression,
-                                "top_level_uuids",
-                                /*strpsql*/"""
-                                SELECT party."uuid", party.version_id
-                                FROM register.party AS party
-                                WHERE party."organization_identifier" = @organizationIdentifier
-                                """);
-                            break;
-
-                        case PartyQueryFilters.UserId:
-                            _paramUserId = new(typeof(long), "userId", NpgsqlDbType.Bigint);
-                            AddCommonTableExpression(
-                                ref firstExpression,
-                                "top_level_uuids",
-                                /*strpsql*/"""
-                                SELECT "user"."uuid", party.version_id
+                                SELECT "user".*
                                 FROM register."user" AS "user"
-                                INNER JOIN register.party AS party USING (uuid)
-                                WHERE "user".user_id = @userId
+                                WHERE "user".is_active
                                 """);
                             break;
 
-                        case PartyQueryFilters.StreamPage:
-                            Debug.Assert(!includes.HasFlag(PartyFieldIncludes.SubUnits), "A query cannot get both a stream page and subunits");
-                            _paramStreamFromExclusive = new(typeof(long), "streamFromExlusive", NpgsqlDbType.Bigint);
-                            _paramStreamLimit = new(typeof(int), "streamLimit", NpgsqlDbType.Integer);
-                            
+                        case (true, PartyQueryFilters.QueryMode.LookupOne):
                             AddCommonTableExpression(
                                 ref firstExpression,
-                                "maxval",
+                                "filtered_users",
                                 /*strpsql*/"""
-                                SELECT register.tx_max_safeval('register.party_version_id_seq') maxval
-                                """);
-                                
-                            AddCommonTableExpression(
-                                ref firstExpression,
-                                "top_level_uuids",
-                                /*strpsql*/"""
-                                SELECT party."uuid", party.version_id
-                                FROM register.party AS party
-                                CROSS JOIN maxval mv
-                                WHERE party.version_id > @streamFromExlusive
-                                  AND party.version_id <= mv.maxval
-                                ORDER BY party.version_id ASC
-                                LIMIT @streamLimit
+                                SELECT "user".*
+                                FROM register."user" AS "user"
+                                WHERE "user".is_active
+                                   OR "user".user_id = @userId
                                 """);
                             break;
 
                         default:
-                            ThrowHelper.ThrowArgumentOutOfRangeException(nameof(filterBy), $"Unhandled {nameof(PartyQueryFilters)} value: {filterBy}");
+                            Debug.Assert(_paramUserIdList.HasValue);
+                            AddCommonTableExpression(
+                                ref firstExpression,
+                                "filtered_users",
+                                /*strpsql*/"""
+                                SELECT "user".*
+                                FROM register."user" AS "user"
+                                WHERE "user".is_active
+                                   OR "user".user_id = ANY (@userIds)
+                                """);
                             break;
-                    }
-                }
-                else if (!filterBy.HasFlag(PartyQueryFilters.StreamPage))
-                {
-                    var idSets = new List<string>();
-
-                    if (filterBy.HasFlag(PartyQueryFilters.PartyUuid))
-                    {
-                        // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
-                        _paramPartyUuidList = new(typeof(IList<Guid>), "partyUuids", NpgsqlDbType.Array | NpgsqlDbType.Uuid);
-                        idSets.Add("uuids_by_party_uuid");
-                        AddCommonTableExpression(
-                            ref firstExpression,
-                            "uuids_by_party_uuid",
-                            /*strpsql*/"""
-                            SELECT party."uuid", party.version_id
-                            FROM register.party AS party
-                            WHERE party."uuid" = ANY (@partyUuids)
-                            """);
-                    }
-
-                    if (filterBy.HasFlag(PartyQueryFilters.PartyId))
-                    {
-                        // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
-                        _paramPartyIdList = new(typeof(IList<long>), "partyIds", NpgsqlDbType.Array | NpgsqlDbType.Bigint);
-                        idSets.Add("uuids_by_party_id");
-                        AddCommonTableExpression(
-                            ref firstExpression,
-                            "uuids_by_party_id",
-                            /*strpsql*/"""
-                            SELECT party."uuid", party.version_id
-                            FROM register.party AS party
-                            WHERE party."id" = ANY (@partyIds)
-                            """);
-                    }
-
-                    if (filterBy.HasFlag(PartyQueryFilters.PersonIdentifier))
-                    {
-                        // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
-                        _paramPersonIdentifierList = new(typeof(IList<string>), "personIdentifiers", NpgsqlDbType.Array | NpgsqlDbType.Text);
-                        idSets.Add("uuids_by_person_identifier");
-                        AddCommonTableExpression(
-                            ref firstExpression,
-                            "uuids_by_person_identifier",
-                            /*strpsql*/"""
-                            SELECT party."uuid", party.version_id
-                            FROM register.party AS party
-                            WHERE party."person_identifier" = ANY (@personIdentifiers)
-                            """);
-                    }
-
-                    if (filterBy.HasFlag(PartyQueryFilters.OrganizationIdentifier))
-                    {
-                        // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
-                        _paramOrganizationIdentifierList = new(typeof(IList<string>), "organizationIdentifiers", NpgsqlDbType.Array | NpgsqlDbType.Text);
-                        idSets.Add("uuids_by_organization_identifier");
-                        AddCommonTableExpression(
-                            ref firstExpression,
-                            "uuids_by_organization_identifier",
-                            /*strpsql*/"""
-                            SELECT party."uuid", party.version_id
-                            FROM register.party AS party
-                            WHERE party."organization_identifier" = ANY (@organizationIdentifiers)
-                            """);
-                    }
-
-                    if (filterBy.HasFlag(PartyQueryFilters.UserId))
-                    {
-                        // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
-                        _paramUserIdList = new(typeof(IList<long>), "userIds", NpgsqlDbType.Array | NpgsqlDbType.Bigint);
-                        idSets.Add("uuids_by_user_id");
-                        AddCommonTableExpression(
-                            ref firstExpression,
-                            "uuids_by_user_id",
-                            /*strpsql*/"""
-                            SELECT "user"."uuid", party.version_id
-                            FROM register."user" AS "user"
-                            INNER JOIN register.party AS party USING (uuid)
-                            WHERE "user".user_id = ANY (@userIds)
-                            """);
-                    }
-
-                    Debug.Assert(idSets.Count > 0, "No filters were added, but multiple filters were requested");
-
-                    _builder.AppendLine(",").AppendLine(/*strpsql*/"top_level_uuids AS (");
-                    for (int i = 0, l = idSets.Count; i < l; i++)
-                    {
-                        if (i != 0)
-                        {
-                            _builder.AppendLine(/*strpsql*/"    UNION");
-                        }
-
-                        _builder.Append(/*strpsql*/"""    SELECT "uuid", version_id FROM """).AppendLine(idSets[i]);
-                    }
-
-                    _builder.Append(')');
-                }
-                else
-                {
-                    // stream-page + filters is illegal
-                    ThrowHelper.ThrowArgumentException(nameof(filterBy), $"Cannot use {nameof(PartyQueryFilters.StreamPage)} with other filters");
-                }
-
-                // There should always have been added at least 1 CTE by this point
-                Debug.Assert(!firstExpression);
-
-                if (includes.HasAnyFlags(PartyFieldIncludes.User))
-                {
-                    if (filterBy.HasFlag(PartyQueryFilters.UserId | PartyQueryFilters.Multiple))
-                    {
-                        AddCommonTableExpression(
-                            ref firstExpression,
-                            "filtered_users",
-                            /*strpsql*/"""
-                            SELECT "user".*
-                            FROM register."user" AS "user"
-                            WHERE "user".is_active
-                               OR "user".user_id = ANY (@userIds)
-                            """);
-                    }
-                    else if (filterBy.HasFlag(PartyQueryFilters.UserId))
-                    {
-                        AddCommonTableExpression(
-                            ref firstExpression,
-                            "filtered_users",
-                            /*strpsql*/"""
-                            SELECT "user".*
-                            FROM register."user" AS "user"
-                            WHERE "user".is_active
-                               OR "user".user_id = @userId
-                            """);
-                    }
-                    else
-                    {
-                        AddCommonTableExpression(
-                            ref firstExpression,
-                            "filtered_users",
-                            /*strpsql*/"""
-                            SELECT "user".*
-                            FROM register."user" AS "user"
-                            WHERE "user".is_active
-                            """);
                     }
                 }
 
@@ -1025,6 +885,262 @@ internal partial class PostgreSqlPartyPersistence
                 }
 
                 _builder.AppendLine();
+            }
+
+            private void PopulateLookupOneCommonTableExpression(string name, PartyLookupIdentifiers identifier, ref bool firstExpression)
+            {
+                // if we are not filtering on multiple values, we only allow a single filter type
+                switch (identifier)
+                {
+                    case PartyLookupIdentifiers.PartyUuid:
+                        _paramPartyUuid = new(typeof(Guid), "partyUuid", NpgsqlDbType.Uuid);
+                        AddCommonTableExpression(
+                            ref firstExpression,
+                            name,
+                            /*strpsql*/"""
+                                SELECT party."uuid", party.version_id
+                                FROM register.party AS party
+                                WHERE party."uuid" = @partyUuid
+                                """);
+                        break;
+
+                    case PartyLookupIdentifiers.PartyId:
+                        _paramPartyId = new(typeof(long), "partyId", NpgsqlDbType.Bigint);
+                        AddCommonTableExpression(
+                            ref firstExpression,
+                            name,
+                            /*strpsql*/"""
+                                SELECT party."uuid", party.version_id
+                                FROM register.party AS party
+                                WHERE party."id" = @partyId
+                                """);
+                        break;
+
+                    case PartyLookupIdentifiers.PersonIdentifier:
+                        _paramPersonIdentifier = new(typeof(string), "personIdentifier", NpgsqlDbType.Text);
+                        AddCommonTableExpression(
+                            ref firstExpression,
+                            name,
+                            /*strpsql*/"""
+                                SELECT party."uuid", party.version_id
+                                FROM register.party AS party
+                                WHERE party."person_identifier" = @personIdentifier
+                                """);
+                        break;
+
+                    case PartyLookupIdentifiers.OrganizationIdentifier:
+                        _paramOrganizationIdentifier = new(typeof(string), "organizationIdentifier", NpgsqlDbType.Text);
+                        AddCommonTableExpression(
+                            ref firstExpression,
+                            name,
+                            /*strpsql*/"""
+                                SELECT party."uuid", party.version_id
+                                FROM register.party AS party
+                                WHERE party."organization_identifier" = @organizationIdentifier
+                                """);
+                        break;
+
+                    case PartyLookupIdentifiers.UserId:
+                        _paramUserId = new(typeof(long), "userId", NpgsqlDbType.Bigint);
+                        AddCommonTableExpression(
+                            ref firstExpression,
+                            name,
+                            /*strpsql*/"""
+                                SELECT "user"."uuid", party.version_id
+                                FROM register."user" AS "user"
+                                INNER JOIN register.party AS party USING (uuid)
+                                WHERE "user".user_id = @userId
+                                """);
+                        break;
+
+                    case PartyLookupIdentifiers.UserName:
+                        _paramUsername = new(typeof(string), "username", NpgsqlDbType.Text);
+                        AddCommonTableExpression(
+                            ref firstExpression,
+                            name,
+                            /*strpsql*/"""
+                                SELECT "user"."uuid", party.version_id
+                                FROM register."user" AS "user"
+                                INNER JOIN register.party AS party USING (uuid)
+                                WHERE "user".username = @username
+                                """);
+                        break;
+                }
+
+                Debug.Assert(!firstExpression);
+            }
+
+            private void PopulateLookupMultipleCommonTableExpression(string name, PartyLookupIdentifiers identifier, ref bool firstExpression)
+            {
+                var idSets = new List<string>();
+
+                if (identifier.HasFlag(PartyLookupIdentifiers.PartyUuid))
+                {
+                    // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
+                    _paramPartyUuidList = new(typeof(IList<Guid>), "partyUuids", NpgsqlDbType.Array | NpgsqlDbType.Uuid);
+                    idSets.Add("uuids_by_party_uuid");
+                    AddCommonTableExpression(
+                        ref firstExpression,
+                        "uuids_by_party_uuid",
+                        /*strpsql*/"""
+                            SELECT party."uuid", party.version_id
+                            FROM register.party AS party
+                            WHERE party."uuid" = ANY (@partyUuids)
+                            """);
+                }
+
+                if (identifier.HasFlag(PartyLookupIdentifiers.PartyId))
+                {
+                    // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
+                    _paramPartyIdList = new(typeof(IList<long>), "partyIds", NpgsqlDbType.Array | NpgsqlDbType.Bigint);
+                    idSets.Add("uuids_by_party_id");
+                    AddCommonTableExpression(
+                        ref firstExpression,
+                        "uuids_by_party_id",
+                        /*strpsql*/"""
+                            SELECT party."uuid", party.version_id
+                            FROM register.party AS party
+                            WHERE party."id" = ANY (@partyIds)
+                            """);
+                }
+
+                if (identifier.HasFlag(PartyLookupIdentifiers.PersonIdentifier))
+                {
+                    // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
+                    _paramPersonIdentifierList = new(typeof(IList<string>), "personIdentifiers", NpgsqlDbType.Array | NpgsqlDbType.Text);
+                    idSets.Add("uuids_by_person_identifier");
+                    AddCommonTableExpression(
+                        ref firstExpression,
+                        "uuids_by_person_identifier",
+                        /*strpsql*/"""
+                            SELECT party."uuid", party.version_id
+                            FROM register.party AS party
+                            WHERE party."person_identifier" = ANY (@personIdentifiers)
+                            """);
+                }
+
+                if (identifier.HasFlag(PartyLookupIdentifiers.OrganizationIdentifier))
+                {
+                    // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
+                    _paramOrganizationIdentifierList = new(typeof(IList<string>), "organizationIdentifiers", NpgsqlDbType.Array | NpgsqlDbType.Text);
+                    idSets.Add("uuids_by_organization_identifier");
+                    AddCommonTableExpression(
+                        ref firstExpression,
+                        "uuids_by_organization_identifier",
+                        /*strpsql*/"""
+                            SELECT party."uuid", party.version_id
+                            FROM register.party AS party
+                            WHERE party."organization_identifier" = ANY (@organizationIdentifiers)
+                            """);
+                }
+
+                if (identifier.HasFlag(PartyLookupIdentifiers.UserId))
+                {
+                    // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
+                    _paramUserIdList = new(typeof(IList<long>), "userIds", NpgsqlDbType.Array | NpgsqlDbType.Bigint);
+                    idSets.Add("uuids_by_user_id");
+                    AddCommonTableExpression(
+                        ref firstExpression,
+                        "uuids_by_user_id",
+                        /*strpsql*/"""
+                            SELECT "user"."uuid", party.version_id
+                            FROM register."user" AS "user"
+                            INNER JOIN register.party AS party USING (uuid)
+                            WHERE "user".user_id = ANY (@userIds)
+                            """);
+                }
+
+                if (identifier.HasFlag(PartyLookupIdentifiers.UserName))
+                {
+                    // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
+                    _paramUsernameList = new(typeof(IList<string>), "usernames", NpgsqlDbType.Array | NpgsqlDbType.Text);
+                    idSets.Add("uuids_by_username");
+                    AddCommonTableExpression(
+                        ref firstExpression,
+                        "uuids_by_username",
+                        /*strpsql*/"""
+                            SELECT "user"."uuid", party.version_id
+                            FROM register."user" AS "user"
+                            INNER JOIN register.party AS party USING (uuid)
+                            WHERE "user".username = ANY (@usernames)
+                            """);
+                }
+
+                Debug.Assert(!firstExpression);
+                Debug.Assert(idSets.Count > 0, "No filters were added, but multiple filters were requested");
+
+                _builder.AppendLine(",").Append(name).AppendLine(/*strpsql*/" AS (");
+                for (int i = 0, l = idSets.Count; i < l; i++)
+                {
+                    if (i != 0)
+                    {
+                        _builder.AppendLine(/*strpsql*/"    UNION");
+                    }
+
+                    _builder.Append(/*strpsql*/"""    SELECT "uuid", version_id FROM """).AppendLine(idSets[i]);
+                }
+
+                _builder.Append(')');
+            }
+
+            private void PopulateListFilterCommonTableExpression(string name, string? source, PartyListFilters filters, bool streamPage, ref bool firstExpression)
+            {
+                Debug.Assert(filters is not PartyListFilters.None || streamPage);
+                if (streamPage)
+                {
+                    _paramStreamFromExclusive = new(typeof(long), "streamFromExclusive", NpgsqlDbType.Bigint);
+                    _paramStreamLimit = new(typeof(int), "streamLimit", NpgsqlDbType.Integer);
+                    AddCommonTableExpression(
+                        ref firstExpression,
+                        "maxval",
+                        /*strpsql*/"""
+                        SELECT register.tx_max_safeval('register.party_version_id_seq') maxval
+                        """);
+                }
+
+                if (!firstExpression)
+                {
+                    _builder.AppendLine(",");
+                }
+
+                firstExpression = false;
+                _builder.Append(name).AppendLine(/*strpsql*/" AS (");
+                _builder.AppendLine(/*strpsql*/"    SELECT party.\"uuid\", party.version_id");
+                if (source is null)
+                {
+                    _builder.AppendLine(/*strpsql*/"    FROM register.party AS party");
+                }
+                else
+                {
+                    _builder.Append(/*strpsql*/"    FROM ").Append(source).AppendLine(/*strpsql*/" AS source");
+                    _builder.AppendLine(/*strpsql*/"    INNER JOIN register.party AS party USING (uuid)");
+                }
+
+                var whereAdded = false;
+                if (streamPage)
+                {
+                    _builder.AppendLine(/*strpsql*/"    CROSS JOIN maxval mv");
+                    _builder.AppendLine(/*strpsql*/"    WHERE party.version_id > @streamFromExclusive");
+                    _builder.AppendLine(/*strpsql*/"      AND party.version_id <= mv.maxval");
+                    whereAdded = true;
+                }
+
+                if (filters.HasFlag(PartyListFilters.PartyType))
+                {
+                    _paramPartyTypeList = new(typeof(IList<PartyRecordType>), "partyTypes", default);
+                    var kw = whereAdded ? "  AND" : "WHERE";
+                    whereAdded = true;
+
+                    _builder.Append("    ").Append(kw).AppendLine(/*strpsql*/" party.party_type = ANY (@partyTypes)");
+                }
+
+                if (streamPage)
+                {
+                    _builder.AppendLine(/*strpsql*/"    ORDER BY party.version_id ASC");
+                    _builder.AppendLine(/*strpsql*/"    LIMIT @streamLimit");
+                }
+
+                _builder.Append(')');
             }
 
             private void AddCommonTableExpression(ref bool firstExpression, string name, string query)
