@@ -197,6 +197,11 @@ internal static partial class PartyMapper
             ThrowHelper.ThrowInvalidOperationException("Platform.Models.Register.Party requires a VersionId to be set.");
         }
 
+        if (source.SystemUserType.IsNull)
+        {
+            ThrowHelper.ThrowInvalidOperationException($"Platform.Models.Register.SystemUser requires {nameof(SystemUser.SystemUserType)} to not be null.");
+        }
+
         Debug.Assert(source.PartyType.IsSet && source.PartyType.Value == PartyRecordType.SystemUser);
 
         return new SystemUser
@@ -210,6 +215,15 @@ internal static partial class PartyMapper
             IsDeleted = source.IsDeleted,
             User = source.User.Select(static u => u.ToPlatformModel()),
             Owner = source.OwnerUuid.Select(static uuid => new PartyRef { Uuid = uuid }),
+            SystemUserType = source.SystemUserType.Select(static t => NonExhaustiveEnum.Create(t.MapSystemUserType())),
         };
     }
+
+    private static SystemUserType MapSystemUserType(this SystemUserRecordType source)
+        => source switch
+        {
+            SystemUserRecordType.Standard => SystemUserType.FirstPartySystemUser,
+            SystemUserRecordType.Agent => SystemUserType.ClientPartySystemUser,
+            _ => ThrowHelper.ThrowArgumentOutOfRangeException<SystemUserType>(nameof(source), source, "Invalid system user type."),
+        };
 }

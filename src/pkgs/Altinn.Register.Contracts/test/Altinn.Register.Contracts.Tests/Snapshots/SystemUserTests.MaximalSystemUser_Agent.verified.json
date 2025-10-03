@@ -4,7 +4,7 @@
     "partyUuid": "00000000-0000-0000-0000-000000000002",
     "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000002"
   },
-  "systemUserType": "first-party-system-user",
+  "systemUserType": "client-party-system-user",
   "partyUuid": "00000000-0000-0000-0000-000000000001",
   "versionId": 1,
   "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000001",
