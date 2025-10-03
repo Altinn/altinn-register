@@ -6,7 +6,7 @@ namespace Altinn.Register.Contracts;
 /// Represents a party type.
 /// </summary>
 /// <remarks>
-/// This enum is explicitly made such that <c>default(PartyType)</c> is not a valid value.
+/// This enum is explicitly made such that <c><see langword="default"/>(<see cref="PartyType"/>)</c> is not a valid value.
 /// </remarks>
 [StringEnumConverter]
 public enum PartyType

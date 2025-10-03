@@ -14,4 +14,10 @@ public sealed record SystemUser()
     /// </summary>
     [JsonPropertyName("owner")]
     public required FieldValue<PartyRef> Owner { get; init; }
+
+    /// <summary>
+    /// Gets the type of the system user.
+    /// </summary>
+    [JsonPropertyName("systemUserType")]
+    public required FieldValue<NonExhaustiveEnum<SystemUserType>> SystemUserType { get; init; }
 }
