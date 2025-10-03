@@ -55,7 +55,7 @@ internal partial class PostgreSqlPartyPersistence
         // always include by-field in the result
         include |= PartyFieldIncludes.PartyUuid;
 
-        var query = PartyQuery.Get(include, PartyQueryFilters.PartyUuid);
+        var query = PartyQuery.Get(include, PartyQueryFilters.LookupOne(PartyLookupIdentifiers.PartyUuid));
 
         NpgsqlCommand? cmd = null;
         try
@@ -84,7 +84,7 @@ internal partial class PostgreSqlPartyPersistence
         // always include by-field in the result
         include |= PartyFieldIncludes.PartyId;
 
-        var query = PartyQuery.Get(include, PartyQueryFilters.PartyId);
+        var query = PartyQuery.Get(include, PartyQueryFilters.LookupOne(PartyLookupIdentifiers.PartyId));
 
         NpgsqlCommand? cmd = null;
         try
@@ -116,7 +116,7 @@ internal partial class PostgreSqlPartyPersistence
         // filter out person fields as result is guaranteed to be an organization
         include &= ~PartyFieldIncludes.Person;
 
-        var query = PartyQuery.Get(include, PartyQueryFilters.OrganizationIdentifier);
+        var query = PartyQuery.Get(include, PartyQueryFilters.LookupOne(PartyLookupIdentifiers.OrganizationIdentifier));
         NpgsqlCommand? cmd = null;
         try
         {
@@ -147,7 +147,7 @@ internal partial class PostgreSqlPartyPersistence
         // filter out organization fields as result is guaranteed to be a person
         include &= ~(PartyFieldIncludes.Organization & PartyFieldIncludes.SubUnits);
 
-        var query = PartyQuery.Get(include, PartyQueryFilters.PersonIdentifier);
+        var query = PartyQuery.Get(include, PartyQueryFilters.LookupOne(PartyLookupIdentifiers.PersonIdentifier));
         NpgsqlCommand? cmd = null;
         try
         {
@@ -175,7 +175,7 @@ internal partial class PostgreSqlPartyPersistence
         // always include by-field in the result
         include |= PartyFieldIncludes.UserId;
 
-        var query = PartyQuery.Get(include, PartyQueryFilters.UserId);
+        var query = PartyQuery.Get(include, PartyQueryFilters.LookupOne(PartyLookupIdentifiers.UserId));
         NpgsqlCommand? cmd = null;
         try
         {
@@ -205,40 +205,40 @@ internal partial class PostgreSqlPartyPersistence
         _handle.ThrowIfCompleted();
 
         bool any = false, orgs = false, persons = false;
-        PartyQueryFilters filters = PartyQueryFilters.Multiple;
+        PartyLookupIdentifiers identifiers = PartyLookupIdentifiers.None;
         
         if (partyUuids is { Count: > 0 })
         {
             any = orgs = persons = true;
-            filters |= PartyQueryFilters.PartyUuid;
+            identifiers |= PartyLookupIdentifiers.PartyUuid;
             include |= PartyFieldIncludes.PartyUuid;
         }
 
         if (partyIds is { Count: > 0 })
         {
             any = orgs = persons = true;
-            filters |= PartyQueryFilters.PartyId;
+            identifiers |= PartyLookupIdentifiers.PartyId;
             include |= PartyFieldIncludes.PartyId;
         }
 
         if (organizationIdentifiers is { Count: > 0 })
         {
             any = orgs = true;
-            filters |= PartyQueryFilters.OrganizationIdentifier;
+            identifiers |= PartyLookupIdentifiers.OrganizationIdentifier;
             include |= PartyFieldIncludes.PartyOrganizationIdentifier;
         }
 
         if (personIdentifiers is { Count: > 0 })
         {
             any = persons = true;
-            filters |= PartyQueryFilters.PersonIdentifier;
+            identifiers |= PartyLookupIdentifiers.PersonIdentifier;
             include |= PartyFieldIncludes.PartyPersonIdentifier;
         }
 
         if (userIds is { Count: > 0 })
         {
             any = persons = true;
-            filters |= PartyQueryFilters.UserId;
+            identifiers |= PartyLookupIdentifiers.UserId;
             include |= PartyFieldIncludes.UserId;
         }
 
@@ -259,7 +259,7 @@ internal partial class PostgreSqlPartyPersistence
             include &= ~PartyFieldIncludes.Person;
         }
 
-        var query = PartyQuery.Get(include, filters);
+        var query = PartyQuery.Get(include, PartyQueryFilters.Lookup(identifiers));
         NpgsqlCommand? cmd = null;
         try
         {
@@ -309,7 +309,7 @@ internal partial class PostgreSqlPartyPersistence
         _handle.ThrowIfCompleted();
         Guard.IsFalse(include.HasFlag(PartyFieldIncludes.SubUnits), nameof(include), $"{nameof(PartyFieldIncludes)}.{nameof(PartyFieldIncludes.SubUnits)} is not allowed");
 
-        var query = PartyQuery.Get(include, PartyQueryFilters.StreamPage);
+        var query = PartyQuery.Get(include, PartyQueryFilters.Stream());
         NpgsqlCommand? cmd = null;
         try
         {

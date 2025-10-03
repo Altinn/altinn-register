@@ -1,0 +1,93 @@
+﻿-- include: display-name,identifiers,org.subunits
+-- filter: lookup(id,uuid,pers.id,org.id,user.id,user.name; type)
+
+WITH uuids_by_party_uuid AS (
+    SELECT party."uuid", party.version_id
+    FROM register.party AS party
+    WHERE party."uuid" = ANY (@partyUuids)
+),
+uuids_by_party_id AS (
+    SELECT party."uuid", party.version_id
+    FROM register.party AS party
+    WHERE party."id" = ANY (@partyIds)
+),
+uuids_by_person_identifier AS (
+    SELECT party."uuid", party.version_id
+    FROM register.party AS party
+    WHERE party."person_identifier" = ANY (@personIdentifiers)
+),
+uuids_by_organization_identifier AS (
+    SELECT party."uuid", party.version_id
+    FROM register.party AS party
+    WHERE party."organization_identifier" = ANY (@organizationIdentifiers)
+),
+uuids_by_user_id AS (
+    SELECT "user"."uuid", party.version_id
+    FROM register."user" AS "user"
+    INNER JOIN register.party AS party USING (uuid)
+    WHERE "user".user_id = ANY (@userIds)
+),
+uuids_by_username AS (
+    SELECT "user"."uuid", party.version_id
+    FROM register."user" AS "user"
+    INNER JOIN register.party AS party USING (uuid)
+    WHERE "user".username = ANY (@usernames)
+),
+top_level_uuids_unfiltered AS (
+    SELECT "uuid", version_id FROM uuids_by_party_uuid
+    UNION
+    SELECT "uuid", version_id FROM uuids_by_party_id
+    UNION
+    SELECT "uuid", version_id FROM uuids_by_person_identifier
+    UNION
+    SELECT "uuid", version_id FROM uuids_by_organization_identifier
+    UNION
+    SELECT "uuid", version_id FROM uuids_by_user_id
+    UNION
+    SELECT "uuid", version_id FROM uuids_by_username
+),
+top_level_uuids AS (
+    SELECT party."uuid", party.version_id
+    FROM top_level_uuids_unfiltered AS source
+    INNER JOIN register.party AS party USING (uuid)
+    WHERE party.party_type = ANY (@partyTypes)
+),
+sub_units AS (
+    SELECT
+        parent."uuid" AS parent_uuid,
+        parent.version_id AS parent_version_id,
+        ra."from_party" AS child_uuid
+    FROM top_level_uuids AS parent
+    JOIN register.external_role_assignment ra
+         ON ra.to_party = parent."uuid"
+        AND ra.source = 'ccr'
+        AND (ra.identifier = 'ikke-naeringsdrivende-hovedenhet' OR ra.identifier = 'hovedenhet')
+),
+uuids AS (
+    SELECT
+        "uuid" AS "uuid",
+        NULL::uuid AS parent_uuid,
+        version_id AS sort_first,
+        NULL::uuid AS sort_second
+    FROM top_level_uuids
+    UNION
+    SELECT 
+        child_uuid AS "uuid",
+        parent_uuid,
+        parent_version_id AS sort_first,
+        child_uuid AS sort_second
+    FROM sub_units
+)
+SELECT
+    uuids.parent_uuid p_parent_uuid,
+    party.uuid p_uuid,
+    party.id p_id,
+    party.party_type p_party_type,
+    party.display_name p_display_name,
+    party.person_identifier p_person_identifier,
+    party.organization_identifier p_organization_identifier
+FROM uuids AS uuids
+INNER JOIN register.party AS party USING (uuid)
+ORDER BY
+    uuids.sort_first,
+    uuids.sort_second NULLS FIRST
