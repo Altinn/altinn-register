@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.1.1...Altinn.Register.Contracts-v1.2.0) (2025-10-03)
+
+
+### Features
+
+* add system-user type ([#586](https://github.com/Altinn/altinn-register/issues/586)) ([b036a4d](https://github.com/Altinn/altinn-register/commit/b036a4ddfda87269a990aef412c0b461493008b4))
+
 ## [1.1.1](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.1.0...Altinn.Register.Contracts-v1.1.1) (2025-10-02)
 
 
