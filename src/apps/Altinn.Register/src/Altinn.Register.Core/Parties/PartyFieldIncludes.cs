@@ -73,15 +73,22 @@ public enum PartyFieldIncludes
     PartyIsDeleted = 1UL << 8,
 
     /// <summary>
+    /// When the party was deleted, if it is deleted.
+    /// </summary>
+    [JsonStringEnumMemberName("deleted-at")]
+    PartyDeletedAt = 1UL << 9,
+
+    /// <summary>
     /// The version ID of the party.
     /// </summary>
     [JsonStringEnumMemberName("version")]
-    PartyVersionId = 1UL << 9,
+    PartyVersionId = 1UL << 10,
 
     /// <summary>
     /// The UUID of the owner party, if any.
     /// </summary>
-    PartyOwnerUuid = 1UL << 10,
+    [JsonStringEnumMemberName("owner-uuid")]
+    PartyOwnerUuid = 1UL << 11,
 
     /// <summary>
     /// All party identifiers.
@@ -93,31 +100,31 @@ public enum PartyFieldIncludes
     /// All party fields.
     /// </summary>
     [JsonStringEnumMemberName("party")]
-    Party = Identifiers | PartyType | PartyDisplayName | PartyCreatedAt | PartyModifiedAt | PartyIsDeleted | PartyVersionId | PartyOwnerUuid,
+    Party = Identifiers | PartyType | PartyDisplayName | PartyCreatedAt | PartyModifiedAt | PartyIsDeleted | PartyDeletedAt | PartyVersionId | PartyOwnerUuid,
 
     /// <summary>
     /// The first name of the person, if the party is a person.
     /// </summary>
     [JsonStringEnumMemberName("person.first-name")]
-    PersonFirstName = 1UL << 11,
+    PersonFirstName = 1UL << 12,
 
     /// <summary>
     /// The middle name of the person, if the party is a person.
     /// </summary>
     [JsonStringEnumMemberName("person.middle-name")]
-    PersonMiddleName = 1UL << 12,
+    PersonMiddleName = 1UL << 13,
 
     /// <summary>
     /// The last name of the person, if the party is a person.
     /// </summary>
     [JsonStringEnumMemberName("person.last-name")]
-    PersonLastName = 1UL << 13,
+    PersonLastName = 1UL << 14,
 
     /// <summary>
     /// The short name of the person, if the party is a person.
     /// </summary>
     [JsonStringEnumMemberName("person.short-name")]
-    PersonShortName = 1UL << 14,
+    PersonShortName = 1UL << 15,
 
     /// <summary>
     /// All person name fields.
@@ -129,25 +136,25 @@ public enum PartyFieldIncludes
     /// The address of the person, if the party is a person.
     /// </summary>
     [JsonStringEnumMemberName("person.address")]
-    PersonAddress = 1UL << 15,
+    PersonAddress = 1UL << 16,
 
     /// <summary>
     /// The mailing address of the person, if the party is a person.
     /// </summary>
     [JsonStringEnumMemberName("person.mailing-address")]
-    PersonMailingAddress = 1UL << 16,
+    PersonMailingAddress = 1UL << 17,
 
     /// <summary>
     /// The date of birth of the person, if the party is a person.
     /// </summary>
     [JsonStringEnumMemberName("person.date-of-birth")]
-    PersonDateOfBirth = 1UL << 17,
+    PersonDateOfBirth = 1UL << 18,
 
     /// <summary>
     /// The date of death of the person, if the party is a person.
     /// </summary>
     [JsonStringEnumMemberName("person.date-of-death")]
-    PersonDateOfDeath = 1UL << 18,
+    PersonDateOfDeath = 1UL << 19,
 
     /// <summary>
     /// All person fields.
@@ -159,55 +166,55 @@ public enum PartyFieldIncludes
     /// The organization unit status, if the party is an organization.
     /// </summary>
     [JsonStringEnumMemberName("org.status")]
-    OrganizationUnitStatus = 1UL << 19,
+    OrganizationUnitStatus = 1UL << 20,
 
     /// <summary>
     /// The organization unit type, if the party is an organization.
     /// </summary>
     [JsonStringEnumMemberName("org.type")]
-    OrganizationUnitType = 1UL << 20,
+    OrganizationUnitType = 1UL << 21,
 
     /// <summary>
     /// The organization telephone number, if the party is an organization.
     /// </summary>
     [JsonStringEnumMemberName("org.telephone")]
-    OrganizationTelephoneNumber = 1UL << 21,
+    OrganizationTelephoneNumber = 1UL << 22,
 
     /// <summary>
     /// The organization mobile number, if the party is an organization.
     /// </summary>
     [JsonStringEnumMemberName("org.mobile")]
-    OrganizationMobileNumber = 1UL << 22,
+    OrganizationMobileNumber = 1UL << 23,
 
     /// <summary>
     /// The organization fax number, if the party is an organization.
     /// </summary>
     [JsonStringEnumMemberName("org.fax")]
-    OrganizationFaxNumber = 1UL << 23,
+    OrganizationFaxNumber = 1UL << 24,
 
     /// <summary>
     /// The organization email address, if the party is an organization.
     /// </summary>
     [JsonStringEnumMemberName("org.email")]
-    OrganizationEmailAddress = 1UL << 24,
+    OrganizationEmailAddress = 1UL << 25,
 
     /// <summary>
     /// The organization internet address, if the party is an organization.
     /// </summary>
     [JsonStringEnumMemberName("org.internet")]
-    OrganizationInternetAddress = 1UL << 25,
+    OrganizationInternetAddress = 1UL << 26,
 
     /// <summary>
     /// The organization mailing address, if the party is an organization.
     /// </summary>
     [JsonStringEnumMemberName("org.mailing-address")]
-    OrganizationMailingAddress = 1UL << 26,
+    OrganizationMailingAddress = 1UL << 27,
 
     /// <summary>
     /// The organization business address, if the party is an organization.
     /// </summary>
     [JsonStringEnumMemberName("org.business-address")]
-    OrganizationBusinessAddress = 1UL << 27,
+    OrganizationBusinessAddress = 1UL << 28,
 
     /// <summary>
     /// All organization fields.
@@ -230,25 +237,25 @@ public enum PartyFieldIncludes
     /// The system user type, if the party is a system user.
     /// </summary>
     [JsonStringEnumMemberName("sysuser.type")]
-    SystemUserType = 1UL << 28,
+    SystemUserType = 1UL << 29,
 
     /// <summary>
     /// Include subunits (if party is an organization).
     /// </summary>
     [JsonStringEnumMemberName("org.subunits")]
-    SubUnits = 1UL << 29,
+    SubUnits = 1UL << 30,
 
     /// <summary>
     /// The user id(s), if the party has an associated user.
     /// </summary>
     [JsonStringEnumMemberName("user.id")]
-    UserId = 1UL << 30,
+    UserId = 1UL << 31,
 
     /// <summary>
     /// The username, if the party has an associated user.
     /// </summary>
     [JsonStringEnumMemberName("user.name")]
-    Username = 1UL << 31,
+    Username = 1UL << 32,
 
     /// <summary>
     /// All user fields.

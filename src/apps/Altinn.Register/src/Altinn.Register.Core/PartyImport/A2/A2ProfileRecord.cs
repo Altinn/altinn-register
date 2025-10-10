@@ -70,4 +70,9 @@ public sealed record A2ProfileRecord
     /// Gets the party ID.
     /// </summary>
     public required uint PartyId { get; init; }
+
+    /// <summary>
+    /// Gets when the profile was last changed.
+    /// </summary>
+    public required DateTimeOffset? LastChangedAt { get; init; }
 }

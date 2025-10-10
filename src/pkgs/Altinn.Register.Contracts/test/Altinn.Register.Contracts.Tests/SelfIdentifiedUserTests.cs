@@ -17,6 +17,7 @@ public class SelfIdentifiedUserTests
                 CreatedAt = FieldValue.Unset,
                 ModifiedAt = FieldValue.Unset,
                 IsDeleted = FieldValue.Unset,
+                DeletedAt = FieldValue.Unset,
                 User = FieldValue.Unset,
                 VersionId = VersionId,
             },
@@ -42,6 +43,7 @@ public class SelfIdentifiedUserTests
                 CreatedAt = CreatedAt,
                 ModifiedAt = ModifiedAt,
                 IsDeleted = false,
+                DeletedAt = FieldValue.Null,
                 User = FullUser,
                 VersionId = VersionId,
             },
@@ -56,6 +58,7 @@ public class SelfIdentifiedUserTests
               "createdAt": "2020-01-02T03:04:05+00:00",
               "modifiedAt": "2022-05-06T07:08:09+00:00",
               "isDeleted": false,
+              "deletedAt": null,
               "user": {
                 "userId": 50,
                 "username": "username",
