@@ -98,6 +98,16 @@ public record Party
     public required FieldValue<bool> IsDeleted { get; init; }
 
     /// <summary>
+    /// Gets when the party was deleted.
+    /// </summary>
+    /// <remarks>
+    /// This will only have a value if the party is actually deleted (see <see cref="IsDeleted"/>).
+    /// Though, if <see cref="IsDeleted"/> is not requested, it may still be unset.
+    /// </remarks>
+    [JsonPropertyName("deletedAt")]
+    public required FieldValue<DateTimeOffset> DeletedAt { get; init; }
+
+    /// <summary>
     /// Gets user information for the party.
     /// </summary>
     [JsonPropertyName("user")]
@@ -128,6 +138,7 @@ public record Party
         builder.Append(", CreatedAt = ").Append(CreatedAt);
         builder.Append(", ModifiedAt = ").Append(ModifiedAt);
         builder.Append(", IsDeleted = ").Append(IsDeleted);
+        builder.Append(", DeletedAt = ").Append(DeletedAt);
         builder.Append(", User = ").Append(User);
 
         IHasExtensionData ext = this;

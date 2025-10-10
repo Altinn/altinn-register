@@ -56,6 +56,7 @@ internal static partial class PartyMapper
             CreatedAt = source.CreatedAt,
             ModifiedAt = source.ModifiedAt,
             IsDeleted = source.IsDeleted,
+            DeletedAt = source.DeletedAt,
             User = source.User.Select(static u => u.ToPlatformModel()),
 
             PersonIdentifier = source.PersonIdentifier.Value,
@@ -104,6 +105,7 @@ internal static partial class PartyMapper
             CreatedAt = source.CreatedAt,
             ModifiedAt = source.ModifiedAt,
             IsDeleted = source.IsDeleted,
+            DeletedAt = source.DeletedAt,
             User = source.User.Select(static u => u.ToPlatformModel()),
 
             OrganizationIdentifier = source.OrganizationIdentifier.Value,
@@ -148,6 +150,7 @@ internal static partial class PartyMapper
             CreatedAt = source.CreatedAt,
             ModifiedAt = source.ModifiedAt,
             IsDeleted = source.IsDeleted,
+            DeletedAt = source.DeletedAt,
             User = source.User.Select(static u => u.ToPlatformModel()),
         };
     }
@@ -186,6 +189,7 @@ internal static partial class PartyMapper
             CreatedAt = source.CreatedAt,
             ModifiedAt = source.ModifiedAt,
             IsDeleted = source.IsDeleted,
+            DeletedAt = source.DeletedAt,
             User = source.User.Select(static u => u.ToPlatformModel()),
             Owner = source.OwnerUuid.Select(static uuid => new PartyRef { Uuid = uuid }),
         };
@@ -230,6 +234,7 @@ internal static partial class PartyMapper
             CreatedAt = source.CreatedAt,
             ModifiedAt = source.ModifiedAt,
             IsDeleted = source.IsDeleted,
+            DeletedAt = source.DeletedAt,
             User = source.User.Select(static u => u.ToPlatformModel()),
             Owner = source.OwnerUuid.Select(static uuid => new PartyRef { Uuid = uuid }),
             SystemUserType = source.SystemUserType.Select(static t => NonExhaustiveEnum.Create(t.MapSystemUserType())),

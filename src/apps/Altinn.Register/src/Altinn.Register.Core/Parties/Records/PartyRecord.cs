@@ -79,6 +79,11 @@ public record PartyRecord
     public required FieldValue<bool> IsDeleted { get; init; }
 
     /// <summary>
+    /// Gets when the party was deleted.
+    /// </summary>
+    public required FieldValue<DateTimeOffset> DeletedAt { get; init; }
+
+    /// <summary>
     /// Gets the version ID of the party.
     /// </summary>
     public required FieldValue<ulong> VersionId { get; init; }

@@ -315,6 +315,8 @@ internal partial class PostgreSqlPartyPersistence
                 @modified_at,
                 @set_is_deleted,
                 @is_deleted,
+                @set_deleted_at,
+                @deleted_at,
                 @set_owner,
                 @owner)
             """;
@@ -354,6 +356,7 @@ internal partial class PostgreSqlPartyPersistence
                 Debug.Assert(party.CreatedAt.HasValue);
                 Debug.Assert(party.ModifiedAt.HasValue);
                 Debug.Assert(!party.IsDeleted.IsNull);
+                Debug.Assert(party.DeletedAt.IsUnset || (party.IsDeleted.HasValue && party.IsDeleted.Value == party.DeletedAt.HasValue));
 
                 if (type is PartyRecordType.Person or PartyRecordType.Organization or PartyRecordType.SelfIdentifiedUser)
                 {
@@ -382,10 +385,12 @@ internal partial class PostgreSqlPartyPersistence
                 parameters.Add<string>("display_name", NpgsqlDbType.Text).TypedValue = party.DisplayName.Value;
                 parameters.Add<string>("person_id", NpgsqlDbType.Text).TypedValue = party.PersonIdentifier.IsNull ? null : party.PersonIdentifier.Value!.ToString();
                 parameters.Add<string>("org_id", NpgsqlDbType.Text).TypedValue = party.OrganizationIdentifier.IsNull ? null : party.OrganizationIdentifier.Value!.ToString();
-                parameters.Add<DateTimeOffset>("created_at", NpgsqlDbType.TimestampTz).TypedValue = party.CreatedAt.Value;
-                parameters.Add<DateTimeOffset>("modified_at", NpgsqlDbType.TimestampTz).TypedValue = party.ModifiedAt.Value;
+                parameters.Add<DateTimeOffset>("created_at", NpgsqlDbType.TimestampTz).TypedValue = party.CreatedAt.Value.ToUniversalTime();
+                parameters.Add<DateTimeOffset>("modified_at", NpgsqlDbType.TimestampTz).TypedValue = party.ModifiedAt.Value.ToUniversalTime();
                 parameters.Add<bool>("set_is_deleted", NpgsqlDbType.Boolean).TypedValue = party.IsDeleted.IsSet;
                 parameters.Add<bool?>("is_deleted", NpgsqlDbType.Boolean).TypedValue = party.IsDeleted.HasValue ? party.IsDeleted.Value : null;
+                parameters.Add<bool>("set_deleted_at", NpgsqlDbType.Boolean).TypedValue = party.DeletedAt.IsSet;
+                parameters.Add<DateTimeOffset?>("deleted_at", NpgsqlDbType.TimestampTz).TypedValue = party.DeletedAt.HasValue ? party.DeletedAt.Value.ToUniversalTime() : null;
                 parameters.Add<bool>("set_owner", NpgsqlDbType.Boolean).TypedValue = party.OwnerUuid.IsSet;
                 parameters.Add<Guid?>("owner", NpgsqlDbType.Uuid).TypedValue = party.OwnerUuid.HasValue ? party.OwnerUuid.Value : null;
             }
@@ -421,6 +426,8 @@ internal partial class PostgreSqlPartyPersistence
                     @modified_at,
                     @set_is_deleted,
                     @is_deleted,
+                    @set_deleted_at,
+                    @deleted_at,
                     @set_owner,
                     @owner,
                     @first_name,
@@ -474,6 +481,7 @@ internal partial class PostgreSqlPartyPersistence
                     CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_created", cancellationToken),
                     ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_updated", cancellationToken),
                     IsDeleted = await reader.GetConditionalFieldValueAsync<bool>("p_is_deleted", cancellationToken),
+                    DeletedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_deleted_at", cancellationToken),
                     VersionId = await reader.GetConditionalFieldValueAsync<long>("o_version_id", cancellationToken).Select(static v => (ulong)v),
 
                     FirstName = await reader.GetConditionalFieldValueAsync<string>("p_first_name", cancellationToken),
@@ -508,6 +516,8 @@ internal partial class PostgreSqlPartyPersistence
                     @modified_at,
                     @set_is_deleted,
                     @is_deleted,
+                    @set_deleted_at,
+                    @deleted_at,
                     @set_owner,
                     @owner,
                     @unit_status,
@@ -564,6 +574,7 @@ internal partial class PostgreSqlPartyPersistence
                     CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_created", cancellationToken),
                     ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_updated", cancellationToken),
                     IsDeleted = await reader.GetConditionalFieldValueAsync<bool>("p_is_deleted", cancellationToken),
+                    DeletedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_deleted_at", cancellationToken),
                     VersionId = await reader.GetConditionalFieldValueAsync<long>("o_version_id", cancellationToken).Select(static v => (ulong)v),
 
                     UnitStatus = await reader.GetConditionalFieldValueAsync<string>("p_unit_status", cancellationToken),
@@ -598,6 +609,7 @@ internal partial class PostgreSqlPartyPersistence
                     CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_created", cancellationToken),
                     ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_updated", cancellationToken),
                     IsDeleted = await reader.GetConditionalFieldValueAsync<bool>("p_is_deleted", cancellationToken),
+                    DeletedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_deleted_at", cancellationToken),
                     VersionId = await reader.GetConditionalFieldValueAsync<long>("o_version_id", cancellationToken).Select(static v => (ulong)v),
                 };
             }
@@ -623,6 +635,8 @@ internal partial class PostgreSqlPartyPersistence
                     @modified_at,
                     @set_is_deleted,
                     @is_deleted,
+                    @set_deleted_at,
+                    @deleted_at,
                     @set_owner,
                     @owner,
                     @system_user_type)
@@ -656,6 +670,7 @@ internal partial class PostgreSqlPartyPersistence
                     CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_created", cancellationToken),
                     ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_updated", cancellationToken),
                     IsDeleted = await reader.GetConditionalFieldValueAsync<bool>("p_is_deleted", cancellationToken),
+                    DeletedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_deleted_at", cancellationToken),
                     VersionId = await reader.GetConditionalFieldValueAsync<long>("o_version_id", cancellationToken).Select(static v => (ulong)v),
                     SystemUserType = await reader.GetConditionalFieldValueAsync<SystemUserRecordType>("p_system_user_type", cancellationToken),
                 };
@@ -679,6 +694,7 @@ internal partial class PostgreSqlPartyPersistence
                     CreatedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_created", cancellationToken),
                     ModifiedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_updated", cancellationToken),
                     IsDeleted = await reader.GetConditionalFieldValueAsync<bool>("p_is_deleted", cancellationToken),
+                    DeletedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_deleted_at", cancellationToken),
                     VersionId = await reader.GetConditionalFieldValueAsync<long>("o_version_id", cancellationToken).Select(static v => (ulong)v),
                 };
             }

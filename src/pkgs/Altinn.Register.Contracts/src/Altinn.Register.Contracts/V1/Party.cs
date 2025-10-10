@@ -64,4 +64,14 @@ public record Party
     /// Gets or sets the value of ChildParties
     /// </summary>
     public IReadOnlyList<Party>? ChildParties { get; set; }
+
+    /// <summary>
+    /// Gets or sets the (optional) date and time this party was last changed in Altinn.
+    /// </summary>
+    public DateTimeOffset? LastChangedInAltinn { get; set; }
+
+    /// <summary>
+    /// Gets or sets the (optional) date and time when the entity was last updated in the external register.
+    /// </summary>
+    public DateTimeOffset? LastChangedInExternalRegister { get; set; }
 }

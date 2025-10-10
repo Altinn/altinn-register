@@ -144,6 +144,17 @@ public sealed partial class RegisterTestDataGenerator
             identifier = used.GetNewOrgNumber(_random);
         }
 
+        var now = _timeProvider.GetUtcNow();
+        if (!createdAt.HasValue)
+        {
+            createdAt = now;
+        }
+
+        if (!modifiedAt.HasValue)
+        {
+            modifiedAt = now;
+        }
+
         return new OrganizationRecord
         {
             PartyUuid = uuid.HasValue ? uuid.Value : _random.Guid(),
@@ -151,9 +162,10 @@ public sealed partial class RegisterTestDataGenerator
             DisplayName = name.HasValue ? name.Value : "Test",
             PersonIdentifier = null,
             OrganizationIdentifier = identifier,
-            CreatedAt = createdAt.HasValue ? createdAt.Value : _timeProvider.GetUtcNow(),
-            ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : _timeProvider.GetUtcNow(),
+            CreatedAt = createdAt,
+            ModifiedAt = modifiedAt,
             IsDeleted = isDeleted.HasValue ? isDeleted.Value : false,
+            DeletedAt = isDeleted.HasValue && isDeleted.Value ? modifiedAt : FieldValue.Null,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
@@ -316,6 +328,17 @@ public sealed partial class RegisterTestDataGenerator
             user = FieldValue.Unset;
         }
 
+        var now = _timeProvider.GetUtcNow();
+        if (!createdAt.HasValue)
+        {
+            createdAt = now;
+        }
+
+        if (!modifiedAt.HasValue)
+        {
+            modifiedAt = now;
+        }
+
         return new PersonRecord
         {
             PartyUuid = uuid.HasValue ? uuid.Value : Guid.NewGuid(),
@@ -323,9 +346,10 @@ public sealed partial class RegisterTestDataGenerator
             DisplayName = name.Value!.DisplayName,
             PersonIdentifier = identifier,
             OrganizationIdentifier = null,
-            CreatedAt = createdAt.HasValue ? createdAt.Value : _timeProvider.GetUtcNow(),
-            ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : _timeProvider.GetUtcNow(),
+            CreatedAt = createdAt,
+            ModifiedAt = modifiedAt,
             IsDeleted = dateOfDeath.HasValue,
+            DeletedAt = dateOfDeath.HasValue ? new DateTimeOffset(dateOfDeath.Value, TimeOnly.MinValue, TimeSpan.Zero) : FieldValue.Null,
             User = user,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
@@ -424,6 +448,17 @@ public sealed partial class RegisterTestDataGenerator
             name = $"si-user-{id.Value}";
         }
 
+        var now = _timeProvider.GetUtcNow();
+        if (!createdAt.HasValue)
+        {
+            createdAt = now;
+        }
+
+        if (!modifiedAt.HasValue)
+        {
+            modifiedAt = now;
+        }
+
         return new SelfIdentifiedUserRecord
         {
             PartyUuid = uuid.HasValue ? uuid.Value : Guid.NewGuid(),
@@ -431,12 +466,13 @@ public sealed partial class RegisterTestDataGenerator
             DisplayName = name,
             PersonIdentifier = null,
             OrganizationIdentifier = null,
-            CreatedAt = createdAt.HasValue ? createdAt.Value : _timeProvider.GetUtcNow(),
-            ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : _timeProvider.GetUtcNow(),
+            CreatedAt = createdAt,
+            ModifiedAt = modifiedAt,
             User = user,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             IsDeleted = isDeleted.OrDefault(defaultValue: false),
+            DeletedAt = isDeleted.HasValue && isDeleted.Value ? modifiedAt : FieldValue.Null,
         };
     }
 
@@ -518,6 +554,17 @@ public sealed partial class RegisterTestDataGenerator
             name = $"enterprise-user-{uuid.HasValue}";
         }
 
+        var now = _timeProvider.GetUtcNow();
+        if (!createdAt.HasValue)
+        {
+            createdAt = now;
+        }
+
+        if (!modifiedAt.HasValue)
+        {
+            modifiedAt = now;
+        }
+
         return new EnterpriseUserRecord
         {
             PartyUuid = uuid.Value,
@@ -525,12 +572,13 @@ public sealed partial class RegisterTestDataGenerator
             DisplayName = name,
             PersonIdentifier = null,
             OrganizationIdentifier = null,
-            CreatedAt = createdAt.HasValue ? createdAt.Value : _timeProvider.GetUtcNow(),
-            ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : _timeProvider.GetUtcNow(),
+            CreatedAt = createdAt,
+            ModifiedAt = modifiedAt,
             User = user,
             VersionId = FieldValue.Unset,
             OwnerUuid = owner,
             IsDeleted = isDeleted.OrDefault(defaultValue: false),
+            DeletedAt = isDeleted.HasValue && isDeleted.Value ? modifiedAt : FieldValue.Null,
         };
     }
 
@@ -608,7 +656,18 @@ public sealed partial class RegisterTestDataGenerator
 
         if (name.IsUnset)
         {
-            name = $"enterprise-user-{uuid.Value}";
+            name = $"system-user-{uuid.Value}";
+        }
+
+        var now = _timeProvider.GetUtcNow();
+        if (!createdAt.HasValue)
+        {
+            createdAt = now;
+        }
+
+        if (!modifiedAt.HasValue)
+        {
+            modifiedAt = now;
         }
 
         return new SystemUserRecord
@@ -618,12 +677,13 @@ public sealed partial class RegisterTestDataGenerator
             DisplayName = name,
             PersonIdentifier = null,
             OrganizationIdentifier = null,
-            CreatedAt = createdAt.HasValue ? createdAt.Value : _timeProvider.GetUtcNow(),
-            ModifiedAt = modifiedAt.HasValue ? modifiedAt.Value : _timeProvider.GetUtcNow(),
+            CreatedAt = createdAt,
+            ModifiedAt = modifiedAt,
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = owner,
             IsDeleted = isDeleted.OrDefault(defaultValue: false),
+            DeletedAt = isDeleted.HasValue && isDeleted.Value ? modifiedAt : FieldValue.Null,
             SystemUserType = type,
         };
     }

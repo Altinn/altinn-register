@@ -459,7 +459,7 @@ public class ProfileImportFlowTests
                     "PartyId": {{siUser.PartyId.Value}},
                     "PartyUUID": "{{siUser.PartyUuid.Value}}",
                     "UnitType": null,
-                    "LastChangedInAltinn": "2010-03-02T01:53:44.87+01:00",
+                    "LastChangedInAltinn": "2010-03-02T01:53:44.00+01:00",
                     "LastChangedInExternalRegister": null,
                     "Name": "updated-name",
                     "IsDeleted": false,
@@ -497,10 +497,12 @@ public class ProfileImportFlowTests
             var persistence = uow.GetPartyPersistence();
             var updated = await persistence.GetPartyById(siUser.PartyUuid.Value, PartyFieldIncludes.User | PartyFieldIncludes.Party, ct).FirstOrDefaultAsync(ct);
             updated.ShouldNotBeNull();
-            updated.User.ShouldHaveValue();
-            updated.User.Value!.Username.ShouldBeNull();
-            updated.DisplayName.ShouldBe("updated-name");
-            updated.IsDeleted.ShouldBe(true);
+            updated.ShouldSatisfyAllConditions(
+                u => u.User.ShouldHaveValue(),
+                u => u.User.Value!.Username.ShouldBeNull(),
+                u => u.DisplayName.ShouldBe("updated-name"),
+                u => u.IsDeleted.ShouldBe(true),
+                u => u.DeletedAt.ShouldBe(new DateTimeOffset(2010, 03, 02, 0, 53, 44, TimeSpan.Zero)));
         });
     }
 
