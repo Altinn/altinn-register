@@ -1,5 +1,6 @@
 ﻿#nullable enable
 
+using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Altinn.Register.Contracts;
@@ -22,6 +23,19 @@ namespace Altinn.Register.Controllers;
 public class CorrespondenceController(IUnitOfWorkManager uowManager, V2.PartyController inner)
     : ControllerBase
 {
+    private static readonly FrozenSet<string> CorrespondenceRolesIdentifiers = [
+        "innehaver",
+        "komplementar",
+        "styreleder",
+        "deltaker-delt-ansvar",
+        "deltaker-fullt-ansvar",
+        "bestyrende-reder",
+        "daglig-leder",
+        "bostyrer",
+        "kontaktperson-ados",
+        "norsk-representant",
+    ];
+
     /// <summary>
     /// Gets roles used by correspondence from a party.
     /// </summary>
@@ -51,8 +65,7 @@ public class CorrespondenceController(IUnitOfWorkManager uowManager, V2.PartyCon
 
             var isCorrespondenceRole = assignment switch 
             {
-                { Source.Value: not ExternalRoleSource.CentralCoordinatingRegister } => false,
-                { Identifier.Value: "innehaver" or "komplementar" or "styreleder" or "deltaker-delt-ansvar" or "deltaker-fullt-ansvar" or "bestyrende-reder" or "daglig-leder" or "bostyrer" } => true,
+                { Source.Value: ExternalRoleSource.CentralCoordinatingRegister, Identifier.Value: { } identifier } when CorrespondenceRolesIdentifiers.Contains(identifier) => true,
                 _ => false,
             };
 

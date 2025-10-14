@@ -31,6 +31,8 @@ public class CorrespondenceTests
             "bestyrende-reder",
             "daglig-leder",
             "bostyrer",
+            "kontaktperson-ados",
+            "norsk-representant",
 
             // Not correspondence roles
             "kontaktperson",
