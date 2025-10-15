@@ -62,6 +62,7 @@ public sealed partial class A2PartyCCRRolesImportJob
         Log.RoleImportInitialProgress(_logger, in progress, maxChangeId);
         var startEnqueuedMax = progress.EnqueuedMax;
 
+        var enqueued = 0;
         var changes = _importService.GetChanges(checked((uint)progress.EnqueuedMax), cancellationToken);
         await foreach (var page in changes.WithCancellation(cancellationToken))
         {
@@ -89,6 +90,7 @@ public sealed partial class A2PartyCCRRolesImportJob
 
             await _sender.Send(cmds, cancellationToken);
             Log.EnqueuedPartiesForCCRRoleImport(_logger, cmds.Count);
+            enqueued += cmds.Count;
 
             var enqueuedMax = page[^1].ChangeId;
             var sourceMax = page.LastKnownChangeId;
@@ -96,6 +98,12 @@ public sealed partial class A2PartyCCRRolesImportJob
             _meters.OrganizationCCRRolesEnqueued.Add(cmds.Count);
 
             if (enqueuedMax - progress.ProcessedMax > 50_000)
+            {
+                Log.PausingEnqueueingCCRRoles(_logger, enqueuedMax, progress.ProcessedMax);
+                break;
+            }
+
+            if (enqueued > 50_000)
             {
                 Log.PausingEnqueueingCCRRoles(_logger, enqueuedMax, progress.ProcessedMax);
                 break;

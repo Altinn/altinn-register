@@ -75,6 +75,7 @@ internal sealed partial class SystemUserImportJob
             _ => new State(),
         };
 
+        var enqueued = 0;
         var partyIds = new List<uint>();
         var parties = new List<PartyRecord>();
         var commands = new List<UpsertPartyCommand>();
@@ -165,12 +166,24 @@ internal sealed partial class SystemUserImportJob
                 });
             }
 
+            var enqueuedMax = page[^1].SequenceNumber;
             await _sender.Send(commands, cancellationToken);
-            await _tracker.TrackQueueStatus(JobName, new() { EnqueuedMax = page[^1].SequenceNumber, SourceMax = page.SequenceMax }, cancellationToken);
+            enqueued += commands.Count;
+            (progress, _) = await _tracker.TrackQueueStatus(JobName, new() { EnqueuedMax = enqueuedMax, SourceMax = page.SequenceMax }, cancellationToken);
 
             if (page.NextUrl is not null)
             {
                 await statePersistence.SetState(JobName, state with { ContinuationUrl = page.NextUrl }, cancellationToken);
+            }
+
+            if (enqueuedMax - progress.ProcessedMax > 50_000)
+            {
+                break;
+            }
+
+            if (enqueued >= 50_000)
+            {
+                break;
             }
         }
 

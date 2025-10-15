@@ -1,8 +1,11 @@
 ﻿using System.Diagnostics;
+using Altinn.Authorization.ServiceDefaults.MassTransit.Commands;
+using Altinn.Authorization.ServiceDefaults.MassTransit.RabbitMQ;
 using Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using OpenTelemetry;
@@ -17,19 +20,18 @@ namespace Altinn.Authorization.ServiceDefaults.MassTransit;
 /// </summary>
 internal abstract partial class MassTransitTransportHelper
 {
-    private sealed class RabbitMqTransportHelper(MassTransitSettings settings, string busName)
-        : MassTransitTransportHelper(settings, busName)
+    private sealed class RabbitMqTransportHelper(MassTransitSettings settings, string busName, AltinnServiceDescriptor serviceDescriptor)
+        : MassTransitTransportHelper(settings, busName, serviceDescriptor)
     {
         private MassTransitRabbitMqSettings Settings => BusSettings.RabbitMq;
 
         public override void ConfigureHost(IHostApplicationBuilder builder)
         {
             // TODO: make better
-            var descriptor = builder.GetAltinnServiceDescriptor();
-            var quartzSchema = builder.Configuration.GetValue($"Altinn:MassTransit:{descriptor.Name}:Quartz:Schema", defaultValue: $"{descriptor.Name}_quartz")!;
-            var connectionString = builder.Configuration.GetValue<string>($"Altinn:Npgsql:{descriptor.Name}:ConnectionString");
-            var yuniqlSchema = builder.Configuration.GetValue($"Altinn:Npgsql:{descriptor.Name}:Yuniql:MigrationsTable:Schema", defaultValue: "yuniql");
-            var yuniqlTable = builder.Configuration.GetValue($"Altinn:Npgsql:{descriptor.Name}:Yuniql:MigrationsTable:QuartzTable", defaultValue: $"{descriptor.Name}_quartz_migrations");
+            var quartzSchema = builder.Configuration.GetValue($"Altinn:MassTransit:{ServiceDescriptor.Name}:Quartz:Schema", defaultValue: $"{ServiceDescriptor.Name}_quartz")!;
+            var connectionString = builder.Configuration.GetValue<string>($"Altinn:Npgsql:{ServiceDescriptor.Name}:ConnectionString");
+            var yuniqlSchema = builder.Configuration.GetValue($"Altinn:Npgsql:{ServiceDescriptor.Name}:Yuniql:MigrationsTable:Schema", defaultValue: "yuniql");
+            var yuniqlTable = builder.Configuration.GetValue($"Altinn:Npgsql:{ServiceDescriptor.Name}:Yuniql:MigrationsTable:QuartzTable", defaultValue: $"{ServiceDescriptor.Name}_quartz_migrations");
             var migrationsFs = new ManifestEmbeddedFileProvider(typeof(MassTransitTransportHelper).Assembly, "Migration");
 
             builder.AddAltinnPostgresDataSource()
@@ -41,6 +43,12 @@ internal abstract partial class MassTransitTransportHelper
                     y.Tokens.Add("SCHEMA", quartzSchema);
                 });
 
+            if (ServiceDescriptor.RunInitOnly)
+            {
+                return;
+            }
+
+            builder.Services.TryAddSingleton<ICommandQueueStatsProvider, RabbitMqStatsProvider>();
             builder.Services.AddOptions<RabbitMqTransportOptions>()
                 .Configure(options =>
                 {

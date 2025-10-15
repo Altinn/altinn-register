@@ -188,7 +188,7 @@ internal static partial class RegisterHost
         if (!descriptor.IsLocalDev && !descriptor.IsTest)
         {
             services.AddSingleton<IAccessTokenGenerator, AccessTokenGenerator>();
-            services.AddTransient<ISigningCredentialsResolver, SigningCredentialsResolver>();
+            services.AddSingleton<ISigningCredentialsResolver, SigningCredentialsResolver>();
         }
 
         services.AddUnitOfWorkManager();
@@ -203,9 +203,7 @@ internal static partial class RegisterHost
             services.AddSingleton<IImportJobTracker>(s => throw new InvalidOperationException("Npgsql is not enabled"));
         }
 
-        var initOnly = config.GetValue<bool>("Altinn:RunInitOnly");
-        var isTest = config.GetValue<bool>("Altinn:IsTest");
-        if (!initOnly && !isTest)
+        if (!descriptor.IsTest)
         {
             const string A2PartyImportJobTag = "a2-import";
             Func<IServiceProvider, CancellationToken, ValueTask> waitForBus = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
@@ -219,63 +217,66 @@ internal static partial class RegisterHost
                     });
             }
 
-            var maxDbSizeInGib = config.GetValue("Altinn:register:PartyImport:A2:MaxDbSizeInGib", 20UL);
-            builder.AddDatabaseSizeJobCondition(maxSize: ByteSize.FromGibibytes(maxDbSizeInGib), jobTags: ["a2-import"]);
-            builder.Services.AddSingleton<JobCleanupHelper>();
-
-            services.AddRecurringJob<A2PartyImportJob>(settings =>
+            if (!descriptor.RunInitOnly)
             {
-                settings.Tags.Add(A2PartyImportJobTag);
-                settings.LeaseName = A2PartyImportJob.JobName;
-                settings.Interval = TimeSpan.FromMinutes(1);
-                settings.WaitForReady = waitForBus;
-                settings.Enabled = JobEnabledBuilder.Default
-                    .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:Enable");
-            });
+                var maxDbSizeInGib = config.GetValue("Altinn:register:PartyImport:A2:MaxDbSizeInGib", 20UL);
+                builder.AddDatabaseSizeJobCondition(maxSize: ByteSize.FromGibibytes(maxDbSizeInGib), jobTags: ["a2-import"]);
+                builder.Services.AddSingleton<JobCleanupHelper>();
 
-            services.AddRecurringJob<A2PartyCCRRolesImportJob>(settings =>
-            {
-                settings.Tags.Add(A2PartyImportJobTag);
-                settings.LeaseName = A2PartyCCRRolesImportJob.JobName;
-                settings.Interval = TimeSpan.FromMinutes(1);
-                settings.WaitForReady = waitForBus;
-                settings.Enabled = JobEnabledBuilder.Default
-                    .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:Enable")
-                    .WithRequireImportJobFinished(A2PartyImportJob.JobName, threshold: 5_000);
-            });
+                services.AddRecurringJob<A2PartyImportJob>(settings =>
+                {
+                    settings.Tags.Add(A2PartyImportJobTag);
+                    settings.LeaseName = A2PartyImportJob.JobName;
+                    settings.Interval = TimeSpan.FromMinutes(1);
+                    settings.WaitForReady = waitForBus;
+                    settings.Enabled = JobEnabledBuilder.Default
+                        .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:Enable");
+                });
 
-            services.AddRecurringJob<A2PartyUserIdImportJob>(settings =>
-            {
-                settings.Tags.Add(A2PartyImportJobTag);
-                settings.LeaseName = A2PartyUserIdImportJob.JobName;
-                settings.Interval = TimeSpan.FromMinutes(1);
-                settings.WaitForReady = waitForBus;
-                settings.Enabled = JobEnabledBuilder.Default
-                    .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:PartyUserId:Enable")
-                    .WithRequireImportJobFinished(A2PartyImportJob.JobName, threshold: 5_000);
-            });
+                services.AddRecurringJob<A2PartyCCRRolesImportJob>(settings =>
+                {
+                    settings.Tags.Add(A2PartyImportJobTag);
+                    settings.LeaseName = A2PartyCCRRolesImportJob.JobName;
+                    settings.Interval = TimeSpan.FromMinutes(1);
+                    settings.WaitForReady = waitForBus;
+                    settings.Enabled = JobEnabledBuilder.Default
+                        .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:Enable")
+                        .WithRequireImportJobFinished(A2PartyImportJob.JobName, threshold: 5_000);
+                });
 
-            services.AddRecurringJob<A2ProfileImportJob>(settings =>
-            {
-                settings.Tags.Add(A2PartyImportJobTag);
-                settings.LeaseName = A2ProfileImportJob.JobName;
-                settings.Interval = TimeSpan.FromMinutes(1);
-                settings.WaitForReady = waitForBus;
-                settings.Enabled = JobEnabledBuilder.Default
-                    .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:Profiles:Enable")
-                    .WithRequireImportJobFinished(A2PartyImportJob.JobName, threshold: 5_000);
-            });
+                services.AddRecurringJob<A2PartyUserIdImportJob>(settings =>
+                {
+                    settings.Tags.Add(A2PartyImportJobTag);
+                    settings.LeaseName = A2PartyUserIdImportJob.JobName;
+                    settings.Interval = TimeSpan.FromMinutes(1);
+                    settings.WaitForReady = waitForBus;
+                    settings.Enabled = JobEnabledBuilder.Default
+                        .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:PartyUserId:Enable")
+                        .WithRequireImportJobFinished(A2PartyImportJob.JobName, threshold: 5_000);
+                });
 
-            services.AddRecurringJob<SystemUserImportJob>(settings =>
-            {
-                settings.Tags.Add(A2PartyImportJobTag);
-                settings.LeaseName = SystemUserImportJob.JobName;
-                settings.Interval = TimeSpan.FromMinutes(1);
-                settings.WaitForReady = waitForBus;
-                settings.Enabled = JobEnabledBuilder.Default
-                    .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:SystemUsers:Enable")
-                    .WithRequireImportJobFinished(A2PartyImportJob.JobName, threshold: 5_000);
-            });
+                services.AddRecurringJob<A2ProfileImportJob>(settings =>
+                {
+                    settings.Tags.Add(A2PartyImportJobTag);
+                    settings.LeaseName = A2ProfileImportJob.JobName;
+                    settings.Interval = TimeSpan.FromMinutes(1);
+                    settings.WaitForReady = waitForBus;
+                    settings.Enabled = JobEnabledBuilder.Default
+                        .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:Profiles:Enable")
+                        .WithRequireImportJobFinished(A2PartyImportJob.JobName, threshold: 5_000);
+                });
+
+                services.AddRecurringJob<SystemUserImportJob>(settings =>
+                {
+                    settings.Tags.Add(A2PartyImportJobTag);
+                    settings.LeaseName = SystemUserImportJob.JobName;
+                    settings.Interval = TimeSpan.FromMinutes(1);
+                    settings.WaitForReady = waitForBus;
+                    settings.Enabled = JobEnabledBuilder.Default
+                        .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:SystemUsers:Enable")
+                        .WithRequireImportJobFinished(A2PartyImportJob.JobName, threshold: 5_000);
+                });
+            }
         }
 
         services.AddOpenApiExampleProvider();

@@ -67,6 +67,7 @@ public sealed partial class A2ProfileImportJob
         Log.ProfileImportInitialProgress(_logger, progress);
         var startEnqueuedMax = progress.EnqueuedMax;
 
+        var enqueued = 0;
         var changes = _importService.GetUserProfileChanges(checked((uint)progress.EnqueuedMax), cancellationToken);
         await foreach (var page in changes.WithCancellation(cancellationToken))
         {
@@ -86,6 +87,7 @@ public sealed partial class A2ProfileImportJob
 
             await _sender.Send(cmds, cancellationToken);
             Log.EnqueuedProfilesForImport(_logger, page.Count);
+            enqueued += page.Count;
 
             var enqueuedMax = page[^1].ChangeId;
             var sourceMax = page.LastKnownChangeId;
@@ -93,6 +95,12 @@ public sealed partial class A2ProfileImportJob
             _meters.PartiesEnqueued.Add(page.Count);
 
             if (enqueuedMax - progress.ProcessedMax > 50_000)
+            {
+                Log.PausingEnqueueingProfiles(_logger, enqueuedMax, progress.ProcessedMax);
+                break;
+            }
+
+            if (enqueued >= 50_000)
             {
                 Log.PausingEnqueueingProfiles(_logger, enqueuedMax, progress.ProcessedMax);
                 break;

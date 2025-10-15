@@ -12,34 +12,37 @@ namespace Altinn.Authorization.ServiceDefaults.MassTransit;
 /// Configuration helper for MassTransit.
 /// </summary>
 [ExcludeFromCodeCoverage]
-internal abstract partial class MassTransitTransportHelper(MassTransitSettings settings, string busName)
+internal abstract partial class MassTransitTransportHelper(MassTransitSettings settings, string busName, AltinnServiceDescriptor serviceDescriptor)
 {
     /// <summary>
     /// Gets a <see cref="MassTransitTransportHelper"/> for the specified settings.
     /// </summary>
     /// <param name="settings">The settings.</param>
     /// <param name="busName">The name of the bus.</param>
+    /// <param name="serviceDescriptor">The service descriptor.</param>
     /// <returns>A <see cref="MassTransitTransportHelper"/>.</returns>
-    public static MassTransitTransportHelper For(MassTransitSettings settings, string busName)
+    public static MassTransitTransportHelper For(MassTransitSettings settings, string busName, AltinnServiceDescriptor serviceDescriptor)
         => settings.Transport switch
         {
-            MassTransitTransport.InMemory => new InMemoryTransportHelper(settings, busName),
-            MassTransitTransport.RabbitMq => new RabbitMqTransportHelper(settings, busName),
-            MassTransitTransport.AzureServiceBus => new AzureServiceBusTransportHelper(settings, busName),
+            MassTransitTransport.InMemory => new InMemoryTransportHelper(settings, busName, serviceDescriptor),
+            MassTransitTransport.RabbitMq => new RabbitMqTransportHelper(settings, busName, serviceDescriptor),
+            MassTransitTransport.AzureServiceBus => new AzureServiceBusTransportHelper(settings, busName, serviceDescriptor),
             _ => ThrowHelper.ThrowArgumentException<MassTransitTransportHelper>(nameof(settings), "Invalid transport"),
         };
 
     /// <summary>
     /// Gets a <see cref="MassTransitTransportHelper"/> for the test harness.
     /// </summary>
+    /// <param name="serviceDescriptor">The service descriptor.</param>
     /// <returns>A <see cref="MassTransitTransportHelper"/>.</returns>
-    public static MassTransitTransportHelper ForTestHarness()
+    public static MassTransitTransportHelper ForTestHarness(AltinnServiceDescriptor serviceDescriptor)
         => For(
             new MassTransitSettings
             {
                 Transport = MassTransitTransport.InMemory,
             },
-            "integration-test");
+            "integration-test",
+            serviceDescriptor);
 
     /// <summary>
     /// Gets the settings for the bus.
@@ -50,6 +53,11 @@ internal abstract partial class MassTransitTransportHelper(MassTransitSettings s
     /// Gets the name of the bus.
     /// </summary>
     protected string BusName => busName;
+
+    /// <summary>
+    /// Gets the service descriptor.
+    /// </summary>
+    protected AltinnServiceDescriptor ServiceDescriptor => serviceDescriptor;
 
     /// <summary>
     /// Gets the health check registrations for the bus transport.
@@ -76,9 +84,7 @@ internal abstract partial class MassTransitTransportHelper(MassTransitSettings s
     /// Configures the host.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder"/>.</param>
-    public virtual void ConfigureHost(IHostApplicationBuilder builder)
-    {
-    }
+    public abstract void ConfigureHost(IHostApplicationBuilder builder);
 
     /// <summary>
     /// Configures the bus.

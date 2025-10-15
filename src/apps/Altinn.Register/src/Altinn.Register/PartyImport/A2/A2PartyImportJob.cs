@@ -60,6 +60,7 @@ public sealed partial class A2PartyImportJob
         Log.PartyImportInitialProgress(_logger, in progress);
         var startEnqueuedMax = progress.EnqueuedMax;
 
+        var enqueued = 0;
         var changes = _importService.GetChanges(checked((uint)progress.EnqueuedMax), cancellationToken);
         await foreach (var page in changes.WithCancellation(cancellationToken))
         {
@@ -78,6 +79,7 @@ public sealed partial class A2PartyImportJob
 
             await _sender.Send(cmds, cancellationToken);
             Log.EnqueuedPartiesForImport(_logger, page.Count);
+            enqueued += page.Count;
 
             var enqueuedMax = page[^1].ChangeId;
             var sourceMax = page.LastKnownChangeId;
@@ -85,6 +87,12 @@ public sealed partial class A2PartyImportJob
             _meters.PartiesEnqueued.Add(page.Count);
 
             if (enqueuedMax - progress.ProcessedMax > 50_000)
+            {
+                Log.PausingEnqueueingParties(_logger, enqueuedMax, progress.ProcessedMax);
+                break;
+            }
+
+            if (enqueued >= 50_000)
             {
                 Log.PausingEnqueueingParties(_logger, enqueuedMax, progress.ProcessedMax);
                 break;

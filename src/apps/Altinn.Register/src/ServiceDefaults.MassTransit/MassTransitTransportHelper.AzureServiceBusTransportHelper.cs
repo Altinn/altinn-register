@@ -1,7 +1,11 @@
-﻿using Azure.Core;
+﻿using Altinn.Authorization.ServiceDefaults.MassTransit.AzureServiceBus;
+using Altinn.Authorization.ServiceDefaults.MassTransit.Commands;
+using Azure.Core;
 using Azure.Identity;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Altinn.Authorization.ServiceDefaults.MassTransit;
@@ -11,8 +15,8 @@ namespace Altinn.Authorization.ServiceDefaults.MassTransit;
 /// </summary>
 internal abstract partial class MassTransitTransportHelper
 {
-    private sealed class AzureServiceBusTransportHelper(MassTransitSettings settings, string busName)
-        : MassTransitTransportHelper(settings, busName)
+    private sealed class AzureServiceBusTransportHelper(MassTransitSettings settings, string busName, AltinnServiceDescriptor serviceDescriptor)
+        : MassTransitTransportHelper(settings, busName, serviceDescriptor)
     {
         private MassTransitAzureServiceBusSettings Settings => BusSettings.AzureServiceBus;
 
@@ -68,6 +72,11 @@ internal abstract partial class MassTransitTransportHelper
                 configureBus(ctx, cfg);
                 cfg.ConfigureEndpoints(ctx);
             });
+        }
+
+        public override void ConfigureHost(IHostApplicationBuilder builder)
+        {
+            builder.Services.TryAddSingleton<ICommandQueueStatsProvider, AzureServiceBusStatsProvider>();
         }
     }
 }

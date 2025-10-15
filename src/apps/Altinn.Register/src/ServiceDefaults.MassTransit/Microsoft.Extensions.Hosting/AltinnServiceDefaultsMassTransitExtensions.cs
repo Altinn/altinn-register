@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using Altinn.Authorization.ServiceDefaults;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Authorization.ServiceDefaults.MassTransit.Commands;
 using CommunityToolkit.Diagnostics;
@@ -37,7 +38,7 @@ public static class AltinnServiceDefaultsMassTransitExtensions
     {
         var serviceDescriptor = builder.GetAltinnServiceDescriptor();
 
-        return AddAltinnMassTransit(builder, serviceDescriptor.Name, configureSettings, configureMassTransit, configureBus);
+        return AddAltinnMassTransit(builder, serviceDescriptor.Name, serviceDescriptor, configureSettings, configureMassTransit, configureBus);
     }
 
     /// <summary>
@@ -45,6 +46,7 @@ public static class AltinnServiceDefaultsMassTransitExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder"/>.</param>
     /// <param name="busName">The name of the bus.</param>
+    /// <param name="serviceDescriptor">Altinn service descriptor.</param>
     /// <param name="configureSettings">Optional settings configuration delegate.</param>
     /// <param name="configureMassTransit">Optional bus registration configurator delegate.</param>
     /// <param name="configureBus">Optional bus factory configurator delegate.</param>
@@ -52,14 +54,16 @@ public static class AltinnServiceDefaultsMassTransitExtensions
     public static IMassTransitBuilder AddAltinnMassTransit(
         this IHostApplicationBuilder builder,
         string busName,
+        AltinnServiceDescriptor serviceDescriptor,
         Action<MassTransitSettings>? configureSettings = null,
         Action<IBusRegistrationConfigurator>? configureMassTransit = null,
         Action<IBusFactoryConfigurator>? configureBus = null)
-        => AddAltinnMassTransitCore(builder, DefaultConfigSectionName(busName), configureSettings, busName, configureMassTransit, configureBus);
+        => AddAltinnMassTransitCore(builder, DefaultConfigSectionName(busName), serviceDescriptor, configureSettings, busName, configureMassTransit, configureBus);
 
     private static IMassTransitBuilder AddAltinnMassTransitCore(
         IHostApplicationBuilder builder,
         string configurationSectionName,
+        AltinnServiceDescriptor serviceDescriptor,
         Action<MassTransitSettings>? configureSettings,
         string busName,
         Action<IBusRegistrationConfigurator>? configureMassTransit,
@@ -83,7 +87,7 @@ public static class AltinnServiceDefaultsMassTransitExtensions
         builder.Services.AddOptions<MassTransitHostOptions>()
             .Configure(s => s.WaitUntilStarted = true);
 
-        MassTransitTransportHelper helper = MassTransitTransportHelper.For(settings, busName);
+        MassTransitTransportHelper helper = MassTransitTransportHelper.For(settings, busName, serviceDescriptor);
 
         TimeSpan[] redeliveryIntervals;
         if (builder.Environment.IsDevelopment())
@@ -103,13 +107,17 @@ public static class AltinnServiceDefaultsMassTransitExtensions
         }
 
         helper.ConfigureHost(builder);
-        SetupCoreBusServices(
-            builder.Services,
-            helper,
-            redeliveryIntervals,
-            configureMassTransit,
-            configureBus,
-            static (s, c) => s.AddMassTransit(c));
+
+        if (!serviceDescriptor.RunInitOnly)
+        {
+            SetupCoreBusServices(
+                builder.Services,
+                helper,
+                redeliveryIntervals,
+                configureMassTransit,
+                configureBus,
+                static (s, c) => s.AddMassTransit(c));
+        }
 
         if (!settings.DisableHealthChecks)
         {

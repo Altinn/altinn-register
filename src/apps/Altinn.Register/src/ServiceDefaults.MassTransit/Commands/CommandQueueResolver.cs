@@ -1,4 +1,5 @@
 ﻿using System.Collections.Frozen;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Diagnostics;
 using MassTransit;
@@ -18,6 +19,12 @@ internal class CommandQueueResolver
     private int _builderVersion = 0;
     private int _frozenVersion = -1;
     private FrozenDictionary<RuntimeTypeHandle, Uri>? _frozen;
+
+    /// <summary>
+    /// Gets an immutable array containing the URIs of all configured queues.
+    /// </summary>
+    public ImmutableArray<Uri> QueueUris
+        => GetFrozen().Values;
 
     /// <inheritdoc/>
     public bool TryGetQueueUriForCommandType(Type commandType, [NotNullWhen(true)] out Uri? queueUri)
@@ -44,7 +51,9 @@ internal class CommandQueueResolver
     {
         var frozen = Volatile.Read(ref _frozen);
         var builderVersion = Volatile.Read(ref _builderVersion);
+        Interlocked.MemoryBarrier();
         var frozenVersion = Volatile.Read(ref _frozenVersion);
+
         if (builderVersion == frozenVersion)
         {
             return frozen!;

@@ -58,6 +58,7 @@ internal sealed partial class A2PartyUserIdImportJob
         var service = uow.GetRequiredService<IUserIdImportJobService>();
         var progress = await _tracker.GetStatus(JobNames.A2PartyUserIdImport, cancellationToken);
 
+        var enqueued = 0;
         var enqueuedMax = progress.EnqueuedMax;
         var startEnqueuedMax = enqueuedMax;
         List<ImportA2UserIdForPartyCommand> messages = new(100);
@@ -71,6 +72,7 @@ internal sealed partial class A2PartyUserIdImportJob
             }
 
             enqueuedMax += 1;
+            enqueued += 1;
             messages.Add(new ImportA2UserIdForPartyCommand { PartyUuid = party.PartyUuid, PartyType = party.PartyType, Tracking = new(JobName, enqueuedMax) });
 
             if (messages.Count >= CHUNK_SIZE)
@@ -84,6 +86,12 @@ internal sealed partial class A2PartyUserIdImportJob
                     Log.PausingEnqueueing(_logger, enqueuedMax, progress.ProcessedMax);
                     break;
                 }
+            }
+
+            if (enqueued >= 50_000)
+            {
+                Log.PausingEnqueueing(_logger, enqueuedMax, progress.ProcessedMax);
+                break;
             }
         }
 
