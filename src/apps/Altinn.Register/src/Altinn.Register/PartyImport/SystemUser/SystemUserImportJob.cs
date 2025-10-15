@@ -63,14 +63,13 @@ internal sealed partial class SystemUserImportJob
         await using var uow = await _uow.CreateAsync(cancellationToken, activityName: "import system-user");
         cancellationToken = uow.Token;
 
-        var statePersistence = uow.GetImportJobStatePersistence();
         var partyPersistence = uow.GetPartyPersistence();
 
         var progress = await _tracker.GetStatus(JobName, cancellationToken);
         Log.PartyImportInitialProgress(_logger, in progress);
         var startEnqueuedMax = progress.EnqueuedMax;
 
-        var state = await statePersistence.GetState<State>(JobName, cancellationToken) switch {
+        var state = await uow.GetImportJobStatePersistence().GetState<State>(JobName, cancellationToken) switch {
             { HasValue: true } s => s.Value,
             _ => new State(),
         };
@@ -170,7 +169,9 @@ internal sealed partial class SystemUserImportJob
 
             if (page.NextUrl is not null)
             {
-                await statePersistence.SetState(JobName, state with { ContinuationUrl = page.NextUrl }, cancellationToken);
+                await using var stateUow = await _uow.CreateAsync(cancellationToken, activityName: "persist system-user import state");
+                await stateUow.GetImportJobStatePersistence().SetState(JobName, state with { ContinuationUrl = page.NextUrl }, cancellationToken);
+                await stateUow.CommitAsync(cancellationToken);
             }
         }
 
