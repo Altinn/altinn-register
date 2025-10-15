@@ -335,6 +335,7 @@ internal sealed partial class A2PartyImportService
         var profileType = MapUserType(profile.UserType);
         var partyUuid = profile.Party.PartyUuid;
         var partyId = profile.Party.PartyId;
+        Debug.Assert(partyUuid.HasValue);
 
         return new A2ProfileRecord
         {
@@ -343,8 +344,9 @@ internal sealed partial class A2PartyImportService
             IsActive = profile.IsActive,
             UserName = userName,
             ProfileType = profileType,
-            PartyUuid = partyUuid,
-            PartyId = partyId,
+            PartyUuid = partyUuid.Value,
+            PartyId = checked((uint)partyId),
+            LastChangedAt = profile.Party.LastChangedInExternalRegister ?? profile.Party.LastChangedInAltinn,
         };
     }
 
@@ -537,6 +539,7 @@ internal sealed partial class A2PartyImportService
                 CreatedAt = now,
                 ModifiedAt = now,
                 IsDeleted = FieldValue.Unset, // we cannot conclude about the is-deleted status of a SI user based on the party object from A2
+                DeletedAt = FieldValue.Unset,
                 OwnerUuid = FieldValue.Null,
                 User = FieldValue.Unset,
                 VersionId = FieldValue.Unset,
@@ -560,6 +563,7 @@ internal sealed partial class A2PartyImportService
                 lastName: lastName,
                 shortName: shortName);
             var isDeleted = false; // we cannot conclude about the is-deleted status of a person user based on the party object from A2
+            FieldValue<DateTimeOffset> deletedAt = FieldValue.Null;
 
             var address = MapStreetAddress(
                 municipalNumber: person.AddressMunicipalNumber,
@@ -618,6 +622,11 @@ internal sealed partial class A2PartyImportService
                 }
             }
 
+            if (isDeleted)
+            {
+                deletedAt = party.LastChangedInExternalRegister ?? party.LastChangedInAltinn ?? now;
+            }
+
             return new PersonRecord
             {
                 // party fields
@@ -629,6 +638,7 @@ internal sealed partial class A2PartyImportService
                 CreatedAt = now,
                 ModifiedAt = now,
                 IsDeleted = isDeleted,
+                DeletedAt = deletedAt,
                 User = FieldValue.Unset,
                 VersionId = FieldValue.Unset,
                 OwnerUuid = FieldValue.Null,
@@ -705,6 +715,7 @@ internal sealed partial class A2PartyImportService
             var emailAddress = Normalize(organization.EMailAddress);
             var internetAddress = Normalize(organization.InternetAddress);
             var isDeleted = party.IsDeleted;
+            FieldValue<DateTimeOffset> deletedAt = FieldValue.Null;
 
             var mailingAddress = MapMailingAddress(
                 address: organization.MailingAddress,
@@ -721,6 +732,11 @@ internal sealed partial class A2PartyImportService
                 name = "Organisasjon med manglende navn";
             }
 
+            if (isDeleted)
+            {
+                deletedAt = party.LastChangedInExternalRegister ?? party.LastChangedInAltinn ?? now;
+            }
+
             return new OrganizationRecord
             {
                 // party fields
@@ -732,6 +748,7 @@ internal sealed partial class A2PartyImportService
                 CreatedAt = now,
                 ModifiedAt = now,
                 IsDeleted = isDeleted,
+                DeletedAt = deletedAt,
                 User = FieldValue.Unset,
                 VersionId = FieldValue.Unset,
                 OwnerUuid = FieldValue.Null,
@@ -904,25 +921,7 @@ internal sealed partial class A2PartyImportService
         /// Gets the party object.
         /// </summary>
         [JsonPropertyName("Party")]
-        public required PartyProfileParty Party { get; init; }
-    }
-
-    /// <summary>
-    /// Partial A2 party model.
-    /// </summary>
-    internal sealed class PartyProfileParty
-    {
-        /// <summary>
-        /// Gets the party id.
-        /// </summary>
-        [JsonPropertyName("PartyId")]
-        public required uint PartyId { get; init; }
-
-        /// <summary>
-        /// Gets the party UUID.
-        /// </summary>
-        [JsonPropertyName("PartyUUID")]
-        public required Guid PartyUuid { get; init; }
+        public required V1Models.Party Party { get; init; }
     }
 
     /// <summary>

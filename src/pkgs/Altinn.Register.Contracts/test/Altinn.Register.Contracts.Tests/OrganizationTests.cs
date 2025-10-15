@@ -20,6 +20,7 @@ public class OrganizationTests
                 CreatedAt = FieldValue.Unset,
                 ModifiedAt = FieldValue.Unset,
                 IsDeleted = FieldValue.Unset,
+                DeletedAt = FieldValue.Unset,
                 User = FieldValue.Unset,
                 VersionId = VersionId,
 
@@ -57,6 +58,7 @@ public class OrganizationTests
                 CreatedAt = CreatedAt,
                 ModifiedAt = ModifiedAt,
                 IsDeleted = false,
+                DeletedAt = FieldValue.Null,
                 User = FieldValue.Null,
                 VersionId = VersionId,
 
@@ -93,6 +95,7 @@ public class OrganizationTests
               "createdAt": "2020-01-02T03:04:05+00:00",
               "modifiedAt": "2022-05-06T07:08:09+00:00",
               "isDeleted": false,
+              "deletedAt": null,
               "user": null,
               "unitStatus": "Unit Status",
               "unitType": "Unit Type",

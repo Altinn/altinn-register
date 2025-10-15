@@ -14,6 +14,8 @@ public abstract class PartyTests
 
     protected static DateTimeOffset ModifiedAt { get; } = new(2022, 05, 06, 07, 08, 09, TimeSpan.Zero);
 
+    protected static DateTimeOffset DeletedAt { get; } = new(2021, 03, 04, 05, 06, 07, TimeSpan.Zero);
+
     protected static PartyUser FullUser { get; } = new PartyUser(50, "username", ImmutableValueArray.Create<uint>(50, 30, 1));
 
     protected static PartyRef OwnerRef { get; } = new PartyRef { Uuid = Guid.Parse("00000000-0000-0000-0000-000000000002") };

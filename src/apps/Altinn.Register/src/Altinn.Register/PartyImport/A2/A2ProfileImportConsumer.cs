@@ -108,6 +108,13 @@ public sealed partial class A2ProfileImportConsumer
         }
 
         var now = _timeProvider.GetUtcNow();
+        var isDeleted = !(profile.IsActive ?? !message.IsDeleted);
+        FieldValue<DateTimeOffset> deletedAt = FieldValue.Null;
+        if (isDeleted)
+        {
+            deletedAt = profile.LastChangedAt ?? now;
+        }
+
         var partyRecord = new SelfIdentifiedUserRecord
         {
             PartyUuid = profile.UserUuid.Value,
@@ -119,7 +126,8 @@ public sealed partial class A2ProfileImportConsumer
             CreatedAt = now,
             ModifiedAt = now,
             User = new PartyUserRecord(profile.UserId, profile.UserName, ImmutableValueArray.Create(profile.UserId)),
-            IsDeleted = !(profile.IsActive ?? !message.IsDeleted),
+            IsDeleted = isDeleted,
+            DeletedAt = deletedAt,
             VersionId = FieldValue.Unset,
         };
 
@@ -145,6 +153,13 @@ public sealed partial class A2ProfileImportConsumer
         }
 
         var now = _timeProvider.GetUtcNow();
+        var isDeleted = !(profile.IsActive ?? !message.IsDeleted);
+        FieldValue<DateTimeOffset> deletedAt = FieldValue.Null;
+        if (isDeleted)
+        {
+            deletedAt = profile.LastChangedAt ?? now;
+        }
+
         var partyRecord = new EnterpriseUserRecord
         {
             PartyUuid = profile.UserUuid.Value,
@@ -156,7 +171,8 @@ public sealed partial class A2ProfileImportConsumer
             CreatedAt = now,
             ModifiedAt = now,
             User = new PartyUserRecord(profile.UserId, profile.UserName, ImmutableValueArray.Create(profile.UserId)),
-            IsDeleted = !(profile.IsActive ?? !message.IsDeleted),
+            IsDeleted = isDeleted,
+            DeletedAt = deletedAt,
             VersionId = FieldValue.Unset,
         };
 

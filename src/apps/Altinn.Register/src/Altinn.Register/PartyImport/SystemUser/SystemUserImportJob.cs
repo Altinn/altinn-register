@@ -153,6 +153,7 @@ internal sealed partial class SystemUserImportJob
                     ModifiedAt = systemUser.LastChangedAt,
                     User = FieldValue.Unset,
                     IsDeleted = systemUser.IsDeleted,
+                    DeletedAt = systemUser.IsDeleted ? systemUser.LastChangedAt : FieldValue.Null,
                     VersionId = FieldValue.Unset,
                     SystemUserType = systemUser.Type.Value,
                 };
