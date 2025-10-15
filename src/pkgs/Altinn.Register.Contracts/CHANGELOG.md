@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.2.0...Altinn.Register.Contracts-v1.3.0) (2025-10-15)
+
+
+### Features
+
+* add deleted-at to party ([#593](https://github.com/Altinn/altinn-register/issues/593)) ([2d40332](https://github.com/Altinn/altinn-register/commit/2d403324f950a6df1166a974a8ea625ec02965ed))
+
 ## [1.2.0](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.1.1...Altinn.Register.Contracts-v1.2.0) (2025-10-03)
 
 
