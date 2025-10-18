@@ -304,12 +304,19 @@ internal partial class PostgreSqlPartyPersistence
         ulong fromExclusive,
         ushort limit,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
+        IReadOnlySet<PartyRecordType>? filterByPartyType = null,
         CancellationToken cancellationToken = default)
     {
         _handle.ThrowIfCompleted();
         Guard.IsFalse(include.HasFlag(PartyFieldIncludes.SubUnits), nameof(include), $"{nameof(PartyFieldIncludes)}.{nameof(PartyFieldIncludes.SubUnits)} is not allowed");
 
-        var query = PartyQuery.Get(include, PartyQueryFilters.Stream());
+        var filter = PartyListFilters.None;
+        if (filterByPartyType is { Count: > 0 })
+        {
+            filter |= PartyListFilters.PartyType;
+        }
+
+        var query = PartyQuery.Get(include, PartyQueryFilters.Stream(filter));
         NpgsqlCommand? cmd = null;
         try
         {
@@ -317,6 +324,11 @@ internal partial class PostgreSqlPartyPersistence
             cmd.CommandText = query.CommandText;
 
             query.AddStreamPageParameters(cmd, fromExclusive, limit);
+
+            if (filterByPartyType is not null)
+            {
+                query.AddPartyTypeListParameter(cmd, [.. filterByPartyType]);
+            }
 
             return PrepareAndReadPartiesAsync(cmd, query, cancellationToken);
         }
