@@ -203,9 +203,18 @@ internal partial class PostgreSqlPartyPersistence
             Debug.Assert(config.HasValue, "Parameter must be configured");
             Debug.Assert(config.Type == typeof(T), "Parameter type mismatch");
 
-            var param = cmd.Parameters.Add<T>(config.Name, config.DbType);
-            param.TypedValue = value;
+            NpgsqlParameter<T> param;
 
+            if (config.DbType.IsDefault())
+            {
+                param = cmd.Parameters.Add<T>(config.Name);
+            }
+            else
+            {
+                param = cmd.Parameters.Add<T>(config.Name, config.DbType);
+            }
+
+            param.TypedValue = value;
             return param;
         }
 

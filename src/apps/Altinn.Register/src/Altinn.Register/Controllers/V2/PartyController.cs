@@ -2,6 +2,8 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using Altinn.Authorization.ModelUtils.AspNet;
+using Altinn.Authorization.ModelUtils.EnumUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.ExternalRoles;
@@ -48,7 +50,7 @@ public class PartyController
     internal const int PARTY_QUERY_MAX_ITEMS = 100;
 
     /// <summary>
-    /// Route name for <see cref="GetStream(PartyFieldIncludes, Opaque{ulong}?, CancellationToken)"/>.
+    /// Route name for <see cref="GetStream(PartyFieldIncludes, FlagsEnum{PartyTypes}, Opaque{ulong}?, CancellationToken)"/>.
     /// </summary>
     public const string ROUTE_GET_STREAM = "parties/stream";
 
@@ -73,6 +75,7 @@ public class PartyController
     /// Gets a stream of parties.
     /// </summary>
     /// <param name="fields">What fields to include.</param>
+    /// <param name="partyTypesInput">Filter by party types.</param>
     /// <param name="token">An optional continuation token.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A stream of all party records.</returns>
@@ -82,10 +85,12 @@ public class PartyController
     [HttpGet("stream", Name = ROUTE_GET_STREAM)]
     public async Task<ActionResult<ItemStream<Party>>> GetStream(
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
+        [FromQuery(Name = "types")] FlagsEnum<PartyTypes> partyTypesInput = default,
         [FromQuery(Name = "token")] Opaque<ulong>? token = null,
         CancellationToken cancellationToken = default)
     {
         var pageSize = _settings.PartyStreamPageSize;
+        IReadOnlySet<PartyRecordType>? partyTypes = partyTypesInput.Value == PartyTypes.None ? null : new PartyTypesSet(partyTypesInput.Value);
 
         ValidationErrorBuilder errors = default;
         if (fields.HasFlag(PartyFieldIncludes.SubUnits))
@@ -105,7 +110,8 @@ public class PartyController
         var parties = await persistence.GetPartyStream(
             fromExclusive: token?.Value ?? 0,
             limit: pageSize,
-            fields | REQUIRED_FIELDS,
+            include: fields | REQUIRED_FIELDS,
+            filterByPartyType: partyTypes,
             cancellationToken)
             .Select(static p => p.ToPlatformModel())
             .ToListAsync(cancellationToken);
@@ -113,11 +119,18 @@ public class PartyController
         string? nextLink = null;
         if (parties.Count > 0)
         {
-            nextLink = Url.Link(ROUTE_GET_STREAM, new
+            var routeValues = new RouteValueDictionary() 
             {
-                token = Opaque.Create(parties[^1].VersionId),
-                fields = PartyFieldIncludesModelBinder.Format(fields),
-            });
+                { "token", Opaque.Create(parties[^1].VersionId) },
+                { "fields", PartyFieldIncludesModelBinder.Format(fields) },
+            };
+
+            if (partyTypes != null)
+            {
+                routeValues.Add("types", partyTypesInput.ToString());
+            }
+
+            nextLink = Url.Link(ROUTE_GET_STREAM, routeValues);
         }
 
         return ItemStream.Create(
