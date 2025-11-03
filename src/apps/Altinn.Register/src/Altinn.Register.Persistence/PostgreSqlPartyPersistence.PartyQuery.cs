@@ -205,14 +205,9 @@ internal partial class PostgreSqlPartyPersistence
 
             NpgsqlParameter<T> param;
 
-            if (config.DbType.IsDefault())
-            {
-                param = cmd.Parameters.Add<T>(config.Name);
-            }
-            else
-            {
-                param = cmd.Parameters.Add<T>(config.Name, config.DbType);
-            }
+            param = config.DbType.IsDefault()
+                ? cmd.Parameters.Add<T>(config.Name)
+                : cmd.Parameters.Add<T>(config.Name, config.DbType);
 
             param.TypedValue = value;
             return param;
