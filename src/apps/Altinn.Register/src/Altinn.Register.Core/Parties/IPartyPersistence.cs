@@ -184,6 +184,7 @@ public interface IPartyPersistence
     /// <param name="fromExclusive">From where (exclusive) to start the page.</param>
     /// <param name="limit">The maximum number of parties to return.</param>
     /// <param name="include">What fields to include.</param>
+    /// <param name="filterByPartyType">Optional party-type filter.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>
     /// A <see cref="IAsyncEnumerable{T}"/> containing a page of parties.
@@ -195,6 +196,7 @@ public interface IPartyPersistence
         ulong fromExclusive,
         ushort limit,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
+        IReadOnlySet<PartyRecordType>? filterByPartyType = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>

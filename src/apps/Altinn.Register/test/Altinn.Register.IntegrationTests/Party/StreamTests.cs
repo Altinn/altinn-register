@@ -411,4 +411,63 @@ public class StreamTests
 
         apiParty.ShouldBeOfType<SystemUser>();
     }
+
+    [Theory]
+    [InlineData("person", typeof(Person))]
+    [InlineData("organization", typeof(Organization))]
+    [InlineData("self-identified-user", typeof(SelfIdentifiedUser))]
+    [InlineData("system-user", typeof(SystemUser))]
+    [InlineData("enterprise-user", typeof(EnterpriseUser))]
+    public async Task FilterType_Single(string partyType, Type expectedType)
+    {
+        await Setup(async (uow, ct) =>
+        {
+            await uow.CreatePerson(cancellationToken: ct);
+            var org = await uow.CreateOrg(cancellationToken: ct);
+            await uow.CreateSelfIdentifiedUser(cancellationToken: ct);
+            await uow.CreateSystemUser(owner: org.PartyUuid.Value, cancellationToken: ct);
+            await uow.CreateEnterpriseUser(owner: org.PartyUuid.Value, cancellationToken: ct);
+        });
+
+        using var response = await HttpClient.GetAsync($"/register/api/v2/internal/parties/stream?types={partyType}", TestContext.Current.CancellationToken);
+
+        await response.ShouldHaveSuccessStatusCode();
+        var content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
+
+        var nextLink = content.Links.Next.ShouldNotBeNull();
+        nextLink.ShouldContain($"types={partyType}");
+
+        var items = content.Items.ToList();
+        items.Count.ShouldBe(1);
+
+        var apiParty = items[0];
+        apiParty.ShouldBeOfType(expectedType);
+    }
+
+    [Fact]
+    public async Task FilterType_Multiple()
+    {
+        await Setup(async (uow, ct) =>
+        {
+            await uow.CreatePerson(cancellationToken: ct);
+            var org = await uow.CreateOrg(cancellationToken: ct);
+            await uow.CreateSelfIdentifiedUser(cancellationToken: ct);
+            await uow.CreateSystemUser(owner: org.PartyUuid.Value, cancellationToken: ct);
+            await uow.CreateEnterpriseUser(owner: org.PartyUuid.Value, cancellationToken: ct);
+        });
+
+        using var response = await HttpClient.GetAsync("/register/api/v2/internal/parties/stream?types=enterprise-user,system-user", TestContext.Current.CancellationToken);
+
+        await response.ShouldHaveSuccessStatusCode();
+        var content = await response.ShouldHaveJsonContent<ItemStream<Contracts.Party>>();
+
+        var nextLink = content.Links.Next.ShouldNotBeNull();
+        nextLink.ShouldContain($"types=system-user,enterprise-user");
+
+        var items = content.Items.ToList();
+        items.Count.ShouldBe(2);
+
+        items.ShouldContain(p => p is EnterpriseUser);
+        items.ShouldContain(p => p is SystemUser);
+    }
 }
