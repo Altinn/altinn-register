@@ -50,5 +50,5 @@ public enum PartyLookupIdentifiers
     /// Get by username.
     /// </summary>
     [JsonStringEnumMemberName("user.name")]
-    UserName = 1 << 6,
+    Username = 1 << 6,
 }

@@ -199,6 +199,7 @@ internal partial class PostgreSqlPartyPersistence
         IReadOnlyList<OrganizationIdentifier>? organizationIdentifiers = null,
         IReadOnlyList<PersonIdentifier>? personIdentifiers = null,
         IReadOnlyList<uint>? userIds = null,
+        IReadOnlyList<string>? usernames = null,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default)
     {
@@ -240,6 +241,13 @@ internal partial class PostgreSqlPartyPersistence
             any = persons = true;
             identifiers |= PartyLookupIdentifiers.UserId;
             include |= PartyFieldIncludes.UserId;
+        }
+
+        if (usernames is { Count: > 0 })
+        {
+            any = persons = true;
+            identifiers |= PartyLookupIdentifiers.Username;
+            include |= PartyFieldIncludes.Username;
         }
 
         if (!any)
@@ -289,6 +297,11 @@ internal partial class PostgreSqlPartyPersistence
             if (userIds is { Count: > 0 })
             {
                 query.AddUserIdListParameter(cmd, [.. userIds.Select(static id => checked((int)id))]);
+            }
+
+            if (usernames is { Count: > 0 })
+            {
+                query.AddUsernameListParameter(cmd, [.. usernames]);
             }
 
             return PrepareAndReadPartiesAsync(cmd, query, cancellationToken);

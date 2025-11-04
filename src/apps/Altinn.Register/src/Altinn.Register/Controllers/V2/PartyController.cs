@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -420,6 +420,7 @@ public class PartyController
         List<PersonIdentifier>? personIds = null;
         List<OrganizationIdentifier>? orgIds = null;
         List<uint>? userIds = null;
+        List<string>? usernames = null;
 
         var count = 0;
         foreach (var item in parties.Items)
@@ -456,6 +457,12 @@ public class PartyController
                     userIds.Add(userId.Value);
                     break;
 
+                case PartyUrn.Username username:
+                    fields |= PartyFieldIncludes.Username;
+                    usernames ??= new();
+                    usernames.Add(username.Value.Value);
+                    break;
+
                 default:
                     errors.Add(ValidationErrors.PartyUrn_Invalid, $"/data/{count}");
                     break;
@@ -488,6 +495,7 @@ public class PartyController
             organizationIdentifiers: orgIds,
             personIdentifiers: personIds,
             userIds: userIds,
+            usernames: usernames,
             fields | REQUIRED_FIELDS,
             cancellationToken)
             .Select(static p => p.ToPlatformModel())
@@ -498,7 +506,8 @@ public class PartyController
             || uuids.OrEmpty().Any(uuid => !result.Any(p => p.Uuid == uuid)) 
             || orgIds.OrEmpty().Any(orgId => !result.Any(p => p is Organization o && o.OrganizationIdentifier == orgId)) 
             || personIds.OrEmpty().Any(personId => !result.Any(p => p is Person pp && pp.PersonIdentifier == personId))
-            || userIds.OrEmpty().Any(uid => !result.Any(p => p.User.HasValue && p.User.Value.UserIds.HasValue && p.User.Value.UserIds.Value.Contains(uid)));
+            || userIds.OrEmpty().Any(uid => !result.Any(p => p.User.HasValue && p.User.Value.UserIds.HasValue && p.User.Value.UserIds.Value.Contains(uid)))
+            || usernames.OrEmpty().Any(username => !result.Any(p => p.User.HasValue && p.User.Value.Username.HasValue && p.User.Value.Username.Value == username));
 
         if (anyMissing)
         {
