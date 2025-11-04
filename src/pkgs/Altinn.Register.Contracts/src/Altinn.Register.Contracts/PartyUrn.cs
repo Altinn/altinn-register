@@ -55,6 +55,14 @@ public abstract partial record PartyUrn
     [UrnKey("altinn:userid")]
     public partial bool IsUserId(out uint userId);
 
+    /// <summary>
+    /// Try to get the urn as a username.
+    /// </summary>
+    /// <param name="username">The resulting username.</param>
+    /// <returns><see langword="true"/> if this party reference is a username, otherwise <see langword="false"/>.</returns>
+    [UrnKey("altinn:party:username", Canonical = true)]
+    public partial bool IsUsername(out UrnEncoded username);
+
     // Manually overridden to disallow negative party ids
     private static bool TryParsePartyId(ReadOnlySpan<char> segment, IFormatProvider? provider, out uint value)
         => uint.TryParse(segment, NumberStyles.None, provider, out value);

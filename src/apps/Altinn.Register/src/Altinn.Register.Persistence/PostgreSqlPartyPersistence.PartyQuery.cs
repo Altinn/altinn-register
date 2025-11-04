@@ -967,7 +967,7 @@ internal partial class PostgreSqlPartyPersistence
                                 """);
                         break;
 
-                    case PartyLookupIdentifiers.UserName:
+                    case PartyLookupIdentifiers.Username:
                         _paramUsername = new(typeof(string), "username", NpgsqlDbType.Text);
                         AddCommonTableExpression(
                             ref firstExpression,
@@ -1064,7 +1064,7 @@ internal partial class PostgreSqlPartyPersistence
                             """);
                 }
 
-                if (identifier.HasFlag(PartyLookupIdentifiers.UserName))
+                if (identifier.HasFlag(PartyLookupIdentifiers.Username))
                 {
                     // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
                     _paramUsernameList = new(typeof(IList<string>), "usernames", NpgsqlDbType.Array | NpgsqlDbType.Text);

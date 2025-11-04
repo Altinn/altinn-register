@@ -84,14 +84,14 @@ public class PartyQueryTests
             PartyLookupIdentifiers.PersonIdentifier,
             PartyLookupIdentifiers.OrganizationIdentifier,
             PartyLookupIdentifiers.UserId,
-            PartyLookupIdentifiers.UserName,
+            PartyLookupIdentifiers.Username,
         ];
 
         IEnumerable<PartyLookupIdentifiers> multipleIdentifiers = [
             .. singleIdentifiers,
 
             // all at once
-            PartyLookupIdentifiers.PartyId | PartyLookupIdentifiers.PartyUuid | PartyLookupIdentifiers.PersonIdentifier | PartyLookupIdentifiers.OrganizationIdentifier | PartyLookupIdentifiers.UserId | PartyLookupIdentifiers.UserName,
+            PartyLookupIdentifiers.PartyId | PartyLookupIdentifiers.PartyUuid | PartyLookupIdentifiers.PersonIdentifier | PartyLookupIdentifiers.OrganizationIdentifier | PartyLookupIdentifiers.UserId | PartyLookupIdentifiers.Username,
         ];
 
         IEnumerable<PartyListFilters> listFilters = [

@@ -157,6 +157,7 @@ public interface IPartyPersistence
     /// <param name="organizationIdentifiers"><see cref="PartyRecord.OrganizationIdentifier"/>s.</param>
     /// <param name="personIdentifiers"><see cref="PartyRecord.PersonIdentifier"/>s.</param>
     /// <param name="userIds"><see cref="PartyRecord.User"/>'s <see cref="PartyUserRecord.UserIds"/>.</param>
+    /// <param name="usernames"><see cref="PartyRecord.User"/>'s <see cref="PartyUserRecord.Username"/>.</param>
     /// <param name="include">Data/fields to include.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>
@@ -175,6 +176,7 @@ public interface IPartyPersistence
         IReadOnlyList<OrganizationIdentifier>? organizationIdentifiers = null,
         IReadOnlyList<PersonIdentifier>? personIdentifiers = null,
         IReadOnlyList<uint>? userIds = null,
+        IReadOnlyList<string>? usernames = null,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default);
 

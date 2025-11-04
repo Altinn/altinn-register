@@ -2,8 +2,11 @@
 using System.Net.Http.Json;
 using Altinn.Register.Contracts;
 using Altinn.Register.Controllers.V2;
+using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Models;
 using Altinn.Register.TestUtils.TestData;
+using Altinn.Urn;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Register.IntegrationTests.Party;
 
@@ -35,19 +38,27 @@ public class QueryTests
     [Fact]
     public async Task MultipleIdentifiersSameParty()
     {
-        var party = await Setup((uow, ct) => uow.CreatePerson(cancellationToken: ct));
+        var party = await Setup(async (uow, ct) =>
+        {
+            var userIds = await uow.GetRequiredService<RegisterTestDataGenerator>().GetNextUserIds(1, ct);
+            var user = new PartyUserRecord(userId: userIds[0], username: Guid.NewGuid().ToString());
+            var person = await uow.CreatePerson(user: user, cancellationToken: ct);
+            return person;
+        });
 
         var requestContent = ListObject.Create<PartyUrn>([
             PartyUrn.PartyUuid.Create(party.PartyUuid.Value),
             PartyUrn.PartyId.Create(party.PartyId.Value),
             PartyUrn.PersonId.Create(party.PersonIdentifier.Value!),
             PartyUrn.UserId.Create(party.User.Value!.UserId.Value),
+            PartyUrn.Username.Create(UrnEncoded.Create(party.User.Value!.Username.Value!)),
 
             // repeat again for good measure
             PartyUrn.PartyUuid.Create(party.PartyUuid.Value),
             PartyUrn.PartyId.Create(party.PartyId.Value),
             PartyUrn.PersonId.Create(party.PersonIdentifier.Value!),
             PartyUrn.UserId.Create(party.User.Value!.UserId.Value),
+            PartyUrn.Username.Create(UrnEncoded.Create(party.User.Value!.Username.Value!)),
         ]);
 
         var response = await HttpClient.PostAsJsonAsync("register/api/v2/internal/parties/query", requestContent, JsonOptions, TestContext.Current.CancellationToken);
