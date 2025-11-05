@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.3.0...Altinn.Register.Contracts-v1.4.0) (2025-11-04)
+
+
+### Features
+
+* add username to `PartyUrn` ([#606](https://github.com/Altinn/altinn-register/issues/606)) ([295f16d](https://github.com/Altinn/altinn-register/commit/295f16d4a83a1d35a9363d3f89462665dc56d22f))
+
 ## [1.3.0](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.2.0...Altinn.Register.Contracts-v1.3.0) (2025-10-15)
 
 
