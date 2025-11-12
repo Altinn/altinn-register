@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.4.0...Altinn.Register.Contracts-v1.4.1) (2025-11-12)
+
+
+### Bug Fixes
+
+* support `urn:altinn:username` ([#610](https://github.com/Altinn/altinn-register/issues/610)) ([66707a5](https://github.com/Altinn/altinn-register/commit/66707a53ab87840acebbb8b658600fdd8bdcd8d5))
+
 ## [1.4.0](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.3.0...Altinn.Register.Contracts-v1.4.0) (2025-11-04)
 
 
