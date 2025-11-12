@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Altinn.Urn;
 
 namespace Altinn.Register.Contracts;
@@ -61,6 +61,7 @@ public abstract partial record PartyUrn
     /// <param name="username">The resulting username.</param>
     /// <returns><see langword="true"/> if this party reference is a username, otherwise <see langword="false"/>.</returns>
     [UrnKey("altinn:party:username", Canonical = true)]
+    [UrnKey("altinn:username")]
     public partial bool IsUsername(out UrnEncoded username);
 
     // Manually overridden to disallow negative party ids
