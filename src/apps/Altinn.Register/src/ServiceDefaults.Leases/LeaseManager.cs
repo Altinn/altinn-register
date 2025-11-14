@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -27,11 +27,11 @@ public sealed class LeaseManager
         _services = services;
     }
 
-    /// <inheritdoc cref="AcquireLease(string, Func{LeaseInfo, bool}?, CancellationToken)"/>
+    /// <inheritdoc cref="AcquireLease(string, TimeSpan?, CancellationToken)"/>
     public Task<Lease> AcquireLease(
         string leaseId,
         CancellationToken cancellationToken)
-        => AcquireLease(leaseId, filter: null, cancellationToken);
+        => AcquireLease(leaseId, ifUnacquiredFor: null, cancellationToken);
 
     /// <summary>
     /// Gets a auto-renewing lease for the specified lease id.
@@ -40,12 +40,12 @@ public sealed class LeaseManager
     /// If <paramref name="cancellationToken"/> is cancelled, the lease will be released.
     /// </remarks>
     /// <param name="leaseId">The lease id.</param>
-    /// <param name="filter">A filter that can be used to reject leases based on the state of the lease provider.</param>
+    /// <param name="ifUnacquiredFor">A filter that can be used to reject leases based on whether the lease has been unacquired for a certain amount of time.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="Lease"/>, if the lease was available, otherwise <see langword="null"/>.</returns>
     public async Task<Lease> AcquireLease(
         string leaseId,
-        Func<LeaseInfo, bool>? filter = null,
+        TimeSpan? ifUnacquiredFor = null,
         CancellationToken cancellationToken = default)
     {
         StackTrace? source = null;
@@ -58,7 +58,7 @@ public sealed class LeaseManager
         
         try
         {
-            var result = await _provider.TryAcquireLease(leaseId, OwnedLease.LeaseRenewalInterval, filter, cancellationToken);
+            var result = await _provider.TryAcquireLease(leaseId, OwnedLease.LeaseRenewalInterval, ifUnacquiredFor, cancellationToken);
 
             if (!result.IsLeaseAcquired)
             {

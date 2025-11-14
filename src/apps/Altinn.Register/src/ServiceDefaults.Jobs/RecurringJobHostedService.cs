@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Metrics;
@@ -476,28 +476,41 @@ internal sealed partial class RecurringJobHostedService
         using var _scheduler = scheduler;
 #pragma warning restore SA1312 // Variable names should begin with lower-case letter
 
-        var start = _timeProvider.GetTimestamp();
-        await scheduler.WaitForReady(registration, _serviceProvider, cancellationToken);
-        var elapsed = _timeProvider.GetElapsedTime(start);
+        Exception? exn = null;
 
-        while (!cancellationToken.IsCancellationRequested)
+        try
         {
-            // we wait first - if the job should also be ran at startup, set RunAt to the appropriate lifecycle
-            await scheduler.Sleep(interval - elapsed, cancellationToken).ConfigureAwait(false);
-            elapsed = TimeSpan.Zero;
+            var start = _timeProvider.GetTimestamp();
+            await scheduler.WaitForReady(registration, _serviceProvider, cancellationToken);
+            var elapsed = _timeProvider.GetElapsedTime(start);
 
-            // we check if the job is enabled. If it isn't, we sleep for 10x the interval to reduce usage for disabled jobs.
-            // this still allows enabling jobs via feature-flags without having to restart the host.
-            var isEnabled = await IsEnabled(registration, throwOnException: false, "scheduler", cancellationToken);
-            if (!isEnabled)
+            while (!cancellationToken.IsCancellationRequested)
             {
-                // 8x, cause we already waited for `interval` once, and we continue so it will wait for another `interval` before checking again
-                await scheduler.Sleep(interval * 8, cancellationToken).ConfigureAwait(false);
-                continue;
-            }
+                // we wait first - if the job should also be ran at startup, set RunAt to the appropriate lifecycle
+                await scheduler.Sleep(interval - elapsed, cancellationToken).ConfigureAwait(false);
+                elapsed = TimeSpan.Zero;
 
-            // run the job
-            await RunJob(registration, throwOnException: false, "scheduler", cancellationToken);
+                // we check if the job is enabled. If it isn't, we sleep for 10x the interval to reduce usage for disabled jobs.
+                // this still allows enabling jobs via feature-flags without having to restart the host.
+                var isEnabled = await IsEnabled(registration, throwOnException: false, "scheduler", cancellationToken);
+                if (!isEnabled)
+                {
+                    // 8x, cause we already waited for `interval` once, and we continue so it will wait for another `interval` before checking again
+                    await scheduler.Sleep(interval * 8, cancellationToken).ConfigureAwait(false);
+                    continue;
+                }
+
+                // run the job
+                await RunJob(registration, throwOnException: false, "scheduler", cancellationToken);
+            }
+        }
+        catch (Exception e)
+        {
+            exn = e;
+        }
+        finally
+        {
+            Log.SchedulerExited(_logger, registration.JobName, exn);
         }
     }
 
@@ -512,64 +525,77 @@ internal sealed partial class RecurringJobHostedService
         using var _scheduler = scheduler;
 #pragma warning restore SA1312 // Variable names should begin with lower-case letter
 
-        await scheduler.WaitForReady(registration, _serviceProvider, cancellationToken);
+        Exception? exn = null;
 
-        while (!cancellationToken.IsCancellationRequested)
+        try
         {
-            var now = _timeProvider.GetUtcNow();
-            DateTimeOffset lastCompleted;
+            await scheduler.WaitForReady(registration, _serviceProvider, cancellationToken);
 
+            while (!cancellationToken.IsCancellationRequested)
             {
-                // check if the job is enabled. If it isn't, we can skip the lease acquisition.
-                var isEnabled = await IsEnabled(registration, throwOnException: false, "lease-scheduler", cancellationToken);
-                if (!isEnabled)
+                var now = _timeProvider.GetUtcNow();
+                DateTimeOffset lastCompleted;
+
                 {
-                    // here, we just sleep for 10x the interval to reduce usage for disabled jobs.
-                    // this still allows enabling jobs via feature-flags without having to restart the host.
-                    await scheduler.Sleep(interval * 10, cancellationToken).ConfigureAwait(false);
-                    continue;
-                }
-
-                // we try to grab the lease first, as it might have been longer than `interval` time since we last ran
-                await using var lease = await _leaseManager.AcquireLease(
-                    leaseName,
-                    (prev) => prev.LastReleasedAt is null || prev.LastReleasedAt.Value + interval <= now,
-                    cancellationToken);
-
-                if (lease.Acquired)
-                {
-                    // if we acquired the lease, run the job
-                    await RunJob(registration, throwOnException: false, "lease-scheduler", lease.Token);
-                    var releaseResult = await lease.Release(cancellationToken);
-
-                    Debug.Assert(releaseResult is not null);
-                    Debug.Assert(releaseResult.LastReleasedAt.HasValue);
-                    lastCompleted = releaseResult.LastReleasedAt.Value;
-                }
-                else
-                {
-                    Log.LeaseNotAcquired(_logger, registration.JobName, leaseName, JobHostLifecycles.None);
-
-                    // else record when it was last ran
-                    lastCompleted = lease.Expires;
-                    if (lease.LastReleasedAt.HasValue && lease.LastReleasedAt > lastCompleted)
+                    // check if the job is enabled. If it isn't, we can skip the lease acquisition.
+                    var isEnabled = await IsEnabled(registration, throwOnException: false, "lease-scheduler", cancellationToken);
+                    if (!isEnabled)
                     {
-                        lastCompleted = lease.LastReleasedAt.Value;
+                        // here, we just sleep for 10x the interval to reduce usage for disabled jobs.
+                        // this still allows enabling jobs via feature-flags without having to restart the host.
+                        await scheduler.Sleep(interval * 10, cancellationToken).ConfigureAwait(false);
+                        continue;
+                    }
+
+                    // we try to grab the lease first, as it might have been longer than `interval` time since we last ran
+                    await using var lease = await _leaseManager.AcquireLease(
+                        leaseName,
+                        ifUnacquiredFor: interval,
+                        cancellationToken);
+
+                    if (lease.Acquired)
+                    {
+                        // if we acquired the lease, run the job
+                        await RunJob(registration, throwOnException: false, "lease-scheduler", lease.Token);
+                        var releaseResult = await lease.Release(cancellationToken);
+
+                        Debug.Assert(releaseResult is not null);
+                        Debug.Assert(releaseResult.LastReleasedAt.HasValue);
+                        lastCompleted = releaseResult.LastReleasedAt.Value;
+                    }
+                    else
+                    {
+                        Log.LeaseNotAcquired(_logger, registration.JobName, leaseName, JobHostLifecycles.None);
+
+                        // else record when it was last ran
+                        lastCompleted = lease.Expires;
+                        if (lease.LastReleasedAt.HasValue && lease.LastReleasedAt > lastCompleted)
+                        {
+                            lastCompleted = lease.LastReleasedAt.Value;
+                        }
                     }
                 }
-            }
 
-            // calculate when next the job should run, and wait for that, then loop
-            now = _timeProvider.GetUtcNow();
-            var nextStart = lastCompleted + interval;
-            var tilThen = nextStart - now;
+                // calculate when next the job should run, and wait for that, then loop
+                now = _timeProvider.GetUtcNow();
+                var nextStart = lastCompleted + interval;
+                var tilThen = nextStart - now;
 
-            if (tilThen > TimeSpan.Zero)
-            {
-                // note, we grab the new delay task here to make sure we schedule the next run before releasing the tracker
-                Log.Sleep(_logger, registration.JobName, tilThen);
-                await scheduler.Sleep(tilThen, cancellationToken).ConfigureAwait(false);
+                if (tilThen > TimeSpan.Zero)
+                {
+                    // note, we grab the new delay task here to make sure we schedule the next run before releasing the tracker
+                    Log.Sleep(_logger, registration.JobName, tilThen);
+                    await scheduler.Sleep(tilThen, cancellationToken).ConfigureAwait(false);
+                }
             }
+        }
+        catch (Exception e)
+        {
+            exn = e;
+        }
+        finally
+        {
+            Log.SchedulerExited(_logger, registration.JobName, exn);
         }
     }
 
@@ -998,5 +1024,8 @@ internal sealed partial class RecurringJobHostedService
 
         [LoggerMessage(14, LogLevel.Error, "Job {JobName} creation failed")]
         public static partial void JobCreationFailed(ILogger logger, string jobName, Exception exception);
+
+        [LoggerMessage(15, LogLevel.Warning, "Scheduler for job {JobName} exited")]
+        public static partial void SchedulerExited(ILogger logger, string jobName, Exception? exception);
     }
 }
