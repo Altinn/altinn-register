@@ -466,6 +466,16 @@ internal sealed partial class RecurringJobHostedService
         return Task.WhenAll(tasks);
     }
 
+    /// <summary>
+    /// Runs a non-lease periodic scheduler loop for a registered job.
+    /// </summary>
+    /// <remarks>
+    /// Waits for the scheduler to be ready, then repeatedly sleeps until the next scheduled start, checks whether the job is enabled, and invokes the job when appropriate. If the job is disabled the loop delays further to reduce activity. The loop exits when the provided cancellation token is cancelled or on an unhandled exception; scheduler exit is logged with any captured exception.
+    /// </remarks>
+    /// <param name="scheduler">The per-job scheduler that provides readiness and sleep coordination.</param>
+    /// <param name="interval">The interval between job runs.</param>
+    /// <param name="registration">The job registration describing the job to run.</param>
+    /// <param name="cancellationToken">Token to cancel the scheduler loop.</param>
     private async Task RunNormalScheduler(
         JobScheduler scheduler,
         TimeSpan interval,
@@ -514,6 +524,14 @@ internal sealed partial class RecurringJobHostedService
         }
     }
 
+    /// <summary>
+    /// Runs a lease-based periodic scheduler for a registered job, acquiring a lease before executing runs and scheduling the next execution based on lease release or expiry.
+    /// </summary>
+    /// <param name="scheduler">Per-job scheduler used to wait for readiness and to sleep until the next run.</param>
+    /// <param name="leaseName">Name of the distributed lease to acquire before running the job.</param>
+    /// <param name="interval">Desired interval between job runs; used to determine lease acquisition windows and next-start timing.</param>
+    /// <param name="registration">Job registration describing the job to execute.</param>
+    /// <param name="cancellationToken">Token used to stop the scheduler loop and abort waiting operations.</param>
     private async Task RunLeaseScheduler(
         JobScheduler scheduler,
         string leaseName,
@@ -598,6 +616,12 @@ internal sealed partial class RecurringJobHostedService
         }
     }
 
+    /// <summary>
+    /// Yields each job registration as soon as its readiness completes.
+    /// </summary>
+    /// <param name="registrations">Registrations to observe for readiness.</param>
+    /// <param name="cancellationToken">Token to cancel waiting for registrations.</param>
+    /// <returns>An asynchronous sequence of <see cref="JobRegistration"/> instances yielded when each registration reports ready.</returns>
     private async IAsyncEnumerable<JobRegistration> WhenReady(IEnumerable<JobRegistration> registrations, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         List<Task<JobRegistration>>? pending = null;
@@ -1021,9 +1045,19 @@ internal sealed partial class RecurringJobHostedService
         [LoggerMessage(13, LogLevel.Information, "Scheduler for job {JobName} disposed")]
         public static partial void SchedulerDisposed(ILogger logger, string jobName);
 
+        /// <summary>
+        /// Log an error indicating that creating an instance of the specified job failed.
+        /// </summary>
+        /// <param name="jobName">The name of the job whose creation failed.</param>
+        /// <param name="exception">The exception thrown while attempting to create the job.</param>
         [LoggerMessage(14, LogLevel.Error, "Job {JobName} creation failed")]
         public static partial void JobCreationFailed(ILogger logger, string jobName, Exception exception);
 
+        /// <summary>
+        /// Logs that the scheduler for a job has exited, optionally including the exception that caused the exit.
+        /// </summary>
+        /// <param name="jobName">The name of the job whose scheduler exited.</param>
+        /// <param name="exception">The exception that caused the scheduler to exit, or <c>null</c> if the exit was not due to an exception.</param>
         [LoggerMessage(15, LogLevel.Warning, "Scheduler for job {JobName} exited")]
         public static partial void SchedulerExited(ILogger logger, string jobName, Exception? exception);
     }

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ServiceDefaults;
 using Altinn.Register.Core;
@@ -120,7 +120,10 @@ public abstract class HostTestBase
     /// <summary>
     /// Configures the host.
     /// </summary>
-    /// <param name="builder">Host builder.</param>
+    /// <summary>
+    /// Register test-oriented services on the provided host builder and allow further service customization by derived classes.
+    /// </summary>
+    /// <param name="builder">The host application builder used to register services for the test host.</param>
     protected virtual async ValueTask ConfigureHost(IHostApplicationBuilder builder)
     {
         builder.Services.TryAddSingleton(_timeProvider);

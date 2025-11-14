@@ -17,7 +17,11 @@ public sealed class LeaseManager
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LeaseManager"/> class.
+    /// <summary>
+    /// Initializes a new instance of LeaseManager using the specified lease provider and service provider.
     /// </summary>
+    /// <param name="provider">The lease provider used to acquire and release leases.</param>
+    /// <param name="services">The service provider used to resolve dependencies for created lease instances.</param>
     public LeaseManager(ILeaseProvider provider, IServiceProvider services)
     {
         Guard.IsNotNull(provider);
@@ -42,7 +46,13 @@ public sealed class LeaseManager
     /// <param name="leaseId">The lease id.</param>
     /// <param name="ifUnacquiredFor">A filter that can be used to reject leases based on whether the lease has been unacquired for a certain amount of time.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
-    /// <returns>A <see cref="Lease"/>, if the lease was available, otherwise <see langword="null"/>.</returns>
+    /// <summary>
+    /// Attempts to acquire a lease for the specified identifier.
+    /// </summary>
+    /// <param name="ifUnacquiredFor">If non-null, only acquire the lease when it has been unacquired for at least this duration; pass <c>null</c> to ignore this condition.</param>
+    /// <returns>
+    /// A <see cref="Lease"/> that contains an acquired lease when successful; otherwise a <see cref="Lease"/> whose `lease` field is <c>null</c> and that carries the lease expiry and last-acquired/last-released timestamps.
+    /// </returns>
     public async Task<Lease> AcquireLease(
         string leaseId,
         TimeSpan? ifUnacquiredFor = null,
