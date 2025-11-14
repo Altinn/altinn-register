@@ -21,6 +21,7 @@ internal partial class PostgresqlLeaseProvider
     : ILeaseProvider
 {
     private static readonly TimeSpan MAX_LEASE_DURATION = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan MIN_LEASE_DURATION = TimeSpan.FromSeconds(30);
 
     private readonly NpgsqlDataSource _dataSource;
     private readonly TimeProvider _timeProvider;
@@ -62,6 +63,7 @@ internal partial class PostgresqlLeaseProvider
 
         Guard.IsNotNullOrEmpty(leaseId);
         Guard.IsLessThan(duration, MAX_LEASE_DURATION);
+        Guard.IsGreaterThan(duration, MIN_LEASE_DURATION);
 
         var now = _timeProvider.GetUtcNow();
         var expires = now + duration;
@@ -118,6 +120,7 @@ internal partial class PostgresqlLeaseProvider
 
         Guard.IsNotNull(lease);
         Guard.IsLessThan(duration, MAX_LEASE_DURATION);
+        Guard.IsGreaterThan(duration, MIN_LEASE_DURATION);
 
         var now = _timeProvider.GetUtcNow();
         var expires = now + duration;

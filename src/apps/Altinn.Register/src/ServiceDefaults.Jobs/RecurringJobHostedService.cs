@@ -533,7 +533,6 @@ internal sealed partial class RecurringJobHostedService
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                var now = _timeProvider.GetUtcNow();
                 DateTimeOffset lastCompleted;
 
                 {
@@ -577,7 +576,7 @@ internal sealed partial class RecurringJobHostedService
                 }
 
                 // calculate when next the job should run, and wait for that, then loop
-                now = _timeProvider.GetUtcNow();
+                var now = _timeProvider.GetUtcNow();
                 var nextStart = lastCompleted + interval;
                 var tilThen = nextStart - now;
 
