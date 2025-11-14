@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ServiceDefaults.Leases;
+using Altinn.Authorization.ServiceDefaults.Leases;
 using Altinn.Register.TestUtils;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
@@ -188,7 +188,7 @@ public class LeaseManagerTests
             // lease was released more than 15 minutes ago, so it should be acquired
             await using var lease = await GetLease();
             lease.Acquired.Should().BeTrue();
-            lease.LastReleasedAt.Should().Be(dt1);
+            lease.LastReleasedAt.Should().BeNull();
         }
 
         TimeProvider.Advance(TimeSpan.FromMinutes(1));
@@ -210,23 +210,7 @@ public class LeaseManagerTests
         async Task<Lease> GetLease()
         {
             var now = TimeProvider.GetUtcNow();
-            return await Manager.AcquireLease(
-                "test",
-                info =>
-                {
-                    // Only run cleanup if the last time it was run was more than 15 minutes ago.
-                    if (info.LastReleasedAt is null)
-                    {
-                        return true;
-                    }
-
-                    if (now - info.LastReleasedAt.Value < TimeSpan.FromMinutes(15))
-                    {
-                        return false;
-                    }
-
-                    return true;
-                });
+            return await Manager.AcquireLease("test", ifUnacquiredFor: TimeSpan.FromMinutes(15));
         }
     }
 }

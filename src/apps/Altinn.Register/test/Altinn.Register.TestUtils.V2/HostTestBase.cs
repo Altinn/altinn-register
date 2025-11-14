@@ -124,6 +124,7 @@ public abstract class HostTestBase
     protected virtual async ValueTask ConfigureHost(IHostApplicationBuilder builder)
     {
         builder.Services.TryAddSingleton(_timeProvider);
+        builder.Services.RemoveAll<TimeProvider>();
         builder.Services.TryAddSingleton<TimeProvider>(s => s.GetRequiredService<FakeTimeProvider>());
         builder.Services.AddFakeHttpHandlers(_httpHandlers);
         builder.Services.TryAddSingleton<RegisterTelemetry>();
