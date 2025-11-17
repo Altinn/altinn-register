@@ -1,16 +1,21 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Collections.Immutable;
+using System.Data;
 using System.Runtime.InteropServices;
 using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Authorization.ServiceDefaults.Leases;
+using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Register.Core;
+using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Jobs;
+using Altinn.Register.Persistence;
 using Altinn.Register.Tests.Utils;
 using Altinn.Register.TestUtils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Time.Testing;
+using Npgsql;
 
 namespace Altinn.Register.Tests.Jobs;
 
@@ -212,7 +217,8 @@ public class RecurringJobHostedServiceTests
         counter.Value.Should().Be(1);
         end.Should().Be(start + TimeSpan.FromSeconds(10));
 
-        var lease = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), _ => false);
+        var lease = await GetLeaseInfo("test");
+        lease.Should().NotBeNull();
         lease.LastAcquiredAt.Should().Be(start);
         lease.LastReleasedAt.Should().Be(end);
     }
@@ -230,7 +236,8 @@ public class RecurringJobHostedServiceTests
         counter.Value.Should().Be(1);
         end.Should().Be(start + TimeSpan.FromSeconds(10));
 
-        var lease = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), _ => false);
+        var lease = await GetLeaseInfo("test");
+        lease.Should().NotBeNull();
         lease.LastAcquiredAt.Should().Be(start);
         lease.LastReleasedAt.Should().Be(end);
     }
@@ -248,7 +255,8 @@ public class RecurringJobHostedServiceTests
         counter.Value.Should().Be(1);
         end.Should().Be(start + TimeSpan.FromSeconds(10));
 
-        var lease = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), _ => false);
+        var lease = await GetLeaseInfo("test");
+        lease.Should().NotBeNull();
         lease.LastAcquiredAt.Should().Be(start);
         lease.LastReleasedAt.Should().Be(end);
     }
@@ -266,7 +274,8 @@ public class RecurringJobHostedServiceTests
         counter.Value.Should().Be(1);
         end.Should().Be(start + TimeSpan.FromSeconds(10));
 
-        var lease = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), _ => false);
+        var lease = await GetLeaseInfo("test");
+        lease.Should().NotBeNull();
         lease.LastAcquiredAt.Should().Be(start);
         lease.LastReleasedAt.Should().Be(end);
     }
@@ -284,7 +293,8 @@ public class RecurringJobHostedServiceTests
         counter.Value.Should().Be(1);
         end.Should().Be(start + TimeSpan.FromSeconds(10));
 
-        var lease = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), _ => false);
+        var lease = await GetLeaseInfo("test");
+        lease.Should().NotBeNull();
         lease.LastAcquiredAt.Should().Be(start);
         lease.LastReleasedAt.Should().Be(end);
     }
@@ -437,16 +447,10 @@ public class RecurringJobHostedServiceTests
         var counter = new AtomicCounter();
 
         var leaseName = "test";
-        LeaseInfo initialLeaseInfo = default;
-        LeaseInfo postLeaseInfo = default;
-        await Provider.TryAcquireLease(
-            leaseName,
-            TimeSpan.FromMinutes(1),
-            info =>
-            {
-                initialLeaseInfo = info;
-                return false;
-            });
+        var initialLeaseInfo = await GetLeaseInfo(leaseName);
+        initialLeaseInfo.Expires.Should().Be(DateTimeOffset.MinValue);
+        initialLeaseInfo.LastAcquiredAt.Should().BeNull();
+        initialLeaseInfo.LastReleasedAt.Should().BeNull();
 
         await using var sut = CreateService([
             Counter.RunAt(lifecycle, leaseName, counter, enabled: (_, _) => ValueTask.FromResult(JobShouldRunResult.No("test"))),
@@ -456,16 +460,8 @@ public class RecurringJobHostedServiceTests
 
         counter.Value.Should().Be(0);
 
-        await Provider.TryAcquireLease(
-            leaseName,
-            TimeSpan.FromMinutes(1),
-            info =>
-            {
-                postLeaseInfo = info;
-                return false;
-            });
-
-        postLeaseInfo.LastAcquiredAt.Should().Be(initialLeaseInfo.LastAcquiredAt);
+        var postLeaseInfo = await GetLeaseInfo(leaseName);
+        postLeaseInfo.Should().Be(initialLeaseInfo);
     }
 
     [Fact]
@@ -679,16 +675,7 @@ public class RecurringJobHostedServiceTests
         var enabled = new AtomicBool();
 
         var leaseName = "test";
-        LeaseInfo initialLeaseInfo = default;
-        LeaseInfo postLeaseInfo = default;
-        await Provider.TryAcquireLease(
-            leaseName,
-            TimeSpan.FromMinutes(1),
-            info =>
-            {
-                initialLeaseInfo = info;
-                return false;
-            });
+        var initialLeaseInfo = await GetLeaseInfo(leaseName);
 
         await using var sut = CreateService([
             Counter.Scheduled(TimeSpan.FromHours(1), "test", counter, enabled: (_, _) =>
@@ -701,15 +688,7 @@ public class RecurringJobHostedServiceTests
         TimeProvider.Advance(TimeSpan.FromHours(1));
         await sut.WaitForRunningScheduledJobs();
 
-        await Provider.TryAcquireLease(
-            leaseName,
-            TimeSpan.FromMinutes(1),
-            info =>
-            {
-                postLeaseInfo = info;
-                return false;
-            });
-
+        var postLeaseInfo = await GetLeaseInfo(leaseName);
         counter.Value.Should().Be(0);
         postLeaseInfo.LastAcquiredAt.Should().Be(initialLeaseInfo.LastAcquiredAt);
 
@@ -721,14 +700,7 @@ public class RecurringJobHostedServiceTests
         }
 
         await sut.WaitForRunningScheduledJobs();
-        await Provider.TryAcquireLease(
-            leaseName,
-            TimeSpan.FromMinutes(1),
-            info =>
-            {
-                postLeaseInfo = info;
-                return false;
-            });
+        postLeaseInfo = await GetLeaseInfo(leaseName);
 
         counter.Value.Should().Be(1);
         postLeaseInfo.LastAcquiredAt.Should().NotBe(initialLeaseInfo.LastAcquiredAt);
@@ -759,8 +731,8 @@ public class RecurringJobHostedServiceTests
         TimeProvider.Advance(TimeSpan.FromMinutes(20));
         await sut.WaitForRunningScheduledJobs();
         counter.Value.Should().Be(1);
-        result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), _ => false);
-        result.LastReleasedAt.Should().Be(TimeProvider.GetUtcNow());
+        var leaseInfo = await GetLeaseInfo("test");
+        leaseInfo.LastReleasedAt.Should().Be(TimeProvider.GetUtcNow());
 
         // advance 40 more minutes and renew the lease
         TimeProvider.Advance(TimeSpan.FromMinutes(40));
@@ -777,8 +749,8 @@ public class RecurringJobHostedServiceTests
         TimeProvider.Advance(TimeSpan.FromMinutes(40));
         await sut.WaitForRunningScheduledJobs();
         counter.Value.Should().Be(2);
-        result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), _ => false);
-        result.LastReleasedAt.Should().Be(TimeProvider.GetUtcNow());
+        leaseInfo = await GetLeaseInfo("test");
+        leaseInfo.LastReleasedAt.Should().Be(TimeProvider.GetUtcNow());
     }
 
     [Fact]
@@ -885,6 +857,32 @@ public class RecurringJobHostedServiceTests
         {
             thread.Join();
         }
+    }
+
+    private record LeaseInfo(string LeaseName, Guid? Token, DateTimeOffset Expires, DateTimeOffset? LastAcquiredAt, DateTimeOffset? LastReleasedAt);
+
+    private async Task<LeaseInfo> GetLeaseInfo(string leaseName)
+    {
+        await using var uow = await GetRequiredService<IUnitOfWorkManager>().CreateAsync();
+        var conn = uow.GetRequiredService<NpgsqlConnection>();
+        await using var cmd = conn.CreateCommand(/*strpsql*/"SELECT id, token, expires, acquired, released FROM register.lease WHERE id = @id");
+
+        cmd.Parameters.Add<string>("id", NpgsqlTypes.NpgsqlDbType.Text).TypedValue = leaseName;
+        await cmd.PrepareAsync();
+
+        await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleResult | CommandBehavior.SingleRow);
+        if (!await reader.ReadAsync())
+        {
+            return new(leaseName, null, DateTimeOffset.MinValue, null, null);
+        }
+
+        var dbLeaseName = await reader.GetFieldValueAsync<string>("id");
+        var dbToken = await reader.GetFieldValueAsync<Guid>("token");
+        var dbExpires = await reader.GetFieldValueAsync<DateTimeOffset>("expires");
+        var dbLastAcquiredAt = await reader.GetFieldValueAsync<DateTimeOffset?>("acquired");
+        var dbLastReleasedAt = await reader.GetFieldValueAsync<DateTimeOffset?>("released");
+
+        return new(dbLeaseName, dbToken, dbExpires, dbLastAcquiredAt, dbLastReleasedAt);
     }
 
     private RecurringJobHostedService CreateService(IEnumerable<JobRegistration> registrations, IEnumerable<IJobCondition>? conditions = null)

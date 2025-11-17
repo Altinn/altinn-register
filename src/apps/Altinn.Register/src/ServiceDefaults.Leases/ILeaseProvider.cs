@@ -1,4 +1,4 @@
-﻿namespace Altinn.Authorization.ServiceDefaults.Leases;
+namespace Altinn.Authorization.ServiceDefaults.Leases;
 
 /// <summary>
 /// A provider of leases. Leases are a synchronization primitive that can be used to ensure
@@ -20,7 +20,7 @@ public interface ILeaseProvider
         string leaseId,
         TimeSpan duration,
         CancellationToken cancellationToken)
-        => TryAcquireLease(leaseId, duration, filter: null, cancellationToken);
+        => TryAcquireLease(leaseId, duration, ifUnacquiredFor: null, cancellationToken);
 
     /// <summary>
     /// Attempts to acquire a lease.
@@ -30,13 +30,13 @@ public interface ILeaseProvider
     /// The duration the lease should be valid for. Prefer shorter durations to avoid
     /// leases being held for a very long time if the process crashes.
     /// </param>
-    /// <param name="filter">A filter that can be used to reject leases based on the state of the lease provider.</param>
+    /// <param name="ifUnacquiredFor">A filter that can be used to reject leases based on whether the lease has been unacquired for a certain amount of time.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="LeaseAcquireResult"/>.</returns>
     Task<LeaseAcquireResult> TryAcquireLease(
         string leaseId,
         TimeSpan duration,
-        Func<LeaseInfo, bool>? filter = null,
+        TimeSpan? ifUnacquiredFor = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>

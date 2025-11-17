@@ -27,6 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
+		<InternalsVisibleTo Include="Altinn.Register.Tests" />
 		<InternalsVisibleTo Include="Altinn.Register.TestUtils.V2" />
 		<InternalsVisibleTo Include="Altinn.Register.TestUtils.V3" />
 	</ItemGroup>
