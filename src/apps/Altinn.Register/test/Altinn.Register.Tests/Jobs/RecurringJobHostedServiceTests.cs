@@ -727,8 +727,8 @@ public class RecurringJobHostedServiceTests
         await Start(sut);
         counter.Value.Should().Be(0);
 
-        // advance 20 minutes, 1 hour since the lease was released
-        TimeProvider.Advance(TimeSpan.FromMinutes(20));
+        // advance 20 minutes, 1 hour since the lease was released (+ some seconds due to random jitter)
+        TimeProvider.Advance(TimeSpan.FromMinutes(21));
         await sut.WaitForRunningScheduledJobs();
         counter.Value.Should().Be(1);
         var leaseInfo = await GetLeaseInfo("test");
@@ -740,12 +740,12 @@ public class RecurringJobHostedServiceTests
         Assert.True(result.IsLeaseAcquired);
         await Provider.ReleaseLease(result.Lease);
 
-        // advance 20 more minutes, 1 hour since the job last completed
-        TimeProvider.Advance(TimeSpan.FromMinutes(20));
+        // advance 20 more minutes, 1 hour since the job last completed (+ some seconds due to random jitter)
+        TimeProvider.Advance(TimeSpan.FromMinutes(21));
         await sut.WaitForRunningScheduledJobs();
         counter.Value.Should().Be(1);
 
-        // advance 40 more minutes, 1 hour since the lease was last released
+        // advance 40 more minutes, 1 hour since the lease was last released (+ some seconds due to random jitter)
         TimeProvider.Advance(TimeSpan.FromMinutes(40));
         await sut.WaitForRunningScheduledJobs();
         counter.Value.Should().Be(2);
