@@ -152,7 +152,6 @@ public sealed partial class A2ProfileImportJob
     /// <summary>
     /// Meters for <see cref="A2ProfileImportJob"/>.
     /// </summary>
-    /// </summary>
     private sealed class ImportMeters(Meter meter)
         : IMetrics<ImportMeters>
     {

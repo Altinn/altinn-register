@@ -158,7 +158,7 @@ public sealed partial class A2PartyCCRRolesImportJob
         : IMetrics<ImportMeters>
     {
         public Counter<int> OrganizationCCRRolesEnqueued { get; }
-            = meter.CreateCounter<int>("altinn.register.party-import.a2.ccr.role-assignments.enqueued", "The number of parties enqueued to be imported ccr role-assignments from A2.");
+            = meter.CreateCounter<int>("altinn.register.party-import.a2.ccr.role-assignments.enqueued", "The number of parties enqueued for CCR role-assignments import from A2.");
 
         /// <inheritdoc/>
         public static ImportMeters Create(Meter meter)
