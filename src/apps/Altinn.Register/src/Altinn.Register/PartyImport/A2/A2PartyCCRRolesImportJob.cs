@@ -152,7 +152,7 @@ public sealed partial class A2PartyCCRRolesImportJob
     }
 
     /// <summary>
-    /// Meters for <see cref="A2PartyImportJob"/>.
+    /// Meters for <see cref="A2PartyCCRRolesImportJob"/>.
     /// </summary>
     private sealed class ImportMeters(Meter meter)
         : IMetrics<ImportMeters>
