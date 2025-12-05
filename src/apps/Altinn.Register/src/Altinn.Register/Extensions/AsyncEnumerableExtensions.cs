@@ -75,45 +75,6 @@ public static class AsyncEnumerableExtensions
         }
     }
 
-    private sealed class DistinctByComparer<TSource, TKey>
-        : IEqualityComparer<TSource>
-    {
-        private readonly Func<TSource, TKey> _keySelector;
-        private readonly IEqualityComparer<TKey> _comparer;
-
-        public DistinctByComparer(Func<TSource, TKey> keySelector, IEqualityComparer<TKey>? comparer)
-        {
-            _keySelector = keySelector;
-            _comparer = comparer ?? EqualityComparer<TKey>.Default;
-        }
-
-        public bool Equals(TSource? x, TSource? y)
-        {
-            if (ReferenceEquals(x, y))
-            {
-                return true;
-            }
-
-            if (x is null || y is null)
-            {
-                return false;
-            }
-
-            return _comparer.Equals(_keySelector(x), _keySelector(y));
-        }
-
-        public int GetHashCode([DisallowNull] TSource obj)
-        {
-            var key = _keySelector(obj);
-            if (key is null)
-            {
-                return 0;
-            }
-
-            return _comparer.GetHashCode(key);
-        }
-    }
-
     private sealed class MergedAsyncEnumerable<T>
         : IAsyncEnumerable<T>
     {

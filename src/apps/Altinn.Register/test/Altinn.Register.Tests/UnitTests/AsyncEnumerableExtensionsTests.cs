@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using Altinn.Register.Extensions;
 using Altinn.Register.Tests.Utils;
@@ -7,40 +7,6 @@ namespace Altinn.Register.Tests.UnitTests;
 
 public class AsyncEnumerableExtensionsTests 
 {
-    [Fact]
-    public void DistinctBy_Throws_IfNullSource()
-    {
-        IAsyncEnumerable<string> enumerable = null!;
-
-        Assert.Throws<ArgumentNullException>(() => enumerable.DistinctBy(i => i.Length));
-    }
-
-    [Fact]
-    public void DistinctBy_Throws_IfNullSelector()
-    {
-        IAsyncEnumerable<string> enumerable = new AsyncList<string>();
-
-        Assert.Throws<ArgumentNullException>(() => enumerable.DistinctBy((Func<string, int>)null!));
-    }
-
-    [Fact]
-    public async Task DistinctBy_Returns_DistinctValues()
-    {
-        IAsyncEnumerable<string> enumerable = new AsyncList<string> { "a", "b", "c" };
-
-        var result = await enumerable.DistinctBy(i => i.Length).ToListAsync();
-        Assert.Single(result);
-    }
-
-    [Fact]
-    public async Task DistinctBy_Returns_DistinctValues_WithComparer()
-    {
-        IAsyncEnumerable<string> enumerable = new AsyncList<string> { " a ", "a", " A", "A " };
-
-        var result = await enumerable.DistinctBy(i => i.Trim(), StringComparer.OrdinalIgnoreCase).ToListAsync();
-        Assert.Single(result);
-    }
-
     [Fact]
     public void Merge_Throws_IfNullSource()
     {

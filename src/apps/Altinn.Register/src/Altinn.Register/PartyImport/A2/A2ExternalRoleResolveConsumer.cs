@@ -118,7 +118,6 @@ public sealed partial class A2ExternalRoleResolverConsumer
     /// <summary>
     /// Meters for <see cref="A2ExternalRoleResolverConsumer"/>.
     /// </summary>
-    /// </summary>
     private sealed class ImportMeters(Meter meter)
         : IMetrics<ImportMeters>
     {
