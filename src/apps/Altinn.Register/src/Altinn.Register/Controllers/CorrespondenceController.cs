@@ -112,7 +112,6 @@ public class CorrespondenceController(IUnitOfWorkManager uowManager, V2.PartyCon
         CancellationToken cancellationToken = default)
         => inner.GetMainUnits(request, fields, cancellationToken);
 
-
     /// <summary>
     /// Gets a single party by its UUID.
     /// </summary>
