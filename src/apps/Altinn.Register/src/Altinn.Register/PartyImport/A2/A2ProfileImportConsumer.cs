@@ -1,8 +1,9 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Diagnostics.Metrics;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
+using Altinn.Authorization.ServiceDefaults.Telemetry;
 using Altinn.Register.Core;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties.Records;
@@ -32,13 +33,13 @@ public sealed partial class A2ProfileImportConsumer
         IA2PartyImportService importService,
         ICommandSender commandSender,
         TimeProvider timeProvider,
-        RegisterTelemetry telemetry)
+        IMetricsProvider metricsProvider)
     {
         _logger = logger;
         _importService = importService;
         _sender = commandSender;
         _timeProvider = timeProvider;
-        _meters = telemetry.GetServiceMeters<ImportMeters>();
+        _meters = metricsProvider.Get<ImportMeters>();
     }
 
     /// <inheritdoc />
@@ -197,18 +198,18 @@ public sealed partial class A2ProfileImportConsumer
     /// <summary>
     /// Meters for <see cref="A2ProfileImportConsumer"/>.
     /// </summary>
-    private sealed class ImportMeters(RegisterTelemetry telemetry)
-        : IServiceMeters<ImportMeters>
+    private sealed class ImportMeters(Meter meter)
+        : IMetrics<ImportMeters>
     {
         /// <summary>
         /// Gets a counter for the number of parties imported from A2.
         /// </summary>
         public Counter<int> PartiesFetched { get; }
-            = telemetry.CreateCounter<int>("register.party-import.a2.profiles.fetched", "The number of profiles fetched from A2.");
+            = meter.CreateCounter<int>("altinn.register.party-import.a2.profiles.fetched", "The number of profiles fetched from A2.");
 
         /// <inheritdoc/>
-        public static ImportMeters Create(RegisterTelemetry telemetry)
-            => new ImportMeters(telemetry);
+        public static ImportMeters Create(Meter meter)
+            => new ImportMeters(meter);
     }
 
     private static partial class Log 

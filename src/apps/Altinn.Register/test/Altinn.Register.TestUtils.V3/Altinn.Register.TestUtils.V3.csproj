@@ -13,7 +13,7 @@
     <PackageReference Include="CommunityToolkit.Diagnostics" />
     <PackageReference Include="Nerdbank.Streams" />
     <PackageReference Include="Npgsql" />
-    <PackageReference Include="System.Linq.Async" />
+    <PackageReference Include="System.Linq.AsyncEnumerable" />
     <PackageReference Include="Testcontainers.PostgreSql" />
   </ItemGroup>
 

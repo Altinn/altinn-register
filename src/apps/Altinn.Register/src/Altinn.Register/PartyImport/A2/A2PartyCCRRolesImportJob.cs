@@ -1,9 +1,10 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
+using Altinn.Authorization.ServiceDefaults.Telemetry;
 using Altinn.Register.Core;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.PartyImport.A2;
@@ -38,7 +39,7 @@ public sealed partial class A2PartyCCRRolesImportJob
         IA2PartyImportService importService,
         JobCleanupHelper cleanupHelper,
         TimeProvider timeProvider,
-        RegisterTelemetry telemetry)
+        IMetricsProvider metricsProvider)
     {
         _logger = logger;
         _tracker = tracker;
@@ -46,7 +47,7 @@ public sealed partial class A2PartyCCRRolesImportJob
         _importService = importService;
         _cleanupHelper = cleanupHelper;
         _timeProvider = timeProvider;
-        _meters = telemetry.GetServiceMeters<ImportMeters>();
+        _meters = metricsProvider.Get<ImportMeters>();
     }
 
     /// <inheritdoc/>
@@ -151,16 +152,16 @@ public sealed partial class A2PartyCCRRolesImportJob
     }
 
     /// <summary>
-    /// Meters for <see cref="A2PartyImportJob"/>.
+    /// Meters for <see cref="A2PartyCCRRolesImportJob"/>.
     /// </summary>
-    private sealed class ImportMeters(RegisterTelemetry telemetry)
-        : IServiceMeters<ImportMeters>
+    private sealed class ImportMeters(Meter meter)
+        : IMetrics<ImportMeters>
     {
         public Counter<int> OrganizationCCRRolesEnqueued { get; }
-            = telemetry.CreateCounter<int>("register.party-import.a2.ccr.role-assignments.enqueued", "The number of parties enqueued to be imported ccr role-assignments from A2.");
+            = meter.CreateCounter<int>("altinn.register.party-import.a2.ccr.role-assignments.enqueued", "The number of parties enqueued for CCR role-assignments import from A2.");
 
         /// <inheritdoc/>
-        public static ImportMeters Create(RegisterTelemetry telemetry)
-            => new ImportMeters(telemetry);
+        public static ImportMeters Create(Meter meter)
+            => new ImportMeters(meter);
     }
 }

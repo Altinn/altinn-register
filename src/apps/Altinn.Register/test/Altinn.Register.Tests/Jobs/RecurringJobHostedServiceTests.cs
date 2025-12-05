@@ -2,11 +2,9 @@
 
 using System.Collections.Immutable;
 using System.Data;
-using System.Runtime.InteropServices;
 using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Authorization.ServiceDefaults.Leases;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
-using Altinn.Register.Core;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Jobs;
 using Altinn.Register.Persistence;
@@ -41,7 +39,6 @@ public class RecurringJobHostedServiceTests
         await base.ConfigureServices(services);
 
         services.AddLeaseManager();
-        services.TryAddSingleton<RegisterTelemetry>();
         services.TryAddSingleton<JobsTelemetry>();
     }
 

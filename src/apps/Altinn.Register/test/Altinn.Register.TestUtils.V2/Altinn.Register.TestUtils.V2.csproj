@@ -15,16 +15,19 @@
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <PackageReference Include="Nerdbank.Streams" />
     <PackageReference Include="Npgsql" />
-    <PackageReference Include="System.Linq.Async" />
+    <PackageReference Include="System.Linq.AsyncEnumerable" />
     <PackageReference Include="Testcontainers.PostgreSql" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Altinn.Register.Core\Altinn.Register.Core.csproj" />
-    <ProjectReference Include="..\..\src\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
+    <ProjectReference
+      Include="..\..\src\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Altinn.Register\Altinn.Register.csproj" />
-    <ProjectReference Include="..\..\src\ServiceDefaults.MassTransit.Abstractions\Altinn.Authorization.ServiceDefaults.MassTransit.Abstractions.csproj" />
-    <ProjectReference Include="..\..\src\ServiceDefaults.MassTransit\Altinn.Authorization.ServiceDefaults.MassTransit.csproj" />
+    <ProjectReference
+      Include="..\..\src\ServiceDefaults.MassTransit.Abstractions\Altinn.Authorization.ServiceDefaults.MassTransit.Abstractions.csproj" />
+    <ProjectReference
+      Include="..\..\src\ServiceDefaults.MassTransit\Altinn.Authorization.ServiceDefaults.MassTransit.csproj" />
   </ItemGroup>
 
   <ItemGroup>

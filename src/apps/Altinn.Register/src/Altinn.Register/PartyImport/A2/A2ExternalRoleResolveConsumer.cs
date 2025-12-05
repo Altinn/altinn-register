@@ -1,9 +1,9 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Diagnostics.Metrics;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
+using Altinn.Authorization.ServiceDefaults.Telemetry;
 using Altinn.Register.Contracts;
-using Altinn.Register.Core;
 using Altinn.Register.Core.ExternalRoles;
 using MassTransit;
 
@@ -27,12 +27,12 @@ public sealed partial class A2ExternalRoleResolverConsumer
         ILogger<A2ExternalRoleResolverConsumer> logger,
         IExternalRoleDefinitionPersistence externalRoleDefinitionPersistence,
         ICommandSender sender,
-        RegisterTelemetry telemetry)
+        IMetricsProvider metricsProvider)
     {
         _logger = logger;
         _persistence = externalRoleDefinitionPersistence;
         _sender = sender;
-        _meters = telemetry.GetServiceMeters<ImportMeters>();
+        _meters = metricsProvider.Get<ImportMeters>();
     }
 
     /// <inheritdoc/>
@@ -116,25 +116,22 @@ public sealed partial class A2ExternalRoleResolverConsumer
     }
 
     /// <summary>
-    /// Meters for <see cref="PartyImportBatchConsumer"/>.
+    /// Meters for <see cref="A2ExternalRoleResolverConsumer"/>.
     /// </summary>
-    private sealed class ImportMeters(RegisterTelemetry telemetry)
-        : IServiceMeters<ImportMeters>
+    private sealed class ImportMeters(Meter meter)
+        : IMetrics<ImportMeters>
     {
-        /// <summary>
-        /// Gets a counter for the number of parties upserted.
-        /// </summary>
         public Counter<int> RoleDefinitionsNotFound { get; }
-            = telemetry.CreateCounter<int>("register.party-import.a2.resolve-role.errors", description: "The number of times a role-code was not found.");
+            = meter.CreateCounter<int>("altinn.register.party-import.a2.resolve-role.errors", description: "The number of times a role-code was not found.");
 
         public Counter<int> RoleDefinitionsResolved { get; }
-            = telemetry.CreateCounter<int>("register.party-import.a2.resolve-role.found", description: "The number of times a role-code was resolved.");
+            = meter.CreateCounter<int>("altinn.register.party-import.a2.resolve-role.found", description: "The number of times a role-code was resolved.");
 
         public Counter<int> RoleDefinitionsWrongSource { get; }
-            = telemetry.CreateCounter<int>("register.party-import.a2.resolve-role.wrong-source", description: "The number of times a role-code was found, but with the wrong source.");
+            = meter.CreateCounter<int>("altinn.register.party-import.a2.resolve-role.wrong-source", description: "The number of times a role-code was found, but with the wrong source.");
 
         /// <inheritdoc/>
-        public static ImportMeters Create(RegisterTelemetry telemetry)
-            => new ImportMeters(telemetry);
+        public static ImportMeters Create(Meter meter)
+            => new ImportMeters(meter);
     }
 }

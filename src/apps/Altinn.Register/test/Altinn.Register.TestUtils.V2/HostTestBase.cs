@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics;
 using Altinn.Authorization.ServiceDefaults;
 using Altinn.Register.Core;
 using Altinn.Register.TestUtils.Http;
@@ -8,11 +7,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Console;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Xunit.Abstractions;
 
@@ -62,6 +59,7 @@ public abstract class HostTestBase
         var configuration = new ConfigurationManager();
         configuration.AddInMemoryCollection([
             new("Logging:LogLevel:Default", "Warning"),
+            new("Altinn:IsTest", "true"),
         ]);
 
         if (DisableLogging)
@@ -80,6 +78,7 @@ public abstract class HostTestBase
             Configuration = configuration,
         });
 
+        builder.AddAltinnServiceDefaults("register");
         if (DisableLogging)
         {
             builder.Logging.ClearProviders();
@@ -127,7 +126,6 @@ public abstract class HostTestBase
         builder.Services.RemoveAll<TimeProvider>();
         builder.Services.TryAddSingleton<TimeProvider>(s => s.GetRequiredService<FakeTimeProvider>());
         builder.Services.AddFakeHttpHandlers(_httpHandlers);
-        builder.Services.TryAddSingleton<RegisterTelemetry>();
 
         await ConfigureServices(builder.Services);
     }

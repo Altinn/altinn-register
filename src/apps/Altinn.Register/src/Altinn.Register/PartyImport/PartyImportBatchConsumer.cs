@@ -1,9 +1,10 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Buffers;
 using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
+using Altinn.Authorization.ServiceDefaults.Telemetry;
 using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Contracts.Parties;
@@ -40,12 +41,12 @@ public sealed partial class PartyImportBatchConsumer
         ILogger<PartyImportBatchConsumer> logger,
         IUnitOfWorkManager uow,
         IImportJobTracker tracker,
-        RegisterTelemetry telemetry)
+        IMetricsProvider metricsProvider)
     {
         _logger = logger;
         _uow = uow;
         _tracker = tracker;
-        _meters = telemetry.GetServiceMeters<ImportMeters>();
+        _meters = metricsProvider.Get<ImportMeters>();
     }
 
     /// <inheritdoc/>
@@ -383,42 +384,42 @@ public sealed partial class PartyImportBatchConsumer
     /// <summary>
     /// Meters for <see cref="PartyImportBatchConsumer"/>.
     /// </summary>
-    private sealed class ImportMeters(RegisterTelemetry telemetry)
-        : IServiceMeters<ImportMeters>
+    private sealed class ImportMeters(Meter meter)
+        : IMetrics<ImportMeters>
     {
         /// <summary>
         /// Gets a counter for the number of parties upserted.
         /// </summary>
         public Counter<int> PartiesUpserted { get; }
-            = telemetry.CreateCounter<int>("register.party-import.party.upsert.succeeded.total", description: "The number of parties upserted.");
+            = meter.CreateCounter<int>("altinn.register.party-import.party.upsert.succeeded.total", description: "The number of parties upserted.");
 
         /// <summary>
         /// Gets a counter for the number of party-batches upserted.
         /// </summary>
         public Counter<int> PartyBatchesSucceeded { get; }
-            = telemetry.CreateCounter<int>("register.party-import.party.batch.succeeded.total", description: "The number of party-batches upserted.");
+            = meter.CreateCounter<int>("altinn.register.party-import.party.batch.succeeded.total", description: "The number of party-batches upserted.");
 
         /// <summary>
         /// Gets a histogram for the size of party batches upserted.
         /// </summary>
         public Histogram<int> PartyBatchSize { get; }
-            = telemetry.CreateHistogram<int>("register.party-import.party.batch.size", description: "The size of party batches upserted.");
+            = meter.CreateHistogram<int>("altinn.register.party-import.party.batch.size", description: "The size of party batches upserted.");
 
         public Counter<int> RoleAssignmentUpsertsSucceeded { get; }
-            = telemetry.CreateCounter<int>("register.party-import.role-assignment.upsert.succeeded.total", description: "The number of role assignment-upsert that has succeeded.");
+            = meter.CreateCounter<int>("altinn.register.party-import.role-assignment.upsert.succeeded.total", description: "The number of role assignment-upsert that has succeeded.");
 
         public Counter<int> RoleAssignmentBatchesSucceeded { get; }
-            = telemetry.CreateCounter<int>("register.party-import.role-assignment.batch.succeeded.total", description: "The number of role assignment-batches that has succeeded.");
+            = meter.CreateCounter<int>("altinn.register.party-import.role-assignment.batch.succeeded.total", description: "The number of role assignment-batches that has succeeded.");
 
         public Histogram<int> RoleAssignmentBatchSize { get; }
-            = telemetry.CreateHistogram<int>("register.party-import.role-assignment.batch.size", description: "The size of role assignment-batches upserted.");
+            = meter.CreateHistogram<int>("altinn.register.party-import.role-assignment.batch.size", description: "The size of role assignment-batches upserted.");
 
         public Histogram<int> RoleAssignmentUpsertSize { get; }
-            = telemetry.CreateHistogram<int>("register.party-import.role-assignment.count", description: "The number of role assignments in a single upsert.");
+            = meter.CreateHistogram<int>("altinn.register.party-import.role-assignment.count", description: "The number of role assignments in a single upsert.");
 
         /// <inheritdoc/>
-        public static ImportMeters Create(RegisterTelemetry telemetry)
-            => new ImportMeters(telemetry);
+        public static ImportMeters Create(Meter meter)
+            => new ImportMeters(meter);
     }
 
     private static partial class Log
