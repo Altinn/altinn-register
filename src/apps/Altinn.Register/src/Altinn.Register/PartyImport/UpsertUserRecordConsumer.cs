@@ -1,6 +1,7 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Diagnostics.Metrics;
+using Altinn.Authorization.ServiceDefaults.Telemetry;
 using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core;
 using Altinn.Register.Core.ImportJobs;
@@ -28,12 +29,12 @@ public sealed partial class UpsertUserRecordConsumer
         ILogger<UpsertUserRecordConsumer> logger,
         IUnitOfWorkManager uow,
         IImportJobTracker tracker,
-        RegisterTelemetry telemetry)
+        IMetricsProvider metricsProvider)
     {
         _logger = logger;
         _uow = uow;
         _tracker = tracker;
-        _meters = telemetry.GetServiceMeters<ImportMeters>();
+        _meters = metricsProvider.Get<ImportMeters>();
     }
 
     /// <inheritdoc/>
@@ -79,15 +80,15 @@ public sealed partial class UpsertUserRecordConsumer
     /// <summary>
     /// Meters for <see cref="UpsertUserRecordConsumer"/>.
     /// </summary>
-    private sealed class ImportMeters(RegisterTelemetry telemetry)
-        : IServiceMeters<ImportMeters>
+    private sealed class ImportMeters(Meter meter)
+        : IMetrics<ImportMeters>
     {
         public Counter<int> UserRecordsUpserted { get; }
-            = telemetry.CreateCounter<int>("register.party-import.user.upsert.succeeded.total", description: "The number of users upserted.");
+            = meter.CreateCounter<int>("altinn.register.party-import.user.upsert.succeeded.total", description: "The number of users upserted.");
 
         /// <inheritdoc/>
-        public static ImportMeters Create(RegisterTelemetry telemetry)
-            => new ImportMeters(telemetry);
+        public static ImportMeters Create(Meter meter)
+            => new ImportMeters(meter);
     }
 
     private static partial class Log

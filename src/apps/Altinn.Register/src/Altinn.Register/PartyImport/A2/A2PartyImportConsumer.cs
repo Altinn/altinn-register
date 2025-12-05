@@ -1,8 +1,9 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Diagnostics.Metrics;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
+using Altinn.Authorization.ServiceDefaults.Telemetry;
 using Altinn.Register.Core;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties.Records;
@@ -31,12 +32,12 @@ public sealed partial class A2PartyImportConsumer
         ILogger<A2PartyImportConsumer> logger,
         IA2PartyImportService importService,
         ICommandSender commandSender,
-        RegisterTelemetry telemetry)
+        IMetricsProvider metricsProvider)
     {
         _logger = logger;
         _importService = importService;
         _sender = commandSender;
-        _meters = telemetry.GetServiceMeters<ImportMeters>();
+        _meters = metricsProvider.Get<ImportMeters>();
     }
 
     /// <inheritdoc />
@@ -115,36 +116,36 @@ public sealed partial class A2PartyImportConsumer
     /// <summary>
     /// Meters for <see cref="A2PartyImportConsumer"/>.
     /// </summary>
-    private sealed class ImportMeters(RegisterTelemetry telemetry)
-        : IServiceMeters<ImportMeters>
+    private sealed class ImportMeters(Meter meter)
+        : IMetrics<ImportMeters>
     {
         /// <summary>
         /// Gets a counter for the number of parties imported from A2.
         /// </summary>
         public Counter<int> PartiesFetched { get; }
-            = telemetry.CreateCounter<int>("register.party-import.a2.parties.fetched", "The number of parties fetched from A2.");
+            = meter.CreateCounter<int>("altinn.register.party-import.a2.parties.fetched", "The number of parties fetched from A2.");
 
         /// <summary>
         /// Gets a counter for the number of role assignments fetched from A2.
         /// </summary>
         public Counter<int> RoleAssignmentsFetched { get; }
-            = telemetry.CreateCounter<int>("register.party-import.a2.role-assignments.fetched", "The number of role assignments fetched from A2.");
+            = meter.CreateCounter<int>("altinn.register.party-import.a2.role-assignments.fetched", "The number of role assignments fetched from A2.");
 
         /// <summary>
         /// Gets a counter for the number of user ids fetched from A2.
         /// </summary>
         public Counter<int> UserIdsFetched { get; }
-            = telemetry.CreateCounter<int>("register.party-import.a2.user-ids.fetched", "The number of user ids fetched from A2.");
+            = meter.CreateCounter<int>("altinn.register.party-import.a2.user-ids.fetched", "The number of user ids fetched from A2.");
 
         /// <summary>
         /// Gets a histogram for the number of role assignments fetched from A2 per party.
         /// </summary>
         public Histogram<int> RoleAssignmentsPerParty { get; }
-            = telemetry.CreateHistogram<int>("register.party-import.a2.role-assignments-per-party", "The number of role assignments fetched from A2 per party.");
+            = meter.CreateHistogram<int>("altinn.register.party-import.a2.role-assignments-per-party", "The number of role assignments fetched from A2 per party.");
 
         /// <inheritdoc/>
-        public static ImportMeters Create(RegisterTelemetry telemetry)
-            => new ImportMeters(telemetry);
+        public static ImportMeters Create(Meter meter)
+            => new ImportMeters(meter);
     }
 
     private static partial class Log

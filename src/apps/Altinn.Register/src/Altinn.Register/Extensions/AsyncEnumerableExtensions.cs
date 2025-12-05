@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System;
 using System.Collections.Generic;
@@ -19,36 +19,6 @@ namespace Altinn.Register.Extensions;
 /// </summary>
 public static class AsyncEnumerableExtensions
 {
-    /// <summary>
-    /// Returns distinct elements from a sequence according to a specified key selector function and using a specified comparer to compare keys.
-    /// </summary>
-    /// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
-    /// <typeparam name="TKey">The type of key to distinguish elements by.</typeparam>
-    /// <param name="source">The sequence to remove duplicate elements from.</param>
-    /// <param name="keySelector">A function to extract the key for each element.</param>
-    /// <param name="comparer">An <see cref="IEqualityComparer{T}"/> to compare keys.</param>
-    /// <returns>An <see cref="IAsyncEnumerable{T}"/> that contains distinct elements from the source sequence.</returns>
-    public static IAsyncEnumerable<TSource> DistinctBy<TSource, TKey>(this IAsyncEnumerable<TSource> source, Func<TSource, TKey> keySelector, IEqualityComparer<TKey>? comparer)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-        ArgumentNullException.ThrowIfNull(keySelector);
-
-        var outerComparer = new DistinctByComparer<TSource, TKey>(keySelector, comparer);
-
-        return source.Distinct(outerComparer);
-    }
-
-    /// <summary>
-    /// Returns distinct elements from a sequence according to a specified key selector function.
-    /// </summary>
-    /// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
-    /// <typeparam name="TKey">The type of key to distinguish elements by.</typeparam>
-    /// <param name="source">The sequence to remove duplicate elements from.</param>
-    /// <param name="keySelector">A function to extract the key for each element.</param>
-    /// <returns>An <see cref="IAsyncEnumerable{T}"/> that contains distinct elements from the source sequence.</returns>
-    public static IAsyncEnumerable<TSource> DistinctBy<TSource, TKey>(this IAsyncEnumerable<TSource> source, Func<TSource, TKey> keySelector)
-        => DistinctBy(source, keySelector, comparer: null);
-
     /// <summary>
     /// Merges the specified <see cref="IAsyncEnumerable{T}"/> instances into a single <see cref="IAsyncEnumerable{T}"/>.
     /// </summary>

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
@@ -166,11 +166,11 @@ public class PostgresUserIdImportJobServiceTests
             var dataGenerator = GetRequiredService<RegisterTestDataGenerator>();
             var toInsert = Enumerable.Range(0, PAGES)
                 .ToAsyncEnumerable()
-                .SelectManyAwait(async _ =>
+                .SelectMany(async (int _, CancellationToken cancellationToken) =>
                 {
-                    var people = await dataGenerator.GetPeopleData(101);
-                    var siUsers = await dataGenerator.GetSelfIdentifiedUsersData(102);
-                    var orgs = await dataGenerator.GetOrgsData(103);
+                    var people = await dataGenerator.GetPeopleData(101, cancellationToken: cancellationToken);
+                    var siUsers = await dataGenerator.GetSelfIdentifiedUsersData(102, cancellationToken: cancellationToken);
+                    var orgs = await dataGenerator.GetOrgsData(103, cancellationToken: cancellationToken);
 
                     IEnumerable<PartyRecord> items = [
                         .. people.As<PartyRecord>(),
@@ -178,7 +178,7 @@ public class PostgresUserIdImportJobServiceTests
                         .. orgs.As<PartyRecord>(),
                     ];
 
-                    return items.ToAsyncEnumerable();
+                    return items;
                 });
 
             await UoW.GetPartyPersistence().UpsertParties(toInsert).LastOrDefaultAsync();

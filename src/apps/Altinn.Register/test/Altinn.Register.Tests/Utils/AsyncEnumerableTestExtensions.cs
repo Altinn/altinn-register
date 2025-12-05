@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 
 namespace Altinn.Register.Tests.Utils;
 
@@ -9,7 +9,7 @@ internal static class AsyncEnumerableTestExtensions
         await using var enumerator = source.GetAsyncEnumerator(cancellationToken);
         await Task.Yield();
 
-        while (await enumerator.MoveNextAsync(cancellationToken))
+        while (await enumerator.MoveNextAsync())
         {
             yield return enumerator.Current;
             await Task.Yield();
