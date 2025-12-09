@@ -184,6 +184,7 @@ public sealed partial class PartyImportBatchConsumer
                         ExternalRoleAssignmentEvent.EventType.Added => context.Publish(
                             new ExternalRoleAssignmentAddedEvent
                             {
+                                VersionId = upsertEvt.VersionId,
                                 Role = upsertEvt.ToPartyExternalRoleReferenceContract(),
                                 From = upsertEvt.FromParty.ToPartyReferenceContract(),
                                 To = upsertEvt.ToParty.ToPartyReferenceContract(),
@@ -193,6 +194,7 @@ public sealed partial class PartyImportBatchConsumer
                         ExternalRoleAssignmentEvent.EventType.Removed => context.Publish(
                             new ExternalRoleAssignmentRemovedEvent
                             {
+                                VersionId = upsertEvt.VersionId,
                                 Role = upsertEvt.ToPartyExternalRoleReferenceContract(),
                                 From = upsertEvt.FromParty.ToPartyReferenceContract(),
                                 To = upsertEvt.ToParty.ToPartyReferenceContract(),
