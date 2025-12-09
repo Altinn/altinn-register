@@ -572,7 +572,7 @@ public class RecurringJobHostedServiceTests
         ]);
 
         await Start(sut);
-        TimeProvider.Advance(TimeSpan.FromHours(1));
+        TimeProvider.Advance(TimeSpan.FromHours(1) + TimeSpan.FromSeconds(10));
         await sut.WaitForRunningScheduledJobs();
 
         counter.Value.Should().Be(0);
@@ -581,7 +581,7 @@ public class RecurringJobHostedServiceTests
         for (var i = 0; i < 9; i++)
         {
             // advance forward 9 hours in 1 hour increments to trigger interim timers
-            TimeProvider.Advance(TimeSpan.FromHours(1));
+            TimeProvider.Advance(TimeSpan.FromHours(1) + TimeSpan.FromSeconds(10));
         }
 
         await sut.WaitForRunningScheduledJobs();
