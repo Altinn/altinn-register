@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ServiceDefaults.MassTransit;
+using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Contracts.Parties;
 using MassTransit;
 
@@ -11,6 +11,11 @@ namespace Altinn.Register.Contracts.ExternalRoles;
 public sealed record ExternalRoleAssignmentRemovedEvent
     : EventBase
 {
+    /// <summary>
+    /// Gets the version ID of the event.
+    /// </summary>
+    public required ulong VersionId { get; init; }
+
     /// <summary>
     /// Gets the role that was assigned.
     /// </summary>
