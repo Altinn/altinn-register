@@ -111,4 +111,20 @@ public class CorrespondenceController(IUnitOfWorkManager uowManager, V2.PartyCon
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         CancellationToken cancellationToken = default)
         => inner.GetMainUnits(request, fields, cancellationToken);
+
+    /// <summary>
+    /// Gets a single party by its UUID.
+    /// </summary>
+    /// <param name="uuid">The party UUID.</param>
+    /// <param name="fields">The fields to include in the response.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>A <see cref="Party"/>.</returns>
+    [HttpGet("{uuid:guid}")]
+    [ProducesResponseType<Party>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    public Task<ActionResult<Party>> GetPartyByUuid(
+        [FromRoute] Guid uuid,
+        [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
+        CancellationToken cancellationToken = default)
+        => inner.GetPartyByUuid(uuid, fields, cancellationToken);
 }
