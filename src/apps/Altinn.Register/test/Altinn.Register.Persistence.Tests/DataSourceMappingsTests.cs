@@ -1,5 +1,7 @@
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
+using Altinn.Register.Persistence.Tests.Utils;
 using Altinn.Register.TestUtils;
 using Npgsql;
 using Xunit.Abstractions;
@@ -10,8 +12,7 @@ public class DataSourceMappingsTests
     : DatabaseTestBase
 {
     [Theory]
-    [InlineData(PartyRecordType.Person)]
-    [InlineData(PartyRecordType.Organization)]
+    [EnumMembersData<PartyRecordType>]
     public async Task MapsPartyType(PartyRecordType partyType)
     {
         var source = GetRequiredService<NpgsqlDataSource>();
@@ -32,8 +33,7 @@ public class DataSourceMappingsTests
     }
 
     [Theory]
-    [InlineData(PartySource.NationalPopulationRegister)]
-    [InlineData(PartySource.CentralCoordinatingRegister)]
+    [EnumMembersData<PartySource>]
     public async Task MapsPartySource(PartySource partySource)
     {
         var source = GetRequiredService<NpgsqlDataSource>();
@@ -51,6 +51,27 @@ public class DataSourceMappingsTests
 
         var result = await reader.GetFieldValueAsync<PartySource>(0);
         result.Should().Be(partySource);
+    }
+
+    [Theory]
+    [EnumMembersData<ExternalRoleSource>]
+    public async Task MapsExternalRoleSource(ExternalRoleSource roleSource)
+    {
+        var source = GetRequiredService<NpgsqlDataSource>();
+        await using var conn = await source.OpenConnectionAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = /*strpsql*/"SELECT @p::register.external_role_source";
+
+        var param = cmd.Parameters.Add<ExternalRoleSource>("p");
+        param.TypedValue = roleSource;
+
+        await cmd.PrepareAsync();
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        (await reader.ReadAsync()).Should().BeTrue();
+
+        var result = await reader.GetFieldValueAsync<ExternalRoleSource>(0);
+        result.Should().Be(roleSource);
     }
 
     [Theory]

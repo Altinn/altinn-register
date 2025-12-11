@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ModelUtils;
 
 namespace Altinn.Register.Contracts;
@@ -29,6 +29,12 @@ public enum ExternalRoleSource
     /// </summary>
     [JsonStringEnumMemberName("aar")]
     EmployersEmployeeRegister,
+
+    /// <summary>
+    /// The Norwegian Civil Rights Authority (Sivilrettsforvaltningen).
+    /// </summary>
+    [JsonStringEnumMemberName("cra")]
+    CivilRightsAuthority,
 }
 
 /// <summary>
@@ -48,6 +54,7 @@ internal static class ExternalRoleSourceExtensions
         ExternalRoleSource.CentralCoordinatingRegister => "ccr",
         ExternalRoleSource.NationalPopulationRegister => "npr",
         ExternalRoleSource.EmployersEmployeeRegister => "aar",
+        ExternalRoleSource.CivilRightsAuthority => "cra",
         _ => throw new ArgumentOutOfRangeException(nameof(source), source, null),
     };
 
