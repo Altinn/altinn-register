@@ -37,3 +37,7 @@ set windows-shell := ["pwsh.exe", "-NoLogo", "-CommandWithArgs"]
 @update-sln-files *ARGS: install-script-packages-frozen
   #!{{shebang}}
   node ./.github/scripts/update-sln-files.mts -- {{ARGS}}
+
+@generate-guardianship-migration FILE: install-script-packages-frozen
+  #!{{shebang}}
+  node ./.github/scripts/generate-guardianship-migration.mts > "{{FILE}}"
