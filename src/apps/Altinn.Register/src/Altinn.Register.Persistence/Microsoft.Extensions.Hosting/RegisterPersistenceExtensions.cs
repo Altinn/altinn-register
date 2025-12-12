@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Altinn.Authorization.ServiceDefaults.Leases;
@@ -180,6 +180,7 @@ public static class RegisterPersistenceExtensions
             ExternalRoleSource.CentralCoordinatingRegister => "ccr",
             ExternalRoleSource.NationalPopulationRegister => "npr",
             ExternalRoleSource.EmployersEmployeeRegister => "aar",
+            ExternalRoleSource.CivilRightsAuthority => "cra",
             _ => null,
         }));
 
