@@ -10,6 +10,7 @@ using Altinn.Register.Jobs;
 using Altinn.Register.Persistence;
 using Altinn.Register.Tests.Utils;
 using Altinn.Register.TestUtils;
+using FluentAssertions.Execution;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Time.Testing;
@@ -563,10 +564,12 @@ public class RecurringJobHostedServiceTests
     {
         var counter = new AtomicCounter();
         var enabled = new AtomicBool();
+        var checksRan = new AtomicCounter();
 
         await using var sut = CreateService([
             Counter.Scheduled(TimeSpan.FromHours(1), counter, enabled: (_, _) => 
             {
+                checksRan.Increment();
                 return ValueTask.FromResult(JobShouldRunResult.Conditional(nameof(enabled), enabled.Value));
             }),
         ]);
@@ -576,17 +579,21 @@ public class RecurringJobHostedServiceTests
         await sut.WaitForRunningScheduledJobs();
 
         counter.Value.Should().Be(0);
+        checksRan.Value.Should().Be(1);
 
         enabled.Set(true);
-        for (var i = 0; i < 9; i++)
+        for (var i = 0; i < 10; i++)
         {
-            // advance forward 9 hours in 1 hour increments to trigger interim timers
+            // advance forward 10 hours in 1 hour increments to trigger interim timers
             TimeProvider.Advance(TimeSpan.FromHours(1) + TimeSpan.FromSeconds(10));
+            await sut.WaitForRunningScheduledJobs();
         }
 
-        await sut.WaitForRunningScheduledJobs();
-
-        counter.Value.Should().Be(1);
+        using (new AssertionScope())
+        {
+            checksRan.Value.Should().BeGreaterThan(1);
+            counter.Value.Should().BeGreaterThanOrEqualTo(1);
+        }
 
         await Stop(sut);
     }
