@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -69,10 +69,15 @@ internal sealed partial class SystemUserImportJob
         Log.PartyImportInitialProgress(_logger, in progress);
         var startEnqueuedMax = progress.EnqueuedMax;
 
-        var state = await uow.GetImportJobStatePersistence().GetState<State>(JobName, cancellationToken) switch {
-            { HasValue: true } s => s.Value,
-            _ => new State(),
-        };
+        State state;
+        {
+            await using var stateUow = await _uow.CreateAsync(cancellationToken, activityName: "get system-user import state");
+            state = await stateUow.GetImportJobStatePersistence().GetState<State>(JobName, cancellationToken) switch
+            {
+                { HasValue: true } s => s.Value,
+                _ => new State(),
+            };
+        }
 
         var partyIds = new List<uint>();
         var parties = new List<PartyRecord>();
