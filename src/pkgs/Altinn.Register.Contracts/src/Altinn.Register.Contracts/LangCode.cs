@@ -1,15 +1,14 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Altinn.Swashbuckle.Filters;
 using CommunityToolkit.Diagnostics;
 
-namespace Altinn.Register.Core.Parties;
+namespace Altinn.Register.Contracts;
 
 /// <summary>
 /// Represents a language code.
@@ -53,10 +52,10 @@ public sealed class LangCode
     /// </summary>
     public static readonly LangCode Nn = new LangCode(NN_CODE);
 
-    private static ImmutableDictionary<string, LangCode> _codes
-        = ImmutableDictionary.CreateRange<string, LangCode>(
-            keyComparer: StringComparer.OrdinalIgnoreCase,
-            items: [
+    private static readonly ConcurrentDictionary<string, LangCode> _codes
+        = new ConcurrentDictionary<string, LangCode>(
+            comparer: StringComparer.OrdinalIgnoreCase,
+            collection: [
                 new(En.Code, En),
                 new(Nb.Code, Nb),
                 new(Nn.Code, Nn),
@@ -83,13 +82,9 @@ public sealed class LangCode
         [MethodImpl(MethodImplOptions.NoInlining)]
         static LangCode GetOrCreateCode(string code)
         {
-            code = code.ToLowerInvariant();
-            if (!code.IsNormalized())
-            {
-                code = code.Normalize();
-            }
+            code = code.ToLowerInvariant().Normalize();
 
-            return ImmutableInterlocked.GetOrAdd(ref _codes, code, static c => new(c));
+            return _codes.GetOrAdd(code, static c => new(c));
         }
     }
 

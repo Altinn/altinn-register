@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.ModelUtils;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.Contracts;
@@ -6,7 +6,7 @@ namespace Altinn.Register.Contracts;
 /// <summary>
 /// Represents a reference to an external role.
 /// </summary>
-public sealed record ExternalRoleRef
+public record ExternalRoleRef
     : IExternalRoleRef
 {
     private readonly NonExhaustiveEnum<ExternalRoleSource> _source;

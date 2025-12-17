@@ -1,15 +1,13 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using Altinn.Register.Core.Utils;
 using CommunityToolkit.Diagnostics;
 
-namespace Altinn.Register.Core.Parties;
+namespace Altinn.Register.Contracts;
 
 /// <summary>
 /// A text that is translated into multiple languages.
@@ -20,7 +18,6 @@ namespace Altinn.Register.Core.Parties;
 public sealed partial class TranslatedText
     : IReadOnlyDictionary<LangCode, string>
     , IDictionary<string, string> // for writing to db
-    , IConvertibleFrom<TranslatedText, Dictionary<string, string>>
     , IEquatable<TranslatedText>
     , IEqualityOperators<TranslatedText, TranslatedText, bool>
 {
@@ -30,28 +27,6 @@ public sealed partial class TranslatedText
     /// <returns>A new <see cref="Builder"/>.</returns>
     public static Builder CreateBuilder() 
         => Builder.Create();
-
-    /// <inheritdoc/>
-    public static bool TryConvertFrom([NotNullWhen(true)] Dictionary<string, string>? source, [MaybeNullWhen(false)] out TranslatedText result)
-    {
-        if (source is null)
-        {
-            result = null;
-            return false;
-        }
-
-        var builder = CreateBuilder();
-        foreach (var (key, value) in source)
-        {
-            if (!builder.TryAdd(LangCode.FromCode(key), value))
-            {
-                result = null;
-                return false;
-            }
-        }
-
-        return builder.TryToImmutable(out result);
-    }
 
     // the three required languages
     private readonly string _en;
