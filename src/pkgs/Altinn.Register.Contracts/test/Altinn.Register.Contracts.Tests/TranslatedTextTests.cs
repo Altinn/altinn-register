@@ -12,6 +12,15 @@ public class TranslatedTextTests
     {
         var builder = TranslatedText.CreateBuilder();
 
+        builder.TryToImmutable(out _).ShouldBeFalse();
+        Assert.Throws<InvalidOperationException>(() => builder.ToImmutable());
+
+        builder.Add(LangCode.En, "1");
+        builder.TryToImmutable(out _).ShouldBeFalse();
+        Assert.Throws<InvalidOperationException>(() => builder.ToImmutable());
+
+        builder.Add(LangCode.Nb, "2");
+        builder.TryToImmutable(out _).ShouldBeFalse();
         Assert.Throws<InvalidOperationException>(() => builder.ToImmutable());
     }
 
@@ -24,7 +33,7 @@ public class TranslatedTextTests
         builder.Add(LangCode.Nb, "nb-språk");
         builder.Add(LangCode.Nn, "nn-språk");
 
-        var text = builder.ToImmutable();
+        builder.TryToImmutable(out var text).ShouldBeTrue();
 
         text.En.ShouldBe("en-language");
         text.Nb.ShouldBe("nb-språk");
@@ -61,7 +70,7 @@ public class TranslatedTextTests
         builder.Add(LangCode.FromCode("fr"), "4");
         builder.Add(LangCode.FromCode("dk"), "5");
 
-        var text = builder.ToImmutable();
+        builder.TryToImmutable(out var text).ShouldBeTrue();
 
         text.ShouldSatisfyAllConditions(
             t => t.En.ShouldBe("1"),
