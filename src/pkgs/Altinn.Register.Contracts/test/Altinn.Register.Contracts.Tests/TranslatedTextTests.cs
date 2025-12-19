@@ -164,7 +164,7 @@ public class TranslatedTextTests
     }
 
     [Fact]
-    public void Builder_Values_ReturnsAllKeys()
+    public void Builder_Values_ReturnsAllValues()
     {
         var builder = TranslatedText.CreateBuilder();
         var fr = LangCode.FromCode("fr");

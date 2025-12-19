@@ -9,7 +9,7 @@ namespace Altinn.Register.Core.Utils;
 /// </summary>
 /// <typeparam name="TSource">The type of the value to convert from.</typeparam>
 /// <typeparam name="TResult">The type of the value to convert to.</typeparam>
-public interface IConverter<TSource, TResult>
+public interface IConverter<in TSource, TResult>
 {
     /// <summary>
     /// Tries to convert a <typeparamref name="TSource"/> to a <typeparamref name="TResult"/>.
