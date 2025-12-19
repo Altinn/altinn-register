@@ -71,9 +71,9 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private ValueTask<TRet> WithState<TArg, TRet>(
-            TArg arg,
-            Func<State, TArg, TRet> func,
+        private ValueTask<TResult> WithState<TState, TResult>(
+            TState arg,
+            Func<State, TState, TResult> func,
             CancellationToken cancellationToken)
         {
             object? current = Volatile.Read(ref _state);
@@ -86,9 +86,9 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private ValueTask<T> WithStateAsync<T, TArg>(
-            TArg arg,
-            Func<State, TArg, T> func,
+        private ValueTask<TResult> WithStateAsync<TState, TResult>(
+            TState arg,
+            Func<State, TState, TResult> func,
             CancellationToken cancellationToken)
         {
             var stateTask = GetState(cancellationToken);
@@ -101,7 +101,7 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
             var state = stateTask.GetAwaiter().GetResult();
             return ValueTask.FromResult(func(state, arg));
             
-            async static ValueTask<T> AwaitStateAsync(ValueTask<State> stateTask, TArg arg, Func<State, TArg, T> func)
+            async static ValueTask<TResult> AwaitStateAsync(ValueTask<State> stateTask, TState arg, Func<State, TState, TResult> func)
             {
                 var state = await stateTask;
 
