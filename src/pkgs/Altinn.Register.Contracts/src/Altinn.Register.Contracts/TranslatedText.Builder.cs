@@ -1,12 +1,11 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using Altinn.Register.Core.Utils;
 using CommunityToolkit.Diagnostics;
 
-namespace Altinn.Register.Core.Parties;
+namespace Altinn.Register.Contracts;
 
 /// <content>
 /// Contains the builder for <see cref="TranslatedText"/>.
@@ -200,7 +199,7 @@ public partial class TranslatedText
                 {
                     if (additional[i].Key == key)
                     {
-                        additional.SwapRemoveAt(i);
+                        SwapRemoveAt(additional, i);
                         return true;
                     }
                 }
@@ -428,5 +427,24 @@ public partial class TranslatedText
                 return true;
             }
         }
+    }
+
+    /// <summary>
+    /// Removes the element at the specified index by swapping the last element with the element to remove and then removing the last element.
+    /// </summary>
+    /// <remarks>
+    /// This modifies the order of the elements in the list.
+    /// </remarks>
+    /// <typeparam name="T">The type of the items in the list.</typeparam>
+    /// <param name="list">The list to remove an item from.</param>
+    /// <param name="index">The index of the item to remove.</param>
+    private static void SwapRemoveAt<T>(IList<T> list, int index)
+    {
+        ArgumentNullException.ThrowIfNull(list);
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, list.Count);
+
+        list[index] = list[^1];
+        list.RemoveAt(list.Count - 1);
     }
 }

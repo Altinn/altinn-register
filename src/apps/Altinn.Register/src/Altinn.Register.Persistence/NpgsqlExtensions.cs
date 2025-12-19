@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Core.Utils;
@@ -230,25 +230,26 @@ internal static class NpgsqlExtensions
         => GetConditionalParsableFieldValueAsync<T>(reader, reader.GetOrdinal(name), cancellationToken);
 
     /// <summary>
-    /// Gets a conditional field value as a <see cref="FieldValue{T}"/>, converted from a value using <see cref="IConvertibleFrom{TSelf, T}"/>.
+    /// Gets a conditional field value as a <see cref="FieldValue{T}"/>, converted from a value using <see cref="IConverter{TSource, TResult}"/>.
     /// </summary>
     /// <typeparam name="TSource">The npgsql supported field value type.</typeparam>
     /// <typeparam name="TConverted">The domain type for the field value.</typeparam>
     /// <param name="reader">The <see cref="NpgsqlDataReader"/>.</param>
     /// <param name="ordinal">The column ordinal.</param>
+    /// <param name="converter">The converter.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="FieldValue{T}"/>.</returns>
     /// <exception cref="InvalidOperationException">The database value failed to convert to a <typeparamref name="TConverted"/>.</exception>
-    public static ValueTask<FieldValue<TConverted>> GetConditionalConvertibleFieldValueAsync<TSource, TConverted>(this NpgsqlDataReader reader, int ordinal, CancellationToken cancellationToken = default)
+    public static ValueTask<FieldValue<TConverted>> GetConditionalConvertibleFieldValueAsync<TSource, TConverted>(this NpgsqlDataReader reader, int ordinal, IConverter<TSource, TConverted> converter, CancellationToken cancellationToken = default)
         where TSource : notnull
-        where TConverted : notnull, IConvertibleFrom<TConverted, TSource>
+        where TConverted : notnull
     {
         return GetConditionalFieldValueAsync<TSource>(reader, ordinal, cancellationToken)
             .Select(
-                (reader, ordinal),
+                (reader, ordinal, converter),
                 static (value, state) =>
                 {
-                    if (!TConverted.TryConvertFrom(value, out var result))
+                    if (!state.converter.TryConvert(value, out var result))
                     {
                         return ThrowConvertError<TConverted>(state.reader, state.ordinal);
                     }
@@ -258,52 +259,53 @@ internal static class NpgsqlExtensions
     }
 
     /// <summary>
-    /// Gets a conditional field value as a <see cref="FieldValue{T}"/>, converted from a value using <see cref="IConvertibleFrom{TSelf, T}"/>.
+    /// Gets a conditional field value as a <see cref="FieldValue{T}"/>, converted from a value using <see cref="IConverter{TSource, TResult}"/>.
     /// </summary>
     /// <typeparam name="TSource">The npgsql supported field value type.</typeparam>
     /// <typeparam name="TConverted">The domain type for the field value.</typeparam>
     /// <param name="reader">The <see cref="NpgsqlDataReader"/>.</param>
     /// <param name="name">The column name.</param>
+    /// <param name="converter">The converter.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="FieldValue{T}"/>.</returns>
     /// <exception cref="InvalidOperationException">The database value failed to convert to a <typeparamref name="TConverted"/>.</exception>
-    public static ValueTask<FieldValue<TConverted>> GetConditionalConvertibleFieldValueAsync<TSource, TConverted>(this NpgsqlDataReader reader, string name, CancellationToken cancellationToken = default)
+    public static ValueTask<FieldValue<TConverted>> GetConditionalConvertibleFieldValueAsync<TSource, TConverted>(this NpgsqlDataReader reader, string name, IConverter<TSource, TConverted> converter, CancellationToken cancellationToken = default)
         where TSource : notnull
-        where TConverted : notnull, IConvertibleFrom<TConverted, TSource>
-        => GetConditionalConvertibleFieldValueAsync<TSource, TConverted>(reader, reader.GetOrdinal(name), cancellationToken);
+        where TConverted : notnull
+        => GetConditionalConvertibleFieldValueAsync<TSource, TConverted>(reader, reader.GetOrdinal(name), converter, cancellationToken);
 
     /// <summary>
-    /// Gets a field value as a <typeparamref name="TConverted"/>, converted from a value using <see cref="IConvertibleFrom{TSelf, T}"/>.
+    /// Gets a field value as a <typeparamref name="TConverted"/>, converted from a value using <see cref="IConverter{TSource, TResult}"/>.
     /// </summary>
     /// <typeparam name="TSource">The npgsql supported field value type.</typeparam>
     /// <typeparam name="TConverted">The domain type for the field value.</typeparam>
     /// <param name="reader">The <see cref="NpgsqlDataReader"/>.</param>
     /// <param name="ordinal">The column ordinal.</param>
+    /// <param name="converter">The converter.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <typeparamref name="TConverted"/>.</returns>
     /// <exception cref="InvalidOperationException">The database value failed to convert to a <typeparamref name="TConverted"/>.</exception>
-    public static ValueTask<TConverted> GetConvertibleFieldValueAsync<TSource, TConverted>(this NpgsqlDataReader reader, int ordinal, CancellationToken cancellationToken = default)
-        where TConverted : notnull, IConvertibleFrom<TConverted, TSource>
+    public static ValueTask<TConverted> GetConvertibleFieldValueAsync<TSource, TConverted>(this NpgsqlDataReader reader, int ordinal, IConverter<TSource, TConverted> converter, CancellationToken cancellationToken = default)
     {
         var valueTask = reader.GetFieldValueAsync<TSource>(ordinal, cancellationToken);
         if (!valueTask.IsCompletedSuccessfully)
         {
-            return AwaitValue(valueTask, reader, ordinal);
+            return AwaitValue(valueTask, reader, ordinal, converter);
         }
 
         var value = valueTask.GetAwaiter().GetResult();
-        if (!TConverted.TryConvertFrom(value, out var result))
+        if (!converter.TryConvert(value, out var result))
         {
             return ThrowConvertError<ValueTask<TConverted>>(reader, ordinal);
         }
 
         return ValueTask.FromResult(result);
 
-        static async ValueTask<TConverted> AwaitValue(Task<TSource> valueTask, NpgsqlDataReader reader, int ordinal)
+        static async ValueTask<TConverted> AwaitValue(Task<TSource> valueTask, NpgsqlDataReader reader, int ordinal, IConverter<TSource, TConverted> converter)
         {
             var value = await valueTask;
 
-            if (!TConverted.TryConvertFrom(value, out var result))
+            if (!converter.TryConvert(value, out var result))
             {
                 return ThrowConvertError<TConverted>(reader, ordinal);
             }
@@ -313,18 +315,18 @@ internal static class NpgsqlExtensions
     }
 
     /// <summary>
-    /// Gets a field value as a <typeparamref name="TConverted"/>, converted from a value using <see cref="IConvertibleFrom{TSelf, T}"/>.
+    /// Gets a field value as a <typeparamref name="TConverted"/>, converted from a value using <see cref="IConverter{TSource, TResult}"/>.
     /// </summary>
     /// <typeparam name="TSource">The npgsql supported field value type.</typeparam>
     /// <typeparam name="TConverted">The domain type for the field value.</typeparam>
     /// <param name="reader">The <see cref="NpgsqlDataReader"/>.</param>
     /// <param name="name">The column name.</param>
+    /// <param name="converter">The converter.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <typeparamref name="TConverted"/>.</returns>
     /// <exception cref="InvalidOperationException">The database value failed to convert to a <typeparamref name="TConverted"/>.</exception>
-    public static ValueTask<TConverted> GetConvertibleFieldValueAsync<TSource, TConverted>(this NpgsqlDataReader reader, string name, CancellationToken cancellationToken = default)
-        where TConverted : notnull, IConvertibleFrom<TConverted, TSource>
-        => GetConvertibleFieldValueAsync<TSource, TConverted>(reader, reader.GetOrdinal(name), cancellationToken);
+    public static ValueTask<TConverted> GetConvertibleFieldValueAsync<TSource, TConverted>(this NpgsqlDataReader reader, string name, IConverter<TSource, TConverted> converter, CancellationToken cancellationToken = default)
+        => GetConvertibleFieldValueAsync<TSource, TConverted>(reader, reader.GetOrdinal(name), converter, cancellationToken);
 
     /// <summary>
     /// Selects on a <see cref="ValueTask{T}"/> of <see cref="FieldValue{T}"/>. This is the same as calling
