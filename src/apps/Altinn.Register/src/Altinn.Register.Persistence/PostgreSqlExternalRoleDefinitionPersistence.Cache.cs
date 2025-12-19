@@ -219,8 +219,8 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
             {
                 var source = await reader.GetFieldValueAsync<ExternalRoleSource>(sourceOrdinal, cancellationToken);
                 var identifier = await reader.GetFieldValueAsync<string>(identifierOrdinal, cancellationToken);
-                var name = await reader.GetConvertibleFieldValueAsync<Dictionary<string, string>, TranslatedText>(nameOrdinal, cancellationToken);
-                var description = await reader.GetConvertibleFieldValueAsync<Dictionary<string, string>, TranslatedText>(descriptionOrdinal, cancellationToken);
+                var name = await reader.GetConvertibleFieldValueAsync(nameOrdinal, TranslatedTextConverter.FromDb, cancellationToken);
+                var description = await reader.GetConvertibleFieldValueAsync(descriptionOrdinal, TranslatedTextConverter.FromDb, cancellationToken);
                 var code = await reader.GetFieldValueOrDefaultAsync<string>(codeOrdinal, cancellationToken);
 
                 var roleDefinition = new ExternalRoleDefinition()

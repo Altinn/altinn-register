@@ -377,7 +377,7 @@ public static class PartyPersistenceExtensions
         var builder = ImmutableDictionary.CreateBuilder<ExternalRoleSource, ImmutableArray<ExternalRoleDefinition>>();
         builder.Add(ExternalRoleSource.CentralCoordinatingRegister, await uow.CreateFakeRoleDefinitions(ExternalRoleSource.CentralCoordinatingRegister, cancellationToken));
         builder.Add(ExternalRoleSource.NationalPopulationRegister, await uow.CreateFakeRoleDefinitions(ExternalRoleSource.NationalPopulationRegister, cancellationToken));
-        builder.Add(ExternalRoleSource.CivilRightsAuthority, await uow.CreateFakeRoleDefinitions(ExternalRoleSource.NationalPopulationRegister, cancellationToken));
+        builder.Add(ExternalRoleSource.CivilRightsAuthority, await uow.CreateFakeRoleDefinitions(ExternalRoleSource.CivilRightsAuthority, cancellationToken));
 
         return builder.ToImmutable();
     }

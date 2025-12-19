@@ -12,7 +12,7 @@ namespace Altinn.Register.Core.Utils;
 public interface IConverter<TSource, TResult>
 {
     /// <summary>
-    /// Tries to convert a <typeparamref name="TSource"/> to a <typeparamref name="TSelf"/>.
+    /// Tries to convert a <typeparamref name="TSource"/> to a <typeparamref name="TResult"/>.
     /// </summary>
     /// <param name="source">The source to convert from.</param>
     /// <param name="result">On return, contains the result of successfully converting <paramref name="source"/> or an undefined value on failure.</param>
