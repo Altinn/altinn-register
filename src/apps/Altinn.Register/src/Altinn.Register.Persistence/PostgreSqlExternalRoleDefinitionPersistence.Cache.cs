@@ -1,10 +1,10 @@
-﻿using System.Collections.Frozen;
+using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Altinn.Register.Contracts;
-using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
+using Altinn.Register.Core.Utils;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -71,9 +71,9 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private ValueTask<ExternalRoleDefinition?> WithState<TArg>(
+        private ValueTask<TRet> WithState<TArg, TRet>(
             TArg arg,
-            Func<State, TArg, ExternalRoleDefinition?> func,
+            Func<State, TArg, TRet> func,
             CancellationToken cancellationToken)
         {
             object? current = Volatile.Read(ref _state);
