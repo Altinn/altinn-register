@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
@@ -40,17 +41,17 @@ public sealed class LangCode
     /// <summary>
     /// Gets the language code for English.
     /// </summary>
-    public static readonly LangCode En = new LangCode(EN_CODE);
+    public static readonly LangCode En = new LangCode(EN_CODE, "en"u8);
 
     /// <summary>
     /// Gets the language code for Norwegian Bokmål.
     /// </summary>
-    public static readonly LangCode Nb = new LangCode(NB_CODE);
+    public static readonly LangCode Nb = new LangCode(NB_CODE, "nb"u8);
 
     /// <summary>
     /// Gets the language code for Norwegian Nynorsk.
     /// </summary>
-    public static readonly LangCode Nn = new LangCode(NN_CODE);
+    public static readonly LangCode Nn = new LangCode(NN_CODE, "nn"u8);
 
     private static readonly ConcurrentDictionary<string, LangCode> _codes
         = new ConcurrentDictionary<string, LangCode>(
@@ -68,6 +69,8 @@ public sealed class LangCode
     /// <returns>A <see cref="LangCode"/>.</returns>
     public static LangCode FromCode(string code)
     {
+        Guard.IsNotNull(code);
+
         return code switch
         {
             // normal cases
@@ -76,16 +79,32 @@ public sealed class LangCode
             "nn" => Nn,
 
             // rest
-            _ => GetOrCreateCode(code),
+            _ => Normalized(code),
         };
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        static LangCode GetOrCreateCode(string code)
+        static LangCode Normalized(string code)
         {
             code = code.ToLowerInvariant().Normalize();
 
-            return _codes.GetOrAdd(code, static c => new(c));
+            Guard.IsNotEmpty(code);
+            Guard.HasSizeEqualTo(code, 2);
+
+            return code switch
+            {
+                // normal cases
+                "en" => En,
+                "nb" => Nb,
+                "nn" => Nn,
+
+                // rest
+                _ => GetOrCreateCached(code),
+            };
         }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static LangCode GetOrCreateCached(string code) 
+            => _codes.GetOrAdd(code, static c => new(c, Encoding.UTF8.GetBytes(c)));
     }
 
     /// <summary>
@@ -118,17 +137,19 @@ public sealed class LangCode
     }
 
     private readonly string _code;
+    private readonly ImmutableArray<byte> _utf8;
 
     /// <summary>
     /// Gets the language code as a string.
     /// </summary>
     public string Code => _code;
 
-    private LangCode(string code)
+    private LangCode(string code, ReadOnlySpan<byte> utf8)
     {
         Guard.IsNotNull(code);
 
         _code = code;
+        _utf8 = [.. utf8];
     }
 
     /// <inheritdoc/>
@@ -259,47 +280,13 @@ public sealed class LangCode
         /// <inheritdoc cref="JsonConverter{T}.Write(Utf8JsonWriter, T, JsonSerializerOptions)"/>
         public static void Write(Utf8JsonWriter writer, LangCode value)
         {
-            switch (value.Code)
-            {
-                case EN_CODE:
-                    writer.WriteStringValue("en"u8);
-                    break;
-
-                case NB_CODE:
-                    writer.WriteStringValue("nb"u8);
-                    break;
-
-                case NN_CODE:
-                    writer.WriteStringValue("nn"u8);
-                    break;
-
-                default:
-                    writer.WriteStringValue(value.Code);
-                    break;
-            }
+            writer.WriteStringValue(value._utf8.AsSpan());
         }
 
         /// <inheritdoc cref="JsonConverter{T}.WriteAsPropertyName(Utf8JsonWriter, T, JsonSerializerOptions)"/>
         public static void WriteAsPropertyName(Utf8JsonWriter writer, LangCode value)
         {
-            switch (value.Code)
-            {
-                case EN_CODE:
-                    writer.WritePropertyName("en"u8);
-                    break;
-
-                case NB_CODE:
-                    writer.WritePropertyName("nb"u8);
-                    break;
-
-                case NN_CODE:
-                    writer.WritePropertyName("nn"u8);
-                    break;
-
-                default:
-                    writer.WritePropertyName(value.Code);
-                    break;
-            }
+            writer.WritePropertyName(value._utf8.AsSpan());
         }
 
         /// <inheritdoc/>

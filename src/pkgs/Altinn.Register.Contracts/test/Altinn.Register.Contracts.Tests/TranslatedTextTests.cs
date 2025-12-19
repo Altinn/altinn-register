@@ -3,7 +3,7 @@
 using System.Text.Json;
 using Altinn.Register.Contracts;
 
-namespace Altinn.Register.Tests.UnitTests;
+namespace Altinn.Register.Contracts.Tests;
 
 public class TranslatedTextTests
 {
@@ -48,6 +48,38 @@ public class TranslatedTextTests
 
         var stringKeys = ((IDictionary<string, string>)text).Keys;
         stringKeys.ShouldBe([LangCode.En.Code, LangCode.Nb.Code, LangCode.Nn.Code], ignoreOrder: true);
+    }
+
+    [Fact]
+    public void Building_WithAdditionalLanguages_Works()
+    {
+        var builder = TranslatedText.CreateBuilder();
+
+        builder.Add(LangCode.En, "1");
+        builder.Add(LangCode.Nb, "2");
+        builder.Add(LangCode.Nn, "3");
+        builder.Add(LangCode.FromCode("fr"), "4");
+        builder.Add(LangCode.FromCode("dk"), "5");
+
+        var text = builder.ToImmutable();
+
+        text.ShouldSatisfyAllConditions(
+            t => t.En.ShouldBe("1"),
+            t => t.Nb.ShouldBe("2"),
+            t => t.Nn.ShouldBe("3"));
+
+        text.ShouldSatisfyAllConditions(
+            t => t.ShouldContainKeyAndValue(LangCode.En, "1"),
+            t => t.ShouldContainKeyAndValue(LangCode.Nb, "2"),
+            t => t.ShouldContainKeyAndValue(LangCode.Nn, "3"),
+            t => t.ShouldContainKeyAndValue(LangCode.FromCode("fr"), "4"),
+            t => t.ShouldContainKeyAndValue(LangCode.FromCode("dk"), "5"));
+
+        var keys = ((IReadOnlyDictionary<LangCode, string>)text).Keys.ToList();
+        keys.ShouldBe([LangCode.En, LangCode.Nb, LangCode.Nn, LangCode.FromCode("fr"), LangCode.FromCode("dk")], ignoreOrder: true);
+
+        var stringKeys = ((IDictionary<string, string>)text).Keys;
+        stringKeys.ShouldBe([LangCode.En.Code, LangCode.Nb.Code, LangCode.Nn.Code, LangCode.FromCode("fr").Code, LangCode.FromCode("dk").Code], ignoreOrder: true);
     }
 
     [Fact]
