@@ -1,9 +1,8 @@
 #nullable enable
 
 using System.Text.Json;
-using Altinn.Register.Contracts;
 
-namespace Altinn.Register.Tests.UnitTests;
+namespace Altinn.Register.Contracts.Tests;
 
 public class LangCodeTests
 {
@@ -12,7 +11,7 @@ public class LangCodeTests
     {
         LangCode code = LangCode.FromCode("en");
         
-        code.Should().BeSameAs(LangCode.En);
+        code.ShouldBeSameAs(LangCode.En);
     }
 
     [Fact]
@@ -20,7 +19,7 @@ public class LangCodeTests
     {
         LangCode code = LangCode.FromCode("nb");
 
-        code.Should().BeSameAs(LangCode.Nb);
+        code.ShouldBeSameAs(LangCode.Nb);
     }
 
     [Fact]
@@ -28,7 +27,7 @@ public class LangCodeTests
     {
         LangCode code = LangCode.FromCode("nn");
         
-        code.Should().BeSameAs(LangCode.Nn);
+        code.ShouldBeSameAs(LangCode.Nn);
     }
 
     [Fact]
@@ -36,7 +35,7 @@ public class LangCodeTests
     {
         LangCode code = LangCode.FromCode("EN");
 
-        code.Should().BeSameAs(LangCode.En);
+        code.ShouldBeSameAs(LangCode.En);
     }
 
     [Fact]
@@ -45,7 +44,7 @@ public class LangCodeTests
         LangCode code1 = LangCode.FromCode("fr");
         LangCode code2 = LangCode.FromCode("FR");
 
-        code1.Should().BeSameAs(code2);
+        code1.ShouldBeSameAs(code2);
     }
 
     [Theory]
@@ -61,7 +60,7 @@ public class LangCodeTests
 
         var deserialized = JsonSerializer.Deserialize<LangCode>(json);
 
-        deserialized.Should().BeSameAs(code);
+        deserialized.ShouldBeSameAs(code);
     }
 
     [Theory]
@@ -79,7 +78,7 @@ public class LangCodeTests
 
         var deserialized = JsonSerializer.Deserialize<Dictionary<LangCode, string>>(json);
 
-        deserialized.Should().NotBeNull();
-        deserialized.Should().ContainKey(code);
+        deserialized.ShouldNotBeNull();
+        deserialized.ShouldContainKey(code);
     }
 }
