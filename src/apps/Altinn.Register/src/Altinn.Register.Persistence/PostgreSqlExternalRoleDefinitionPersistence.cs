@@ -1,4 +1,5 @@
-﻿using Altinn.Register.Contracts;
+using System.Collections.Immutable;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.Parties.Records;
 
@@ -20,22 +21,15 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
         _cache = cache;
     }
 
-    /// <summary>
-    /// Tries to get the role definition for the specified source and identifier.
-    /// </summary>
-    /// <param name="source">The role definition source.</param>
-    /// <param name="identifier">The role definition identifier.</param>
-    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
-    /// <returns>A <see cref="ExternalRoleDefinition"/>, if found.</returns>
+    /// <inheritdoc/>
+    public ValueTask<ImmutableArray<ExternalRoleDefinition>> GetAllRoleDefinitions(CancellationToken cancellationToken = default)
+        => _cache.GetAllRoleDefinitions(cancellationToken);
+
+    /// <inheritdoc/>
     public ValueTask<ExternalRoleDefinition?> TryGetRoleDefinition(ExternalRoleSource source, string identifier, CancellationToken cancellationToken = default)
         => _cache.TryGetRoleDefinition(source, identifier, cancellationToken);
 
-    /// <summary>
-    /// Tries to get the role definition for the specified role-code.
-    /// </summary>
-    /// <param name="roleCode">The role definition role-code.</param>
-    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
-    /// <returns>A <see cref="ExternalRoleDefinition"/>, if found.</returns>
+    /// <inheritdoc/>
     public ValueTask<ExternalRoleDefinition?> TryGetRoleDefinitionByRoleCode(string roleCode, CancellationToken cancellationToken = default)
         => _cache.TryGetRoleDefinitionByRoleCode(roleCode, cancellationToken);
 }

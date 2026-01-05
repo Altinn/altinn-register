@@ -1,7 +1,9 @@
 using System.Net;
 using Altinn.Authorization.ServiceDefaults;
 using Altinn.Common.AccessTokenClient.Services;
+using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Tests.IntegrationTests.Utils;
+using Altinn.Register.Tests.Mocks;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +23,7 @@ namespace Altinn.Register.Tests.IntegrationTests
                 builder.ConfigureTestServices(services =>
                 {
                     services.AddSingleton<IAccessTokenGenerator, TestAccessTokenGenerator>();
+                    services.AddSingleton<IExternalRoleDefinitionPersistence, MockExternalRoleDefinitionPersistence>();
                 });
             });
         }

@@ -1,10 +1,13 @@
-﻿#nullable enable
+#nullable enable
 
 using Altinn.Common.AccessTokenClient.Services;
+using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Tests.IntegrationTests.Utils;
+using Altinn.Register.Tests.Mocks;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Altinn.Register.Tests.TestingControllers.Utils;
 
@@ -29,6 +32,7 @@ public abstract class BaseControllerTests
     protected virtual void ConfigureTestServices(IServiceCollection services)
     {
         services.AddSingleton<IAccessTokenGenerator, TestAccessTokenGenerator>();
+        services.TryAddSingleton<IExternalRoleDefinitionPersistence, MockExternalRoleDefinitionPersistence>();
     }
 
     protected virtual void ConfigureTestConfiguration(IConfigurationBuilder builder)

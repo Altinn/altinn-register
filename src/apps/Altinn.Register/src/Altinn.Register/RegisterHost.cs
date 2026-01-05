@@ -305,6 +305,7 @@ internal static partial class RegisterHost
             c.SupportNonNullableReferenceTypes();
             c.SchemaFilter<PartyComponentOptionSchemaFilter>();
             c.SchemaFilter<PartyFieldIncludesSchemaFilter>();
+            c.SchemaFilter<TranslatedTextSchemaFilter>();
 
             var originalIdSelector = c.SchemaGeneratorOptions.SchemaIdSelector;
             c.SchemaGeneratorOptions.SchemaIdSelector = (Type t) =>

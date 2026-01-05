@@ -46,6 +46,16 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
         }
 
         /// <summary>
+        /// Asynchronously retrieves all available external role definitions.
+        /// </summary>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+        /// <returns>An array of all available external-role definitions.</returns>
+        public ValueTask<ImmutableArray<ExternalRoleDefinition>> GetAllRoleDefinitions(CancellationToken cancellationToken)
+        {
+            return WithState(null, static (State state, object? _) => state.AllRoleDefinitions, cancellationToken);
+        }
+
+        /// <summary>
         /// Tries to get the role definition for the specified source and identifier.
         /// </summary>
         /// <param name="source">The role definition source.</param>
@@ -248,10 +258,13 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
                 Dictionary<RoleKey, ExternalRoleDefinition> byRoleKey,
                 Dictionary<string, ExternalRoleDefinition> byRoleCode)
             {
-                _all = byRoleKey.Values.ToImmutableArray();
+                _all = byRoleKey.Values.OrderBy(static r => r.Source).ThenBy(static r => r.Identifier).ToImmutableArray();
                 _byRoleKey = byRoleKey.ToFrozenDictionary(byRoleKey.Comparer);
                 _byRoleCode = byRoleCode.ToFrozenDictionary(byRoleCode.Comparer);
             }
+
+            public ImmutableArray<ExternalRoleDefinition> AllRoleDefinitions
+                => _all;
 
             public ExternalRoleDefinition? TryGetRoleDefinition(RoleKey key)
                 => _byRoleKey.TryGetValue(key, out var value) ? value : null;
