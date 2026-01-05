@@ -7,6 +7,7 @@ using Altinn.Common.AccessTokenClient.Services;
 using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Contracts.V1;
 using Altinn.Register.Controllers;
+using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Tests.IntegrationTests.Utils;
 using Altinn.Register.Tests.Mocks;
 using Altinn.Register.Tests.Mocks.Authentication;
@@ -38,6 +39,7 @@ namespace Altinn.Register.Tests.TestingControllers
                 builder.ConfigureTestServices(services =>
                 {
                     services.AddSingleton<IAccessTokenGenerator, TestAccessTokenGenerator>();
+                    services.AddSingleton<IExternalRoleDefinitionPersistence, MockExternalRoleDefinitionPersistence>();
                 });
             });
         }

@@ -1,4 +1,5 @@
-﻿using Altinn.Register.Contracts.ExternalRoles;
+using Altinn.Register.Contracts;
+using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core.Parties.Records;
 
@@ -24,4 +25,20 @@ internal static class ContractsMapper
     /// <returns>A <see cref="ExternalRoleReference"/>.</returns>
     public static ExternalRoleReference ToPartyExternalRoleReferenceContract(this ExternalRoleAssignmentEvent evt)
         => new(evt.RoleSource, evt.RoleIdentifier);
+
+    /// <summary>
+    /// Converts an <see cref="ExternalRoleDefinition"/> instance to an <see cref="ExternalRoleMetadata"/>.
+    /// </summary>
+    /// <param name="role">The external role definition to convert. Cannot be null.</param>
+    /// <returns>An <see cref="ExternalRoleMetadata"/> object containing the metadata from the specified external role
+    /// definition.</returns>
+    public static ExternalRoleMetadata ToPartyExternalRoleMetadataContract(this ExternalRoleDefinition role)
+        => new()
+        {
+            Source = role.Source,
+            Identifier = role.Identifier,
+            Name = role.Name,
+            Description = role.Description,
+            Code = role.Code,
+        };
 }

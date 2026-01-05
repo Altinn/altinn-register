@@ -1,4 +1,5 @@
-﻿using Altinn.Register.Contracts;
+using System.Collections.Immutable;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties.Records;
 
 namespace Altinn.Register.Core.ExternalRoles;
@@ -24,4 +25,11 @@ public interface IExternalRoleDefinitionPersistence
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="ExternalRoleDefinition"/>, if found.</returns>
     public ValueTask<ExternalRoleDefinition?> TryGetRoleDefinitionByRoleCode(string roleCode, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Asynchronously retrieves all available external role definitions.
+    /// </summary>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>An array of all available external-role definitions.</returns>
+    public ValueTask<ImmutableArray<ExternalRoleDefinition>> GetAllRoleDefinitions(CancellationToken cancellationToken = default);
 }

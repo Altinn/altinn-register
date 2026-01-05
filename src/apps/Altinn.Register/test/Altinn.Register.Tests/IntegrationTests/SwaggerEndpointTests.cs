@@ -1,7 +1,9 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Altinn.Authorization.ServiceDefaults;
 using Altinn.Common.AccessTokenClient.Services;
+using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Tests.IntegrationTests.Utils;
+using Altinn.Register.Tests.Mocks;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,18 +24,21 @@ public class SwaggerEndpointTests
             builder.ConfigureTestServices(services =>
             {
                 services.AddSingleton<IAccessTokenGenerator, TestAccessTokenGenerator>();
+                services.AddSingleton<IExternalRoleDefinitionPersistence, MockExternalRoleDefinitionPersistence>();
             });
         });
     }
 
-    [Fact]
-    public async Task SwaggerDoc_OK()
+    [Theory]
+    [InlineData("v1")]
+    [InlineData("v2")]
+    public async Task SwaggerDoc_OK(string doc)
     {
-        const string RequestUri = "swagger/v1/swagger.json";
+        string requestUri = $"swagger/{doc}/swagger.json";
 
         using var client = _factory.CreateClient();
 
-        using var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, RequestUri);
+        using var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, requestUri);
 
         using var response = await client.SendAsync(httpRequestMessage);
         response.EnsureSuccessStatusCode();
