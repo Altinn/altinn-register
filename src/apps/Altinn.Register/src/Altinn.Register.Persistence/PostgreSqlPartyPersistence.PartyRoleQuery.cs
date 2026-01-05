@@ -1,17 +1,15 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Altinn.Authorization.ModelUtils.EnumUtils;
 using Altinn.Register.Contracts;
-using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.Utils;
 using CommunityToolkit.Diagnostics;
 using Npgsql;
 using NpgsqlTypes;
-using Polly.CircuitBreaker;
 
 namespace Altinn.Register.Persistence;
 
@@ -92,8 +90,8 @@ internal partial class PostgreSqlPartyPersistence
                 Identifier = await reader.GetConditionalFieldValueAsync<string>(fields.RoleIdentifier, cancellationToken),
                 FromParty = await reader.GetConditionalFieldValueAsync<Guid>(fields.RoleFromParty, cancellationToken),
                 ToParty = await reader.GetConditionalFieldValueAsync<Guid>(fields.RoleToParty, cancellationToken),
-                Name = await reader.GetConditionalConvertibleFieldValueAsync<Dictionary<string, string>, TranslatedText>(fields.RoleDefinitionName, cancellationToken),
-                Description = await reader.GetConditionalConvertibleFieldValueAsync<Dictionary<string, string>, TranslatedText>(fields.RoleDefinitionDescription, cancellationToken),
+                Name = await reader.GetConditionalConvertibleFieldValueAsync(fields.RoleDefinitionName, TranslatedTextConverter.FromDb, cancellationToken),
+                Description = await reader.GetConditionalConvertibleFieldValueAsync(fields.RoleDefinitionDescription, TranslatedTextConverter.FromDb, cancellationToken),
             };
         }
 

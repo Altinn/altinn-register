@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Core.UnitOfWork;
+using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.TestUtils;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;

@@ -1,10 +1,10 @@
-﻿using System.Collections.Frozen;
+using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Altinn.Register.Contracts;
-using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
+using Altinn.Register.Core.Utils;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -71,9 +71,9 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private ValueTask<ExternalRoleDefinition?> WithState<TArg>(
-            TArg arg,
-            Func<State, TArg, ExternalRoleDefinition?> func,
+        private ValueTask<TResult> WithState<TState, TResult>(
+            TState arg,
+            Func<State, TState, TResult> func,
             CancellationToken cancellationToken)
         {
             object? current = Volatile.Read(ref _state);
@@ -86,9 +86,9 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private ValueTask<T> WithStateAsync<T, TArg>(
-            TArg arg,
-            Func<State, TArg, T> func,
+        private ValueTask<TResult> WithStateAsync<TState, TResult>(
+            TState arg,
+            Func<State, TState, TResult> func,
             CancellationToken cancellationToken)
         {
             var stateTask = GetState(cancellationToken);
@@ -101,7 +101,7 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
             var state = stateTask.GetAwaiter().GetResult();
             return ValueTask.FromResult(func(state, arg));
             
-            async static ValueTask<T> AwaitStateAsync(ValueTask<State> stateTask, TArg arg, Func<State, TArg, T> func)
+            async static ValueTask<TResult> AwaitStateAsync(ValueTask<State> stateTask, TState arg, Func<State, TState, TResult> func)
             {
                 var state = await stateTask;
 
@@ -219,8 +219,8 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
             {
                 var source = await reader.GetFieldValueAsync<ExternalRoleSource>(sourceOrdinal, cancellationToken);
                 var identifier = await reader.GetFieldValueAsync<string>(identifierOrdinal, cancellationToken);
-                var name = await reader.GetConvertibleFieldValueAsync<Dictionary<string, string>, TranslatedText>(nameOrdinal, cancellationToken);
-                var description = await reader.GetConvertibleFieldValueAsync<Dictionary<string, string>, TranslatedText>(descriptionOrdinal, cancellationToken);
+                var name = await reader.GetConvertibleFieldValueAsync(nameOrdinal, TranslatedTextConverter.FromDb, cancellationToken);
+                var description = await reader.GetConvertibleFieldValueAsync(descriptionOrdinal, TranslatedTextConverter.FromDb, cancellationToken);
                 var code = await reader.GetFieldValueOrDefaultAsync<string>(codeOrdinal, cancellationToken);
 
                 var roleDefinition = new ExternalRoleDefinition()
