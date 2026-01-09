@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.0](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.4.1...Altinn.Register.Contracts-v1.5.0) (2026-01-09)
+
+
+### Features
+
+* add `ExternalRoleMetadata` to contracts ([#643](https://github.com/Altinn/altinn-register/issues/643)) ([afe351a](https://github.com/Altinn/altinn-register/commit/afe351ab4ade0a6f2061e970db5042d36cfea782))
+* add external role definitions metadata api ([#645](https://github.com/Altinn/altinn-register/issues/645)) ([0c3fcfd](https://github.com/Altinn/altinn-register/commit/0c3fcfd9617d1c408f081952ef90198334a5f4b5))
+
 ## [1.4.1](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.4.0...Altinn.Register.Contracts-v1.4.1) (2025-11-12)
 
 
