@@ -507,7 +507,7 @@ public class PartyController
             || orgIds.OrEmpty().Any(orgId => !result.Any(p => p is Organization o && o.OrganizationIdentifier == orgId)) 
             || personIds.OrEmpty().Any(personId => !result.Any(p => p is Person pp && pp.PersonIdentifier == personId))
             || userIds.OrEmpty().Any(uid => !result.Any(p => p.User.HasValue && p.User.Value.UserIds.HasValue && p.User.Value.UserIds.Value.Contains(uid)))
-            || usernames.OrEmpty().Any(username => !result.Any(p => p.User.HasValue && p.User.Value.Username.HasValue && p.User.Value.Username.Value == username));
+            || usernames.OrEmpty().Any(username => !result.Any(p => p.User.HasValue && p.User.Value.Username.HasValue && string.Equals(p.User.Value.Username.Value, username, StringComparison.OrdinalIgnoreCase)));
 
         if (anyMissing)
         {
