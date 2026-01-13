@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Altinn.Authorization.ModelUtils;
 using CommunityToolkit.Diagnostics;
 
@@ -19,6 +19,7 @@ public sealed record PartyUser
     /// <summary>
     /// Gets the username of the party (if any).
     /// </summary>
+    // TODO: Make a CaseInsensitiveString type for usernames?
     [JsonPropertyName("username")]
     public FieldValue<string> Username { get; }
 
