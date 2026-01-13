@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Npgsql;
 using Testcontainers.PostgreSql;
 
@@ -205,8 +205,7 @@ public sealed class PostgreSqlManager
             var username = Debugger.IsAttached ? "username" : Guid.NewGuid().ToString("N");
             var password = Debugger.IsAttached ? "password" : Guid.NewGuid().ToString("N");
 
-            var builder = new PostgreSqlBuilder()
-                .WithImage("docker.io/postgres:16.1-alpine")
+            var builder = new PostgreSqlBuilder("docker.io/postgres:16.10-alpine")
                 .WithUsername(username)
                 .WithPassword(password)
                 .WithCommand("-c", "max_locks_per_transaction=4096")
