@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.ModelUtils;
 
 namespace Altinn.Register.Contracts.Tests;
 
@@ -20,6 +20,7 @@ public class SelfIdentifiedUserTests
                 DeletedAt = FieldValue.Unset,
                 User = FieldValue.Unset,
                 VersionId = VersionId,
+                SelfIdentifiedUserType = FieldValue.Unset,
             },
             """
             {
@@ -46,6 +47,7 @@ public class SelfIdentifiedUserTests
                 DeletedAt = FieldValue.Null,
                 User = FullUser,
                 VersionId = VersionId,
+                SelfIdentifiedUserType = NonExhaustiveEnum.Create(SelfIdentifiedUserType.Legacy),
             },
             """
             {
@@ -63,7 +65,8 @@ public class SelfIdentifiedUserTests
                 "userId": 50,
                 "username": "username",
                 "userIds": [ 50, 30, 1 ]
-              }
+              },
+              "selfIdentifiedUserType": "legacy"
             }
             """);
     }
