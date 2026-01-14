@@ -65,7 +65,13 @@ public class PostgresServerFixture
                 await using var conn = await _dataSource!.OpenConnectionAsync(cancellationToken);
                 await CreateRoles(conn, owner: owner, migrator: migrator, seeder: seeder, app: app, cancellationToken);
                 await CreateDatabase(conn, dbName, owner, cancellationToken);
-                await GrantPrivileges(conn, dbName, migrator: migrator, seeder: seeder, app: app, cancellationToken);
+                await GrantDatabasePrivileges(conn, dbName, migrator: migrator, seeder: seeder, app: app, cancellationToken);
+            }
+
+            {
+                await using var source = new NpgsqlDataSourceBuilder(handle.ConnectionString(PostgresUserType.Owner)).Build();
+                await using var conn = await source.OpenConnectionAsync(cancellationToken);
+                await GrantSchemaPrivileges(conn, migrator: migrator, seeder: seeder, app: app, cancellationToken);
             }
 
             var result = new PostgresDatabase(handle);
@@ -166,9 +172,9 @@ public class PostgresServerFixture
             await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
 
-        static async Task GrantPrivileges(NpgsqlConnection conn, string dbName, DbUser migrator, DbUser seeder, DbUser app, CancellationToken cancellationToken)
+        static async Task GrantDatabasePrivileges(NpgsqlConnection conn, string dbName, DbUser migrator, DbUser seeder, DbUser app, CancellationToken cancellationToken)
         {
-            using var activity = TestUtilsActivities.Source.StartActivity(ActivityKind.Internal, name: $"grant privileges");
+            using var activity = TestUtilsActivities.Source.StartActivity(ActivityKind.Internal, name: $"grant database privileges");
             await using var batch = conn.CreateBatch();
 
             AddCommand(
@@ -187,6 +193,20 @@ public class PostgresServerFixture
                 batch,
                 /*strpsql*/$"""
                 GRANT CONNECT ON DATABASE "{dbName}" TO "{app.Name}"
+                """);
+
+            await batch.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        static async Task GrantSchemaPrivileges(NpgsqlConnection conn, DbUser migrator, DbUser seeder, DbUser app, CancellationToken cancellationToken)
+        {
+            using var activity = TestUtilsActivities.Source.StartActivity(ActivityKind.Internal, name: $"grant schema privileges");
+            await using var batch = conn.CreateBatch();
+
+            AddCommand(
+                batch,
+                /*strpsql*/$"""
+                GRANT CREATE ON SCHEMA "public" TO "{migrator.Name}"
                 """);
 
             await batch.ExecuteNonQueryAsync(cancellationToken);

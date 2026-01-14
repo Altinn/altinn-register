@@ -34,15 +34,23 @@ public sealed class PostgreSqlManager
             var seeder = CreateUser(dbName, "seeder");
             var app = CreateUser(dbName, "app");
 
-            await using var connection = await dbRef.Value.GetConnection();
-            await CreateRoles(connection, owner, migrator, seeder, app);
-            await CreateDatabase(connection, dbName, owner.Name);
-            await GrantDatabaseAccess(connection, dbName, migrator.Name, seeder.Name, app.Name);
+            {
+                await using var connection = await dbRef.Value.GetConnection();
+                await CreateRoles(connection, owner, migrator, seeder, app);
+                await CreateDatabase(connection, dbName, owner.Name);
+                await GrantDatabaseAccess(connection, dbName, migrator.Name, seeder.Name, app.Name);
+            }
 
             var ownerConnectionString = ConnectionStringFor(serverConnectionString, dbName, owner);
             var migratorConnectionString = ConnectionStringFor(serverConnectionString, dbName, migrator);
             var seederConnectionString = ConnectionStringFor(serverConnectionString, dbName, seeder);
             var connectionString = ConnectionStringFor(serverConnectionString, dbName, app);
+
+            {
+                await using var source = new NpgsqlDataSourceBuilder(ownerConnectionString).Build();
+                await using var conn = await source.OpenConnectionAsync();
+                await GrantSchemaAccess(conn, migrator.Name);
+            }
 
             var db = await Database.Create(dbRef, dbName);
             var result = new PostgreSqlDatabase(db, dbName, ownerConnectionString, migratorConnectionString, seederConnectionString, connectionString);
@@ -68,6 +76,16 @@ public sealed class PostgreSqlManager
             AddCommand(batch, /*strpsql*/$"GRANT CREATE, CONNECT ON DATABASE \"{dbName}\" TO \"{migrator}\"");
             AddCommand(batch, /*strpsql*/$"GRANT CONNECT ON DATABASE \"{dbName}\" TO \"{seeder}\"");
             AddCommand(batch, /*strpsql*/$"GRANT CONNECT ON DATABASE \"{dbName}\" TO \"{app}\"");
+
+            await batch.ExecuteNonQueryAsync();
+        }
+
+        static async Task GrantSchemaAccess(
+            NpgsqlConnection connection,
+            string migrator)
+        {
+            await using var batch = connection.CreateBatch();
+            AddCommand(batch, /*strpsql*/$"GRANT CREATE ON SCHEMA \"public\" TO \"{migrator}\"");
 
             await batch.ExecuteNonQueryAsync();
         }
