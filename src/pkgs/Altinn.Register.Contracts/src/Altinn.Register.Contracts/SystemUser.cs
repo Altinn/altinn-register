@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.ModelUtils;
 
 namespace Altinn.Register.Contracts;
 
@@ -8,6 +8,7 @@ namespace Altinn.Register.Contracts;
 [PolymorphicFieldValueRecord]
 public sealed record SystemUser()
     : Party(PartyType.SystemUser)
+    , IOwnedParty
 {
     /// <summary>
     /// Gets the owner of the system user.
