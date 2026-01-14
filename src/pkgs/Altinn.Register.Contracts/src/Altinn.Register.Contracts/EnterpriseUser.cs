@@ -11,7 +11,7 @@ public sealed record EnterpriseUser()
     , IOwnedParty
 {
     /// <summary>
-    /// Gets the owner of the system user.
+    /// Gets the owner of the enterprise user.
     /// </summary>
     [JsonPropertyName("owner")]
     public required FieldValue<PartyRef> Owner { get; init; }
