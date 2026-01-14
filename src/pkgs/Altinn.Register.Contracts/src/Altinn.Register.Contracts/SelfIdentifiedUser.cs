@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.ModelUtils;
 
 namespace Altinn.Register.Contracts;
 
@@ -9,4 +9,9 @@ namespace Altinn.Register.Contracts;
 public sealed record SelfIdentifiedUser()
     : Party(PartyType.SelfIdentifiedUser)
 {
+    /// <summary>
+    /// Gets the type of the self-identified user.
+    /// </summary>
+    [JsonPropertyName("selfIdentifiedUserType")]
+    public FieldValue<NonExhaustiveEnum<SelfIdentifiedUserType>> SelfIdentifiedUserType { get; init; }
 }
