@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+		<PropertyGroup>
+				<Nullable>enable</Nullable>
+		</PropertyGroup>
+
+		<ItemGroup>
+				<PackageReference Include="Altinn.Authorization.ServiceDefaults.HttpClient" />
+				<PackageReference Include="Altinn.Authorization.ServiceDefaults.Telemetry" />
+				<PackageReference Include="CommunityToolkit.Diagnostics" />
+		</ItemGroup>
+
+		<ItemGroup>
+				<InternalsVisibleTo Include="Altinn.Register.Tests" />
+				<InternalsVisibleTo Include="Altinn.Register.Persistence.Tests" />
+		</ItemGroup>
+
+</Project>
