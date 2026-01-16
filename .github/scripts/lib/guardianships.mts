@@ -15,12 +15,22 @@ const HasIdentifier = type({
   identifier: "string > 0",
 });
 
+const NprMapping = type({
+  virksomhet: type(/^[a-z]+([A-Z][a-z]+)*$/),
+  oppgave: type(/^[a-z]+([A-Z][a-z]+)*$/),
+});
+
+const Mappings = type({
+  npr: NprMapping,
+});
+
 const GuardianshipDefinition = type({
   area: "string > 0",
   task: "string > 0",
   identifier: type(/^[a-z][a-z0-9]+(?:-[a-z0-9]+)*$/).and("string <= 64"),
   title: LocalizedString,
   description: LocalizedString,
+  mapping: Mappings,
 });
 
 export type GuardianshipDefinition = typeof GuardianshipDefinition.infer;
