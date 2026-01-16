@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+		<PropertyGroup>
+				<Nullable>enable</Nullable>
+				<IsTestProject>true</IsTestProject>
+				<XUnitVersion>v3</XUnitVersion>
+		</PropertyGroup>
+
+		<ItemGroup>
+		  <PackageReference Include="Altinn.Authorization.TestUtils.Http" />
+		  <PackageReference Include="Microsoft.AspNetCore.WebUtilities" />
+		  <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+		</ItemGroup>
+
+		<ItemGroup>
+		  <ProjectReference Include="..\..\src\ServiceDefaults.HttpClient.MaskinPorten\Altinn.Authorization.ServiceDefaults.HttpClient.MaskinPorten.csproj" />
+		</ItemGroup>
+
+</Project>
