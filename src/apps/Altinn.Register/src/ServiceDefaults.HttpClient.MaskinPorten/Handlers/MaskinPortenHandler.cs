@@ -4,9 +4,9 @@ namespace Altinn.Authorization.ServiceDefaults.HttpClient.MaskinPorten.Handlers;
 /// A message handler that automatically acquires and attaches Maskinporten access tokens to outgoing HTTP requests
 /// based on per-request configuration.
 /// </summary>
-/// <remarks>MaskinPortenHandler inspects each HTTP request for a configured Maskinporten client key. If present,
+/// <remarks>MaskinPortenHandler inspects each HTTP request for a configured Maskinporten client name. If present,
 /// it ensures a valid Maskinporten access token is attached as a Bearer token in the Authorization header. If a valid
-/// token is already present and matches the configured client key, it is reused; otherwise, a new token is acquired.
+/// token is already present and matches the configured client name, it is reused; otherwise, a new token is acquired.
 /// This handler is intended for use in HTTP pipelines where Maskinporten authentication is required on a per-request
 /// basis. Requests without a configured client key are passed through without modification. This handler should be
 /// added after any retry handlers.</remarks>
@@ -60,8 +60,8 @@ internal sealed class MaskinPortenHandler
 
         if (!string.Equals(clientName, tokenObj.CacheKey.ClientName, StringComparison.Ordinal))
         {
-            // Token belongs to a different key - this should not happen
-            throw new InvalidOperationException($"client-id and cache-key.client-id configured in request does not match");
+            // Token belongs to a different client - this should not happen
+            throw new InvalidOperationException($"client-name and cache-key.client-name configured in request does not match");
         }
 
         var now = _timeProvider.GetUtcNow();
