@@ -19,31 +19,57 @@ public static class MaskinPortenHttpRequestMessageExtensions
         /// </summary>
         public string? MaskinPortenClientName
         {
-            get => GetMaskinPortenClientName(options);
-            set => SetMaskinPortenClientName(options, value);
+            get => GetValueOrDefault(options, KeyMaskinPortenClientName, defaultValue: null);
+            set => SetOrRemoveValue(options, KeyMaskinPortenClientName, value);
         }
 
-        internal bool TryGetMaskinPortenClientName([MaybeNullWhen(false)] out string clientName)
+        /// <summary>
+        /// Gets or sets the Maskinporten access token used for authentication with external services.
+        /// </summary>
+        internal MaskinPortenToken? MaskinPortenToken
+        {
+            get => GetValueOrDefault(options, KeyMaskinPortenToken, defaultValue: null);
+            set => SetOrRemoveValue(options, KeyMaskinPortenToken, value);
+        }
+
+        /// <summary>
+        /// Attempts to retrieve the Maskinporten client name.
+        /// </summary>
+        /// <param name="clientName">When this method returns <see langword="true"/>, contains the Maskinporten client name associated with the
+        /// current request; otherwise, contains <see langword="null"/>.</param>
+        /// <returns><see langword="true"/> if the Maskinporten client name was found; otherwise, <see langword="false"/>.</returns>
+        public bool TryGetMaskinPortenClientName([MaybeNullWhen(false)] out string clientName)
             => options.TryGetValue(KeyMaskinPortenClientName, out clientName);
+
+        /// <summary>
+        /// Attempts to retrieve the current MaskinPorten token.
+        /// </summary>
+        /// <param name="token">When this method returns, contains the MaskinPorten token if one is available; otherwise, contains <see langword="null"/>.</param>
+        /// <returns><see langword="true"/> if a MaskinPorten token was found; otherwise, <see langword="false"/>.</returns>
+        internal bool TryGetMaskinPortenToken([MaybeNullWhen(false)] out MaskinPortenToken token)
+            => options.TryGetValue(KeyMaskinPortenToken, out token);
     }
 
-    private static string? GetMaskinPortenClientName(HttpRequestOptions options)
-        => options.TryGetMaskinPortenClientName(out var clientName)
-        ? clientName
-        : null;
-
-    private static void SetMaskinPortenClientName(HttpRequestOptions options, string? clientName)
+    [return: MaybeNull]
+    private static T GetValueOrDefault<T>(HttpRequestOptions options, HttpRequestOptionsKey<T> key, T? defaultValue = default)
     {
-        if (clientName is null)
+        return options.TryGetValue(key, out var value)
+            ? value
+            : defaultValue;
+    }
+
+    private static void SetOrRemoveValue<T>(HttpRequestOptions options, HttpRequestOptionsKey<T> key, T? value)
+    {
+        if (value is null)
         {
-            RemoveMaskinPortenClientName(options);
+            RemoveKey(options, key);
         }
         else
         {
-            options.Set(KeyMaskinPortenClientName, clientName);
+            options.Set(key, value);
         }
-
-        static void RemoveMaskinPortenClientName(IDictionary<string, object?> options)
-            => options.Remove(KeyMaskinPortenClientName.Key);
     }
+
+    private static void RemoveKey<T>(IDictionary<string, object?> options, HttpRequestOptionsKey<T> key)
+        => options.Remove(key.Key);
 }

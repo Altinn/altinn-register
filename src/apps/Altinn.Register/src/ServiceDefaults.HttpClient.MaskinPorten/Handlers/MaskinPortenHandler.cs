@@ -13,8 +13,6 @@ namespace Altinn.Authorization.ServiceDefaults.HttpClient.MaskinPorten.Handlers;
 internal sealed class MaskinPortenHandler
     : AsyncOnlyDelegatingHandler
 {
-    private static readonly HttpRequestOptionsKey<MaskinPortenToken> KeyMaskinPortenToken = new($"{nameof(ServiceDefaults)}.{nameof(MaskinPortenToken)}");
-
     private readonly TimeProvider _timeProvider;
     private readonly IMaskinPortenClient _client;
 
@@ -53,7 +51,7 @@ internal sealed class MaskinPortenHandler
 
     private Task<HttpResponseMessage> HandleExistingToken(HttpRequestMessage request, string clientName, string token, CancellationToken cancellationToken)
     {
-        if (!request.Options.TryGetValue(KeyMaskinPortenToken, out var tokenObj)
+        if (!request.Options.TryGetMaskinPortenToken(out var tokenObj)
             || tokenObj.AccessToken != token)
         {
             // token is added manually/not a MaskinPorten token, so we leave it alone
@@ -81,7 +79,7 @@ internal sealed class MaskinPortenHandler
     private async Task<HttpResponseMessage> AddToken(HttpRequestMessage request, string clientName, CancellationToken cancellationToken)
     {
         var token = await _client.GetAccessToken(clientName, cancellationToken);
-        request.Options.Set(KeyMaskinPortenToken, token);
+        request.Options.MaskinPortenToken = token;
         request.Headers.Authorization = new("Bearer", token.AccessToken);
 
         return await base.SendAsync(request, cancellationToken);
