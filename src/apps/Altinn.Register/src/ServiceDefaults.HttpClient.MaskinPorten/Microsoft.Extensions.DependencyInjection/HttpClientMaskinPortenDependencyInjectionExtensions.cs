@@ -70,6 +70,8 @@ public static class HttpClientMaskinPortenDependencyInjectionExtensions
             return builder;
         }
 
+        services.Add(Marker.ServiceDescriptor);
+
         services.AddMemoryCache();
         services.TryAddSingleton<IMaskinPortenClient, MaskinPortenClient>();
         services.AddOptions<MaskinPortenCommonOptions>()

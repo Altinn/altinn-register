@@ -15,7 +15,7 @@ public sealed class MaskinPortenCommonOptions
     public Uri Endpoint { get; set; } = DefaultEndpoint;
 
     /// <summary>
-    /// Gets or sets the the <c>audience</c> claim for the tokens.
+    /// Gets or sets the <c>audience</c> claim for the tokens.
     /// </summary>
     /// <remarks>
     /// Defaults to <see cref="Endpoint"/>.

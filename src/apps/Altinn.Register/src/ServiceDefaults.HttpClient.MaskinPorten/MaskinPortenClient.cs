@@ -120,7 +120,7 @@ internal sealed partial class MaskinPortenClient
         var jwtAssertion = GetJwtAssertion(key, settings);
 
         HttpStatusCode? statusCode = null;
-        ErrorReponse? errorResponse = null;
+        ErrorResponse? errorResponse = null;
         Exception? inner = null;
 
         try
@@ -148,7 +148,7 @@ internal sealed partial class MaskinPortenClient
                 return new MaskinPortenToken(key, tokenResponse.AccessToken!, validTo);
             }
 
-            errorResponse = await res.Content.ReadFromJsonAsync<ErrorReponse>(cancellationToken);
+            errorResponse = await res.Content.ReadFromJsonAsync<ErrorResponse>(cancellationToken);
 
             if (errorResponse is not null)
             {
@@ -342,7 +342,7 @@ internal sealed partial class MaskinPortenClient
     /// <summary>
     /// An error from Maskinporten
     /// </summary>
-    private sealed record class ErrorReponse
+    private sealed record class ErrorResponse
     {
         /// <summary>
         /// The type of error

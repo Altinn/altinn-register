@@ -391,6 +391,7 @@ public class MaskinPortenClientTests
     public async ValueTask DisposeAsync()
     {
         await _httpClientFactory.DisposeAsync();
+        _cache.Dispose();
     }
 
     private sealed class TestOptionsMonitor()

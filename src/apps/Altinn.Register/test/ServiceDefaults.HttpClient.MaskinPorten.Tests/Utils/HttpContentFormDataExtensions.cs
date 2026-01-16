@@ -29,8 +29,8 @@ internal static class HttpContentFormDataExtensions
     /// </summary>
     /// <param name="content">The content.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>A <see cref="Task{T}"/> which will provide the result. If the data can not be read
-    /// as HTML form URL-encoded data then the result is null.</returns>
+    /// <returns>A <see cref="Task{T}"/> which will provide the result.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the content-type does not signify that the data is not form-data.</exception>
     public static async Task<NameValueCollection> ReadAsFormDataAsync(this HttpContent content, CancellationToken cancellationToken = default)
     {
         Guard.IsNotNull(content);

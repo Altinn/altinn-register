@@ -54,7 +54,7 @@ public class MaskinPortenHandlerTests
     {
         using var request = CreateRequest();
 
-        using var response = _sut.SendAsync(request, TestContext.Current.CancellationToken);
+        using var response = await _sut.SendAsync(request, TestContext.Current.CancellationToken);
         request.Headers.Authorization.ShouldNotBeNull();
         request.Headers.Authorization.Scheme.ShouldBe("Bearer");
         request.Headers.Authorization.Parameter.ShouldBe("1");
@@ -64,7 +64,7 @@ public class MaskinPortenHandlerTests
     public async Task DifferentClientName_Throws()
     {
         using var request = CreateRequest();
-        using var response1 = _sut.SendAsync(request, TestContext.Current.CancellationToken);
+        using var response1 = await _sut.SendAsync(request, TestContext.Current.CancellationToken);
 
         request.Options.MaskinPortenClientName = "other-fake-client";
         await Should.ThrowAsync<InvalidOperationException>(() => _sut.SendAsync(request, TestContext.Current.CancellationToken));
@@ -74,7 +74,7 @@ public class MaskinPortenHandlerTests
     public async Task ExistingToken_Kept()
     {
         using var request = CreateRequest();
-        using var response1 = _sut.SendAsync(request, TestContext.Current.CancellationToken);
+        using var response1 = await _sut.SendAsync(request, TestContext.Current.CancellationToken);
 
         var authorization = request.Headers.Authorization;
         authorization.ShouldNotBeNull();
@@ -83,7 +83,7 @@ public class MaskinPortenHandlerTests
 
         // typical in a retry scenario
         _timeProvider.Advance(TimeSpan.FromSeconds(10));
-        using var response2 = _sut.SendAsync(request, TestContext.Current.CancellationToken);
+        using var response2 = await _sut.SendAsync(request, TestContext.Current.CancellationToken);
 
         request.Headers.Authorization.ShouldBeSameAs(authorization);
         authorization.Scheme.ShouldBe("Bearer");
@@ -94,7 +94,7 @@ public class MaskinPortenHandlerTests
     public async Task Expired_ExistingToken_Replaced()
     {
         using var request = CreateRequest();
-        using var response1 = _sut.SendAsync(request, TestContext.Current.CancellationToken);
+        using var response1 = await _sut.SendAsync(request, TestContext.Current.CancellationToken);
 
         var authorization = request.Headers.Authorization;
         authorization.ShouldNotBeNull();
@@ -104,7 +104,7 @@ public class MaskinPortenHandlerTests
         // retry happens after token is expired
         _timeProvider.Advance(TimeSpan.FromMinutes(15));
 
-        using var response2 = _sut.SendAsync(request, TestContext.Current.CancellationToken);
+        using var response2 = await _sut.SendAsync(request, TestContext.Current.CancellationToken);
 
         request.Headers.Authorization.ShouldNotBeSameAs(authorization);
         request.Headers.Authorization.ShouldNotBeNull();
