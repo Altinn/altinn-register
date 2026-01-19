@@ -1,69 +1,7 @@
-import {
-  getGuardianships,
-  type GuardianshipDefinition,
-  type LocalizedString,
-} from "./lib/guardianships.mts";
-import { Trie, type TrieNode } from "./lib/trie.mts";
+import { getAreas, type GuardianshipArea } from "./lib/guardianships.mts";
+import { type TrieNode } from "./lib/trie.mts";
 
-type GuardianshipArea = {
-  readonly name: string;
-  readonly identifier: string;
-  tasks: Map<string, GuardianshipDefinition>;
-  trie: Trie<GuardianshipDefinition>;
-
-  readonly mapping: {
-    readonly npr: string;
-  };
-};
-
-const areas: Map<string, GuardianshipArea> = new Map();
-
-for (const guardianship of await getGuardianships()) {
-  let area = areas.get(guardianship.area);
-  if (!area) {
-    area = {
-      name: guardianship.area,
-      identifier: toIdentifier(guardianship.area),
-      tasks: new Map(),
-      trie: undefined!,
-
-      mapping: {
-        npr: guardianship.mapping.npr.virksomhet,
-      },
-    };
-
-    areas.set(guardianship.area, area);
-  }
-
-  if (area.tasks.has(guardianship.task)) {
-    throw new Error(
-      `Duplicate guardianship for area="${guardianship.area}", task="${guardianship.task}"`
-    );
-  }
-
-  if (area.mapping.npr !== guardianship.mapping.npr.virksomhet) {
-    throw new Error(
-      `Inconsistent npr mapping for area="${guardianship.area}": ` +
-        `"${area.mapping.npr}" vs "${guardianship.mapping.npr.virksomhet}"`
-    );
-  }
-
-  area.tasks.set(guardianship.task, guardianship);
-}
-
-const tries = Trie.from(
-  [...areas.values()].map((area) => {
-    area.trie = Trie.from(
-      [...area.tasks.values()].map((g) => [g.mapping.npr.oppgave, g])
-    );
-    return [area.mapping.npr, area];
-  })
-);
-
-function toIdentifier(name: string): string {
-  name = name.toLowerCase().replace(/[-_ \/]+(.)/g, (_, c) => c.toUpperCase());
-  return name.charAt(0).toUpperCase() + name.slice(1);
-}
+const { map: areas, trie: tries } = await getAreas();
 
 const INDENT = "    ";
 
@@ -74,7 +12,7 @@ function ind(line: string, indentation: string = INDENT): string {
 
 function* indent(
   lines: Iterable<string>,
-  indentation: string = INDENT
+  indentation: string = INDENT,
 ): Iterable<string> {
   for (const line of lines) {
     yield ind(line, indentation);
@@ -83,15 +21,13 @@ function* indent(
 
 function* areaRoleProperties(area: GuardianshipArea): Iterable<string> {
   let first = true;
-  for (const [task, guardianship] of area.tasks) {
+  for (const task of area.tasks.values()) {
     if (first) first = false;
     else yield ``;
 
-    yield `/// <summary>${guardianship.description.nb}</summary>`;
-    yield `public static ExternalRoleReference ${toIdentifier(
-      task
-    )} { get; } = new(ExternalRoleSource.CivilRightsAuthority, "${
-      guardianship.identifier
+    yield `/// <summary>${task.guardianship.description.nb}</summary>`;
+    yield `public static ExternalRoleReference ${task.identifier} { get; } = new(ExternalRoleSource.CivilRightsAuthority, "${
+      task.guardianship.identifier
     }");`;
   }
 }
@@ -114,23 +50,42 @@ function* trieMatch<T>(
   trie: TrieNode<T>,
   spanName: string,
   onMatch: (match: T) => Iterable<string>,
-  utf8: boolean = false
+  utf8: boolean = false,
+  level: number = 0,
 ): Iterable<string> {
   let index = 0;
   let firstLine = true;
+
+  if (trie.branches > 1) {
+    firstLine = false;
+    yield `if (${spanName}.Length is < ${trie.minLength} or > ${trie.maxLength})`;
+    yield `{`;
+    yield ind(`goto end;`);
+    yield `}`;
+  }
 
   for (const child of trie) {
     if (firstLine) firstLine = false;
     else yield ``;
 
-    const sliceName = `${spanName}_${index++}`;
-    yield `if (${spanName}.StartsWith("${child.prefix}"${utf8 ? "u8" : ""}))`;
-    yield `{`;
+    if (child.size === 0) {
+      // leaf node
+      yield `if (${spanName}.SequenceEqual("${child.prefix}"${utf8 ? "u8" : ""}))`;
+      yield `{`;
+      yield* indent(onMatch(child.value!));
+      yield `}`;
+    } else {
+      const sliceName = `${spanName}_${index++}`;
+      yield `if (${spanName}.StartsWith("${child.prefix}"${utf8 ? "u8" : ""}))`;
+      yield `{`;
 
-    yield ind(`var ${sliceName} = ${spanName}.Slice(${child.prefix.length});`);
-    yield* indent(trieMatch(child, sliceName, onMatch, utf8));
+      yield ind(
+        `var ${sliceName} = ${spanName}.Slice(${child.prefix.length});`,
+      );
+      yield* indent(trieMatch(child, sliceName, onMatch, utf8, level + 1));
 
-    yield `}`;
+      yield `}`;
+    }
   }
 
   const value = trie.value;
@@ -142,10 +97,11 @@ function* trieMatch<T>(
     yield `{`;
     yield* indent(onMatch(value));
     yield `}`;
-    yield `else`;
-    yield `{`;
-    yield ind(`goto end;`);
-    yield `}`;
+  }
+
+  if (level > 0) {
+    yield ``;
+    yield `goto end;`;
   }
 }
 
@@ -165,7 +121,7 @@ function* tryFind(): Iterable<string> {
   yield* indent(
     trieMatch(tries, `s`, function* (match) {
       yield `return TryFind${match.identifier}RoleByNprValue(vergeTjenesteoppgave, out role);`;
-    })
+    }),
   );
   yield ``;
   yield ind(`end:`);
@@ -193,8 +149,8 @@ function* tryFind(): Iterable<string> {
       function* (match) {
         yield `return TryFind${match.identifier}RoleByNprValue(vergeTjenesteoppgave, out role);`;
       },
-      true
-    )
+      true,
+    ),
   );
   yield ``;
   yield ind(`end:`);
@@ -214,9 +170,9 @@ function* tryFind(): Iterable<string> {
       trieMatch(area.trie, `s`, function* (match) {
         yield `role = GuardianshipRoles.${
           area.identifier
-        }.${toIdentifier(match.task)};`;
+        }.${match.codeIdentifiers.task};`;
         yield `return true;`;
-      })
+      }),
     );
     yield ``;
     yield ind(`end:`);
@@ -236,13 +192,11 @@ function* tryFind(): Iterable<string> {
         area.trie,
         `s`,
         function* (match) {
-          yield `role = GuardianshipRoles.${area.identifier}.${toIdentifier(
-            match.task
-          )};`;
+          yield `role = GuardianshipRoles.${area.identifier}.${match.codeIdentifiers.task};`;
           yield `return true;`;
         },
-        true
-      )
+        true,
+      ),
     );
     yield ``;
     yield ind(`end:`);
@@ -271,7 +225,9 @@ const lines = [
   `/// <summary>Mappings of guardianship values from npr to Altinn Register.</summary>`,
   `internal static partial class GuardianshipRoleMapper`,
   `{`,
+  `#pragma warning disable CS0164 // Unreferenced label`,
   ...indent(tryFind()),
+  `#pragma warning restore CS0164 // Unreferenced label`,
   `}`,
 ];
 

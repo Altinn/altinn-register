@@ -7,12 +7,47 @@ export interface TrieNode<T> extends Iterable<TrieNode<T>> {
   get prefix(): string;
   get value(): T | undefined;
   get size(): number;
+  get branches(): number;
+  get minLength(): number;
+  get maxLength(): number;
 }
 
 class TrieNodeImpl<T> implements TrieNode<T> {
   readonly #prefix: string;
   readonly #children: readonly TrieNode<T>[];
   readonly #value: T | undefined;
+  readonly #minLength: number;
+  readonly #maxLength: number;
+
+  static #computeMinLenght<T>(
+    prefix: string,
+    children: readonly TrieNode<T>[],
+    value: T | undefined,
+  ): number {
+    if (typeof value !== "undefined") {
+      return 0;
+    }
+
+    let min = Number.POSITIVE_INFINITY;
+    for (const child of children) {
+      min = Math.min(min, child.prefix.length + child.minLength);
+    }
+
+    return min;
+  }
+
+  static #computeMaxLenght<T>(
+    prefix: string,
+    children: readonly TrieNode<T>[],
+    value: T | undefined,
+  ): number {
+    let max = 0;
+    for (const child of children) {
+      max = Math.max(max, child.prefix.length + child.maxLength);
+    }
+
+    return max;
+  }
 
   constructor({
     prefix,
@@ -23,9 +58,15 @@ class TrieNodeImpl<T> implements TrieNode<T> {
     readonly children: readonly TrieNode<T>[];
     readonly value: T | undefined;
   }) {
+    if (typeof value === "undefined" && children.length === 0) {
+      throw new Error("A trie node must have either a value or children");
+    }
+
     this.#prefix = prefix;
     this.#children = children;
     this.#value = value;
+    this.#minLength = TrieNodeImpl.#computeMinLenght(prefix, children, value);
+    this.#maxLength = TrieNodeImpl.#computeMaxLenght(prefix, children, value);
   }
 
   get value(): T | undefined {
@@ -38,6 +79,19 @@ class TrieNodeImpl<T> implements TrieNode<T> {
 
   get size(): number {
     return this.#children.length;
+  }
+
+  get branches(): number {
+    const selfBranch = typeof this.#value !== "undefined" ? 1 : 0;
+    return selfBranch + this.#children.length;
+  }
+
+  get minLength(): number {
+    return this.#minLength;
+  }
+
+  get maxLength(): number {
+    return this.#maxLength;
   }
 
   [Symbol.iterator](): Iterator<TrieNode<T>> {
@@ -75,6 +129,18 @@ export class Trie<T> implements TrieNode<T> {
 
   get size(): number {
     return this.#root.size;
+  }
+
+  get branches(): number {
+    return this.#root.branches;
+  }
+
+  get minLength(): number {
+    return this.#root.minLength;
+  }
+
+  get maxLength(): number {
+    return this.#root.maxLength;
   }
 
   [Symbol.iterator](): Iterator<TrieNode<T>, any, any> {

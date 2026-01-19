@@ -207,6 +207,7 @@ internal static partial class GuardianshipRoles
 /// <summary>Mappings of guardianship values from npr to Altinn Register.</summary>
 internal static partial class GuardianshipRoleMapper
 {
+#pragma warning disable CS0164 // Unreferenced label
     /// <summary>Tries to find a guardianship role by NPR values.</summary>
     /// <param name="vergeTjenestevirksomhet">The NPR value for the guardianship area.</param>
     /// <param name="vergeTjenesteoppgave">The NPR value for the guardianship task.</param>
@@ -218,232 +219,144 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenestevirksomhet;
+        if (s.Length is < 3 or > 25)
+        {
+            goto end;
+        }
+
         if (s.StartsWith("h"))
         {
             var s_0 = s.Slice(1);
-            if (s_0.StartsWith("elfo"))
+            if (s_0.Length is < 4 or > 8)
             {
-                var s_0_0 = s_0.Slice(4);
-                if (s_0_0.Length == 0)
-                {
-                    return TryFindHelfoRoleByNprValue(vergeTjenesteoppgave, out role);
-                }
-                else
-                {
-                    goto end;
-                }
+                goto end;
             }
 
-            if (s_0.StartsWith("usbanken"))
+            if (s_0.SequenceEqual("elfo"))
             {
-                var s_0_1 = s_0.Slice(8);
-                if (s_0_1.Length == 0)
-                {
-                    return TryFindHusbankenRoleByNprValue(vergeTjenesteoppgave, out role);
-                }
-                else
-                {
-                    goto end;
-                }
+                return TryFindHelfoRoleByNprValue(vergeTjenesteoppgave, out role);
             }
+
+            if (s_0.SequenceEqual("usbanken"))
+            {
+                return TryFindHusbankenRoleByNprValue(vergeTjenesteoppgave, out role);
+            }
+
+            goto end;
         }
 
         if (s.StartsWith("k"))
         {
             var s_1 = s.Slice(1);
-            if (s_1.StartsWith("ommune"))
+            if (s_1.Length is < 6 or > 23)
             {
-                var s_1_0 = s_1.Slice(6);
-                if (s_1_0.Length == 0)
-                {
-                    return TryFindKommuneRoleByNprValue(vergeTjenesteoppgave, out role);
-                }
-                else
-                {
-                    goto end;
-                }
+                goto end;
             }
 
-            if (s_1.StartsWith("artverket"))
+            if (s_1.SequenceEqual("ommune"))
             {
-                var s_1_1 = s_1.Slice(9);
-                if (s_1_1.Length == 0)
-                {
-                    return TryFindKartverketRoleByNprValue(vergeTjenesteoppgave, out role);
-                }
-                else
-                {
-                    goto end;
-                }
+                return TryFindKommuneRoleByNprValue(vergeTjenesteoppgave, out role);
             }
 
-            if (s_1.StartsWith("redittvurderingsselskap"))
+            if (s_1.SequenceEqual("artverket"))
             {
-                var s_1_2 = s_1.Slice(23);
-                if (s_1_2.Length == 0)
-                {
-                    return TryFindKredittvurderingsselskapRoleByNprValue(vergeTjenesteoppgave, out role);
-                }
-                else
-                {
-                    goto end;
-                }
+                return TryFindKartverketRoleByNprValue(vergeTjenesteoppgave, out role);
             }
+
+            if (s_1.SequenceEqual("redittvurderingsselskap"))
+            {
+                return TryFindKredittvurderingsselskapRoleByNprValue(vergeTjenesteoppgave, out role);
+            }
+
+            goto end;
         }
 
         if (s.StartsWith("s"))
         {
             var s_2 = s.Slice(1);
+            if (s_2.Length is < 11 or > 24)
+            {
+                goto end;
+            }
+
             if (s_2.StartsWith("tat"))
             {
                 var s_2_0 = s_2.Slice(3);
-                if (s_2_0.StartsWith("sforvalter"))
-                {
-                    var s_2_0_0 = s_2_0.Slice(10);
-                    if (s_2_0_0.Length == 0)
-                    {
-                        return TryFindStatsforvalterRoleByNprValue(vergeTjenesteoppgave, out role);
-                    }
-                    else
-                    {
-                        goto end;
-                    }
-                }
-
-                if (s_2_0.StartsWith("ensInnkrevingssentral"))
-                {
-                    var s_2_0_1 = s_2_0.Slice(21);
-                    if (s_2_0_1.Length == 0)
-                    {
-                        return TryFindStatensInnkrevingssentralRoleByNprValue(vergeTjenesteoppgave, out role);
-                    }
-                    else
-                    {
-                        goto end;
-                    }
-                }
-            }
-
-            if (s_2.StartsWith("katteetaten"))
-            {
-                var s_2_1 = s_2.Slice(11);
-                if (s_2_1.Length == 0)
-                {
-                    return TryFindSkatteetatenRoleByNprValue(vergeTjenesteoppgave, out role);
-                }
-                else
+                if (s_2_0.Length is < 10 or > 21)
                 {
                     goto end;
                 }
+
+                if (s_2_0.SequenceEqual("sforvalter"))
+                {
+                    return TryFindStatsforvalterRoleByNprValue(vergeTjenesteoppgave, out role);
+                }
+
+                if (s_2_0.SequenceEqual("ensInnkrevingssentral"))
+                {
+                    return TryFindStatensInnkrevingssentralRoleByNprValue(vergeTjenesteoppgave, out role);
+                }
+
+                goto end;
             }
+
+            if (s_2.SequenceEqual("katteetaten"))
+            {
+                return TryFindSkatteetatenRoleByNprValue(vergeTjenesteoppgave, out role);
+            }
+
+            goto end;
         }
 
         if (s.StartsWith("na"))
         {
             var s_3 = s.Slice(2);
-            if (s_3.StartsWith("v"))
-            {
-                var s_3_0 = s_3.Slice(1);
-                if (s_3_0.Length == 0)
-                {
-                    return TryFindNavRoleByNprValue(vergeTjenesteoppgave, out role);
-                }
-                else
-                {
-                    goto end;
-                }
-            }
-
-            if (s_3.StartsWith("msmannen"))
-            {
-                var s_3_1 = s_3.Slice(8);
-                if (s_3_1.Length == 0)
-                {
-                    return TryFindNamsmannenRoleByNprValue(vergeTjenesteoppgave, out role);
-                }
-                else
-                {
-                    goto end;
-                }
-            }
-        }
-
-        if (s.StartsWith("bank"))
-        {
-            var s_4 = s.Slice(4);
-            if (s_4.Length == 0)
-            {
-                return TryFindBankRoleByNprValue(vergeTjenesteoppgave, out role);
-            }
-            else
+            if (s_3.Length is < 1 or > 8)
             {
                 goto end;
             }
+
+            if (s_3.SequenceEqual("v"))
+            {
+                return TryFindNavRoleByNprValue(vergeTjenesteoppgave, out role);
+            }
+
+            if (s_3.SequenceEqual("msmannen"))
+            {
+                return TryFindNamsmannenRoleByNprValue(vergeTjenesteoppgave, out role);
+            }
+
+            goto end;
         }
 
-        if (s.StartsWith("oevrige"))
+        if (s.SequenceEqual("bank"))
         {
-            var s_5 = s.Slice(7);
-            if (s_5.Length == 0)
-            {
-                return TryFindØvrigeRoleByNprValue(vergeTjenesteoppgave, out role);
-            }
-            else
-            {
-                goto end;
-            }
+            return TryFindBankRoleByNprValue(vergeTjenesteoppgave, out role);
         }
 
-        if (s.StartsWith("tingretten"))
+        if (s.SequenceEqual("oevrige"))
         {
-            var s_6 = s.Slice(10);
-            if (s_6.Length == 0)
-            {
-                return TryFindTingrettenRoleByNprValue(vergeTjenesteoppgave, out role);
-            }
-            else
-            {
-                goto end;
-            }
+            return TryFindØvrigeRoleByNprValue(vergeTjenesteoppgave, out role);
         }
 
-        if (s.StartsWith("pasientreiser"))
+        if (s.SequenceEqual("tingretten"))
         {
-            var s_7 = s.Slice(13);
-            if (s_7.Length == 0)
-            {
-                return TryFindPasientreiserRoleByNprValue(vergeTjenesteoppgave, out role);
-            }
-            else
-            {
-                goto end;
-            }
+            return TryFindTingrettenRoleByNprValue(vergeTjenesteoppgave, out role);
         }
 
-        if (s.StartsWith("inkassoselskap"))
+        if (s.SequenceEqual("pasientreiser"))
         {
-            var s_8 = s.Slice(14);
-            if (s_8.Length == 0)
-            {
-                return TryFindInkassoselskapRoleByNprValue(vergeTjenesteoppgave, out role);
-            }
-            else
-            {
-                goto end;
-            }
+            return TryFindPasientreiserRoleByNprValue(vergeTjenesteoppgave, out role);
         }
 
-        if (s.StartsWith("forsikringsselskap"))
+        if (s.SequenceEqual("inkassoselskap"))
         {
-            var s_9 = s.Slice(18);
-            if (s_9.Length == 0)
-            {
-                return TryFindForsikringsselskapRoleByNprValue(vergeTjenesteoppgave, out role);
-            }
-            else
-            {
-                goto end;
-            }
+            return TryFindInkassoselskapRoleByNprValue(vergeTjenesteoppgave, out role);
+        }
+
+        if (s.SequenceEqual("forsikringsselskap"))
+        {
+            return TryFindForsikringsselskapRoleByNprValue(vergeTjenesteoppgave, out role);
         }
 
         end:
@@ -462,232 +375,144 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenestevirksomhet;
+        if (s.Length is < 3 or > 25)
+        {
+            goto end;
+        }
+
         if (s.StartsWith("h"u8))
         {
             var s_0 = s.Slice(1);
-            if (s_0.StartsWith("elfo"u8))
+            if (s_0.Length is < 4 or > 8)
             {
-                var s_0_0 = s_0.Slice(4);
-                if (s_0_0.Length == 0)
-                {
-                    return TryFindHelfoRoleByNprValue(vergeTjenesteoppgave, out role);
-                }
-                else
-                {
-                    goto end;
-                }
+                goto end;
             }
 
-            if (s_0.StartsWith("usbanken"u8))
+            if (s_0.SequenceEqual("elfo"u8))
             {
-                var s_0_1 = s_0.Slice(8);
-                if (s_0_1.Length == 0)
-                {
-                    return TryFindHusbankenRoleByNprValue(vergeTjenesteoppgave, out role);
-                }
-                else
-                {
-                    goto end;
-                }
+                return TryFindHelfoRoleByNprValue(vergeTjenesteoppgave, out role);
             }
+
+            if (s_0.SequenceEqual("usbanken"u8))
+            {
+                return TryFindHusbankenRoleByNprValue(vergeTjenesteoppgave, out role);
+            }
+
+            goto end;
         }
 
         if (s.StartsWith("k"u8))
         {
             var s_1 = s.Slice(1);
-            if (s_1.StartsWith("ommune"u8))
+            if (s_1.Length is < 6 or > 23)
             {
-                var s_1_0 = s_1.Slice(6);
-                if (s_1_0.Length == 0)
-                {
-                    return TryFindKommuneRoleByNprValue(vergeTjenesteoppgave, out role);
-                }
-                else
-                {
-                    goto end;
-                }
+                goto end;
             }
 
-            if (s_1.StartsWith("artverket"u8))
+            if (s_1.SequenceEqual("ommune"u8))
             {
-                var s_1_1 = s_1.Slice(9);
-                if (s_1_1.Length == 0)
-                {
-                    return TryFindKartverketRoleByNprValue(vergeTjenesteoppgave, out role);
-                }
-                else
-                {
-                    goto end;
-                }
+                return TryFindKommuneRoleByNprValue(vergeTjenesteoppgave, out role);
             }
 
-            if (s_1.StartsWith("redittvurderingsselskap"u8))
+            if (s_1.SequenceEqual("artverket"u8))
             {
-                var s_1_2 = s_1.Slice(23);
-                if (s_1_2.Length == 0)
-                {
-                    return TryFindKredittvurderingsselskapRoleByNprValue(vergeTjenesteoppgave, out role);
-                }
-                else
-                {
-                    goto end;
-                }
+                return TryFindKartverketRoleByNprValue(vergeTjenesteoppgave, out role);
             }
+
+            if (s_1.SequenceEqual("redittvurderingsselskap"u8))
+            {
+                return TryFindKredittvurderingsselskapRoleByNprValue(vergeTjenesteoppgave, out role);
+            }
+
+            goto end;
         }
 
         if (s.StartsWith("s"u8))
         {
             var s_2 = s.Slice(1);
+            if (s_2.Length is < 11 or > 24)
+            {
+                goto end;
+            }
+
             if (s_2.StartsWith("tat"u8))
             {
                 var s_2_0 = s_2.Slice(3);
-                if (s_2_0.StartsWith("sforvalter"u8))
-                {
-                    var s_2_0_0 = s_2_0.Slice(10);
-                    if (s_2_0_0.Length == 0)
-                    {
-                        return TryFindStatsforvalterRoleByNprValue(vergeTjenesteoppgave, out role);
-                    }
-                    else
-                    {
-                        goto end;
-                    }
-                }
-
-                if (s_2_0.StartsWith("ensInnkrevingssentral"u8))
-                {
-                    var s_2_0_1 = s_2_0.Slice(21);
-                    if (s_2_0_1.Length == 0)
-                    {
-                        return TryFindStatensInnkrevingssentralRoleByNprValue(vergeTjenesteoppgave, out role);
-                    }
-                    else
-                    {
-                        goto end;
-                    }
-                }
-            }
-
-            if (s_2.StartsWith("katteetaten"u8))
-            {
-                var s_2_1 = s_2.Slice(11);
-                if (s_2_1.Length == 0)
-                {
-                    return TryFindSkatteetatenRoleByNprValue(vergeTjenesteoppgave, out role);
-                }
-                else
+                if (s_2_0.Length is < 10 or > 21)
                 {
                     goto end;
                 }
+
+                if (s_2_0.SequenceEqual("sforvalter"u8))
+                {
+                    return TryFindStatsforvalterRoleByNprValue(vergeTjenesteoppgave, out role);
+                }
+
+                if (s_2_0.SequenceEqual("ensInnkrevingssentral"u8))
+                {
+                    return TryFindStatensInnkrevingssentralRoleByNprValue(vergeTjenesteoppgave, out role);
+                }
+
+                goto end;
             }
+
+            if (s_2.SequenceEqual("katteetaten"u8))
+            {
+                return TryFindSkatteetatenRoleByNprValue(vergeTjenesteoppgave, out role);
+            }
+
+            goto end;
         }
 
         if (s.StartsWith("na"u8))
         {
             var s_3 = s.Slice(2);
-            if (s_3.StartsWith("v"u8))
-            {
-                var s_3_0 = s_3.Slice(1);
-                if (s_3_0.Length == 0)
-                {
-                    return TryFindNavRoleByNprValue(vergeTjenesteoppgave, out role);
-                }
-                else
-                {
-                    goto end;
-                }
-            }
-
-            if (s_3.StartsWith("msmannen"u8))
-            {
-                var s_3_1 = s_3.Slice(8);
-                if (s_3_1.Length == 0)
-                {
-                    return TryFindNamsmannenRoleByNprValue(vergeTjenesteoppgave, out role);
-                }
-                else
-                {
-                    goto end;
-                }
-            }
-        }
-
-        if (s.StartsWith("bank"u8))
-        {
-            var s_4 = s.Slice(4);
-            if (s_4.Length == 0)
-            {
-                return TryFindBankRoleByNprValue(vergeTjenesteoppgave, out role);
-            }
-            else
+            if (s_3.Length is < 1 or > 8)
             {
                 goto end;
             }
+
+            if (s_3.SequenceEqual("v"u8))
+            {
+                return TryFindNavRoleByNprValue(vergeTjenesteoppgave, out role);
+            }
+
+            if (s_3.SequenceEqual("msmannen"u8))
+            {
+                return TryFindNamsmannenRoleByNprValue(vergeTjenesteoppgave, out role);
+            }
+
+            goto end;
         }
 
-        if (s.StartsWith("oevrige"u8))
+        if (s.SequenceEqual("bank"u8))
         {
-            var s_5 = s.Slice(7);
-            if (s_5.Length == 0)
-            {
-                return TryFindØvrigeRoleByNprValue(vergeTjenesteoppgave, out role);
-            }
-            else
-            {
-                goto end;
-            }
+            return TryFindBankRoleByNprValue(vergeTjenesteoppgave, out role);
         }
 
-        if (s.StartsWith("tingretten"u8))
+        if (s.SequenceEqual("oevrige"u8))
         {
-            var s_6 = s.Slice(10);
-            if (s_6.Length == 0)
-            {
-                return TryFindTingrettenRoleByNprValue(vergeTjenesteoppgave, out role);
-            }
-            else
-            {
-                goto end;
-            }
+            return TryFindØvrigeRoleByNprValue(vergeTjenesteoppgave, out role);
         }
 
-        if (s.StartsWith("pasientreiser"u8))
+        if (s.SequenceEqual("tingretten"u8))
         {
-            var s_7 = s.Slice(13);
-            if (s_7.Length == 0)
-            {
-                return TryFindPasientreiserRoleByNprValue(vergeTjenesteoppgave, out role);
-            }
-            else
-            {
-                goto end;
-            }
+            return TryFindTingrettenRoleByNprValue(vergeTjenesteoppgave, out role);
         }
 
-        if (s.StartsWith("inkassoselskap"u8))
+        if (s.SequenceEqual("pasientreiser"u8))
         {
-            var s_8 = s.Slice(14);
-            if (s_8.Length == 0)
-            {
-                return TryFindInkassoselskapRoleByNprValue(vergeTjenesteoppgave, out role);
-            }
-            else
-            {
-                goto end;
-            }
+            return TryFindPasientreiserRoleByNprValue(vergeTjenesteoppgave, out role);
         }
 
-        if (s.StartsWith("forsikringsselskap"u8))
+        if (s.SequenceEqual("inkassoselskap"u8))
         {
-            var s_9 = s.Slice(18);
-            if (s_9.Length == 0)
-            {
-                return TryFindForsikringsselskapRoleByNprValue(vergeTjenesteoppgave, out role);
-            }
-            else
-            {
-                goto end;
-            }
+            return TryFindInkassoselskapRoleByNprValue(vergeTjenesteoppgave, out role);
+        }
+
+        if (s.SequenceEqual("forsikringsselskap"u8))
+        {
+            return TryFindForsikringsselskapRoleByNprValue(vergeTjenesteoppgave, out role);
         }
 
         end:
@@ -700,32 +525,21 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("taOppLaanKreditter"))
+        if (s.Length is < 18 or > 24)
         {
-            var s_0 = s.Slice(18);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Bank.TaOppLånKreditter;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            goto end;
         }
 
-        if (s.StartsWith("representasjonDagligbank"))
+        if (s.SequenceEqual("taOppLaanKreditter"))
         {
-            var s_1 = s.Slice(24);
-            if (s_1.Length == 0)
-            {
-                role = GuardianshipRoles.Bank.RepresentasjonDagligbank;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Bank.TaOppLånKreditter;
+            return true;
+        }
+
+        if (s.SequenceEqual("representasjonDagligbank"))
+        {
+            role = GuardianshipRoles.Bank.RepresentasjonDagligbank;
+            return true;
         }
 
         end:
@@ -738,32 +552,21 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("taOppLaanKreditter"u8))
+        if (s.Length is < 18 or > 24)
         {
-            var s_0 = s.Slice(18);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Bank.TaOppLånKreditter;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            goto end;
         }
 
-        if (s.StartsWith("representasjonDagligbank"u8))
+        if (s.SequenceEqual("taOppLaanKreditter"u8))
         {
-            var s_1 = s.Slice(24);
-            if (s_1.Length == 0)
-            {
-                role = GuardianshipRoles.Bank.RepresentasjonDagligbank;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Bank.TaOppLånKreditter;
+            return true;
+        }
+
+        if (s.SequenceEqual("representasjonDagligbank"u8))
+        {
+            role = GuardianshipRoles.Bank.RepresentasjonDagligbank;
+            return true;
         }
 
         end:
@@ -776,18 +579,10 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("forvalteForsikringsavtaler"))
+        if (s.SequenceEqual("forvalteForsikringsavtaler"))
         {
-            var s_0 = s.Slice(26);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Forsikringsselskap.ForvalteForsikringsavtaler;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Forsikringsselskap.ForvalteForsikringsavtaler;
+            return true;
         }
 
         end:
@@ -800,18 +595,10 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("forvalteForsikringsavtaler"u8))
+        if (s.SequenceEqual("forvalteForsikringsavtaler"u8))
         {
-            var s_0 = s.Slice(26);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Forsikringsselskap.ForvalteForsikringsavtaler;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Forsikringsselskap.ForvalteForsikringsavtaler;
+            return true;
         }
 
         end:
@@ -824,32 +611,21 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("fastlege"))
+        if (s.Length is < 8 or > 25)
         {
-            var s_0 = s.Slice(8);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Helfo.Fastlege;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            goto end;
         }
 
-        if (s.StartsWith("refusjonForPrivatpersoner"))
+        if (s.SequenceEqual("fastlege"))
         {
-            var s_1 = s.Slice(25);
-            if (s_1.Length == 0)
-            {
-                role = GuardianshipRoles.Helfo.RefusjonForPrivatpersoner;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Helfo.Fastlege;
+            return true;
+        }
+
+        if (s.SequenceEqual("refusjonForPrivatpersoner"))
+        {
+            role = GuardianshipRoles.Helfo.RefusjonForPrivatpersoner;
+            return true;
         }
 
         end:
@@ -862,32 +638,21 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("fastlege"u8))
+        if (s.Length is < 8 or > 25)
         {
-            var s_0 = s.Slice(8);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Helfo.Fastlege;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            goto end;
         }
 
-        if (s.StartsWith("refusjonForPrivatpersoner"u8))
+        if (s.SequenceEqual("fastlege"u8))
         {
-            var s_1 = s.Slice(25);
-            if (s_1.Length == 0)
-            {
-                role = GuardianshipRoles.Helfo.RefusjonForPrivatpersoner;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Helfo.Fastlege;
+            return true;
+        }
+
+        if (s.SequenceEqual("refusjonForPrivatpersoner"u8))
+        {
+            role = GuardianshipRoles.Helfo.RefusjonForPrivatpersoner;
+            return true;
         }
 
         end:
@@ -900,32 +665,21 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("bostoette"))
+        if (s.Length is < 9 or > 9)
         {
-            var s_0 = s.Slice(9);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Husbanken.Bostøtte;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            goto end;
         }
 
-        if (s.StartsWith("startlaan"))
+        if (s.SequenceEqual("bostoette"))
         {
-            var s_1 = s.Slice(9);
-            if (s_1.Length == 0)
-            {
-                role = GuardianshipRoles.Husbanken.Startlån;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Husbanken.Bostøtte;
+            return true;
+        }
+
+        if (s.SequenceEqual("startlaan"))
+        {
+            role = GuardianshipRoles.Husbanken.Startlån;
+            return true;
         }
 
         end:
@@ -938,32 +692,21 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("bostoette"u8))
+        if (s.Length is < 9 or > 9)
         {
-            var s_0 = s.Slice(9);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Husbanken.Bostøtte;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            goto end;
         }
 
-        if (s.StartsWith("startlaan"u8))
+        if (s.SequenceEqual("bostoette"u8))
         {
-            var s_1 = s.Slice(9);
-            if (s_1.Length == 0)
-            {
-                role = GuardianshipRoles.Husbanken.Startlån;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Husbanken.Bostøtte;
+            return true;
+        }
+
+        if (s.SequenceEqual("startlaan"u8))
+        {
+            role = GuardianshipRoles.Husbanken.Startlån;
+            return true;
         }
 
         end:
@@ -976,18 +719,10 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("forhandleOgInngaaInkassoavtaler"))
+        if (s.SequenceEqual("forhandleOgInngaaInkassoavtaler"))
         {
-            var s_0 = s.Slice(31);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Inkassoselskap.ForhandleOgInngåInkassoavtaler;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Inkassoselskap.ForhandleOgInngåInkassoavtaler;
+            return true;
         }
 
         end:
@@ -1000,18 +735,10 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("forhandleOgInngaaInkassoavtaler"u8))
+        if (s.SequenceEqual("forhandleOgInngaaInkassoavtaler"u8))
         {
-            var s_0 = s.Slice(31);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Inkassoselskap.ForhandleOgInngåInkassoavtaler;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Inkassoselskap.ForhandleOgInngåInkassoavtaler;
+            return true;
         }
 
         end:
@@ -1024,110 +751,73 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
+        if (s.Length is < 8 or > 33)
+        {
+            goto end;
+        }
+
         if (s.StartsWith("s"))
         {
             var s_0 = s.Slice(1);
-            if (s_0.StartsWith("letting"))
+            if (s_0.Length is < 7 or > 32)
             {
-                var s_0_0 = s_0.Slice(7);
-                if (s_0_0.Length == 0)
-                {
-                    role = GuardianshipRoles.Kartverket.Sletting;
-                    return true;
-                }
-                else
-                {
-                    goto end;
-                }
+                goto end;
             }
 
-            if (s_0.StartsWith("algAvFastEiendomBorettslagsandel"))
+            if (s_0.SequenceEqual("letting"))
             {
-                var s_0_1 = s_0.Slice(32);
-                if (s_0_1.Length == 0)
-                {
-                    role = GuardianshipRoles.Kartverket.SalgAvFastEiendomBorettslagsandel;
-                    return true;
-                }
-                else
-                {
-                    goto end;
-                }
+                role = GuardianshipRoles.Kartverket.Sletting;
+                return true;
             }
+
+            if (s_0.SequenceEqual("algAvFastEiendomBorettslagsandel"))
+            {
+                role = GuardianshipRoles.Kartverket.SalgAvFastEiendomBorettslagsandel;
+                return true;
+            }
+
+            goto end;
         }
 
         if (s.StartsWith("a"))
         {
             var s_1 = s.Slice(1);
-            if (s_1.StartsWith("vtalerOgRettigheter"))
-            {
-                var s_1_0 = s_1.Slice(19);
-                if (s_1_0.Length == 0)
-                {
-                    role = GuardianshipRoles.Kartverket.AvtalerOgRettigheter;
-                    return true;
-                }
-                else
-                {
-                    goto end;
-                }
-            }
-
-            if (s_1.StartsWith("rvPrivatSkifteOgUskifte"))
-            {
-                var s_1_1 = s_1.Slice(23);
-                if (s_1_1.Length == 0)
-                {
-                    role = GuardianshipRoles.Kartverket.ArvPrivatSkifteOgUskifte;
-                    return true;
-                }
-                else
-                {
-                    goto end;
-                }
-            }
-        }
-
-        if (s.StartsWith("laaneopptak"))
-        {
-            var s_2 = s.Slice(11);
-            if (s_2.Length == 0)
-            {
-                role = GuardianshipRoles.Kartverket.Låneopptak;
-                return true;
-            }
-            else
+            if (s_1.Length is < 19 or > 23)
             {
                 goto end;
             }
-        }
 
-        if (s.StartsWith("kjoepAvEiendom"))
-        {
-            var s_3 = s.Slice(14);
-            if (s_3.Length == 0)
+            if (s_1.SequenceEqual("vtalerOgRettigheter"))
             {
-                role = GuardianshipRoles.Kartverket.KjøpAvEiendom;
+                role = GuardianshipRoles.Kartverket.AvtalerOgRettigheter;
                 return true;
             }
-            else
-            {
-                goto end;
-            }
-        }
 
-        if (s.StartsWith("endringAvEiendom"))
-        {
-            var s_4 = s.Slice(16);
-            if (s_4.Length == 0)
+            if (s_1.SequenceEqual("rvPrivatSkifteOgUskifte"))
             {
-                role = GuardianshipRoles.Kartverket.EndringAvEiendom;
+                role = GuardianshipRoles.Kartverket.ArvPrivatSkifteOgUskifte;
                 return true;
             }
-            else
-            {
-                goto end;
-            }
+
+            goto end;
+        }
+
+        if (s.SequenceEqual("laaneopptak"))
+        {
+            role = GuardianshipRoles.Kartverket.Låneopptak;
+            return true;
+        }
+
+        if (s.SequenceEqual("kjoepAvEiendom"))
+        {
+            role = GuardianshipRoles.Kartverket.KjøpAvEiendom;
+            return true;
+        }
+
+        if (s.SequenceEqual("endringAvEiendom"))
+        {
+            role = GuardianshipRoles.Kartverket.EndringAvEiendom;
+            return true;
         }
 
         end:
@@ -1140,110 +830,73 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
+        if (s.Length is < 8 or > 33)
+        {
+            goto end;
+        }
+
         if (s.StartsWith("s"u8))
         {
             var s_0 = s.Slice(1);
-            if (s_0.StartsWith("letting"u8))
+            if (s_0.Length is < 7 or > 32)
             {
-                var s_0_0 = s_0.Slice(7);
-                if (s_0_0.Length == 0)
-                {
-                    role = GuardianshipRoles.Kartverket.Sletting;
-                    return true;
-                }
-                else
-                {
-                    goto end;
-                }
+                goto end;
             }
 
-            if (s_0.StartsWith("algAvFastEiendomBorettslagsandel"u8))
+            if (s_0.SequenceEqual("letting"u8))
             {
-                var s_0_1 = s_0.Slice(32);
-                if (s_0_1.Length == 0)
-                {
-                    role = GuardianshipRoles.Kartverket.SalgAvFastEiendomBorettslagsandel;
-                    return true;
-                }
-                else
-                {
-                    goto end;
-                }
+                role = GuardianshipRoles.Kartverket.Sletting;
+                return true;
             }
+
+            if (s_0.SequenceEqual("algAvFastEiendomBorettslagsandel"u8))
+            {
+                role = GuardianshipRoles.Kartverket.SalgAvFastEiendomBorettslagsandel;
+                return true;
+            }
+
+            goto end;
         }
 
         if (s.StartsWith("a"u8))
         {
             var s_1 = s.Slice(1);
-            if (s_1.StartsWith("vtalerOgRettigheter"u8))
-            {
-                var s_1_0 = s_1.Slice(19);
-                if (s_1_0.Length == 0)
-                {
-                    role = GuardianshipRoles.Kartverket.AvtalerOgRettigheter;
-                    return true;
-                }
-                else
-                {
-                    goto end;
-                }
-            }
-
-            if (s_1.StartsWith("rvPrivatSkifteOgUskifte"u8))
-            {
-                var s_1_1 = s_1.Slice(23);
-                if (s_1_1.Length == 0)
-                {
-                    role = GuardianshipRoles.Kartverket.ArvPrivatSkifteOgUskifte;
-                    return true;
-                }
-                else
-                {
-                    goto end;
-                }
-            }
-        }
-
-        if (s.StartsWith("laaneopptak"u8))
-        {
-            var s_2 = s.Slice(11);
-            if (s_2.Length == 0)
-            {
-                role = GuardianshipRoles.Kartverket.Låneopptak;
-                return true;
-            }
-            else
+            if (s_1.Length is < 19 or > 23)
             {
                 goto end;
             }
-        }
 
-        if (s.StartsWith("kjoepAvEiendom"u8))
-        {
-            var s_3 = s.Slice(14);
-            if (s_3.Length == 0)
+            if (s_1.SequenceEqual("vtalerOgRettigheter"u8))
             {
-                role = GuardianshipRoles.Kartverket.KjøpAvEiendom;
+                role = GuardianshipRoles.Kartverket.AvtalerOgRettigheter;
                 return true;
             }
-            else
-            {
-                goto end;
-            }
-        }
 
-        if (s.StartsWith("endringAvEiendom"u8))
-        {
-            var s_4 = s.Slice(16);
-            if (s_4.Length == 0)
+            if (s_1.SequenceEqual("rvPrivatSkifteOgUskifte"u8))
             {
-                role = GuardianshipRoles.Kartverket.EndringAvEiendom;
+                role = GuardianshipRoles.Kartverket.ArvPrivatSkifteOgUskifte;
                 return true;
             }
-            else
-            {
-                goto end;
-            }
+
+            goto end;
+        }
+
+        if (s.SequenceEqual("laaneopptak"u8))
+        {
+            role = GuardianshipRoles.Kartverket.Låneopptak;
+            return true;
+        }
+
+        if (s.SequenceEqual("kjoepAvEiendom"u8))
+        {
+            role = GuardianshipRoles.Kartverket.KjøpAvEiendom;
+            return true;
+        }
+
+        if (s.SequenceEqual("endringAvEiendom"u8))
+        {
+            role = GuardianshipRoles.Kartverket.EndringAvEiendom;
+            return true;
         }
 
         end:
@@ -1256,82 +909,61 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
+        if (s.Length is < 13 or > 16)
+        {
+            goto end;
+        }
+
         if (s.StartsWith("s"))
         {
             var s_0 = s.Slice(1);
+            if (s_0.Length is < 12 or > 15)
+            {
+                goto end;
+            }
+
             if (s_0.StartsWith("k"))
             {
                 var s_0_0 = s_0.Slice(1);
-                if (s_0_0.StartsWith("attOgAvgift"))
-                {
-                    var s_0_0_0 = s_0_0.Slice(11);
-                    if (s_0_0_0.Length == 0)
-                    {
-                        role = GuardianshipRoles.Kommune.SkattOgAvgift;
-                        return true;
-                    }
-                    else
-                    {
-                        goto end;
-                    }
-                }
-
-                if (s_0_0.StartsWith("oleOgUtdanning"))
-                {
-                    var s_0_0_1 = s_0_0.Slice(14);
-                    if (s_0_0_1.Length == 0)
-                    {
-                        role = GuardianshipRoles.Kommune.SkoleOgUtdanning;
-                        return true;
-                    }
-                    else
-                    {
-                        goto end;
-                    }
-                }
-            }
-
-            if (s_0.StartsWith("osialeTjenester"))
-            {
-                var s_0_1 = s_0.Slice(15);
-                if (s_0_1.Length == 0)
-                {
-                    role = GuardianshipRoles.Kommune.SosialeTjenester;
-                    return true;
-                }
-                else
+                if (s_0_0.Length is < 11 or > 14)
                 {
                     goto end;
                 }
-            }
-        }
 
-        if (s.StartsWith("byggOgEiendom"))
-        {
-            var s_1 = s.Slice(13);
-            if (s_1.Length == 0)
-            {
-                role = GuardianshipRoles.Kommune.ByggOgEiendom;
-                return true;
-            }
-            else
-            {
+                if (s_0_0.SequenceEqual("attOgAvgift"))
+                {
+                    role = GuardianshipRoles.Kommune.SkattOgAvgift;
+                    return true;
+                }
+
+                if (s_0_0.SequenceEqual("oleOgUtdanning"))
+                {
+                    role = GuardianshipRoles.Kommune.SkoleOgUtdanning;
+                    return true;
+                }
+
                 goto end;
             }
-        }
 
-        if (s.StartsWith("helseOgOmsorg"))
-        {
-            var s_2 = s.Slice(13);
-            if (s_2.Length == 0)
+            if (s_0.SequenceEqual("osialeTjenester"))
             {
-                role = GuardianshipRoles.Kommune.HelseOgOmsorg;
+                role = GuardianshipRoles.Kommune.SosialeTjenester;
                 return true;
             }
-            else
-            {
-                goto end;
-            }
+
+            goto end;
+        }
+
+        if (s.SequenceEqual("byggOgEiendom"))
+        {
+            role = GuardianshipRoles.Kommune.ByggOgEiendom;
+            return true;
+        }
+
+        if (s.SequenceEqual("helseOgOmsorg"))
+        {
+            role = GuardianshipRoles.Kommune.HelseOgOmsorg;
+            return true;
         }
 
         end:
@@ -1344,82 +976,61 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
+        if (s.Length is < 13 or > 16)
+        {
+            goto end;
+        }
+
         if (s.StartsWith("s"u8))
         {
             var s_0 = s.Slice(1);
+            if (s_0.Length is < 12 or > 15)
+            {
+                goto end;
+            }
+
             if (s_0.StartsWith("k"u8))
             {
                 var s_0_0 = s_0.Slice(1);
-                if (s_0_0.StartsWith("attOgAvgift"u8))
-                {
-                    var s_0_0_0 = s_0_0.Slice(11);
-                    if (s_0_0_0.Length == 0)
-                    {
-                        role = GuardianshipRoles.Kommune.SkattOgAvgift;
-                        return true;
-                    }
-                    else
-                    {
-                        goto end;
-                    }
-                }
-
-                if (s_0_0.StartsWith("oleOgUtdanning"u8))
-                {
-                    var s_0_0_1 = s_0_0.Slice(14);
-                    if (s_0_0_1.Length == 0)
-                    {
-                        role = GuardianshipRoles.Kommune.SkoleOgUtdanning;
-                        return true;
-                    }
-                    else
-                    {
-                        goto end;
-                    }
-                }
-            }
-
-            if (s_0.StartsWith("osialeTjenester"u8))
-            {
-                var s_0_1 = s_0.Slice(15);
-                if (s_0_1.Length == 0)
-                {
-                    role = GuardianshipRoles.Kommune.SosialeTjenester;
-                    return true;
-                }
-                else
+                if (s_0_0.Length is < 11 or > 14)
                 {
                     goto end;
                 }
-            }
-        }
 
-        if (s.StartsWith("byggOgEiendom"u8))
-        {
-            var s_1 = s.Slice(13);
-            if (s_1.Length == 0)
-            {
-                role = GuardianshipRoles.Kommune.ByggOgEiendom;
-                return true;
-            }
-            else
-            {
+                if (s_0_0.SequenceEqual("attOgAvgift"u8))
+                {
+                    role = GuardianshipRoles.Kommune.SkattOgAvgift;
+                    return true;
+                }
+
+                if (s_0_0.SequenceEqual("oleOgUtdanning"u8))
+                {
+                    role = GuardianshipRoles.Kommune.SkoleOgUtdanning;
+                    return true;
+                }
+
                 goto end;
             }
-        }
 
-        if (s.StartsWith("helseOgOmsorg"u8))
-        {
-            var s_2 = s.Slice(13);
-            if (s_2.Length == 0)
+            if (s_0.SequenceEqual("osialeTjenester"u8))
             {
-                role = GuardianshipRoles.Kommune.HelseOgOmsorg;
+                role = GuardianshipRoles.Kommune.SosialeTjenester;
                 return true;
             }
-            else
-            {
-                goto end;
-            }
+
+            goto end;
+        }
+
+        if (s.SequenceEqual("byggOgEiendom"u8))
+        {
+            role = GuardianshipRoles.Kommune.ByggOgEiendom;
+            return true;
+        }
+
+        if (s.SequenceEqual("helseOgOmsorg"u8))
+        {
+            role = GuardianshipRoles.Kommune.HelseOgOmsorg;
+            return true;
         }
 
         end:
@@ -1432,18 +1043,10 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("kredittsperre"))
+        if (s.SequenceEqual("kredittsperre"))
         {
-            var s_0 = s.Slice(13);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Kredittvurderingsselskap.Kredittsperre;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Kredittvurderingsselskap.Kredittsperre;
+            return true;
         }
 
         end:
@@ -1456,18 +1059,10 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("kredittsperre"u8))
+        if (s.SequenceEqual("kredittsperre"u8))
         {
-            var s_0 = s.Slice(13);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Kredittvurderingsselskap.Kredittsperre;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Kredittvurderingsselskap.Kredittsperre;
+            return true;
         }
 
         end:
@@ -1480,32 +1075,21 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("gjeldsordning"))
+        if (s.Length is < 13 or > 18)
         {
-            var s_0 = s.Slice(13);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Namsmannen.Gjeldsordning;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            goto end;
         }
 
-        if (s.StartsWith("tvangsfullbyrdelse"))
+        if (s.SequenceEqual("gjeldsordning"))
         {
-            var s_1 = s.Slice(18);
-            if (s_1.Length == 0)
-            {
-                role = GuardianshipRoles.Namsmannen.Tvangsfullbyrdelse;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Namsmannen.Gjeldsordning;
+            return true;
+        }
+
+        if (s.SequenceEqual("tvangsfullbyrdelse"))
+        {
+            role = GuardianshipRoles.Namsmannen.Tvangsfullbyrdelse;
+            return true;
         }
 
         end:
@@ -1518,32 +1102,21 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("gjeldsordning"u8))
+        if (s.Length is < 13 or > 18)
         {
-            var s_0 = s.Slice(13);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Namsmannen.Gjeldsordning;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            goto end;
         }
 
-        if (s.StartsWith("tvangsfullbyrdelse"u8))
+        if (s.SequenceEqual("gjeldsordning"u8))
         {
-            var s_1 = s.Slice(18);
-            if (s_1.Length == 0)
-            {
-                role = GuardianshipRoles.Namsmannen.Tvangsfullbyrdelse;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Namsmannen.Gjeldsordning;
+            return true;
+        }
+
+        if (s.SequenceEqual("tvangsfullbyrdelse"u8))
+        {
+            role = GuardianshipRoles.Namsmannen.Tvangsfullbyrdelse;
+            return true;
         }
 
         end:
@@ -1556,74 +1129,39 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("arbeid"))
+        if (s.Length is < 6 or > 16)
         {
-            var s_0 = s.Slice(6);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Nav.Arbeid;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            goto end;
         }
 
-        if (s.StartsWith("familie"))
+        if (s.SequenceEqual("arbeid"))
         {
-            var s_1 = s.Slice(7);
-            if (s_1.Length == 0)
-            {
-                role = GuardianshipRoles.Nav.Familie;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Nav.Arbeid;
+            return true;
         }
 
-        if (s.StartsWith("pensjon"))
+        if (s.SequenceEqual("familie"))
         {
-            var s_2 = s.Slice(7);
-            if (s_2.Length == 0)
-            {
-                role = GuardianshipRoles.Nav.Pensjon;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Nav.Familie;
+            return true;
         }
 
-        if (s.StartsWith("hjelpemidler"))
+        if (s.SequenceEqual("pensjon"))
         {
-            var s_3 = s.Slice(12);
-            if (s_3.Length == 0)
-            {
-                role = GuardianshipRoles.Nav.Hjelpemidler;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Nav.Pensjon;
+            return true;
         }
 
-        if (s.StartsWith("sosialeTjenester"))
+        if (s.SequenceEqual("hjelpemidler"))
         {
-            var s_4 = s.Slice(16);
-            if (s_4.Length == 0)
-            {
-                role = GuardianshipRoles.Nav.SosialeTjenester;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Nav.Hjelpemidler;
+            return true;
+        }
+
+        if (s.SequenceEqual("sosialeTjenester"))
+        {
+            role = GuardianshipRoles.Nav.SosialeTjenester;
+            return true;
         }
 
         end:
@@ -1636,74 +1174,39 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("arbeid"u8))
+        if (s.Length is < 6 or > 16)
         {
-            var s_0 = s.Slice(6);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Nav.Arbeid;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            goto end;
         }
 
-        if (s.StartsWith("familie"u8))
+        if (s.SequenceEqual("arbeid"u8))
         {
-            var s_1 = s.Slice(7);
-            if (s_1.Length == 0)
-            {
-                role = GuardianshipRoles.Nav.Familie;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Nav.Arbeid;
+            return true;
         }
 
-        if (s.StartsWith("pensjon"u8))
+        if (s.SequenceEqual("familie"u8))
         {
-            var s_2 = s.Slice(7);
-            if (s_2.Length == 0)
-            {
-                role = GuardianshipRoles.Nav.Pensjon;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Nav.Familie;
+            return true;
         }
 
-        if (s.StartsWith("hjelpemidler"u8))
+        if (s.SequenceEqual("pensjon"u8))
         {
-            var s_3 = s.Slice(12);
-            if (s_3.Length == 0)
-            {
-                role = GuardianshipRoles.Nav.Hjelpemidler;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Nav.Pensjon;
+            return true;
         }
 
-        if (s.StartsWith("sosialeTjenester"u8))
+        if (s.SequenceEqual("hjelpemidler"u8))
         {
-            var s_4 = s.Slice(16);
-            if (s_4.Length == 0)
-            {
-                role = GuardianshipRoles.Nav.SosialeTjenester;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Nav.Hjelpemidler;
+            return true;
+        }
+
+        if (s.SequenceEqual("sosialeTjenester"u8))
+        {
+            role = GuardianshipRoles.Nav.SosialeTjenester;
+            return true;
         }
 
         end:
@@ -1716,18 +1219,10 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("refusjonAvPasientreiser"))
+        if (s.SequenceEqual("refusjonAvPasientreiser"))
         {
-            var s_0 = s.Slice(23);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Pasientreiser.RefusjonAvPasientreiser;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Pasientreiser.RefusjonAvPasientreiser;
+            return true;
         }
 
         end:
@@ -1740,18 +1235,10 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("refusjonAvPasientreiser"u8))
+        if (s.SequenceEqual("refusjonAvPasientreiser"u8))
         {
-            var s_0 = s.Slice(23);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Pasientreiser.RefusjonAvPasientreiser;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Pasientreiser.RefusjonAvPasientreiser;
+            return true;
         }
 
         end:
@@ -1764,60 +1251,33 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("skatt"))
+        if (s.Length is < 5 or > 16)
         {
-            var s_0 = s.Slice(5);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Skatteetaten.Skatt;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            goto end;
         }
 
-        if (s.StartsWith("innkreving"))
+        if (s.SequenceEqual("skatt"))
         {
-            var s_1 = s.Slice(10);
-            if (s_1.Length == 0)
-            {
-                role = GuardianshipRoles.Skatteetaten.Innkreving;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Skatteetaten.Skatt;
+            return true;
         }
 
-        if (s.StartsWith("meldeFlytting"))
+        if (s.SequenceEqual("innkreving"))
         {
-            var s_2 = s.Slice(13);
-            if (s_2.Length == 0)
-            {
-                role = GuardianshipRoles.Skatteetaten.MeldeFlytting;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Skatteetaten.Innkreving;
+            return true;
         }
 
-        if (s.StartsWith("endrePostadresse"))
+        if (s.SequenceEqual("meldeFlytting"))
         {
-            var s_3 = s.Slice(16);
-            if (s_3.Length == 0)
-            {
-                role = GuardianshipRoles.Skatteetaten.EndrePostadresse;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Skatteetaten.MeldeFlytting;
+            return true;
+        }
+
+        if (s.SequenceEqual("endrePostadresse"))
+        {
+            role = GuardianshipRoles.Skatteetaten.EndrePostadresse;
+            return true;
         }
 
         end:
@@ -1830,60 +1290,33 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("skatt"u8))
+        if (s.Length is < 5 or > 16)
         {
-            var s_0 = s.Slice(5);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Skatteetaten.Skatt;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            goto end;
         }
 
-        if (s.StartsWith("innkreving"u8))
+        if (s.SequenceEqual("skatt"u8))
         {
-            var s_1 = s.Slice(10);
-            if (s_1.Length == 0)
-            {
-                role = GuardianshipRoles.Skatteetaten.Innkreving;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Skatteetaten.Skatt;
+            return true;
         }
 
-        if (s.StartsWith("meldeFlytting"u8))
+        if (s.SequenceEqual("innkreving"u8))
         {
-            var s_2 = s.Slice(13);
-            if (s_2.Length == 0)
-            {
-                role = GuardianshipRoles.Skatteetaten.MeldeFlytting;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Skatteetaten.Innkreving;
+            return true;
         }
 
-        if (s.StartsWith("endrePostadresse"u8))
+        if (s.SequenceEqual("meldeFlytting"u8))
         {
-            var s_3 = s.Slice(16);
-            if (s_3.Length == 0)
-            {
-                role = GuardianshipRoles.Skatteetaten.EndrePostadresse;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Skatteetaten.MeldeFlytting;
+            return true;
+        }
+
+        if (s.SequenceEqual("endrePostadresse"u8))
+        {
+            role = GuardianshipRoles.Skatteetaten.EndrePostadresse;
+            return true;
         }
 
         end:
@@ -1896,18 +1329,10 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("gjeldsordningOgBetalingsavtaler"))
+        if (s.SequenceEqual("gjeldsordningOgBetalingsavtaler"))
         {
-            var s_0 = s.Slice(31);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.StatensInnkrevingssentral.GjeldsordningOgBetalingsavtaler;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.StatensInnkrevingssentral.GjeldsordningOgBetalingsavtaler;
+            return true;
         }
 
         end:
@@ -1920,18 +1345,10 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("gjeldsordningOgBetalingsavtaler"u8))
+        if (s.SequenceEqual("gjeldsordningOgBetalingsavtaler"u8))
         {
-            var s_0 = s.Slice(31);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.StatensInnkrevingssentral.GjeldsordningOgBetalingsavtaler;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.StatensInnkrevingssentral.GjeldsordningOgBetalingsavtaler;
+            return true;
         }
 
         end:
@@ -1944,18 +1361,10 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("soekeOmSamtykkeTilDisposisjon"))
+        if (s.SequenceEqual("soekeOmSamtykkeTilDisposisjon"))
         {
-            var s_0 = s.Slice(29);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Statsforvalter.SøkeOmSamtykkeTilDisposisjon;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Statsforvalter.SøkeOmSamtykkeTilDisposisjon;
+            return true;
         }
 
         end:
@@ -1968,18 +1377,10 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("soekeOmSamtykkeTilDisposisjon"u8))
+        if (s.SequenceEqual("soekeOmSamtykkeTilDisposisjon"u8))
         {
-            var s_0 = s.Slice(29);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Statsforvalter.SøkeOmSamtykkeTilDisposisjon;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Statsforvalter.SøkeOmSamtykkeTilDisposisjon;
+            return true;
         }
 
         end:
@@ -1992,50 +1393,38 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
+        if (s.Length is < 15 or > 25)
+        {
+            goto end;
+        }
+
         if (s.StartsWith("begjaere"))
         {
             var s_0 = s.Slice(8);
-            if (s_0.StartsWith("Uskifte"))
-            {
-                var s_0_0 = s_0.Slice(7);
-                if (s_0_0.Length == 0)
-                {
-                    role = GuardianshipRoles.Tingretten.BegjæreUskifte;
-                    return true;
-                }
-                else
-                {
-                    goto end;
-                }
-            }
-
-            if (s_0.StartsWith("SkifteAvUskiftebo"))
-            {
-                var s_0_1 = s_0.Slice(17);
-                if (s_0_1.Length == 0)
-                {
-                    role = GuardianshipRoles.Tingretten.BegjæreSkifteAvUskiftebo;
-                    return true;
-                }
-                else
-                {
-                    goto end;
-                }
-            }
-        }
-
-        if (s.StartsWith("privatSkifteAvDodsbo"))
-        {
-            var s_1 = s.Slice(20);
-            if (s_1.Length == 0)
-            {
-                role = GuardianshipRoles.Tingretten.PrivatSkifteAvDødsbo;
-                return true;
-            }
-            else
+            if (s_0.Length is < 7 or > 17)
             {
                 goto end;
             }
+
+            if (s_0.SequenceEqual("Uskifte"))
+            {
+                role = GuardianshipRoles.Tingretten.BegjæreUskifte;
+                return true;
+            }
+
+            if (s_0.SequenceEqual("SkifteAvUskiftebo"))
+            {
+                role = GuardianshipRoles.Tingretten.BegjæreSkifteAvUskiftebo;
+                return true;
+            }
+
+            goto end;
+        }
+
+        if (s.SequenceEqual("privatSkifteAvDodsbo"))
+        {
+            role = GuardianshipRoles.Tingretten.PrivatSkifteAvDødsbo;
+            return true;
         }
 
         end:
@@ -2048,50 +1437,38 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
+        if (s.Length is < 15 or > 25)
+        {
+            goto end;
+        }
+
         if (s.StartsWith("begjaere"u8))
         {
             var s_0 = s.Slice(8);
-            if (s_0.StartsWith("Uskifte"u8))
-            {
-                var s_0_0 = s_0.Slice(7);
-                if (s_0_0.Length == 0)
-                {
-                    role = GuardianshipRoles.Tingretten.BegjæreUskifte;
-                    return true;
-                }
-                else
-                {
-                    goto end;
-                }
-            }
-
-            if (s_0.StartsWith("SkifteAvUskiftebo"u8))
-            {
-                var s_0_1 = s_0.Slice(17);
-                if (s_0_1.Length == 0)
-                {
-                    role = GuardianshipRoles.Tingretten.BegjæreSkifteAvUskiftebo;
-                    return true;
-                }
-                else
-                {
-                    goto end;
-                }
-            }
-        }
-
-        if (s.StartsWith("privatSkifteAvDodsbo"u8))
-        {
-            var s_1 = s.Slice(20);
-            if (s_1.Length == 0)
-            {
-                role = GuardianshipRoles.Tingretten.PrivatSkifteAvDødsbo;
-                return true;
-            }
-            else
+            if (s_0.Length is < 7 or > 17)
             {
                 goto end;
             }
+
+            if (s_0.SequenceEqual("Uskifte"u8))
+            {
+                role = GuardianshipRoles.Tingretten.BegjæreUskifte;
+                return true;
+            }
+
+            if (s_0.SequenceEqual("SkifteAvUskiftebo"u8))
+            {
+                role = GuardianshipRoles.Tingretten.BegjæreSkifteAvUskiftebo;
+                return true;
+            }
+
+            goto end;
+        }
+
+        if (s.SequenceEqual("privatSkifteAvDodsbo"u8))
+        {
+            role = GuardianshipRoles.Tingretten.PrivatSkifteAvDødsbo;
+            return true;
         }
 
         end:
@@ -2104,74 +1481,39 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("kjoepLeieAvVarerOgTjenester"))
+        if (s.Length is < 27 or > 36)
         {
-            var s_0 = s.Slice(27);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Øvrige.KjøpLeieAvVarerOgTjenester;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            goto end;
         }
 
-        if (s.StartsWith("salgAvLoesoereAvStoerreVerdi"))
+        if (s.SequenceEqual("kjoepLeieAvVarerOgTjenester"))
         {
-            var s_1 = s.Slice(28);
-            if (s_1.Length == 0)
-            {
-                role = GuardianshipRoles.Øvrige.SalgAvLøsøreAvStørreVerdi;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Øvrige.KjøpLeieAvVarerOgTjenester;
+            return true;
         }
 
-        if (s.StartsWith("inngaaelseAvHusleiekontrakter"))
+        if (s.SequenceEqual("salgAvLoesoereAvStoerreVerdi"))
         {
-            var s_2 = s.Slice(29);
-            if (s_2.Length == 0)
-            {
-                role = GuardianshipRoles.Øvrige.InngåelseAvHusleiekontrakter;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Øvrige.SalgAvLøsøreAvStørreVerdi;
+            return true;
         }
 
-        if (s.StartsWith("avslutningAvHusleiekontrakter"))
+        if (s.SequenceEqual("inngaaelseAvHusleiekontrakter"))
         {
-            var s_3 = s.Slice(29);
-            if (s_3.Length == 0)
-            {
-                role = GuardianshipRoles.Øvrige.AvslutningAvHusleiekontrakter;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Øvrige.InngåelseAvHusleiekontrakter;
+            return true;
         }
 
-        if (s.StartsWith("disponereInntekterTilAaDekkeUtgifter"))
+        if (s.SequenceEqual("avslutningAvHusleiekontrakter"))
         {
-            var s_4 = s.Slice(36);
-            if (s_4.Length == 0)
-            {
-                role = GuardianshipRoles.Øvrige.DisponereInntekterTilÅDekkeUtgifter;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Øvrige.AvslutningAvHusleiekontrakter;
+            return true;
+        }
+
+        if (s.SequenceEqual("disponereInntekterTilAaDekkeUtgifter"))
+        {
+            role = GuardianshipRoles.Øvrige.DisponereInntekterTilÅDekkeUtgifter;
+            return true;
         }
 
         end:
@@ -2184,78 +1526,44 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.StartsWith("kjoepLeieAvVarerOgTjenester"u8))
+        if (s.Length is < 27 or > 36)
         {
-            var s_0 = s.Slice(27);
-            if (s_0.Length == 0)
-            {
-                role = GuardianshipRoles.Øvrige.KjøpLeieAvVarerOgTjenester;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            goto end;
         }
 
-        if (s.StartsWith("salgAvLoesoereAvStoerreVerdi"u8))
+        if (s.SequenceEqual("kjoepLeieAvVarerOgTjenester"u8))
         {
-            var s_1 = s.Slice(28);
-            if (s_1.Length == 0)
-            {
-                role = GuardianshipRoles.Øvrige.SalgAvLøsøreAvStørreVerdi;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Øvrige.KjøpLeieAvVarerOgTjenester;
+            return true;
         }
 
-        if (s.StartsWith("inngaaelseAvHusleiekontrakter"u8))
+        if (s.SequenceEqual("salgAvLoesoereAvStoerreVerdi"u8))
         {
-            var s_2 = s.Slice(29);
-            if (s_2.Length == 0)
-            {
-                role = GuardianshipRoles.Øvrige.InngåelseAvHusleiekontrakter;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Øvrige.SalgAvLøsøreAvStørreVerdi;
+            return true;
         }
 
-        if (s.StartsWith("avslutningAvHusleiekontrakter"u8))
+        if (s.SequenceEqual("inngaaelseAvHusleiekontrakter"u8))
         {
-            var s_3 = s.Slice(29);
-            if (s_3.Length == 0)
-            {
-                role = GuardianshipRoles.Øvrige.AvslutningAvHusleiekontrakter;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Øvrige.InngåelseAvHusleiekontrakter;
+            return true;
         }
 
-        if (s.StartsWith("disponereInntekterTilAaDekkeUtgifter"u8))
+        if (s.SequenceEqual("avslutningAvHusleiekontrakter"u8))
         {
-            var s_4 = s.Slice(36);
-            if (s_4.Length == 0)
-            {
-                role = GuardianshipRoles.Øvrige.DisponereInntekterTilÅDekkeUtgifter;
-                return true;
-            }
-            else
-            {
-                goto end;
-            }
+            role = GuardianshipRoles.Øvrige.AvslutningAvHusleiekontrakter;
+            return true;
+        }
+
+        if (s.SequenceEqual("disponereInntekterTilAaDekkeUtgifter"u8))
+        {
+            role = GuardianshipRoles.Øvrige.DisponereInntekterTilÅDekkeUtgifter;
+            return true;
         }
 
         end:
         role = null;
         return false;
     }
+#pragma warning restore CS0164 // Unreferenced label
 }
