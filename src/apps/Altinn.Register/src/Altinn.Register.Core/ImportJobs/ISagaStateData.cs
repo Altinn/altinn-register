@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace Altinn.Register.Core.ImportJobs;
 
 /// <summary>
-/// State-data for a sata.
+/// State-data for a saga.
 /// </summary>
 /// <typeparam name="TSelf">The type of the state.</typeparam>
 public interface ISagaStateData<TSelf>

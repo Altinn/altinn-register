@@ -133,10 +133,10 @@ public class PostgresSagaStatePersistenceTests
         });
     }
 
-    private async Task Unit(Func<ISagaSatePersistence, Task> action, [CallerMemberName] string name = "")
+    private async Task Unit(Func<ISagaStatePersistence, Task> action, [CallerMemberName] string name = "")
     {
         await using var uow = await _manager!.CreateAsync(activityName: name);
-        var persistence = uow.GetRequiredService<ISagaSatePersistence>();
+        var persistence = uow.GetRequiredService<ISagaStatePersistence>();
         await action(persistence);
 
         await uow.CommitAsync();

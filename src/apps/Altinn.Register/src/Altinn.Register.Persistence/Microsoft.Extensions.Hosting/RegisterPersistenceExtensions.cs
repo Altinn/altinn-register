@@ -87,7 +87,7 @@ public static class RegisterPersistenceExtensions
         builder.Services.AddUnitOfWorkService<IPartyExternalRolePersistence>(static s => s.GetRequiredService<PostgreSqlPartyPersistence>());
 
         builder.Services.AddUnitOfWorkService<IImportJobStatePersistence, PostgresImportJobStatePersistence>();
-        builder.Services.AddUnitOfWorkService<ISagaSatePersistence, PostgresSagaStatePersistence>();
+        builder.Services.AddUnitOfWorkService<ISagaStatePersistence, PostgresSagaStatePersistence>();
         builder.Services.AddUnitOfWorkService<IUserIdImportJobService, PostgresUserIdImportJobService>();
 
         // Not part of unit of work

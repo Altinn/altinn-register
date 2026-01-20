@@ -3,7 +3,7 @@ namespace Altinn.Register.Core.ImportJobs;
 /// <summary>
 /// Defines a contract for persisting and retrieving saga state data in a durable store.
 /// </summary>
-public interface ISagaSatePersistence
+public interface ISagaStatePersistence
 {
     /// <summary>
     /// Asynchronously gets the state of a saga identified by the provided saga ID.
