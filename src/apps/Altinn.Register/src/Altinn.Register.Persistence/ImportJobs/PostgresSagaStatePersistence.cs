@@ -74,11 +74,12 @@ public sealed class PostgresSagaStatePersistence
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
         if (!await reader.ReadAsync(cancellationToken))
         {
-            return new(sagaId, SagaStatus.InProgress, null);
+            return new(sagaId, SagaStatus.InProgress, null, []);
         }
 
         var status = await reader.GetFieldValueAsync<SagaStatus>("status", cancellationToken);
         var type = await reader.GetFieldValueAsync<string>("state_type", cancellationToken);
+        var messages = await reader.GetFieldValueAsync<Guid[]>("message_ids", cancellationToken);
         await using var stream = await reader.GetFieldValueAsync<Stream>("state_value", cancellationToken);
 
         using var seq = new Sequence<byte>(arrayPool: ArrayPool<byte>.Shared);
@@ -87,7 +88,7 @@ public sealed class PostgresSagaStatePersistence
         return ReadFrom<T>(seq.AsReadOnlySequence, type) switch
         {
             null => throw new InvalidOperationException($"State in database is not deserializable to saga state of type '{typeof(T)}'"),
-            T state => new(sagaId, status, state),
+            T state => new(sagaId, status, state, messages),
         };
     }
 
@@ -97,13 +98,14 @@ public sealed class PostgresSagaStatePersistence
     {
         const string QUERY =
             /*strpsql*/"""
-            INSERT INTO register.saga_state ("id", "status", state_type, state_value)
-            VALUES (@id, @status, @stateType, @stateValue)
+            INSERT INTO register.saga_state ("id", "status", message_ids, state_type, state_value)
+            VALUES (@id, @status, @messageIds, @stateType, @stateValue)
             ON CONFLICT ("id")
             DO UPDATE
-                 SET "status" = @status
-                   , state_type = @stateType
-                   , state_value = @stateValue
+                 SET "status" = EXCLUDED."status"
+                   , message_ids = EXCLUDED.message_ids
+                   , state_type = EXCLUDED.state_type
+                   , state_value = EXCLUDED.state_value
             """;
 
         _handle.ThrowIfCompleted();
@@ -118,6 +120,7 @@ public sealed class PostgresSagaStatePersistence
         cmd.Parameters.Add<Guid>("id", NpgsqlDbType.Uuid).TypedValue = state.SagaId;
         cmd.Parameters.Add<SagaStatus>("status").TypedValue = state.Status;
         cmd.Parameters.Add<string>("stateType", NpgsqlDbType.Text).TypedValue = T.StateType;
+        cmd.Parameters.Add<List<Guid>>("messageIds", NpgsqlDbType.Array | NpgsqlDbType.Uuid).TypedValue = [.. state.Messages];
         var stateValueParam = cmd.Parameters.Add<Stream>("stateValue", NpgsqlDbType.Jsonb);
 
         await cmd.PrepareAsync(cancellationToken);

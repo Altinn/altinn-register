@@ -13,11 +13,15 @@ public sealed class SagaState<T>
     /// <param name="sagaId">The saga id.</param>
     /// <param name="status">The saga status.</param>
     /// <param name="data">The saga data.</param>
-    public SagaState(Guid sagaId, SagaStatus status, T? data)
+    /// <param name="messages">Seen message ids.</param>
+    public SagaState(Guid sagaId, SagaStatus status, T? data, ReadOnlySpan<Guid> messages)
     {
         SagaId = sagaId;
         Status = status;
         Data = data;
+        
+        HashSet<Guid> msgs = [.. messages];
+        Messages = msgs;
     }
 
     /// <summary>
@@ -29,6 +33,11 @@ public sealed class SagaState<T>
     /// Gets or sets the current status of the saga.
     /// </summary>
     public SagaStatus Status { get; set; }
+
+    /// <summary>
+    /// Gets the set of unique message identifiers associated with the current instance.
+    /// </summary>
+    public ISet<Guid> Messages { get; }
 
     /// <summary>
     /// Gets or sets the data associated with the current instance.
