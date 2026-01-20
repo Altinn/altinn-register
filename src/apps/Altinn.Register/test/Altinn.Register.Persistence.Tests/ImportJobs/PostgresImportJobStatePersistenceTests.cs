@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Core.ImportJobs;
+using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.TestData;
