@@ -271,7 +271,7 @@ public static partial class GuardianshipRoleMapperTests
                 Identifier = "tingretten-privat-skifte-dodsbo",
                 Role = GuardianshipRoles.Tingretten.PrivatSkifteAvDødsbo,
                 NprArea = "tingretten",
-                NprTask = "privatSkifteAvDodsbo",
+                NprTask = "privatSkifteAvDoedsbo",
             },
             new GuardianshipMetadata
             {

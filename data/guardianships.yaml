@@ -625,7 +625,7 @@ description:
 mapping:
   npr:
     virksomhet: tingretten
-    oppgave: privatSkifteAvDodsbo
+    oppgave: privatSkifteAvDoedsbo
 
 ---
 area: Tingretten

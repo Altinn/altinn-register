@@ -1421,7 +1421,7 @@ internal static partial class GuardianshipRoleMapper
             goto end;
         }
 
-        if (s.SequenceEqual("privatSkifteAvDodsbo"))
+        if (s.SequenceEqual("privatSkifteAvDoedsbo"))
         {
             role = GuardianshipRoles.Tingretten.PrivatSkifteAvDødsbo;
             return true;
@@ -1465,7 +1465,7 @@ internal static partial class GuardianshipRoleMapper
             goto end;
         }
 
-        if (s.SequenceEqual("privatSkifteAvDodsbo"u8))
+        if (s.SequenceEqual("privatSkifteAvDoedsbo"u8))
         {
             role = GuardianshipRoles.Tingretten.PrivatSkifteAvDødsbo;
             return true;
