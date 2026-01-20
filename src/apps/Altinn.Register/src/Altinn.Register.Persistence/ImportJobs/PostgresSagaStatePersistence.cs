@@ -39,16 +39,19 @@ public sealed class PostgresSagaStatePersistence
 
     private readonly IUnitOfWorkHandle _handle;
     private readonly NpgsqlConnection _connection;
+    private readonly TimeProvider _timeProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PostgresSagaStatePersistence"/> class.
     /// </summary>
     public PostgresSagaStatePersistence(
         IUnitOfWorkHandle handle,
-        NpgsqlConnection connection)
+        NpgsqlConnection connection,
+        TimeProvider timeProvider)
     {
         _handle = handle;
         _connection = connection;
+        _timeProvider = timeProvider;
     }
 
     /// <inheritdoc/>
@@ -98,14 +101,15 @@ public sealed class PostgresSagaStatePersistence
     {
         const string QUERY =
             /*strpsql*/"""
-            INSERT INTO register.saga_state ("id", "status", message_ids, state_type, state_value)
-            VALUES (@id, @status, @messageIds, @stateType, @stateValue)
+            INSERT INTO register.saga_state ("id", "status", message_ids, state_type, state_value, created, updated)
+            VALUES (@id, @status, @messageIds, @stateType, @stateValue, @now, @now)
             ON CONFLICT ("id")
             DO UPDATE
-                 SET "status" = EXCLUDED."status"
+                 SET "status"    = EXCLUDED."status"
                    , message_ids = EXCLUDED.message_ids
-                   , state_type = EXCLUDED.state_type
+                   , state_type  = EXCLUDED.state_type
                    , state_value = EXCLUDED.state_value
+                   , updated     = EXCLUDED.updated
             """;
 
         _handle.ThrowIfCompleted();
@@ -117,6 +121,7 @@ public sealed class PostgresSagaStatePersistence
 
         await using var cmd = _connection.CreateCommand(QUERY);
 
+        cmd.Parameters.Add<DateTimeOffset>("now", NpgsqlDbType.TimestampTz).TypedValue = _timeProvider.GetUtcNow();
         cmd.Parameters.Add<Guid>("id", NpgsqlDbType.Uuid).TypedValue = state.SagaId;
         cmd.Parameters.Add<SagaStatus>("status").TypedValue = state.Status;
         cmd.Parameters.Add<string>("stateType", NpgsqlDbType.Text).TypedValue = T.StateType;
