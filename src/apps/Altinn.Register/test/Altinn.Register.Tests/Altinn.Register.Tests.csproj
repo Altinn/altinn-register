@@ -3,6 +3,7 @@
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,11 +20,13 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" />
     <PackageReference Include="Moq" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
+    <ProjectReference
+      Include="..\..\src\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Altinn.Register\Altinn.Register.csproj" />
     <ProjectReference Include="..\Altinn.Register.TestUtils.V2\Altinn.Register.TestUtils.V2.csproj" />
   </ItemGroup>
@@ -52,6 +55,10 @@
     <Content Include="Testdata\**">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Testdata/**/*.json" />
   </ItemGroup>
 
 </Project>
