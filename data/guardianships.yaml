@@ -10,6 +10,10 @@ description:
   nb: Omfatter oppgaver knyttet til å opprette kundeforhold, opprette/avslutte konto, disposisjonsrett, etablere/endre betalingsavtaler og forvalte låneavtaler
   nn: Omfattar oppgåver knytt til å opprette kundeforhold, opprette/avslutte konto, disposisjonsrett, etablere/endre betalingsavtalar og forvalte låneavtalar
   en: Includes tasks related to establishing customer relationships, opening/closing accounts, rights of disposition, establishing/changing payment agreements, and managing loan agreements
+mapping:
+  npr:
+    virksomhet: bank
+    oppgave: representasjonDagligbank
 
 ---
 area: Bank
@@ -23,6 +27,10 @@ description:
   nb: Gjelder søknad om etablering av banklån - dette krever statsforvalterens samtykke
   nn: Gjeld søknad om etablering av banklån - dette krev samtykke frå statsforvaltaren
   en: Applies to applications for establishing bank loans - this requires the consent of the county governor
+mapping:
+  npr:
+    virksomhet: bank
+    oppgave: taOppLaanKreditter
 
 ---
 area: Forsikringsselskap
@@ -36,6 +44,10 @@ description:
   nb: Omfatter oppgaver knyttet til å etablere/endre/avslutte forsikringsavtaler og representasjon ved forsikringsoppgjør
   nn: Omfattar oppgåver knytt til å etablere/endre/avslutte forsikringsavtalar og representasjon ved forsikringsoppgjer
   en: Includes tasks related to establishing/changing/terminating insurance agreements and representation in insurance settlements
+mapping:
+  npr:
+    virksomhet: forsikringsselskap
+    oppgave: forvalteForsikringsavtaler
 
 ---
 area: Helfo
@@ -49,6 +61,10 @@ description:
   nb: Gjelder bistand til å søke om stønad til helsetjenester etter folketrygdloven, herunder innsyn i og håndtering av egenandel-/frikortordningen og helsetjenester gitt i utlandet. Gjelder også når en tredjepart sender søknad på vegne av en person (eks. lege, arbeidsgiver, forsikringsselskap)
   nn: Gjeld bistand til å søke om stønad til helsetenester etter folketrygdlova, herunder innsyn i og handtering av eigenandel-/frikortordninga og helsetenester gitt i utlandet. Gjeld òg når ein tredjepart sender søknad på vegne av ein person (eks. lege, arbeidsgjevar, forsikringsselskap)
   en: Applies to assistance in applying for benefits for health services under the National Insurance Act, including access to and management of the co-payment/free card scheme and health services provided abroad. Also applies when a third party submits an application on behalf of a person (e.g., doctor, employer, insurance company)
+mapping:
+  npr:
+    virksomhet: helfo
+    oppgave: refusjonForPrivatpersoner
 
 ---
 area: Helfo
@@ -62,6 +78,10 @@ description:
   nb: Gjelder bistand til å bytte fastlege, samt å kunne se tidligere og nåværende fastlege
   nn: Gjeld bistand til å byte fastlege, samt å kunne sjå tidlegare og noverande fastlege
   en: Applies to assistance in changing general practitioners, as well as being able to see previous and current general practitioners
+mapping:
+  npr:
+    virksomhet: helfo
+    oppgave: fastlege
 
 ---
 area: Husbanken
@@ -75,6 +95,10 @@ description:
   nb: Gjelder søknad om og/eller eventuelt klage på vedtak om statlig bostøtte hos Husbanken
   nn: Gjeld søknad om og/eller eventuelt klage på vedtak om statleg bustønad hos Husbanken
   en: Applies to applications for and/or possible appeals against decisions on state housing allowance at the Housing Bank
+mapping:
+  npr:
+    virksomhet: husbanken
+    oppgave: bostoette
 
 ---
 area: Husbanken
@@ -88,6 +112,10 @@ description:
   nb: Gjelder søknad om og/eller eventuelt klage på vedtak om startlån hos Husbanken
   nn: Gjeld søknad om og/eller eventuelt klage på vedtak om startlån hos Husbanken
   en: Applies to applications for and/or possible appeals against decisions on start-up loans at the Housing Bank
+mapping:
+  npr:
+    virksomhet: husbanken
+    oppgave: startlaan
 
 ---
 area: Inkassoselskap
@@ -101,6 +129,10 @@ description:
   nb: Gjelder avtaleinngåelse og forhandling med ulike inkassoselskaper
   nn: Gjeld avtaleinngåing og forhandling med ulike inkassoselskap
   en: Applies to contract conclusion and negotiation with various debt collection companies
+mapping:
+  npr:
+    virksomhet: inkassoselskap
+    oppgave: forhandleOgInngaaInkassoavtaler
 
 ---
 area: Kartverket
@@ -114,6 +146,10 @@ description:
   nb: Omfatter emnene tinglyse eierskifte, sletting av rettighet/servitutt/heftelse, sikringspant. Tjenesteområdet vil også gjelde for overføring av fast eiendom/borettslagsandel mellom ektefeller/samboere - dette krever statsforvalterens samtykke
   nn: Omfattar emna tinglyse eigarskifte, sletting av rettigheit/servitutt/heftelse, sikringspant. Tenesteområdet vil òg gjelde for overføring av fast eigedom/del av burettslag mellom ektefellar/sambuarar - dette krev samtykke frå statsforvaltaren
   en: Includes topics such as registering change of ownership, deletion of rights/servitudes/encumbrances, security interests. The service area will also apply to the transfer of real estate/condominium shares between spouses/cohabitants - this requires the consent of the county governor
+mapping:
+  npr:
+    virksomhet: kartverket
+    oppgave: salgAvFastEiendomBorettslagsandel
 
 ---
 area: Kartverket
@@ -127,6 +163,10 @@ description:
   nb: Omfatter emnene tinglyse eierskifte, pantsette eiendom, tinglyse avtaler (rettighet/servitutt/heftelse) og festekontrakt - dette krever statsforvalterens samtykke
   nn: Omfattar emna tinglyse eigarskifte, pantsetje eigedom, tinglyse avtalar (rettigheit/servitutt/heftelse) og festeavtale - dette krev samtykke frå statsforvaltaren
   en: Includes topics such as registering change of ownership, mortgaging property, registering agreements (rights/servitudes/encumbrances) and lease contracts - this requires the consent of the county governor
+mapping:
+  npr:
+    virksomhet: kartverket
+    oppgave: kjoepAvEiendom
 
 ---
 area: Kartverket
@@ -140,6 +180,10 @@ description:
   nb: Omfatter emnene hjemmelserklæring og skjøte videre - dette krever statsforvalterens samtykke
   nn: Omfattar emnene heimelserklæring og skjøte vidare - dette krev samtykke frå statsforvaltaren
   en: Includes topics such as declaration of title and deed transfer - this requires the consent of the county governor
+mapping:
+  npr:
+    virksomhet: kartverket
+    oppgave: arvPrivatSkifteOgUskifte
 
 ---
 area: Kartverket
@@ -153,6 +197,10 @@ description:
   nb: Omfatter emnene seksjonering, reseksjonering, fradelinger, sammenslåinger, registreringer av festegrunn, endringer av festenummer til bruksnummer, arealoverføring - dette krever statsforvalterens samtykke
   nn: Omfattar emnene seksjonering, reseksjonering, frådelingar, samanslåingar, registreringar av festegrunn, endringar av festenummer til bruksnummer, arealoverføring - dette krev samtykke frå statsforvaltaren
   en: Includes topics such as sectioning, resectioning, subdivisions, mergers, registration of leased land, changes from lease number to usage number, area transfer - this requires the consent of the county governor
+mapping:
+  npr:
+    virksomhet: kartverket
+    oppgave: endringAvEiendom
 
 ---
 area: Kartverket
@@ -166,6 +214,10 @@ description:
   nb: Omfatter emnene tinglyse avtaler (rettighet/servitutt/heftelse) og festekontrakt, tinglysning av prioritetsbestemmelser, nedkvitteringer, tinglysing på ny, transport av frivillige heftelser og tvangsforretninger, massetransport - dette krever statsforvalterens samtykke
   nn: Omfattar emnene tinglyse avtalar (rettigheit/servitutt/heftelse) og festeavtale, tinglysing av prioriteringsbestemmelsar, nedkvitteringar, tinglysing på ny, transport av frivillige heftelser og tvangsforretningar, massetransport - dette krev samtykke frå statsforvaltaren
   en: Includes topics such as registering agreements (rights/servitudes/encumbrances) and lease contracts, registration of priority provisions, discharges, re-registration, transfer of voluntary encumbrances and enforcement proceedings, mass transport - this requires the consent of the county governor
+mapping:
+  npr:
+    virksomhet: kartverket
+    oppgave: avtalerOgRettigheter
 
 ---
 area: Kartverket
@@ -179,6 +231,10 @@ description:
   nb: Gjelder sletting av rettigheter i fast eiendom - dette krever statsforvalterens samtykke
   nn: Gjeld sletting av rettar i fast eigedom - dette krev samtykke frå statsforvaltaren
   en: Applies to the deletion of rights in real estate - this requires the consent of the county governor
+mapping:
+  npr:
+    virksomhet: kartverket
+    oppgave: sletting
 
 ---
 area: Kartverket
@@ -192,6 +248,10 @@ description:
   nb: Omfatter emnene pantsette eiendom, refinansiering - dette krever statsforvalterens samtykke
   nn: Omfattar emna pantsetje eigedom, refinansiering - dette krev samtykke frå statsforvaltaren
   en: Includes topics such as mortgaging property, refinancing - this requires the consent of the county governor
+mapping:
+  npr:
+    virksomhet: kartverket
+    oppgave: laaneopptak
 
 ---
 area: Kommune
@@ -205,6 +265,10 @@ description:
   nb: Omfatter oppgaver som hører inn under områdene bygging, eiendom, kjøp og salg, leie og utleie, samt priser og gebyr for bygg og eiendom
   nn: Omfattar oppgåver som høyrer inn under områda bygging, eigedom, kjøp og sal, leige og utleige, samt prisar og gebyr for bygg og eigedom
   en: Includes tasks that fall under the areas of construction, property, buying and selling, renting and leasing, as well as prices and fees for building and property
+mapping:
+  npr:
+    virksomhet: kommune
+    oppgave: byggOgEiendom
 
 ---
 area: Kommune
@@ -218,6 +282,10 @@ description:
   nb: Omfatter tilbud og støtteordninger som hører inn under områdene avlastning og støtte, helsetjenester, omsorgstjenester og velferdsstøtte
   nn: Omfattar tilbod og støtteordningar som høyrer inn under områda avlasting og støtte, helsetenester, omsorgstenester og velferdsstøtte
   en: Includes services and support schemes that fall under the areas of relief and support, health services, care services, and welfare support
+mapping:
+  npr:
+    virksomhet: kommune
+    oppgave: helseOgOmsorg
 
 ---
 area: Kommune
@@ -231,6 +299,10 @@ description:
   nb: Omfatter oppgaver som hører inn under områdene arbeidsgiveravgift, kommunale avgifter, eiendomsskatt og skatteattest
   nn: Omfattar oppgåver som høyrer inn under områda arbeidsgivaravgift, kommunale avgifter, eigedomsskatt og skatteattest
   en: Includes tasks that fall under the areas of employer's national insurance contributions, municipal fees, property tax, and tax certificates
+mapping:
+  npr:
+    virksomhet: kommune
+    oppgave: skattOgAvgift
 
 ---
 area: Kommune
@@ -244,6 +316,10 @@ description:
   nb: Omfatter tilbud og støtteordninger som hører inn under områdene botilbud, kvalifisering til arbeid, økonomiske ytelser og rådgivning
   nn: Omfattar tilbod og støtteordningar som høyrer inn under områda butilbod, kvalifisering til arbeid, økonomiske ytingar og rådgjeving
   en: Includes services and support schemes that fall under the areas of housing, qualification for work, financial benefits, and counseling
+mapping:
+  npr:
+    virksomhet: kommune
+    oppgave: sosialeTjenester
 
 ---
 area: Kommune
@@ -257,6 +333,10 @@ description:
   nb: Omfatter tilbud og støtteordninger som hører inn under områdene grunnskole, videregående skole, høyere utdanning, voksenopplæring og skolehverdag
   nn: Omfattar tilbod og støtteordningar som høyrer inn under områda grunnskule, vidaregåande skule, høgare utdanning, vaksenopplæring og skulekvardag
   en: Includes services and support schemes that fall under the areas of primary school, secondary school, higher education, adult education, and school everyday life
+mapping:
+  npr:
+    virksomhet: kommune
+    oppgave: skoleOgUtdanning
 
 ---
 area: Kredittvurderingsselskap
@@ -270,6 +350,10 @@ description:
   nb: Gjelder avtaleinngåelse om kredittsperre
   nn: Gjeld avtaleinngåing om kredittsperre
   en: Applies to contract conclusion regarding credit freeze
+mapping:
+  npr:
+    virksomhet: kredittvurderingsselskap
+    oppgave: kredittsperre
 
 ---
 area: Namsmannen
@@ -283,6 +367,10 @@ description:
   nb: Gjelder søknad om og/eller forvaltning av eksisterende gjeldsordninger
   nn: Gjeld søknad om og/eller forvaltning av eksisterande gjeldsordningar
   en: Applies to applications for and/or management of existing debt settlements
+mapping:
+  npr:
+    virksomhet: namsmannen
+    oppgave: gjeldsordning
 
 ---
 area: Namsmannen
@@ -296,6 +384,10 @@ description:
   nb: Gjelder representasjon i saker om tvangsfullbyrdelse etter tvangsfullbyrdelsesloven
   nn: Gjeld representasjon i saker om tvangsfullbyrding etter tvangsfullbyrdingslova
   en: Applies to representation in cases of enforcement under the Enforcement Act
+mapping:
+  npr:
+    virksomhet: namsmannen
+    oppgave: tvangsfullbyrdelse
 
 ---
 area: Nav
@@ -309,6 +401,10 @@ description:
   nb: Omfatter tilbud og støtteordninger som hører inn under områdene forsikring/sykepenger (selvstendig næringsdrivende og frilansere), sykepenger, tilleggsstønad og yrkesskade/menerstatning og arbeidsavklaringspenger. Gjelder innsyn/saksbehandling og utbetaling
   nn: Omfattar tilbod og støtteordningar som høyrer inn under områda forsikring/sjukepengar (sjålvstendig næringsdrivande og frilansarar), sjukepengar, tilleggstønad og yrkesskade/menerstatning og arbeidsavklaringspengar. Gjeld innsyn/saksbehandling og utbetaling
   en: Includes services and support schemes that fall under the areas of insurance/sick pay (self-employed and freelancers), sick pay, additional benefits, occupational injury/compensation, and work assessment allowance. Applies to access/case processing and payment
+mapping:
+  npr:
+    virksomhet: nav
+    oppgave: arbeid
 
 ---
 area: Nav
@@ -322,6 +418,10 @@ description:
   nb: Omfatter tilbud og støtteordninger som hører inn under områdene barnebidrag, barnetrygd, enslig forsørger, foreldre- og svangerskapspenger, grunn- og hjelpestønad og kontantstøtte. Gjelder innsyn/saksbehandling og utbetaling
   nn: Omfattar tilbod og støtteordningar som høyrer inn under områda barnebidrag, barnetrygd, einsleg forsørgjar, foreldre- og svangerskapspengar, grunn- og hjelpestønad og kontantstøtte. Gjeld innsyn/saksbehandling og utbetaling
   en: Includes services and support schemes that fall under the areas of child support, child benefit, single provider, parental and pregnancy benefits, basic and assistance benefits, and cash benefits. Applies to access/case processing and payment
+mapping:
+  npr:
+    virksomhet: nav
+    oppgave: familie
 
 ---
 area: Nav
@@ -335,6 +435,10 @@ description:
   nb: Omfatter emnene hjelpemidler, helsetjenester, ortopediske hjelpemidler og bil
   nn: Omfattar emna hjelpemiddel, helsetenester, ortopediske hjelpemiddel og bil
   en: Includes the topics of assistive devices, health services, orthopedic aids, and cars
+mapping:
+  npr:
+    virksomhet: nav
+    oppgave: hjelpemidler
 
 ---
 area: Nav
@@ -348,6 +452,10 @@ description:
   nb: Omfatter tilbud og støtteordninger som hører inn under områdene alderspensjon, supplerende stønad, uførepensjon/-trygd, avtalefestet pensjon, ytelser for gjenlevende (alle typer pensjonsytelser). Gjelder innsyn/saksbehandling og utbetaling
   nn: Omfattar tilbod og støtteordningar som høyrer inn under områda alderspensjon, supplerande stønad, uførepensjon/-trygd, avtalefesta pensjon, ytingar for gjenlevande (alle typar pensjonsytingar). Gjeld innsyn/saksbehandling og utbetaling
   en: Includes services and support schemes that fall under the areas of old-age pension, supplementary benefits, disability pension/benefits, contractual pension, benefits for survivors (all types of pension benefits). Applies to access/case processing and payment
+mapping:
+  npr:
+    virksomhet: nav
+    oppgave: pensjon
 
 ---
 area: Nav
@@ -361,6 +469,10 @@ description:
   nb: Omfatter tilbud og støtteordninger som hører inn under områdene gjeldsrådgivning, kvalifiseringsprogrammet, midlertidig botilbud, økonomisk rådgivning, forsvarlig livsopphold, midlertidig inntektssikring og økonomisk stønad. Gjelder innsyn/saksbehandling og utbetaling
   nn: Omfattar tilbod og støtteordningar som høyrer inn under områda gjeldsrådgjeving, kvalifiseringsprogrammet, midlertidig butilbod, økonomisk rådgjeving, forsvarleg livsopphald, midlertidig inntektssikring og økonomisk stønad. Gjeld innsyn/saksbehandling og utbetaling
   en: Includes services and support schemes that fall under the areas of debt counseling, qualification program, temporary housing, financial counseling, adequate livelihood, temporary income security, and financial assistance. Applies to access/case processing and payment
+mapping:
+  npr:
+    virksomhet: nav
+    oppgave: sosialeTjenester
 
 ---
 area: Pasientreiser
@@ -374,6 +486,10 @@ description:
   nb: Søknad om og/eller eventuell klage på vedtak om refusjon av reiseutgifter i forbindelse med behandlinger som dekkes av det offentlige
   nn: Søknad om og/eller eventuell klage på vedtak om refusjon av reiseutgifter i samband med behandlingar som vert dekka av det offentlege
   en: Application for and/or possible appeal against decisions on reimbursement of travel expenses in connection with treatments covered by the public sector
+mapping:
+  npr:
+    virksomhet: pasientreiser
+    oppgave: refusjonAvPasientreiser
 
 ---
 area: Skatteetaten
@@ -387,6 +503,10 @@ description:
   nb: Gjelder oppfølging og behandling av krav fra Skatteetaten, for eksempel restskatt
   nn: Gjeld oppfølging og behandling av krav frå Skatteetaten, for eksempel restskatt
   en: Applies to follow-up and processing of claims from the Tax Administration, for example, residual tax
+mapping:
+  npr:
+    virksomhet: skatteetaten
+    oppgave: innkreving
 
 ---
 area: Skatteetaten
@@ -400,6 +520,10 @@ description:
   nb: Gjelder endring av postadresse for person med verge
   nn: Gjeld endring av postadresse for person med verge
   en: Applies to changing the postal address for a person with a guardian
+mapping:
+  npr:
+    virksomhet: skatteetaten
+    oppgave: endrePostadresse
 
 ---
 area: Skatteetaten
@@ -413,6 +537,10 @@ description:
   nb: Gjelder endring av bostedsadresse
   nn: Gjeld endring av bustadsadresse
   en: Applies to changing the residential address
+mapping:
+  npr:
+    virksomhet: skatteetaten
+    oppgave: meldeFlytting
 
 ---
 area: Skatteetaten
@@ -426,6 +554,10 @@ description:
   nb: Gjelder innsyn i skattedata, og representasjon overfor skattemyndighetene i alle saker om skatteforhold, herunder endring av skattekort, levering av skattemelding, skatteoppgjør og det ordinære løpet for restskatt eller penger til gode.
   nn: Gjeld innsyn i skattedata, og representasjon overfor skattemyndigheitene i alle saker om skatteforhold, herunder endring av skattekort, levering av skattemelding, skatteoppgjer og det ordinære løpet for restskatt eller pengar til gode.
   en: Applies to access to tax data and representation before the tax authorities in all matters concerning tax issues, including changing tax cards, submitting tax returns, tax settlements, and the ordinary course of residual tax or money owed.
+mapping:
+  npr:
+    virksomhet: skatteetaten
+    oppgave: skatt
 
 ---
 area: Statens innkrevingssentral
@@ -439,6 +571,10 @@ description:
   nb: Gjelder søknad om og forvaltning av gjeldsordning og betalingsavtaler
   nn: Gjeld søknad om og forvaltning av gjeldsordning og betalingsavtalar
   en: Applies to applications for and management of debt settlements and payment agreements
+mapping:
+  npr:
+    virksomhet: statensInnkrevingssentral
+    oppgave: gjeldsordningOgBetalingsavtaler
 
 ---
 area: Statsforvalter
@@ -452,6 +588,10 @@ description:
   nb: Gjelder søknad om disposisjoner som krever statsforvalterens samtykke
   nn: Gjeld søknad om disposisjonar som krev samtykke frå statsforvaltaren
   en: Applies to applications for dispositions that require the consent of the county governor
+mapping:
+  npr:
+    virksomhet: statsforvalter
+    oppgave: soekeOmSamtykkeTilDisposisjon
 
 ---
 area: Tingretten
@@ -465,6 +605,10 @@ description:
   nb: Gjelder melding om uskiftet bo jf. vgml. § 41 (3) og arvl. §§ 14 og 32 - dette krever statsforvalterens samtykke
   nn: Gjeld melding om uskifta bu jf. vgml. § 41 (3) og arvl. §§ 14 og 32 - dette krev samtykke frå statsforvaltaren
   en: Applies to notification of undivided estate pursuant to the vgml. § 41 (3) and arvl. §§ 14 and 32 - this requires the consent of the county governor
+mapping:
+  npr:
+    virksomhet: tingretten
+    oppgave: begjaereUskifte
 
 ---
 area: Tingretten
@@ -478,6 +622,10 @@ description:
   nb: Omfatter tilfeller der vergen på vegne av vergehaveren overtar boet til privat skifte og ivaretakelse av andre rettigheter som arving
   nn: Omfattar tilfelle der vergen på vegne av vergehavaren overtek buet til privat skifte og ivaretaking av andre rettar som arvigar
   en: Includes cases where the guardian, on behalf of the ward, takes over the estate for private settlement and safeguarding of other rights as an heir
+mapping:
+  npr:
+    virksomhet: tingretten
+    oppgave: privatSkifteAvDoedsbo
 
 ---
 area: Tingretten
@@ -491,6 +639,10 @@ description:
   nb: Gjelder skifte av uskiftebo jf. vgml. § 41 (3) og arvl. §§ 28 og 29 - dette krever statsforvalterens samtykke
   nn: Gjeld skifte av uskiftebu jf. vgml. § 41 (3) og arvl. §§ 28 og 29 - dette krev samtykke frå statsforvaltaren
   en: Applies to settlement of undivided estate pursuant to the vgml. § 41 (3) and arvl. §§ 28 and 29 - this requires the consent of the county governor
+mapping:
+  npr:
+    virksomhet: tingretten
+    oppgave: begjaereSkifteAvUskiftebo
 
 ---
 area: Øvrige
@@ -504,6 +656,10 @@ description:
   nb: Gjelder i forbindelse med kjøp av varer og tjenester, omfatter også heving av avtaler, reklamasjon mm.
   nn: Gjelder i samband med kjøp av varer og tenester, omfattar òg heving av avtalar, reklamasjon mm.
   en: Applies in connection with the purchase of goods and services, also includes termination of agreements, complaints, etc.
+mapping:
+  npr:
+    virksomhet: oevrige
+    oppgave: kjoepLeieAvVarerOgTjenester
 
 ---
 area: Øvrige
@@ -517,6 +673,10 @@ description:
   nb: Gjelder i forbindelse med inngåelse av husleiekontrakter
   nn: Gjelder i samband med inngåing av husleigekontraktar
   en: Applies in connection with the conclusion of lease agreements
+mapping:
+  npr:
+    virksomhet: oevrige
+    oppgave: inngaaelseAvHusleiekontrakter
 
 ---
 area: Øvrige
@@ -530,6 +690,10 @@ description:
   nb: Gjelder i forbindelse med avslutning av husleiekontrakter
   nn: Gjeld i samband med avslutting av husleigekontraktar
   en: Applies in connection with the termination of lease agreements
+mapping:
+  npr:
+    virksomhet: oevrige
+    oppgave: avslutningAvHusleiekontrakter
 
 ---
 area: Øvrige
@@ -543,6 +707,10 @@ description:
   nb: Gjelder salg av løsøre av større verdi (herunder bil), usedvanlig karakter eller av spesiell interesse for vergehaver eller dennes nærmeste familie - dette krever statsforvalterens samtykke
   nn: Gjeld sal av lausøyre av større verdi (herunder bil), usedvanleg karakter eller av spesiell interesse for vergehavar eller dennes næraste familie - dette krev samtykke frå statsforvaltaren
   en: Applies to the sale of personal property of greater value (including cars), unusual character, or of special interest to the ward or their immediate family - this requires the consent of the county governor
+mapping:
+  npr:
+    virksomhet: oevrige
+    oppgave: salgAvLoesoereAvStoerreVerdi
 
 ---
 area: Øvrige
@@ -556,3 +724,7 @@ description:
   nb: Gjelder adgangen til å bruke vergehaverens inntekter til å betale regninger, betjene gjeld, og dekke øvrige utgifter
   nn: Gjeld løyve til å bruke vergehavaren sine inntekter til å betale rekningar, betene gjeld, og dekke øvrige utgifter
   en: Applies to the right to use the ward's income to pay bills, service debt, and cover other expenses
+mapping:
+  npr:
+    virksomhet: oevrige
+    oppgave: disponereInntekterTilAaDekkeUtgifter
