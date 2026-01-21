@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.Aspire.Npgsql;
 using Aspire.Hosting.ApplicationModel;
 using static Altinn.Authorization.Aspire.Npgsql.AltinnPostgresDatabaseResource;
@@ -114,6 +114,8 @@ public static class AltinnNpgsqlAspireHostingExtensions
             env[$"{prefix}Yuniql__MigrationsTable__Schema"] = "yuniql";
             env[$"{prefix}Create__Schemas__yuniql__Name"] = "yuniql";
             env[$"{prefix}Create__Schemas__yuniql__Owner"] = "migrator";
+            env[$"{prefix}Create__Schemas__public__Name"] = "public";
+            env[$"{prefix}Create__Schemas__public__Owner"] = "owner";
 
             env[$"{prefix}Create__Roles__owner__Name"] = resource.Property(DbProperty.OwnerRoleName);
             env[$"{prefix}Create__Roles__owner__Password"] = resource.Property(DbProperty.OwnerPassword);
@@ -129,6 +131,8 @@ public static class AltinnNpgsqlAspireHostingExtensions
             env[$"{prefix}Create__Roles__owner__Grants__Roles__app__Usage"] = "true";
 
             env[$"{prefix}Create__Roles__migrator__Grants__Database__Privileges"] = "Connect,Create";
+
+            env[$"{prefix}Create__Roles__migrator__Grants__Schemas__public__Privileges"] = "Create";
 
             env[$"{prefix}Create__Roles__seeder__Grants__Database__Privileges"] = "Connect";
             env[$"{prefix}Create__Roles__seeder__Grants__Roles__app__Usage"] = "true";
