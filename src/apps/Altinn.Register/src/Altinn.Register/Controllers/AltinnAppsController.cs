@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties;
@@ -11,13 +11,13 @@ using Microsoft.AspNetCore.Mvc;
 namespace Altinn.Register.Controllers;
 
 /// <summary>
-/// Temporary dialogporten API endpoints.
+/// Temporary (but probably unfortunately permanent) apps API endpoints.
 /// </summary>
 [ApiController]
 [ApiVersion(1.0)]
 [Authorize(Policy = "InternalOrPlatformAccess")]
-[Route("register/api/v{version:apiVersion}/dialogporten/parties")]
-public class DialogPortenController(V2.PartyController inner)
+[Route("register/api/v{version:apiVersion}/apps/parties")]
+public class AltinnAppsController(V2.PartyController inner)
     : ControllerBase
 {
     /// <summary>
