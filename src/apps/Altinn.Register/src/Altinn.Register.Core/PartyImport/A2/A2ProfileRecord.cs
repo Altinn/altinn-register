@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Diagnostics;
+using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.Core.PartyImport.A2;
 
@@ -20,6 +20,11 @@ public sealed record A2ProfileRecord
     public required Guid? UserUuid { get; init; }
 
     /// <summary>
+    /// Gets the external authentication reference associated with this instance.
+    /// </summary>
+    public required string? ExternalAuthenticationReference { get; init; }
+
+    /// <summary>
     /// Gets the profile type.
     /// </summary>
     public required A2UserProfileType ProfileType { get; init; }
@@ -27,7 +32,7 @@ public sealed record A2ProfileRecord
     /// <summary>
     /// Gets a value indicating whether the user is active. This can be null for older versions of SBL bridge.
     /// </summary>
-    public required bool? IsActive { get; init; }
+    public required bool IsActive { get; init; }
 
     /// <summary>
     /// Gets the username, if any.
@@ -72,7 +77,7 @@ public sealed record A2ProfileRecord
     public required uint PartyId { get; init; }
 
     /// <summary>
-    /// Gets when the profile was last changed.
+    /// Gets when the profile/party was last changed.
     /// </summary>
     public required DateTimeOffset? LastChangedAt { get; init; }
 }

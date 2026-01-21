@@ -75,6 +75,7 @@ public sealed partial class A2PartyImportJob
                 PartyUuid = update.PartyUuid,
                 ChangedTime = update.ChangeTime,
                 ChangeId = update.ChangeId,
+                Tracking = new(JobName, update.ChangeId),
             });
 
             await _sender.Send(cmds, cancellationToken);

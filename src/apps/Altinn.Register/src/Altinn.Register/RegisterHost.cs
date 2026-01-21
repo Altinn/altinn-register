@@ -216,6 +216,8 @@ internal static partial class RegisterHost
                     {
                         cfg.AddConsumers(typeof(RegisterHost).Assembly);
                     });
+
+                builder.Services.AddScoped<SagaManager>();
             }
 
             var maxDbSizeInGib = config.GetValue("Altinn:register:PartyImport:A2:MaxDbSizeInGib", 20UL);
@@ -230,28 +232,6 @@ internal static partial class RegisterHost
                 settings.WaitForReady = waitForBus;
                 settings.Enabled = JobEnabledBuilder.Default
                     .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:Enable");
-            });
-
-            services.AddRecurringJob<A2PartyCCRRolesImportJob>(settings =>
-            {
-                settings.Tags.Add(A2PartyImportJobTag);
-                settings.LeaseName = A2PartyCCRRolesImportJob.JobName;
-                settings.Interval = TimeSpan.FromMinutes(1);
-                settings.WaitForReady = waitForBus;
-                settings.Enabled = JobEnabledBuilder.Default
-                    .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:Enable")
-                    .WithRequireImportJobFinished(A2PartyImportJob.JobName, threshold: 5_000);
-            });
-
-            services.AddRecurringJob<A2PartyUserIdImportJob>(settings =>
-            {
-                settings.Tags.Add(A2PartyImportJobTag);
-                settings.LeaseName = A2PartyUserIdImportJob.JobName;
-                settings.Interval = TimeSpan.FromMinutes(1);
-                settings.WaitForReady = waitForBus;
-                settings.Enabled = JobEnabledBuilder.Default
-                    .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:A2:PartyUserId:Enable")
-                    .WithRequireImportJobFinished(A2PartyImportJob.JobName, threshold: 5_000);
             });
 
             services.AddRecurringJob<A2ProfileImportJob>(settings =>

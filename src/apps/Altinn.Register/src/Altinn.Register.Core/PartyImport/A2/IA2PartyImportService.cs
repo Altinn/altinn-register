@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ProblemDetails;
+using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Core.Parties.Records;
 
 namespace Altinn.Register.Core.PartyImport.A2;
@@ -47,7 +47,7 @@ public interface IA2PartyImportService
     /// <param name="partyUuid">The party UUID of the person.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>User information for the party.</returns>
-    Task<Result<PartyUserRecord>> GetOrCreatePersonUser(Guid partyUuid, CancellationToken cancellationToken = default);
+    Task<Result<A2ProfileRecord>> GetOrCreatePersonUser(Guid partyUuid, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets user information for a party.
@@ -55,7 +55,7 @@ public interface IA2PartyImportService
     /// <param name="partyUuid">The party UUID.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>User information for the party.</returns>
-    Task<Result<PartyUserRecord>> GetPartyUser(Guid partyUuid, CancellationToken cancellationToken = default);
+    Task<Result<A2ProfileRecord>> GetPartyUser(Guid partyUuid, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets profile information based on user id.

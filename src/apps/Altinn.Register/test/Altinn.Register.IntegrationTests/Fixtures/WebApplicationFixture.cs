@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Altinn.Authorization.ServiceDefaults;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Authorization.ServiceDefaults.MassTransit.Testing;
@@ -9,6 +9,7 @@ using Altinn.Register.Configuration;
 using Altinn.Register.Controllers.V2;
 using Altinn.Register.IntegrationTests.TestServices;
 using Altinn.Register.IntegrationTests.Tracing;
+using Altinn.Register.PartyImport.A2;
 using Altinn.Register.PartyImport.SystemUser;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Database;
@@ -179,6 +180,7 @@ public sealed class WebApplicationFixture
                     });
 
                 services.Configure<AltinnMassTransitOptions>(o => o.ActivityPropagation = "Child");
+                services.AddScoped<SagaManager>();
             });
 
             base.ConfigureWebHost(builder);

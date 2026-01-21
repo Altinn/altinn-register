@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ServiceDefaults.MassTransit;
+using Altinn.Authorization.ServiceDefaults.MassTransit;
 using MassTransit.Testing;
 
 namespace Altinn.Register.TestUtils.MassTransit;
@@ -30,7 +30,7 @@ public static class TestHarnessExtensions
         CancellationToken cancellationToken = default)
         where TCommand : CommandBase
     {
-        var consumed = await harness.Consumed.SelectAsync<TCommand>(m => m.Context.CorrelationId == command.CommandId, cancellationToken).FirstOrDefaultAsync(cancellationToken);
+        var consumed = await harness.Consumed.SelectAsync<TCommand>(m => m.Context.CorrelationId == command.CorrelationId, cancellationToken).FirstOrDefaultAsync(cancellationToken);
         if (consumed is null)
         {
             Assert.Fail("Consumed message not found");

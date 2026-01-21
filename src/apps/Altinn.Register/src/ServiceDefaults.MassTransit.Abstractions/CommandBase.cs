@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using MassTransit;
 
 namespace Altinn.Authorization.ServiceDefaults.MassTransit;
@@ -9,9 +9,19 @@ namespace Altinn.Authorization.ServiceDefaults.MassTransit;
 [ExcludeFromTopology]
 [ExcludeFromImplementedTypes]
 public abstract record CommandBase
-    : CorrelatedBy<Guid>
+    : IMessageBase
 {
-    private readonly Guid _id = Guid.CreateVersion7();
+    private readonly Guid _id;
+    private readonly Guid _correlationId;
+
+    /// <summary>
+    /// Initializes a new instance of the CommandBase class with a unique identifier and correlation ID.
+    /// </summary>
+    protected CommandBase()
+    {
+        _id = Guid.CreateVersion7();
+        _correlationId = _id;
+    }
 
     /// <summary>
     /// Gets the command ID.
@@ -24,6 +34,16 @@ public abstract record CommandBase
         private init => _id = value;
     }
 
-    /// <inheritdoc />
-    Guid CorrelatedBy<Guid>.CorrelationId => CommandId;
+    /// <summary>
+    /// Gets the unique identifier used to correlate related operations or requests.
+    /// </summary>
+    public Guid CorrelationId
+    {
+        get => _correlationId;
+        init => _correlationId = value;
+    }
+
+    /// <inheritdoc/>
+    Guid IMessageBase.MessageId 
+        => CommandId;
 }

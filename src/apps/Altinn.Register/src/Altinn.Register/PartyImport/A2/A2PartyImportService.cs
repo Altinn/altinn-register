@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -129,7 +129,7 @@ internal sealed partial class A2PartyImportService
     }
 
     /// <inheritdoc />
-    public Task<Result<PartyUserRecord>> GetOrCreatePersonUser(Guid partyUuid, CancellationToken cancellationToken = default)
+    public Task<Result<A2ProfileRecord>> GetOrCreatePersonUser(Guid partyUuid, CancellationToken cancellationToken = default)
     {
         var url = $"profile/api/users/getorcreate/{partyUuid}";
 
@@ -137,7 +137,7 @@ internal sealed partial class A2PartyImportService
     }
 
     /// <inheritdoc />
-    public Task<Result<PartyUserRecord>> GetPartyUser(Guid partyUuid, CancellationToken cancellationToken = default)
+    public Task<Result<A2ProfileRecord>> GetPartyUser(Guid partyUuid, CancellationToken cancellationToken = default)
     {
         var url = $"profile/api/users?userUUID={partyUuid}";
 
@@ -160,7 +160,7 @@ internal sealed partial class A2PartyImportService
         return MapProfile(profile);
     }
 
-    private async Task<Result<PartyUserRecord>> GetPartyUser(
+    private async Task<Result<A2ProfileRecord>> GetPartyUser(
         string url,
         Guid partyUuid,
         CancellationToken cancellationToken)
@@ -174,7 +174,7 @@ internal sealed partial class A2PartyImportService
         var profile = profileResult.Value;
         Assert(profile.UserUuid == partyUuid);
         Assert(profile.Party.PartyUuid == partyUuid);
-        return MapPartyUser(profile);
+        return MapProfile(profile);
     }
 
     private async Task<Result<PartyProfile>> GetPartyProfile(
@@ -200,10 +200,9 @@ internal sealed partial class A2PartyImportService
         }
 
         PartyProfile? response;
-        var contentAsString = await responseMessage.Content.ReadAsStringAsync(cancellationToken);
         try
         {
-            response = JsonSerializer.Deserialize<PartyProfile>(contentAsString, _options);
+            response = await responseMessage.Content.ReadFromJsonAsync<PartyProfile>(_options, cancellationToken);
         }
         catch (JsonException ex)
         {
@@ -318,15 +317,6 @@ internal sealed partial class A2PartyImportService
         return response;
     }
 
-    private PartyUserRecord MapPartyUser(PartyProfile profile)
-    {
-        var userId = checked((uint)profile.UserId);
-        var userIds = ImmutableValueArray.Create(userId);
-        var userName = Normalize(profile.UserName);
-
-        return new PartyUserRecord(userId: userId, username: userName, userIds: userIds);
-    }
-
     private A2ProfileRecord MapProfile(PartyProfile profile)
     {
         var userId = checked((uint)profile.UserId);
@@ -346,6 +336,7 @@ internal sealed partial class A2PartyImportService
             ProfileType = profileType,
             PartyUuid = partyUuid.Value,
             PartyId = checked((uint)partyId),
+            ExternalAuthenticationReference = Normalize(profile.ExternalIdentity),
             LastChangedAt = profile.Party.LastChangedInExternalRegister ?? profile.Party.LastChangedInAltinn,
         };
     }
@@ -900,10 +891,16 @@ internal sealed partial class A2PartyImportService
         public required Guid? UserUuid { get; init; }
 
         /// <summary>
+        /// Gets the external identity-string, if any (for self-identified users, often empty string instead of null).
+        /// </summary>
+        [JsonPropertyName("ExternalIdentity")]
+        public string? ExternalIdentity { get; init; }
+
+        /// <summary>
         /// Gets a value indicating whether the profile is active or not.
         /// </summary>
         [JsonPropertyName("IsActive")]
-        public bool? IsActive { get; init; }
+        public bool IsActive { get; init; }
 
         /// <summary>
         /// Gets the user name, if any.

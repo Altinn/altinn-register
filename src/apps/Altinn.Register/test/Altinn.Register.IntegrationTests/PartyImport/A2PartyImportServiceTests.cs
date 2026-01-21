@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.TestUtils.Http;
@@ -37,7 +37,7 @@ public class A2PartyImportServiceTests
             => handler.Expect(HttpMethod.Get, "/profile/api/users")
                 .WithQuery("userUUID", partyUuid.ToString());
 
-        protected virtual Task<Result<PartyUserRecord>> GetUserParty(IA2PartyImportService service, Guid partyUuid)
+        protected virtual Task<Result<A2ProfileRecord>> GetUserParty(IA2PartyImportService service, Guid partyUuid)
             => service.GetPartyUser(partyUuid, TestContext.Current.CancellationToken);
 
         [Fact]
@@ -107,6 +107,7 @@ public class A2PartyImportServiceTests
                   "UserName": "AdvancedSettingsTest",
                   "ExternalIdentity": "",
                   "IsReserved": false,
+                  "IsActive": true,
                   "PhoneNumber": null,
                   "Email": "AdvancedSettingsTest@AdvancedSettingsTest.no",
                   "PartyId": 50068492,
@@ -140,7 +141,18 @@ public class A2PartyImportServiceTests
 
             result.IsProblem.ShouldBeFalse();
             result.Value.ShouldNotBeNull();
-            result.Value.ShouldBe(new PartyUserRecord(userId: 20002571U, username: "AdvancedSettingsTest", userIds: ImmutableValueArray.Create(20002571U)));
+            result.Value.ShouldBe(new A2ProfileRecord
+            {
+                UserId = 20002571,
+                UserUuid = Guid.Parse("b049a483-dfea-437e-bb89-261a5390f207"),
+                ExternalAuthenticationReference = null,
+                ProfileType = A2UserProfileType.SelfIdentifiedUser,
+                IsActive = true,
+                UserName = "AdvancedSettingsTest",
+                PartyUuid = Guid.Parse("b049a483-dfea-437e-bb89-261a5390f207"),
+                PartyId = 50068492,
+                LastChangedAt = DateTimeOffset.Parse("2021-02-08T05:07:09.677+01:00"),
+            });
         }
     }
 
@@ -151,7 +163,7 @@ public class A2PartyImportServiceTests
             => handler.Expect(HttpMethod.Get, "profile/api/users/getorcreate/{userUuid:guid}")
                 .WithRouteValue("userUuid", partyUuid.ToString());
 
-        protected override Task<Result<PartyUserRecord>> GetUserParty(IA2PartyImportService service, Guid partyUuid)
+        protected override Task<Result<A2ProfileRecord>> GetUserParty(IA2PartyImportService service, Guid partyUuid)
             => service.GetOrCreatePersonUser(partyUuid, TestContext.Current.CancellationToken);
     }
 
