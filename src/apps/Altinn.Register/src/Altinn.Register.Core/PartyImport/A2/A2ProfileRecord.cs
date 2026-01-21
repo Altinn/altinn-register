@@ -30,7 +30,7 @@ public sealed record A2ProfileRecord
     public required A2UserProfileType ProfileType { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether the user is active. This can be null for older versions of SBL bridge.
+    /// Gets a value indicating whether the user is active.
     /// </summary>
     public required bool IsActive { get; init; }
 

@@ -27,6 +27,11 @@ public interface ISaga<TSelf, TState>
 /// <summary>
 /// Indicates that the saga can handle messages of a specific type.
 /// </summary>
+/// <remarks>
+/// Implementers of this interface must respect at-least-once delivery semantics for message handling. This means that
+/// messages may be delivered multiple times, and the saga implementation must ensure idempotent processing and that all
+/// produced events are published even on retries.
+/// </remarks>
 /// <typeparam name="TSelf">The type of the saga.</typeparam>
 /// <typeparam name="TMessage">The message type.</typeparam>
 /// <typeparam name="TState">The state type.</typeparam>

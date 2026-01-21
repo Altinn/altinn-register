@@ -255,7 +255,7 @@ public sealed partial class A2PartyImportSaga
             await Task.WhenAll(publishTasks);
         }
 
-        if (!string.IsNullOrEmpty(State.Tracking.JobName))
+        if (State.Tracking.HasValue)
         {
             await _tracker.TrackProcessedStatus(State.Tracking.JobName, new ImportJobProcessingStatus { ProcessedMax = State.Tracking.Progress }, cancellationToken);
         }
@@ -416,7 +416,7 @@ public sealed partial class A2PartyImportSaga
         public required UpsertPartyTracking Tracking { get; init; }
 
         /// <summary>
-        /// Gets or sets the party being upsertes.
+        /// Gets or sets the party being upserted.
         /// </summary>
         public PartyRecord? Party { get; set; }
 

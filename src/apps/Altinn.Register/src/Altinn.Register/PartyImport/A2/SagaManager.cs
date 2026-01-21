@@ -31,10 +31,8 @@ public sealed class SagaManager
 
     /// <summary>
     /// Starts a new saga instance using the specified command, initializing its state and processing the initial
-    /// message. If the saga has already been started by a different command, an exception is thrown.
+    /// message. If the saga has already been started, the handler runs again to ensure any needed events are published.
     /// </summary>
-    /// <remarks>If the same command is received multiple times, the operation is idempotent and will not
-    /// start the saga again. This method ensures that only one saga instance is started per unique command.</remarks>
     /// <typeparam name="TSaga">The saga type to start.</typeparam>
     /// <typeparam name="TCommand">The type of command that initiates the saga. Must inherit from <see cref="CommandBase"/>.</typeparam>
     /// <typeparam name="TState">The type of state data associated with the saga. Must implement <see cref="ISagaStateData{TSelf}"/>.</typeparam>
@@ -73,9 +71,6 @@ public sealed class SagaManager
     /// <summary>
     /// Handles a saga message by retrieving the corresponding saga state and invoking the appropriate handler logic.
     /// </summary>
-    /// <remarks>This method retrieves the saga state using the correlation identifier from the message and
-    /// ensures the saga is started before handling the message. The saga handler logic is invoked within a managed unit
-    /// of work, which may include activity tagging and resource management.</remarks>
     /// <typeparam name="TSaga">The saga type that processes the message and maintains state. Must implement both ISagaHandles and ISaga
     /// interfaces for the specified message and state types.</typeparam>
     /// <typeparam name="TMessage">The type of message to be handled by the saga. Must be a class implementing <see cref="CorrelatedBy{TKey}"/>.</typeparam>
