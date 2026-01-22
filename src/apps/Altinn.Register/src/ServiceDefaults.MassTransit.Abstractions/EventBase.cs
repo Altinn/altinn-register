@@ -15,8 +15,11 @@ public abstract record EventBase
     private readonly Guid _correlationId;
 
     /// <summary>
-    /// Initializes a new instance of the CommandBase class with a unique identifier and correlation ID.
+    /// Initializes a new instance of the <see cref="EventBase"/> class with a unique identifier and correlation ID.
     /// </summary>
+    /// <remarks>
+    /// The <see cref="CorrelationId"/> can be overridden by derived classes <strong>or</strong> by the producer of the event.
+    /// </remarks>
     protected EventBase()
     {
         _id = Guid.CreateVersion7();
