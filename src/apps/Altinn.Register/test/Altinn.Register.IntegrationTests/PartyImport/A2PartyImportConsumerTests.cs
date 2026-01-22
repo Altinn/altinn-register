@@ -125,7 +125,7 @@ public class A2PartyImportConsumerTests
             var assignments = await roles.GetExternalRoleAssignmentsFromParty(
                 orgEvent.Party.PartyUuid,
                 cancellationToken: ct)
-                .ToListAsync();
+                .ToListAsync(ct);
 
             assignments.Count.ShouldBe(2);
             assignments.ShouldContain(a => a.FromParty == party.PartyUuid && a.ToParty == person1.PartyUuid && a.Identifier.Value == "daglig-leder" && a.Source.Value == ExternalRoleSource.CentralCoordinatingRegister);
