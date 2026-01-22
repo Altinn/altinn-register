@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Authorization.TestUtils.Http;
@@ -147,6 +147,7 @@ public class ProfileImportFlowTests
                   "UserName": "",
                   "ExternalIdentity": "",
                   "IsReserved": false,
+                  "IsActive": true,
                   "PhoneNumber": null,
                   "Email": null,
                   "PartyId": {{person.PartyId.Value}},
@@ -193,6 +194,49 @@ public class ProfileImportFlowTests
                 }
                 """);
 
+        FakeHttpHandlers.For<IA2PartyImportService>()
+            .Expect(HttpMethod.Get, "/register/api/parties")
+            .WithQuery("partyuuid", person.PartyUuid.Value.ToString())
+            .Respond(
+                "application/json",
+                $$"""
+                {
+                    "PartyTypeName": 1,
+                    "SSN": "{{person.PersonIdentifier.Value}}",
+                    "OrgNumber": "",
+                    "Person": {
+                        "SSN": "{{person.PersonIdentifier.Value}}",
+                        "Name": "{{person.ShortName.Value}}",
+                        "FirstName": "{{person.FirstName.Value}}",
+                        "MiddleName": "{{person.MiddleName.Value}}",
+                        "LastName": "{{person.LastName.Value}}",
+                        "TelephoneNumber": "",
+                        "MobileNumber": "",
+                        "MailingAddress": "Amalie Jessens vei 26",
+                        "MailingPostalCode": "3182",
+                        "MailingPostalCity": "HORTEN",
+                        "AddressMunicipalNumber": "",
+                        "AddressMunicipalName": "",
+                        "AddressStreetName": "",
+                        "AddressHouseNumber": "",
+                        "AddressHouseLetter": "",
+                        "AddressPostalCode": "3182",
+                        "AddressCity": "HORTEN",
+                        "DateOfDeath": null
+                    },
+                    "Organization": null,
+                    "PartyId": {{person.PartyId.Value}},
+                    "PartyUUID": "{{person.PartyUuid.Value}}",
+                    "UnitType": null,
+                    "LastChangedInAltinn": "2009-06-06T15:12:18.787+02:00",
+                    "LastChangedInExternalRegister": null,
+                    "Name": "{{person.ShortName.Value}}",
+                    "IsDeleted": false,
+                    "OnlyHierarchyElementWithNoAccess": false,
+                    "ChildParties": null
+                }
+                """);
+
         var cmd = new ImportA2UserProfileCommand
         {
             UserId = userId,
@@ -204,10 +248,8 @@ public class ProfileImportFlowTests
         await CommandSender.Send(cmd, TestContext.Current.CancellationToken);
 
         var conversation = await TestHarness.Conversation(cmd, TestContext.Current.CancellationToken);
-        var consumed = await conversation.Commands.OfType<UpsertUserRecordCommand>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
-        var evt = await conversation.Events.Completed.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+        var evt = await conversation.Events.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
-        consumed.ShouldNotBeNull();
         evt.ShouldNotBeNull();
         evt.Party.PartyUuid.ShouldBe(person.PartyUuid.Value);
 
@@ -357,6 +399,7 @@ public class ProfileImportFlowTests
                   "UserName": "updated-name",
                   "ExternalIdentity": "",
                   "IsReserved": false,
+                  "IsActive": true,
                   "PhoneNumber": null,
                   "Email": null,
                   "PartyId": {{siUser.PartyId.Value}},
@@ -384,6 +427,30 @@ public class ProfileImportFlowTests
                 }
                 """);
 
+        FakeHttpHandlers.For<IA2PartyImportService>()
+            .Expect(HttpMethod.Get, "/register/api/parties")
+            .WithQuery("partyuuid", siUser.PartyUuid.Value.ToString())
+            .Respond(
+                "application/json",
+                $$"""
+                {
+                    "PartyTypeName": 3,
+                    "SSN": "",
+                    "OrgNumber": "",
+                    "Person": null,
+                    "Organization": null,
+                    "PartyId": {{siUser.PartyId.Value}},
+                    "PartyUUID": "{{siUser.PartyUuid.Value}}",
+                    "UnitType": null,
+                    "LastChangedInAltinn": "2010-03-02T01:53:44.87+01:00",
+                    "LastChangedInExternalRegister": null,
+                    "Name": "updated-name",
+                    "IsDeleted": false,
+                    "OnlyHierarchyElementWithNoAccess": false,
+                    "ChildParties": null
+                }
+                """);
+
         var cmd = new ImportA2UserProfileCommand
         {
             UserId = userId,
@@ -395,10 +462,8 @@ public class ProfileImportFlowTests
         await CommandSender.Send(cmd, TestContext.Current.CancellationToken);
 
         var conversation = await TestHarness.Conversation(cmd, TestContext.Current.CancellationToken);
-        var consumed = await conversation.Commands.OfType<UpsertValidatedPartyCommand>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
-        var evt = await conversation.Events.Completed.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+        var evt = await conversation.Events.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
-        consumed.ShouldNotBeNull();
         evt.ShouldNotBeNull();
         evt.Party.PartyUuid.ShouldBe(siUser.PartyUuid.Value);
 
@@ -447,6 +512,7 @@ public class ProfileImportFlowTests
                   "UserName": "updated-name",
                   "ExternalIdentity": "",
                   "IsReserved": false,
+                  "IsActive": false,
                   "PhoneNumber": null,
                   "Email": null,
                   "PartyId": {{siUser.PartyId.Value}},
@@ -474,6 +540,30 @@ public class ProfileImportFlowTests
                 }
                 """);
 
+        FakeHttpHandlers.For<IA2PartyImportService>()
+            .Expect(HttpMethod.Get, "/register/api/parties")
+            .WithQuery("partyuuid", siUser.PartyUuid.Value.ToString())
+            .Respond(
+                "application/json",
+                $$"""
+                {
+                    "PartyTypeName": 3,
+                    "SSN": "",
+                    "OrgNumber": "",
+                    "Person": null,
+                    "Organization": null,
+                    "PartyId": {{siUser.PartyId.Value}},
+                    "PartyUUID": "{{siUser.PartyUuid.Value}}",
+                    "UnitType": null,
+                    "LastChangedInAltinn": "2010-03-02T01:53:44.00+01:00",
+                    "LastChangedInExternalRegister": null,
+                    "Name": "updated-name",
+                    "IsDeleted": false,
+                    "OnlyHierarchyElementWithNoAccess": false,
+                    "ChildParties": null
+                }
+                """);
+
         var cmd = new ImportA2UserProfileCommand
         {
             UserId = userId,
@@ -485,10 +575,8 @@ public class ProfileImportFlowTests
         await CommandSender.Send(cmd, TestContext.Current.CancellationToken);
 
         var conversation = await TestHarness.Conversation(cmd, TestContext.Current.CancellationToken);
-        var consumed = await conversation.Commands.OfType<UpsertValidatedPartyCommand>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
-        var evt = await conversation.Events.Completed.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+        var evt = await conversation.Events.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
-        consumed.ShouldNotBeNull();
         evt.ShouldNotBeNull();
         evt.Party.PartyUuid.ShouldBe(siUser.PartyUuid.Value);
 
@@ -535,6 +623,7 @@ public class ProfileImportFlowTests
                   "UserType": 3,
                   "UserName": "enterprise-user-name",
                   "ExternalIdentity": "",
+                  "IsActive": true,
                   "IsReserved": false,
                   "PhoneNumber": null,
                   "Email": null,
@@ -591,10 +680,8 @@ public class ProfileImportFlowTests
         await CommandSender.Send(cmd, TestContext.Current.CancellationToken);
 
         var conversation = await TestHarness.Conversation(cmd, TestContext.Current.CancellationToken);
-        var consumed = await conversation.Commands.OfType<UpsertValidatedPartyCommand>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
-        var evt = await conversation.Events.Completed.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+        var evt = await conversation.Events.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
-        consumed.ShouldNotBeNull();
         evt.ShouldNotBeNull();
         evt.Party.PartyUuid.ShouldBe(uuid);
 
@@ -642,6 +729,7 @@ public class ProfileImportFlowTests
                   "UserName": "enterprise-user-name",
                   "ExternalIdentity": "",
                   "IsReserved": false,
+                  "IsActive": false,
                   "PhoneNumber": null,
                   "Email": null,
                   "PartyId": {{org.PartyId.Value}},
@@ -697,10 +785,8 @@ public class ProfileImportFlowTests
         await CommandSender.Send(cmd, TestContext.Current.CancellationToken);
 
         var conversation = await TestHarness.Conversation(cmd, TestContext.Current.CancellationToken);
-        var consumed = await conversation.Commands.OfType<UpsertValidatedPartyCommand>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
-        var evt = await conversation.Events.Completed.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+        var evt = await conversation.Events.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
-        consumed.ShouldNotBeNull();
         evt.ShouldNotBeNull();
         evt.Party.PartyUuid.ShouldBe(uuid);
 
@@ -738,19 +824,55 @@ public class ProfileImportFlowTests
         var pUserId = person.User.Value.UserId.Value;
         var pUuid = person.PartyUuid.Value;
 
-        var profileJson =
-            $$"""
-            {
-                "UserId": {{siUserId}},
-                "UserUUID": "{{siUuid}}",
-                "UserType": 2,
-                "UserName": "{{username}}",
-                "ExternalIdentity": "",
-                "IsReserved": false,
-                "PhoneNumber": null,
-                "Email": null,
-                "PartyId": {{siPartyId}},
-                "Party": {
+        // First: SI user is created
+        FakeHttpHandlers.For<IA2PartyImportService>()
+            .Expect(HttpMethod.Get, "/profile/api/users/{userId}")
+            .WithRouteValue("userId", siUserId.ToString())
+            .Respond(
+                "application/json",
+                $$"""
+                {
+                    "UserId": {{siUserId}},
+                    "UserUUID": "{{siUuid}}",
+                    "UserType": 2,
+                    "UserName": "{{username}}",
+                    "ExternalIdentity": "",
+                    "IsReserved": false,
+                    "IsActive": true,
+                    "PhoneNumber": null,
+                    "Email": null,
+                    "PartyId": {{siPartyId}},
+                    "Party": {
+                        "PartyTypeName": 3,
+                        "SSN": "",
+                        "OrgNumber": "",
+                        "Person": null,
+                        "Organization": null,
+                        "PartyId": {{siPartyId}},
+                        "PartyUUID": "{{siUuid}}",
+                        "UnitType": null,
+                        "LastChangedInAltinn": "2010-03-02T01:53:44.87+01:00",
+                        "LastChangedInExternalRegister": null,
+                        "Name": "{{username}}",
+                        "IsDeleted": false,
+                        "OnlyHierarchyElementWithNoAccess": false,
+                        "ChildParties": null
+                    },
+                    "ProfileSettingPreference": {
+                        "Language": "nb",
+                        "PreSelectedPartyId": 0,
+                        "DoNotPromptForParty": false
+                    }
+                }
+                """);
+
+        FakeHttpHandlers.For<IA2PartyImportService>()
+            .Expect(HttpMethod.Get, "/register/api/parties")
+            .WithQuery("partyuuid", siUuid.ToString())
+            .Respond(
+                "application/json",
+                $$"""
+                {
                     "PartyTypeName": 3,
                     "SSN": "",
                     "OrgNumber": "",
@@ -765,26 +887,9 @@ public class ProfileImportFlowTests
                     "IsDeleted": false,
                     "OnlyHierarchyElementWithNoAccess": false,
                     "ChildParties": null
-                },
-                "ProfileSettingPreference": {
-                    "Language": "nb",
-                    "PreSelectedPartyId": 0,
-                    "DoNotPromptForParty": false
                 }
-            }
-            """;
+                """);
 
-        FakeHttpHandlers.For<IA2PartyImportService>()
-            .Expect(HttpMethod.Get, "/profile/api/users/{userId}")
-            .WithRouteValue("userId", siUserId.ToString())
-            .Respond("application/json", profileJson);
-
-        FakeHttpHandlers.For<IA2PartyImportService>()
-            .Expect(HttpMethod.Get, "/profile/api/users/{userId}")
-            .WithRouteValue("userId", siUserId.ToString())
-            .Respond("application/json", profileJson);
-
-        // First: SI user is created
         await UpsertParty(new ImportA2UserProfileCommand
         {
             UserId = siUserId,
@@ -802,6 +907,71 @@ public class ProfileImportFlowTests
         });
 
         // Second: SI user is deleted
+        FakeHttpHandlers.For<IA2PartyImportService>()
+            .Expect(HttpMethod.Get, "/profile/api/users/{userId}")
+            .WithRouteValue("userId", siUserId.ToString())
+            .Respond(
+                "application/json",
+                $$"""
+                {
+                    "UserId": {{siUserId}},
+                    "UserUUID": "{{siUuid}}",
+                    "UserType": 2,
+                    "UserName": "{{username}}",
+                    "ExternalIdentity": "",
+                    "IsReserved": false,
+                    "IsActive": false,
+                    "PhoneNumber": null,
+                    "Email": null,
+                    "PartyId": {{siPartyId}},
+                    "Party": {
+                        "PartyTypeName": 3,
+                        "SSN": "",
+                        "OrgNumber": "",
+                        "Person": null,
+                        "Organization": null,
+                        "PartyId": {{siPartyId}},
+                        "PartyUUID": "{{siUuid}}",
+                        "UnitType": null,
+                        "LastChangedInAltinn": "2010-03-02T01:53:44.87+01:00",
+                        "LastChangedInExternalRegister": null,
+                        "Name": "{{username}}",
+                        "IsDeleted": false,
+                        "OnlyHierarchyElementWithNoAccess": false,
+                        "ChildParties": null
+                    },
+                    "ProfileSettingPreference": {
+                        "Language": "nb",
+                        "PreSelectedPartyId": 0,
+                        "DoNotPromptForParty": false
+                    }
+                }
+                """);
+
+        FakeHttpHandlers.For<IA2PartyImportService>()
+            .Expect(HttpMethod.Get, "/register/api/parties")
+            .WithQuery("partyuuid", siUuid.ToString())
+            .Respond(
+                "application/json",
+                $$"""
+                {
+                    "PartyTypeName": 3,
+                    "SSN": "",
+                    "OrgNumber": "",
+                    "Person": null,
+                    "Organization": null,
+                    "PartyId": {{siPartyId}},
+                    "PartyUUID": "{{siUuid}}",
+                    "UnitType": null,
+                    "LastChangedInAltinn": "2010-03-02T01:53:44.87+01:00",
+                    "LastChangedInExternalRegister": null,
+                    "Name": "{{username}}",
+                    "IsDeleted": false,
+                    "OnlyHierarchyElementWithNoAccess": false,
+                    "ChildParties": null
+                }
+                """);
+
         await UpsertParty(new ImportA2UserProfileCommand
         {
             UserId = siUserId,

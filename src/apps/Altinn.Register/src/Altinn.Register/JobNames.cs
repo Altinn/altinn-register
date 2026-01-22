@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 namespace Altinn.Register;
 
@@ -16,11 +16,6 @@ internal static class JobNames
     /// Job name for A2 party import-external-roles job.
     /// </summary>
     internal const string A2PartyImportCCRRoleAssignments = $"{LeaseNames.A2PartyImport}:ccr-roles";
-
-    /// <summary>
-    /// Job name for A2 party import-userid job.
-    /// </summary>
-    internal const string A2PartyUserIdImport = $"{LeaseNames.A2PartyUserIdImport}:userid";
 
     /// <summary>
     /// Job name for A2 profile-changes import job.

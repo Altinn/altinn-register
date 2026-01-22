@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using Altinn.Register.PartyImport.A2;
 using Altinn.Register.PartyImport.SystemUser;
@@ -14,11 +14,6 @@ internal static class LeaseNames
     /// Lease name for <see cref="A2PartyImportJob"/>.
     /// </summary>
     internal const string A2PartyImport = "a2-party-import";
-
-    /// <summary>
-    /// Lease name for <see cref="A2PartyUserIdImportJob"/>.
-    /// </summary>
-    internal const string A2PartyUserIdImport = "a2-party-userid-import";
 
     /// <summary>
     /// Lease name for <see cref="A2ProfileImportJob"/>.

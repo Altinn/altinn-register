@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -471,6 +471,7 @@ public class A2PartyImportServiceTests
                   "UserName": "",
                   "ExternalIdentity": "",
                   "IsReserved": false,
+                  "IsActive": true,
                   "PhoneNumber": null,
                   "Email": null,
                   "PartyId": 50004205,
@@ -527,7 +528,7 @@ public class A2PartyImportServiceTests
         profile.UserId.Should().Be(20002097);
         profile.UserUuid.Should().Be(Guid.Parse("76bc6f6e-8090-4ca6-8fd0-57054ffe1daf"));
         profile.UserName.Should().BeNull();
-        profile.IsActive.Should().BeNull();
+        profile.IsActive.Should().BeTrue();
         profile.ProfileType.Should().Be(A2UserProfileType.Person);
     }
 
@@ -547,6 +548,7 @@ public class A2PartyImportServiceTests
                   "UserName": "TestSelfIdentifiedUser",
                   "ExternalIdentity": "",
                   "IsReserved": false,
+                  "IsActive": true,
                   "PhoneNumber": null,
                   "Email": null,
                   "PartyId": 50006237,
@@ -584,7 +586,7 @@ public class A2PartyImportServiceTests
         profile.UserId.Should().Be(20002139);
         profile.UserUuid.Should().Be(Guid.Parse("4fe860c4-bc65-4d2f-a288-f825b460f26b"));
         profile.UserName.Should().Be("TestSelfIdentifiedUser");
-        profile.IsActive.Should().BeNull();
+        profile.IsActive.Should().BeTrue();
         profile.ProfileType.Should().Be(A2UserProfileType.SelfIdentifiedUser);
     }
 
@@ -604,6 +606,7 @@ public class A2PartyImportServiceTests
                   "UserName": "PKQHFDZGLDRIRGJU",
                   "ExternalIdentity": "",
                   "IsReserved": false,
+                  "IsActive": true,
                   "PhoneNumber": null,
                   "Email": null,
                   "PartyId": 50066480,
@@ -658,7 +661,7 @@ public class A2PartyImportServiceTests
         profile.UserId.Should().Be(20005073);
         profile.UserUuid.Should().Be(Guid.Parse("869a3a5f-02db-402c-823a-94584afea394"));
         profile.UserName.Should().Be("PKQHFDZGLDRIRGJU");
-        profile.IsActive.Should().BeNull();
+        profile.IsActive.Should().BeTrue();
         profile.ProfileType.Should().Be(A2UserProfileType.EnterpriseUser);
     }
 

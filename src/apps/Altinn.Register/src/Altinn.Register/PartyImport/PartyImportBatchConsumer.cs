@@ -89,7 +89,7 @@ public sealed partial class PartyImportBatchConsumer
                 // since it's cheap and gives much better error messages than the database layer. This is mostly
                 // to catch if anyone produces UpsertValidatedPartyCommand instances somewhere in the future without
                 // actually validating the party.
-                PartyImportHelper.ValidatePartyForUpset(party);
+                PartyImportHelper.ValidatePartyForUpsert(party);
 
                 var result = await persistence.UpsertParty(party, cancellationToken);
                 result.EnsureSuccess();

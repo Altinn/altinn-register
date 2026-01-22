@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using MassTransit;
 
 namespace Altinn.Authorization.ServiceDefaults.MassTransit;
@@ -9,9 +9,22 @@ namespace Altinn.Authorization.ServiceDefaults.MassTransit;
 [ExcludeFromTopology]
 [ExcludeFromImplementedTypes]
 public abstract record EventBase
-    : CorrelatedBy<Guid>
+    : IMessageBase
 {
-    private readonly Guid _id = Guid.CreateVersion7();
+    private readonly Guid _id;
+    private readonly Guid _correlationId;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EventBase"/> class with a unique identifier and correlation ID.
+    /// </summary>
+    /// <remarks>
+    /// The <see cref="CorrelationId"/> can be overridden by derived classes <strong>or</strong> by the producer of the event.
+    /// </remarks>
+    protected EventBase()
+    {
+        _id = Guid.CreateVersion7();
+        _correlationId = _id;
+    }
 
     /// <summary>
     /// Gets the event ID.
@@ -24,6 +37,16 @@ public abstract record EventBase
         private init => _id = value;
     }
 
-    /// <inheritdoc />
-    Guid CorrelatedBy<Guid>.CorrelationId => EventId;
+    /// <summary>
+    /// Gets the unique identifier used to correlate related operations or requests.
+    /// </summary>
+    public Guid CorrelationId
+    {
+        get => _correlationId;
+        init => _correlationId = value;
+    }
+
+    /// <inheritdoc/>
+    Guid IMessageBase.MessageId
+        => EventId;
 }

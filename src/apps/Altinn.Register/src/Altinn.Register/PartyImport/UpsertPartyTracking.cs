@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Diagnostics;
@@ -34,4 +34,9 @@ public readonly record struct UpsertPartyTracking
     /// The change ID of the party.
     /// </summary>
     public required ulong Progress { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether this instance has a value.
+    /// </summary>
+    public bool HasValue => JobName is not null;
 }

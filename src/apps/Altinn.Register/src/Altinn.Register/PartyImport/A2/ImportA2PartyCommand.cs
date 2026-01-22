@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 
@@ -24,4 +24,9 @@ public sealed record ImportA2PartyCommand
     /// Gets when the change was registered.
     /// </summary>
     public required DateTimeOffset ChangedTime { get; init; }
+
+    /// <summary>
+    /// Gets tracking information for the import job.
+    /// </summary>
+    public UpsertPartyTracking Tracking { get; init; }
 }

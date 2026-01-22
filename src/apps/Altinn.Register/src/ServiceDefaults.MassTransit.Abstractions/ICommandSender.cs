@@ -1,4 +1,4 @@
-﻿namespace Altinn.Authorization.ServiceDefaults.MassTransit;
+namespace Altinn.Authorization.ServiceDefaults.MassTransit;
 
 /// <summary>
 /// A command sender.
