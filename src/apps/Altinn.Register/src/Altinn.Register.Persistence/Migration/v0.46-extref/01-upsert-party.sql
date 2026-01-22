@@ -87,7 +87,7 @@ BEGIN
             , COLUMN = 'organization_identifier';
     END IF;
 
-    IF o_party.ext_urn <> p_ext_urn AND o_party.ext_urn IS NOT NULL THEN
+    IF o_party.ext_urn IS NOT NULL AND o_party.ext_urn IS DISTINCT FROM p_ext_urn THEN
       RAISE EXCEPTION 'Cannot update immutable field "ext_urn" on party, existing: %, updated: %, party_uuid: %', o_party.ext_urn, p_ext_urn, p_uuid
         USING ERRCODE = 'ZZ001'
             , SCHEMA = 'register'
