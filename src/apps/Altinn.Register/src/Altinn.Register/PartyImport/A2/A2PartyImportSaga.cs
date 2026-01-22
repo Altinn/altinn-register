@@ -3,7 +3,6 @@
 using System.Diagnostics;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
-using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Contracts.Parties;
@@ -15,7 +14,6 @@ using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.Utils;
 using CommunityToolkit.Diagnostics;
-using MassTransit;
 
 namespace Altinn.Register.PartyImport.A2;
 
@@ -93,9 +91,11 @@ public sealed partial class A2PartyImportSaga
     /// <inheritdoc/>
     public async Task Handle(ImportA2PartyCommand message, CancellationToken cancellationToken)
     {
+        Debug.Assert(message.PartyUuid == State.PartyUuid);
+
         var now = _timeProvider.GetUtcNow();
 
-        if (await FetchParty(message.PartyUuid, cancellationToken) == FlowControl.Break)
+        if (await FetchParty(cancellationToken) == FlowControl.Break)
         {
             return;
         }
@@ -106,6 +106,8 @@ public sealed partial class A2PartyImportSaga
     /// <inheritdoc/>
     public async Task Handle(ImportA2UserProfileCommand message, CancellationToken cancellationToken)
     {
+        Debug.Assert(message.OwnerPartyUuid == State.PartyUuid);
+
         var now = _timeProvider.GetUtcNow();
 
         var profileResult = await _importService.GetProfile(message.UserId, cancellationToken);
@@ -129,7 +131,7 @@ public sealed partial class A2PartyImportSaga
 
             case A2UserProfileType.Person:
             case A2UserProfileType.SelfIdentifiedUser:
-                if (State.Party is null && await FetchParty(message.OwnerPartyUuid, cancellationToken) == FlowControl.Break)
+                if (State.Party is null && await FetchParty(cancellationToken) == FlowControl.Break)
                 {
                     return;
                 }
@@ -336,7 +338,7 @@ public sealed partial class A2PartyImportSaga
         MarkComplete();
     }
 
-    private async Task<FlowControl> FetchParty(Guid partyUuid, CancellationToken cancellationToken)
+    private async Task<FlowControl> FetchParty(CancellationToken cancellationToken)
     {
         var partyResult = await _importService.GetParty(State.PartyUuid, cancellationToken);
         if (partyResult is { Problem.ErrorCode: var errorCode }

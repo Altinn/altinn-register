@@ -116,6 +116,9 @@ public sealed class SagaManager
         where TMessage : class, IMessageBase
         where TState : class, ISagaStateData<TState>
     {
+        // Note: Duplicate message deliveries are intentionally re-processed to ensure events and
+        // follow-up commands are emitted. Idempotency is handled at the saga level, not here.
+        // TODO: Consider implementing event persistence in saga state for guaranteed delivery.
         var messageId = message.MessageId;
         context.State.Messages.Add(messageId);
 
