@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.ModelUtils;
 
 namespace Altinn.Register.Contracts.Tests;
 
@@ -15,6 +15,7 @@ public class OrganizationTests
             new Organization
             {
                 Uuid = Uuid,
+                ExternalUrn = NonExhaustive.Create<PartyExternalRefUrn>(PartyExternalRefUrn.OrganizationId.Create(OrganizationIdentifier)),
                 PartyId = FieldValue.Unset,
                 DisplayName = FieldValue.Unset,
                 CreatedAt = FieldValue.Unset,
@@ -41,7 +42,8 @@ public class OrganizationTests
               "partyUuid": "00000000-0000-0000-0000-000000000001",
               "organizationIdentifier": "123456785",
               "versionId": 1,
-              "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000001"
+              "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000001",
+              "externalUrn": "urn:altinn:organization:identifier-no:123456785"
             }
             """);
     }
@@ -53,6 +55,7 @@ public class OrganizationTests
             new Organization
             {
                 Uuid = Uuid,
+                ExternalUrn = NonExhaustive.Create<PartyExternalRefUrn>(PartyExternalRefUrn.OrganizationId.Create(OrganizationIdentifier)),
                 PartyId = PartyId,
                 DisplayName = "Display Name",
                 CreatedAt = CreatedAt,
@@ -90,6 +93,7 @@ public class OrganizationTests
               "organizationIdentifier": "123456785",
               "versionId": 1,
               "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000001",
+              "externalUrn": "urn:altinn:organization:identifier-no:123456785",
               "partyId": 12345678,
               "displayName": "Display Name",
               "createdAt": "2020-01-02T03:04:05+00:00",

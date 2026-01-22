@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.ModelUtils;
 
 namespace Altinn.Register.Contracts.Tests;
 
@@ -12,6 +12,7 @@ public class EnterpriseUserTests
             new EnterpriseUser
             {
                 Uuid = Uuid,
+                ExternalUrn = FieldValue.Null,
                 PartyId = FieldValue.Unset,
                 DisplayName = FieldValue.Unset,
                 CreatedAt = FieldValue.Unset,
@@ -27,7 +28,8 @@ public class EnterpriseUserTests
               "partyType": "enterprise-user",
               "partyUuid": "00000000-0000-0000-0000-000000000001",
               "versionId": 1,
-              "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000001"
+              "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000001",
+              "externalUrn": null
             }
             """);
     }
@@ -39,6 +41,7 @@ public class EnterpriseUserTests
             new EnterpriseUser
             {
                 Uuid = Uuid,
+                ExternalUrn = FieldValue.Null,
                 PartyId = PartyId,
                 DisplayName = "Display Name",
                 CreatedAt = CreatedAt,
@@ -55,6 +58,7 @@ public class EnterpriseUserTests
               "partyUuid": "00000000-0000-0000-0000-000000000001",
               "versionId": 1,
               "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000001",
+              "externalUrn": null,
               "partyId": 12345678,
               "displayName": "Display Name",
               "createdAt": "2020-01-02T03:04:05+00:00",
