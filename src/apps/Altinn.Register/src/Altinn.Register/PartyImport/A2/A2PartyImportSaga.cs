@@ -197,7 +197,7 @@ public sealed partial class A2PartyImportSaga
             throw new InvalidOperationException("Party is not set");
         }
 
-        PartyImportHelper.ValidatePartyForUpset(State.Party);
+        PartyImportHelper.ValidatePartyForUpsert(State.Party);
         var partyResult = await _parties.UpsertParty(State.Party, cancellationToken);
         partyResult.EnsureSuccess();
 

@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using MassTransit;
@@ -27,7 +27,7 @@ public sealed class PartyImportValidationConsumer
     /// <param name="context">The consume context.</param>
     public async Task Consume(ConsumeContext<UpsertPartyCommand> context)
     {
-        PartyImportHelper.ValidatePartyForUpset(context.Message.Party);
+        PartyImportHelper.ValidatePartyForUpsert(context.Message.Party);
 
         await _sender.Send(UpsertValidatedPartyCommand.From(context.Message), context.CancellationToken);
     }

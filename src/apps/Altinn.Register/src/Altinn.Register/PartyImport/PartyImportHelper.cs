@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Text;
 using Altinn.Authorization.ProblemDetails;
@@ -17,7 +17,7 @@ public static class PartyImportHelper
     /// </summary>
     /// <param name="party">The party.</param>
     /// <exception cref="ProblemInstanceException">Thrown if the party is not valid.</exception>
-    public static void ValidatePartyForUpset(PartyRecord party)
+    public static void ValidatePartyForUpsert(PartyRecord party)
     {
         ValidationErrorBuilder builder = default;
 
