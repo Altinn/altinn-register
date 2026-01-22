@@ -62,7 +62,16 @@ public abstract partial record PartyUrn
     /// <returns><see langword="true"/> if this party reference is a username, otherwise <see langword="false"/>.</returns>
     [UrnKey("altinn:party:username", Canonical = true)]
     [UrnKey("altinn:username")]
+    [UrnKey("altinn:person:legacy-selfidentified")]
     public partial bool IsUsername(out UrnEncoded username);
+
+    /// <summary>
+    /// Try to get the urn as an ID-Porten email.
+    /// </summary>
+    /// <param name="email">The resulting email.</param>
+    /// <returns><see langword="true"/> if this party reference is a ID-Porten email, otherwise <see langword="false"/>.</returns>
+    [UrnKey("altinn:person:idporten-email")]
+    public partial bool IsIDPortenEmail(out UrnEncoded email);
 
     // Manually overridden to disallow negative party ids
     private static bool TryParsePartyId(ReadOnlySpan<char> segment, IFormatProvider? provider, out uint value)

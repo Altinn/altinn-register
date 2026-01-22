@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.ModelUtils;
 
 namespace Altinn.Register.Contracts.Tests;
 
@@ -15,6 +15,7 @@ public class PersonTests
             new Person
             {
                 Uuid = Uuid,
+                ExternalUrn = NonExhaustive.Create<PartyExternalRefUrn>(PartyExternalRefUrn.PersonId.Create(PersonIdentifier)),
                 PartyId = FieldValue.Unset,
                 DisplayName = FieldValue.Unset,
                 CreatedAt = FieldValue.Unset,
@@ -40,7 +41,8 @@ public class PersonTests
               "partyUuid": "00000000-0000-0000-0000-000000000001",
               "personIdentifier": "25871999336",
               "versionId": 1,
-              "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000001"
+              "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000001",
+              "externalUrn": "urn:altinn:person:identifier-no:25871999336"
             }
             """);
     }
@@ -52,6 +54,7 @@ public class PersonTests
             new Person
             {
                 Uuid = Uuid,
+                ExternalUrn = NonExhaustive.Create<PartyExternalRefUrn>(PartyExternalRefUrn.PersonId.Create(PersonIdentifier)),
                 PartyId = PartyId,
                 DisplayName = "Display Name",
                 CreatedAt = CreatedAt,
@@ -92,6 +95,7 @@ public class PersonTests
               "personIdentifier": "25871999336",
               "versionId": 1,
               "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000001",
+              "externalUrn": "urn:altinn:person:identifier-no:25871999336",
               "partyId": 12345678,
               "displayName": "Display Name",
               "createdAt": "2020-01-02T03:04:05+00:00",
@@ -134,6 +138,7 @@ public class PersonTests
             new Person
             {
                 Uuid = Uuid,
+                ExternalUrn = NonExhaustive.Create<PartyExternalRefUrn>(PartyExternalRefUrn.PersonId.Create(PersonIdentifier)),
                 PartyId = PartyId,
                 DisplayName = "Display Name",
                 CreatedAt = CreatedAt,
@@ -174,6 +179,7 @@ public class PersonTests
               "personIdentifier": "25871999336",
               "versionId": 1,
               "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000001",
+              "externalUrn": "urn:altinn:person:identifier-no:25871999336",
               "partyId": 12345678,
               "displayName": "Display Name",
               "createdAt": "2020-01-02T03:04:05+00:00",

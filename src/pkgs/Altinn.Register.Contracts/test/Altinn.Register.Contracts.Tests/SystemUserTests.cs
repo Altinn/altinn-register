@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.ModelUtils;
 
 namespace Altinn.Register.Contracts.Tests;
 
@@ -12,6 +12,7 @@ public class SystemUserTests
             new SystemUser
             {
                 Uuid = Uuid,
+                ExternalUrn = NonExhaustive.Create<PartyExternalRefUrn>(PartyExternalRefUrn.SystemUserUuid.Create(Uuid)),
                 PartyId = FieldValue.Unset,
                 DisplayName = FieldValue.Unset,
                 CreatedAt = FieldValue.Unset,
@@ -28,7 +29,8 @@ public class SystemUserTests
               "partyType": "system-user",
               "partyUuid": "00000000-0000-0000-0000-000000000001",
               "versionId": 1,
-              "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000001"
+              "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000001",
+              "externalUrn": "urn:altinn:systemuser:uuid:00000000-0000-0000-0000-000000000001"
             }
             """);
     }
@@ -40,6 +42,7 @@ public class SystemUserTests
             new SystemUser
             {
                 Uuid = Uuid,
+                ExternalUrn = NonExhaustive.Create<PartyExternalRefUrn>(PartyExternalRefUrn.SystemUserUuid.Create(Uuid)),
                 PartyId = PartyId,
                 DisplayName = "Display Name",
                 CreatedAt = CreatedAt,
@@ -57,6 +60,7 @@ public class SystemUserTests
               "partyUuid": "00000000-0000-0000-0000-000000000001",
               "versionId": 1,
               "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000001",
+              "externalUrn": "urn:altinn:systemuser:uuid:00000000-0000-0000-0000-000000000001",
               "partyId": 12345678,
               "displayName": "Display Name",
               "createdAt": "2020-01-02T03:04:05+00:00",
@@ -80,6 +84,7 @@ public class SystemUserTests
             new SystemUser
             {
                 Uuid = Uuid,
+                ExternalUrn = NonExhaustive.Create<PartyExternalRefUrn>(PartyExternalRefUrn.SystemUserUuid.Create(Uuid)),
                 PartyId = PartyId,
                 DisplayName = "Display Name",
                 CreatedAt = CreatedAt,
@@ -97,6 +102,7 @@ public class SystemUserTests
               "partyUuid": "00000000-0000-0000-0000-000000000001",
               "versionId": 1,
               "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000001",
+              "externalUrn": "urn:altinn:systemuser:uuid:00000000-0000-0000-0000-000000000001",
               "partyId": 12345678,
               "displayName": "Display Name",
               "createdAt": "2020-01-02T03:04:05+00:00",

@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
 using Altinn.Authorization.ModelUtils;
 using CommunityToolkit.Diagnostics;
@@ -59,6 +59,12 @@ public record Party
     [JsonPropertyName("urn")]
     public PartyUrn.PartyUuid Urn
         => _urn;
+
+    /// <summary>
+    /// Gets the external reference of the party.
+    /// </summary>
+    [JsonPropertyName("externalUrn")]
+    public FieldValue<NonExhaustive<PartyExternalRefUrn>> ExternalUrn { get; init; }
 
     /// <summary>
     /// Gets the ID of the party.
