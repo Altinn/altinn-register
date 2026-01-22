@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -264,6 +264,7 @@ internal partial class PostgreSqlPartyPersistence
                 {
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>(fields.PartyUuid, cancellationToken),
                     PartyId = await reader.GetConditionalFieldValueAsync<int>(fields.PartyId, cancellationToken).Select(static id => checked((uint)id)),
+                    ExternalUrn = await reader.GetConditionalParsableFieldValueAsync<PartyExternalRefUrn>(fields.PartyExternalUrn, cancellationToken),
                     DisplayName = await reader.GetConditionalFieldValueAsync<string>(fields.PartyDisplayName, cancellationToken),
                     PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>(fields.PartyPersonIdentifier, cancellationToken),
                     OrganizationIdentifier = await reader.GetConditionalParsableFieldValueAsync<OrganizationIdentifier>(fields.PartyOrganizationIdentifier, cancellationToken),
@@ -292,6 +293,7 @@ internal partial class PostgreSqlPartyPersistence
                 {
                     PartyUuid = common.PartyUuid,
                     PartyId = common.PartyId,
+                    ExternalUrn = common.ExternalUrn,
                     DisplayName = common.DisplayName,
                     PersonIdentifier = common.PersonIdentifier,
                     OrganizationIdentifier = common.OrganizationIdentifier,
@@ -328,6 +330,7 @@ internal partial class PostgreSqlPartyPersistence
                 {
                     PartyUuid = common.PartyUuid,
                     PartyId = common.PartyId,
+                    ExternalUrn = common.ExternalUrn,
                     DisplayName = common.DisplayName,
                     PersonIdentifier = common.PersonIdentifier,
                     OrganizationIdentifier = common.OrganizationIdentifier,
@@ -379,6 +382,7 @@ internal partial class PostgreSqlPartyPersistence
                 {
                     PartyUuid = common.PartyUuid,
                     PartyId = common.PartyId,
+                    ExternalUrn = common.ExternalUrn,
                     DisplayName = common.DisplayName,
                     PersonIdentifier = common.PersonIdentifier,
                     OrganizationIdentifier = common.OrganizationIdentifier,
@@ -417,6 +421,7 @@ internal partial class PostgreSqlPartyPersistence
                 {
                     PartyUuid = common.PartyUuid,
                     PartyId = common.PartyId,
+                    ExternalUrn = common.ExternalUrn,
                     DisplayName = common.DisplayName,
                     PersonIdentifier = common.PersonIdentifier,
                     OrganizationIdentifier = common.OrganizationIdentifier,
@@ -446,6 +451,7 @@ internal partial class PostgreSqlPartyPersistence
                 {
                     PartyUuid = common.PartyUuid,
                     PartyId = common.PartyId,
+                    ExternalUrn = common.ExternalUrn,
                     DisplayName = common.DisplayName,
                     PersonIdentifier = common.PersonIdentifier,
                     OrganizationIdentifier = common.OrganizationIdentifier,
@@ -475,6 +481,7 @@ internal partial class PostgreSqlPartyPersistence
                 {
                     PartyUuid = common.PartyUuid,
                     PartyId = common.PartyId,
+                    ExternalUrn = common.ExternalUrn,
                     DisplayName = common.DisplayName,
                     PersonIdentifier = common.PersonIdentifier,
                     OrganizationIdentifier = common.OrganizationIdentifier,
@@ -575,6 +582,7 @@ internal partial class PostgreSqlPartyPersistence
                     partyUuid: builder._partyUuid,
                     partyId: builder._partyId,
                     partyType: builder._partyType,
+                    partyExternalUrn: builder._partyExternalUrn,
                     partyDisplayName: builder._partyDisplayName,
                     partyPersonIdentifier: builder._partyPersonIdentifier,
                     partyOrganizationIdentifier: builder._partyOrganizationIdentifier,
@@ -656,6 +664,7 @@ internal partial class PostgreSqlPartyPersistence
             private sbyte _partyUuid = -1;
             private sbyte _partyId = -1;
             private sbyte _partyType = -1;
+            private sbyte _partyExternalUrn = -1;
             private sbyte _partyDisplayName = -1;
             private sbyte _partyPersonIdentifier = -1;
             private sbyte _partyOrganizationIdentifier = -1;
@@ -706,6 +715,7 @@ internal partial class PostgreSqlPartyPersistence
                 _partyUuid = AddField("party.uuid", "p_uuid", includes.HasFlag(PartyFieldIncludes.PartyUuid));
                 _partyId = AddField("party.id", "p_id", includes.HasFlag(PartyFieldIncludes.PartyId));
                 _partyType = AddField("party.party_type", "p_party_type", includes.HasFlag(PartyFieldIncludes.PartyType));
+                _partyExternalUrn = AddField("party.ext_urn", "p_ext_urn", includes.HasFlag(PartyFieldIncludes.PartyExternalUrn));
                 _partyDisplayName = AddField("party.display_name", "p_display_name", includes.HasFlag(PartyFieldIncludes.PartyDisplayName));
                 _partyPersonIdentifier = AddField("party.person_identifier", "p_person_identifier", includes.HasFlag(PartyFieldIncludes.PartyPersonIdentifier));
                 _partyOrganizationIdentifier = AddField("party.organization_identifier", "p_organization_identifier", includes.HasFlag(PartyFieldIncludes.PartyOrganizationIdentifier));
@@ -1222,6 +1232,7 @@ internal partial class PostgreSqlPartyPersistence
             sbyte partyUuid,
             sbyte partyId,
             sbyte partyType,
+            sbyte partyExternalUrn,
             sbyte partyDisplayName,
             sbyte partyPersonIdentifier,
             sbyte partyOrganizationIdentifier,
@@ -1268,6 +1279,7 @@ internal partial class PostgreSqlPartyPersistence
             public int PartyUuid => partyUuid;
             public int PartyId => partyId;
             public int PartyRecordType => partyType;
+            public int PartyExternalUrn => partyExternalUrn;
             public int PartyDisplayName => partyDisplayName;
             public int PartyPersonIdentifier => partyPersonIdentifier;
             public int PartyOrganizationIdentifier => partyOrganizationIdentifier;

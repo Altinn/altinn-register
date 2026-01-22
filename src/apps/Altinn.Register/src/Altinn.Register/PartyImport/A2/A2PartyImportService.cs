@@ -524,6 +524,7 @@ internal sealed partial class A2PartyImportService
                 // party fields
                 PartyUuid = partyUuid,
                 PartyId = partyId,
+                ExternalUrn = FieldValue.Null, // TODO: depends on the self-identified user type
                 DisplayName = displayName,
                 PersonIdentifier = null,
                 OrganizationIdentifier = null,
@@ -623,6 +624,7 @@ internal sealed partial class A2PartyImportService
                 // party fields
                 PartyUuid = partyUuid,
                 PartyId = partyId,
+                ExternalUrn = PartyExternalRefUrn.PersonId.Create(personIdentifier),
                 DisplayName = displayName,
                 PersonIdentifier = personIdentifier,
                 OrganizationIdentifier = null,
@@ -733,6 +735,7 @@ internal sealed partial class A2PartyImportService
                 // party fields
                 PartyUuid = partyUuid,
                 PartyId = partyId,
+                ExternalUrn = PartyExternalRefUrn.OrganizationId.Create(organizationNumber),
                 DisplayName = name,
                 PersonIdentifier = null,
                 OrganizationIdentifier = organizationNumber,

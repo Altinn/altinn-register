@@ -646,6 +646,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.OrganizationId.Create(orgNo),
             DisplayName = "Test",
             PersonIdentifier = null,
             OrganizationIdentifier = orgNo,
@@ -686,6 +687,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.OrganizationId.Create(orgNo),
             DisplayName = "Test",
             PersonIdentifier = null,
             OrganizationIdentifier = orgNo,
@@ -754,6 +756,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.OrganizationId.Create(orgNo),
             DisplayName = "Test",
             PersonIdentifier = null,
             OrganizationIdentifier = orgNo,
@@ -805,6 +808,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.OrganizationId.Create(orgNo),
             DisplayName = "Test",
             PersonIdentifier = null,
             OrganizationIdentifier = orgNo,
@@ -856,6 +860,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.OrganizationId.Create(orgNo),
             DisplayName = "Test",
             PersonIdentifier = null,
             OrganizationIdentifier = orgNo,
@@ -883,13 +888,15 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         TimeProvider.Advance(TimeSpan.FromDays(30));
 
         var uuid2 = Guid.NewGuid();
+        var orgNo2 = await UoW.GetNewOrgNumber();
         var toInsert2 = new OrganizationRecord
         {
             PartyUuid = uuid2,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.OrganizationId.Create(orgNo2),
             DisplayName = "Test",
             PersonIdentifier = null,
-            OrganizationIdentifier = await UoW.GetNewOrgNumber(),
+            OrganizationIdentifier = orgNo2,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
@@ -934,6 +941,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personId),
             DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
@@ -975,6 +983,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personId),
             DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
@@ -1052,6 +1061,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personId),
             DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
@@ -1104,6 +1114,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personId),
             DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
@@ -1156,6 +1167,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personId),
             DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
@@ -1186,6 +1198,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid2,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personId),
             DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
@@ -1231,6 +1244,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = FieldValue.Null,
             DisplayName = "Test SI User",
             PersonIdentifier = null,
             OrganizationIdentifier = null,
@@ -1264,6 +1278,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = FieldValue.Null,
             DisplayName = "Test SI User",
             PersonIdentifier = null,
             OrganizationIdentifier = null,
@@ -1318,6 +1333,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = FieldValue.Null,
             DisplayName = "Test SI User",
             PersonIdentifier = null,
             OrganizationIdentifier = null,
@@ -1371,6 +1387,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = FieldValue.Null,
             DisplayName = "Test SI User",
             PersonIdentifier = null,
             OrganizationIdentifier = null,
@@ -1415,6 +1432,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = FieldValue.Null,
+            ExternalUrn = PartyExternalRefUrn.SystemUserUuid.Create(uuid),
             DisplayName = "Test System User",
             PersonIdentifier = null,
             OrganizationIdentifier = null,
@@ -1446,6 +1464,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = FieldValue.Null,
+            ExternalUrn = PartyExternalRefUrn.SystemUserUuid.Create(uuid),
             DisplayName = "Test System User",
             PersonIdentifier = null,
             OrganizationIdentifier = null,
@@ -1496,6 +1515,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = FieldValue.Null,
+            ExternalUrn = PartyExternalRefUrn.SystemUserUuid.Create(uuid),
             DisplayName = "Test System User",
             PersonIdentifier = null,
             OrganizationIdentifier = null,
@@ -1549,6 +1569,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = FieldValue.Null,
+            ExternalUrn = PartyExternalRefUrn.SystemUserUuid.Create(uuid),
             DisplayName = "Test System User",
             PersonIdentifier = null,
             OrganizationIdentifier = null,
@@ -1595,6 +1616,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = FieldValue.Null,
+            ExternalUrn = FieldValue.Null,
             DisplayName = "Test SI User",
             PersonIdentifier = null,
             OrganizationIdentifier = null,
@@ -1625,6 +1647,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = FieldValue.Null,
+            ExternalUrn = FieldValue.Null,
             DisplayName = "Test SI User",
             PersonIdentifier = null,
             OrganizationIdentifier = null,
@@ -1980,6 +2003,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personId),
             DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
@@ -2031,6 +2055,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personId),
             DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
@@ -2086,6 +2111,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personId),
             DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
@@ -2140,6 +2166,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personId),
             DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
@@ -2190,6 +2217,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personId),
             DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
@@ -2235,6 +2263,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personId),
             DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
@@ -2306,6 +2335,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personId),
             DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
@@ -2355,6 +2385,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personId),
             DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
@@ -2404,6 +2435,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personId),
             DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
@@ -2453,6 +2485,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personId),
             DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,
@@ -2576,6 +2609,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyUuid = uuid,
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personId),
             DisplayName = "Test Mid Testson",
             PersonIdentifier = personId,
             OrganizationIdentifier = null,

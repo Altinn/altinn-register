@@ -23,6 +23,7 @@ public static class PartyImportHelper
 
         CheckRequired(ref builder, party.PartyUuid.HasValue, "/partyUuid");
         CheckRequired(ref builder, party.PartyType.HasValue, "/partyType");
+        CheckRequired(ref builder, party.ExternalUrn.IsSet, "/externalUrn");
         CheckRequired(ref builder, party.DisplayName.HasValue, "/name");
         CheckRequired(ref builder, party.PersonIdentifier.IsSet, "/personIdentifier");
         CheckRequired(ref builder, party.OrganizationIdentifier.IsSet, "/organizationIdentifier");

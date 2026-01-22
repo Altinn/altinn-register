@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
 
 namespace Altinn.Register.Core.Parties.Records;
@@ -42,6 +42,11 @@ public record PartyRecord
     /// </summary>
     [PolymorphicDiscriminatorProperty]
     public FieldValue<PartyRecordType> PartyType { get; private init; }
+
+    /// <summary>
+    /// Gets the external Uniform Resource Name (URN) associated with the party.
+    /// </summary>
+    public required FieldValue<PartyExternalRefUrn> ExternalUrn { get; init; }
 
     /// <summary>
     /// Gets the display-name of the party.

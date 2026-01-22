@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Text.Json;
 using Altinn.Authorization.ModelUtils;
@@ -21,6 +21,7 @@ public class PartyRecordTests
         {
             PartyUuid = FieldValue.Unset,
             PartyId = FieldValue.Unset,
+            ExternalUrn = FieldValue.Unset,
             DisplayName = FieldValue.Unset,
             PersonIdentifier = FieldValue.Unset,
             OrganizationIdentifier = FieldValue.Unset,
@@ -48,6 +49,7 @@ public class PartyRecordTests
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
+            ExternalUrn = FieldValue.Unset,
             DisplayName = "1",
             PersonIdentifier = FieldValue.Unset,
             OrganizationIdentifier = FieldValue.Unset,
@@ -92,6 +94,7 @@ public class PartyRecordTests
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(PersonIdentifier.Parse("25871999336")),
             DisplayName = "1",
             PersonIdentifier = PersonIdentifier.Parse("25871999336"),
             OrganizationIdentifier = FieldValue.Unset,
@@ -111,6 +114,7 @@ public class PartyRecordTests
                 "partyType": "person",
                 "partyUuid":"00000000-0000-0000-0000-000000000001",
                 "partyId":1,
+                "externalUrn": "urn:altinn:person:identifier-no:25871999336",
                 "displayName":"1",
                 "personIdentifier":"25871999336",
                 "createdAt":"2000-01-01T00:00:00+00:00",
@@ -135,6 +139,7 @@ public class PartyRecordTests
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
+            ExternalUrn = PartyExternalRefUrn.OrganizationId.Create(OrganizationIdentifier.Parse("123456785")),
             DisplayName = "1",
             PersonIdentifier = FieldValue.Unset,
             OrganizationIdentifier = OrganizationIdentifier.Parse("123456785"),
@@ -154,6 +159,7 @@ public class PartyRecordTests
                 "partyType": "organization",
                 "partyUuid": "00000000-0000-0000-0000-000000000001",
                 "partyId": 1,
+                "externalUrn": "urn:altinn:organization:identifier-no:123456785",
                 "displayName": "1",
                 "organizationIdentifier": "123456785",
                 "createdAt": "2000-01-01T00:00:00+00:00",
@@ -178,8 +184,9 @@ public class PartyRecordTests
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
+            ExternalUrn = FieldValue.Null,
             DisplayName = "1",
-            PersonIdentifier = PersonIdentifier.Parse("25871999336"),
+            PersonIdentifier = FieldValue.Null,
             OrganizationIdentifier = FieldValue.Unset,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
@@ -197,8 +204,9 @@ public class PartyRecordTests
                 "partyType": "self-identified-user",
                 "partyUuid":"00000000-0000-0000-0000-000000000001",
                 "partyId":1,
+                "externalUrn": null,
                 "displayName":"1",
-                "personIdentifier":"25871999336",
+                "personIdentifier": null,
                 "createdAt":"2000-01-01T00:00:00+00:00",
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":true,
@@ -224,6 +232,7 @@ public class PartyRecordTests
         {
             PartyUuid = FieldValue.Unset,
             PartyId = FieldValue.Unset,
+            ExternalUrn = FieldValue.Unset,
             DisplayName = FieldValue.Unset,
             PersonIdentifier = FieldValue.Unset,
             OrganizationIdentifier = FieldValue.Unset,
@@ -265,6 +274,7 @@ public class PartyRecordTests
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(PersonIdentifier.Parse("25871999336")),
             DisplayName = "1",
             PersonIdentifier = PersonIdentifier.Parse("25871999336"),
             OrganizationIdentifier = FieldValue.Unset,
@@ -293,6 +303,7 @@ public class PartyRecordTests
                 "partyType": "person",
                 "partyUuid":"00000000-0000-0000-0000-000000000001",
                 "partyId":1,
+                "externalUrn": "urn:altinn:person:identifier-no:25871999336",
                 "displayName":"1",
                 "personIdentifier":"25871999336",
                 "createdAt":"2000-01-01T00:00:00+00:00",
@@ -317,6 +328,7 @@ public class PartyRecordTests
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(PersonIdentifier.Parse("25871999336")),
             DisplayName = "1",
             PersonIdentifier = PersonIdentifier.Parse("25871999336"),
             OrganizationIdentifier = FieldValue.Unset,
@@ -359,6 +371,7 @@ public class PartyRecordTests
                 "partyType": "person",
                 "partyUuid": "00000000-0000-0000-0000-000000000001",
                 "partyId": 1,
+                "externalUrn": "urn:altinn:person:identifier-no:25871999336",
                 "displayName": "1",
                 "personIdentifier": "25871999336",
                 "createdAt": "2000-01-01T00:00:00+00:00",
@@ -406,6 +419,7 @@ public class PartyRecordTests
         {
             PartyUuid = FieldValue.Unset,
             PartyId = FieldValue.Unset,
+            ExternalUrn = FieldValue.Unset,
             DisplayName = FieldValue.Unset,
             PersonIdentifier = FieldValue.Unset,
             OrganizationIdentifier = FieldValue.Unset,
@@ -447,6 +461,7 @@ public class PartyRecordTests
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
+            ExternalUrn = PartyExternalRefUrn.OrganizationId.Create(OrganizationIdentifier.Parse("123456785")),
             DisplayName = "1",
             PersonIdentifier = FieldValue.Unset,
             OrganizationIdentifier = OrganizationIdentifier.Parse("123456785"),
@@ -486,6 +501,7 @@ public class PartyRecordTests
                 "partyType": "organization",
                 "partyUuid":"00000000-0000-0000-0000-000000000001",
                 "partyId":1,
+                "externalUrn": "urn:altinn:organization:identifier-no:123456785",
                 "displayName":"1",
                 "organizationIdentifier":"123456785",
                 "createdAt":"2000-01-01T00:00:00+00:00",
@@ -527,6 +543,7 @@ public class PartyRecordTests
         {
             PartyUuid = FieldValue.Unset,
             PartyId = FieldValue.Unset,
+            ExternalUrn = FieldValue.Unset,
             DisplayName = FieldValue.Unset,
             PersonIdentifier = FieldValue.Unset,
             OrganizationIdentifier = FieldValue.Unset,
@@ -578,6 +595,7 @@ public class PartyRecordTests
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
+            ExternalUrn = FieldValue.Null,
             DisplayName = "1",
             PersonIdentifier = PersonIdentifier.Parse("25871999336"),
             OrganizationIdentifier = FieldValue.Unset,
@@ -597,6 +615,7 @@ public class PartyRecordTests
                 "partyType": "self-identified-user",
                 "partyUuid":"00000000-0000-0000-0000-000000000001",
                 "partyId":1,
+                "externalUrn": null,
                 "displayName":"1",
                 "personIdentifier":"25871999336",
                 "createdAt":"2000-01-01T00:00:00+00:00",
@@ -626,6 +645,7 @@ public class PartyRecordTests
         {
             PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
             PartyId = 1,
+            ExternalUrn = PartyExternalRefUrn.OrganizationId.Create(OrganizationIdentifier.Parse("123456785")),
             DisplayName = "1",
             PersonIdentifier = FieldValue.Unset,
             OrganizationIdentifier = OrganizationIdentifier.Parse("123456785"),
@@ -665,6 +685,7 @@ public class PartyRecordTests
                 "PartyType": "organization",
                 "PartyUuid":"00000000-0000-0000-0000-000000000001",
                 "PartyId":1,
+                "ExternalUrn": "urn:altinn:organization:identifier-no:123456785",
                 "DisplayName":"1",
                 "OrganizationIdentifier":"123456785",
                 "CreatedAt":"2000-01-01T00:00:00+00:00",

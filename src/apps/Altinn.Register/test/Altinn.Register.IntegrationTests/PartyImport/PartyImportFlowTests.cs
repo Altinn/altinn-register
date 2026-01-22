@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core.ImportJobs;
@@ -29,6 +29,7 @@ public class PartyImportFlowTests
         {
             PartyUuid = partyUuid,
             PartyId = partyId,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(PersonIdentifier.Parse("25871999336")),
             DisplayName = "Test Mid Testson",
             PersonIdentifier = PersonIdentifier.Parse("25871999336"),
             OrganizationIdentifier = null,
@@ -111,6 +112,7 @@ public class PartyImportFlowTests
         {
             PartyUuid = Guid.NewGuid(),
             PartyId = 1,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(PersonIdentifier.Parse("25871999336")),
             DisplayName = "Test Mid Testson",
             PersonIdentifier = PersonIdentifier.Parse("25871999336"),
             OrganizationIdentifier = null,
