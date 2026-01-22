@@ -3,11 +3,11 @@ using System.Text.Json;
 namespace Altinn.Register.Core.ImportJobs;
 
 /// <summary>
-/// State for an import job.
+/// State-data for a saga.
 /// </summary>
 /// <typeparam name="TSelf">The type of the state.</typeparam>
-public interface IImportJobState<TSelf>
-    where TSelf : IImportJobState<TSelf>
+public interface ISagaStateData<TSelf>
+    where TSelf : ISagaStateData<TSelf>
 {
     /// <summary>
     /// The state type, stored in the database so that we can identify the type of the state object.

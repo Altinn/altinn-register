@@ -87,6 +87,7 @@ public static class RegisterPersistenceExtensions
         builder.Services.AddUnitOfWorkService<IPartyExternalRolePersistence>(static s => s.GetRequiredService<PostgreSqlPartyPersistence>());
 
         builder.Services.AddUnitOfWorkService<IImportJobStatePersistence, PostgresImportJobStatePersistence>();
+        builder.Services.AddUnitOfWorkService<ISagaStatePersistence, PostgresSagaStatePersistence>();
         builder.Services.AddUnitOfWorkService<IUserIdImportJobService, PostgresUserIdImportJobService>();
 
         // Not part of unit of work
@@ -195,6 +196,14 @@ public static class RegisterPersistenceExtensions
         {
             SystemUserRecordType.Standard => "standard",
             SystemUserRecordType.Agent => "agent",
+            _ => null,
+        }));
+
+        builder.MapEnum<SagaStatus>("register.saga_status", new EnumNameTranslator<SagaStatus>(static value => value switch
+        {
+            SagaStatus.InProgress => "in_progress",
+            SagaStatus.Completed => "completed",
+            SagaStatus.Faulted => "faulted",
             _ => null,
         }));
 

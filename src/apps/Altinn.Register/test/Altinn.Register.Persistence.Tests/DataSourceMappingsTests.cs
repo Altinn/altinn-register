@@ -1,4 +1,5 @@
 using Altinn.Register.Contracts;
+using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Persistence.Tests.Utils;
@@ -72,6 +73,27 @@ public class DataSourceMappingsTests
 
         var result = await reader.GetFieldValueAsync<ExternalRoleSource>(0);
         result.Should().Be(roleSource);
+    }
+
+    [Theory]
+    [EnumMembersData<SagaStatus>]
+    public async Task MapsSagaStatus(SagaStatus sagaStatus)
+    {
+        var source = GetRequiredService<NpgsqlDataSource>();
+        await using var conn = await source.OpenConnectionAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = /*strpsql*/"SELECT @p::register.saga_status";
+
+        var param = cmd.Parameters.Add<SagaStatus>("p");
+        param.TypedValue = sagaStatus;
+
+        await cmd.PrepareAsync();
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        (await reader.ReadAsync()).Should().BeTrue();
+
+        var result = await reader.GetFieldValueAsync<SagaStatus>(0);
+        result.Should().Be(sagaStatus);
     }
 
     [Theory]

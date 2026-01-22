@@ -1,6 +1,5 @@
-﻿using System.Buffers;
+using System.Buffers;
 using System.Data;
-using System.Drawing.Text;
 using System.Text.Json;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
