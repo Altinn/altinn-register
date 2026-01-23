@@ -192,7 +192,7 @@ public class A2PartyImportConsumerTests
             {
                 UserId = userId,
                 UserUUID = partyUuid,
-                UserType = 2,
+                UserType = 1,
                 UserName = (string?)null,
                 ExternalIdentity = (string?)null,
                 IsReserved = false,

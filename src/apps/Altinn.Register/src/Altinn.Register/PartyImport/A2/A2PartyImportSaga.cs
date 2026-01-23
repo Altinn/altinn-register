@@ -13,6 +13,7 @@ using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.Utils;
+using Altinn.Urn;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.PartyImport.A2;
@@ -310,12 +311,61 @@ public sealed partial class A2PartyImportSaga
             User = new PartyUserRecord(profile.UserId, profile.UserName),
         };
 
-        if (profile.ProfileType is A2UserProfileType.SelfIdentifiedUser && !State.Party.IsDeleted.Value && !profile.IsActive)
+        if (profile.ProfileType is A2UserProfileType.SelfIdentifiedUser)
         {
-            State.Party = State.Party with
+            Debug.Assert(State.Party is SelfIdentifiedUserRecord);
+            var si = (SelfIdentifiedUserRecord)State.Party;
+
+            if (!si.IsDeleted.Value && !profile.IsActive)
             {
-                IsDeleted = true,
-                DeletedAt = profile.LastChangedAt ?? now,
+                si = si with
+                {
+                    IsDeleted = true,
+                    DeletedAt = profile.LastChangedAt ?? now,
+                };
+            }
+
+            Debug.Assert(profile.ExternalAuthenticationReference != string.Empty);
+            si = profile.ExternalAuthenticationReference switch
+            {
+                null => ApplyLegacyProfile(si, profile),
+                string s when PartyExternalRefUrn.TryParse(s, out var urn) && urn.IsIDPortenEmail(out var email) => ApplyEpostProfile(si, email.Value),
+                _ => ApplyEducationalProfile(si),
+            };
+
+            State.Party = si;
+        }
+
+        static SelfIdentifiedUserRecord ApplyLegacyProfile(SelfIdentifiedUserRecord si, A2ProfileRecord profile)
+        {
+            Debug.Assert(!string.IsNullOrEmpty(profile.UserName));
+            return si with
+            {
+                SelfIdentifiedUserType = SelfIdentifiedUserType.Legacy,
+                Email = FieldValue.Null,
+                ExternalUrn = PartyExternalRefUrn.LegacySelfIdentifiedUsername.Create(UrnEncoded.Create(profile.UserName.ToLowerInvariant())),
+            };
+        }
+
+        static SelfIdentifiedUserRecord ApplyEducationalProfile(SelfIdentifiedUserRecord si)
+        {
+            return si with
+            {
+                SelfIdentifiedUserType = SelfIdentifiedUserType.Educational,
+                Email = FieldValue.Null,
+            };
+        }
+
+        static SelfIdentifiedUserRecord ApplyEpostProfile(SelfIdentifiedUserRecord si, string email)
+        {
+            email = email.ToLowerInvariant();
+
+            return si with
+            {
+                SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
+                Email = email,
+                ExternalUrn = PartyExternalRefUrn.IDPortenEmail.Create(UrnEncoded.Create(email)),
+                DisplayName = email,
             };
         }
     }
