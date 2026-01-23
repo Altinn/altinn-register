@@ -1,14 +1,16 @@
 using System.Data;
+using System.Diagnostics;
 using System.Linq.Expressions;
-using System.Text;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
+using Altinn.Register.Persistence.Tests.Utils;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.TestData;
+using Altinn.Urn;
 using FluentAssertions.Execution;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
@@ -403,6 +405,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var person1 = await UoW.CreatePerson();
         var person2 = await UoW.CreatePerson();
+        var si = await UoW.CreateSelfIdentifiedUser(type: SelfIdentifiedUserType.IdPortenEmail);
+        var sysUser = await UoW.CreateSystemUser(OrganizationWithChildrenUuid);
 
         var person1UserId = person1.User.SelectFieldValue(static u => u.UserId).Should().HaveValue().Which;
         var person2UserId = person2.User.SelectFieldValue(static u => u.UserId).Should().HaveValue().Which;
@@ -411,15 +415,19 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var result = await Persistence.LookupParties(
             organizationIdentifiers: [OrganizationWithChildrenIdentifier],
             personIdentifiers: [PersonIdentifier],
-            userIds: [person1UserId, person2HistoricalUserId])
+            userIds: [person1UserId, person2HistoricalUserId],
+            selfIdentifiedEmails: [si.Email.Value!],
+            externalUrns: [sysUser.ExternalUrn.Value!])
             .ToListAsync();
 
-        result.Should().HaveCount(4);
+        result.Should().HaveCount(6);
 
         var testDataPers = result.Should().ContainSingle(static p => p.PartyUuid == PersonUuid).Which.Should().BeOfType<PersonRecord>().Which;
         var testDataOrg = result.Should().ContainSingle(static p => p.PartyUuid == OrganizationWithChildrenUuid).Which.Should().BeOfType<OrganizationRecord>().Which;
         var person1Result = result.Should().ContainSingle(p => p.PartyUuid == person1.PartyUuid).Which.Should().BeOfType<PersonRecord>().Which;
         var person2Result = result.Should().ContainSingle(p => p.PartyUuid == person2.PartyUuid).Which.Should().BeOfType<PersonRecord>().Which;
+        var siResult = result.Should().ContainSingle(p => p.PartyUuid == si.PartyUuid).Which.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
+        var sysUserResult = result.Should().ContainSingle(p => p.PartyUuid == sysUser.PartyUuid).Which.Should().BeOfType<SystemUserRecord>().Which;
 
         person1Result.User.Should().HaveValue().Which.UserIds.Should().Be(ImmutableValueArray.Create(person1UserId));
         person2Result.User.Should().HaveValue().Which.UserIds.Should().Be(ImmutableValueArray.Create(person2UserId, person2HistoricalUserId));
@@ -1233,11 +1241,9 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     #region Upsert Self-Identified User
 
     [Fact]
-    public async Task UpsertParty_SelfIdentifiedUser_Inserts_New_SelfIdentifiedUser()
+    public async Task UpsertParty_SelfIdentifiedUser_Inserts_New_SelfIdentifiedUser_NoType()
     {
         var id = await UoW.GetNextPartyId();
-        var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
         var uuid = Guid.NewGuid();
 
         var toInsert = new SelfIdentifiedUserRecord
@@ -1255,13 +1261,228 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
+            SelfIdentifiedUserType = FieldValue.Null,
+            Email = FieldValue.Null,
         };
 
         var result = await Persistence.UpsertParty(toInsert);
         var inserted = result.Should().HaveValue().Which.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
         inserted.Should().BeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party).SingleAsync();
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser).SingleAsync();
+        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
+    }
+
+    [Fact]
+    public async Task UpsertParty_SelfIdentifiedUser_Inserts_New_SelfIdentifiedUser_Legacy()
+    {
+        var id = await UoW.GetNextPartyId();
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new SelfIdentifiedUserRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.LegacySelfIdentifiedUsername.Create(UrnEncoded.Create("test_si_user")),
+            DisplayName = "Test SI User",
+            PersonIdentifier = null,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            DeletedAt = FieldValue.Null,
+            User = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
+            SelfIdentifiedUserType = SelfIdentifiedUserType.Legacy,
+            Email = FieldValue.Null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        var inserted = result.Should().HaveValue().Which.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
+        inserted.Should().BeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser).SingleAsync();
+        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
+    }
+
+    [Fact]
+    public async Task UpsertParty_SelfIdentifiedUser_Inserts_New_SelfIdentifiedUser_Edu()
+    {
+        var id = await UoW.GetNextPartyId();
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new SelfIdentifiedUserRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            ExternalUrn = FieldValue.Null,
+            DisplayName = "Test SI User",
+            PersonIdentifier = null,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            DeletedAt = FieldValue.Null,
+            User = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
+            SelfIdentifiedUserType = SelfIdentifiedUserType.Educational,
+            Email = FieldValue.Null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        var inserted = result.Should().HaveValue().Which.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
+        inserted.Should().BeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser).SingleAsync();
+        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
+    }
+
+    [Fact]
+    public async Task UpsertParty_SelfIdentifiedUser_Inserts_New_SelfIdentifiedUser_IdPortenEmail()
+    {
+        var id = await UoW.GetNextPartyId();
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new SelfIdentifiedUserRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.IDPortenEmail.Create(UrnEncoded.Create("test@example.com")),
+            DisplayName = "Test SI User",
+            PersonIdentifier = null,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            DeletedAt = FieldValue.Null,
+            User = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
+            SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
+            Email = "test-si-user@example.com",
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        var inserted = result.Should().HaveValue().Which.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
+        inserted.Should().BeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser).SingleAsync();
+        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
+    }
+
+    [Theory]
+    [EnumMembersData<SelfIdentifiedUserType>]
+    public async Task UpsertParty_SelfIdentified_Can_Update_SelfIdentifiedType_FromNull(SelfIdentifiedUserType type)
+    {
+        var id = await UoW.GetNextPartyId();
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new SelfIdentifiedUserRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            ExternalUrn = FieldValue.Null,
+            DisplayName = "Test SI User",
+            PersonIdentifier = null,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            DeletedAt = FieldValue.Null,
+            User = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
+            SelfIdentifiedUserType = FieldValue.Null,
+            Email = FieldValue.Null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue();
+
+        TimeProvider.Advance(TimeSpan.FromDays(30));
+
+        var toUpdate = type switch
+        {
+            SelfIdentifiedUserType.Legacy => toInsert with
+            {
+                SelfIdentifiedUserType = type,
+                Email = FieldValue.Null,
+                ExternalUrn = PartyExternalRefUrn.LegacySelfIdentifiedUsername.Create(UrnEncoded.Create("test_si_user")),
+            },
+            SelfIdentifiedUserType.Educational => toInsert with
+            {
+                SelfIdentifiedUserType = type,
+                Email = FieldValue.Null,
+                ExternalUrn = FieldValue.Null,
+            },
+            SelfIdentifiedUserType.IdPortenEmail => toInsert with
+            {
+                SelfIdentifiedUserType = type,
+                Email = "test-si-user@example.com",
+                ExternalUrn = PartyExternalRefUrn.IDPortenEmail.Create(UrnEncoded.Create("test-si-user@example.com")),
+            },
+            _ => throw new UnreachableException($"Invalid {nameof(SelfIdentifiedUserType)}: {type}"),
+        };
+
+        result = await Persistence.UpsertParty(toUpdate);
+        result.Should().HaveValue();
+
+        var expected = toUpdate with
+        {
+            CreatedAt = toInsert.CreatedAt, // created at should not change
+        };
+
+        var updated = result.Value.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
+        updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
+
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser).SingleAsync();
+        fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+    }
+
+    [Fact]
+    public async Task UpsertParty_SelfIdentified_Cannot_Update_SelfIdentifiedType_FromNonNull()
+    {
+        var id = await UoW.GetNextPartyId();
+        var uuid = Guid.NewGuid();
+
+        var toInsert = new SelfIdentifiedUserRecord
+        {
+            PartyUuid = uuid,
+            PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.LegacySelfIdentifiedUsername.Create(UrnEncoded.Create("test_si_user")),
+            DisplayName = "Test SI User",
+            PersonIdentifier = null,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            DeletedAt = FieldValue.Null,
+            User = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
+            SelfIdentifiedUserType = SelfIdentifiedUserType.Legacy,
+            Email = FieldValue.Null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert);
+        result.Should().HaveValue();
+
+        TimeProvider.Advance(TimeSpan.FromDays(30));
+
+        var toUpdate = toInsert with
+        {
+            SelfIdentifiedUserType = SelfIdentifiedUserType.Educational,
+            ExternalUrn = FieldValue.Null,
+        };
+
+        await NewTransaction();
+        result = await Persistence.UpsertParty(toUpdate);
+        result.Should().BeProblem(Problems.InvalidPartyUpdate.ErrorCode);
+
+        await NewTransaction(commit: false);
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser).SingleAsync();
         fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
@@ -1270,15 +1491,13 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
         var toInsert = new SelfIdentifiedUserRecord
         {
             PartyUuid = uuid,
             PartyId = id,
-            ExternalUrn = FieldValue.Null,
+            ExternalUrn = PartyExternalRefUrn.LegacySelfIdentifiedUsername.Create(UrnEncoded.Create("test_si_user")),
             DisplayName = "Test SI User",
             PersonIdentifier = null,
             OrganizationIdentifier = null,
@@ -1289,6 +1508,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
+            SelfIdentifiedUserType = SelfIdentifiedUserType.Legacy,
+            Email = FieldValue.Null,
         };
 
         var result = await Persistence.UpsertParty(toInsert);
@@ -1314,7 +1535,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var updated = result.Value.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
         updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party).SingleAsync();
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser).SingleAsync();
         fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
     }
 
@@ -1325,15 +1546,13 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
         var toInsert = new SelfIdentifiedUserRecord
         {
             PartyUuid = uuid,
             PartyId = id,
-            ExternalUrn = FieldValue.Null,
+            ExternalUrn = PartyExternalRefUrn.LegacySelfIdentifiedUsername.Create(UrnEncoded.Create("test_si_user")),
             DisplayName = "Test SI User",
             PersonIdentifier = null,
             OrganizationIdentifier = null,
@@ -1344,6 +1563,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
+            SelfIdentifiedUserType = SelfIdentifiedUserType.Legacy,
+            Email = FieldValue.Null,
         };
 
         var result = await Persistence.UpsertParty(toInsert);
@@ -1370,7 +1591,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var updated = result.Value.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
         updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party).SingleAsync();
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser).SingleAsync();
         fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
     }
 
@@ -1379,15 +1600,13 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var id = await UoW.GetNextPartyId();
         var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
         var uuid = Guid.NewGuid();
 
         var toInsert = new SelfIdentifiedUserRecord
         {
             PartyUuid = uuid,
             PartyId = id,
-            ExternalUrn = FieldValue.Null,
+            ExternalUrn = PartyExternalRefUrn.LegacySelfIdentifiedUsername.Create(UrnEncoded.Create("test_si_user")),
             DisplayName = "Test SI User",
             PersonIdentifier = null,
             OrganizationIdentifier = null,
@@ -1398,6 +1617,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
+            SelfIdentifiedUserType = SelfIdentifiedUserType.Legacy,
+            Email = FieldValue.Null,
         };
 
         var result = await Persistence.UpsertParty(toInsert);
@@ -1412,7 +1633,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var updated = result.Value.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
         updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party).SingleAsync();
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser).SingleAsync();
         fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
     }
 

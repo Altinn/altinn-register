@@ -97,6 +97,27 @@ public class DataSourceMappingsTests
     }
 
     [Theory]
+    [EnumMembersData<SelfIdentifiedUserType>]
+    public async Task MapsSIUserType(SelfIdentifiedUserType siType)
+    {
+        var source = GetRequiredService<NpgsqlDataSource>();
+        await using var conn = await source.OpenConnectionAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = /*strpsql*/"SELECT @p::register.self_identified_user_type";
+
+        var param = cmd.Parameters.Add<SelfIdentifiedUserType>("p");
+        param.TypedValue = siType;
+
+        await cmd.PrepareAsync();
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        (await reader.ReadAsync()).Should().BeTrue();
+
+        var result = await reader.GetFieldValueAsync<SelfIdentifiedUserType>(0);
+        result.Should().Be(siType);
+    }
+
+    [Theory]
     [MemberData(nameof(MailingAddresses))]
     public async Task MapsMailingAddress(SerializableMailingAddress? address)
     {

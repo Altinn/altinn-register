@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties.Records;
@@ -154,10 +154,12 @@ public interface IPartyPersistence
     /// </summary>
     /// <param name="partyUuids"><see cref="PartyRecord.PartyUuid"/>s.</param>
     /// <param name="partyIds"><see cref="PartyRecord.PartyId"/>s.</param>
+    /// <param name="externalUrns"><see cref="PartyRecord.ExternalUrn"/>s.</param>
     /// <param name="organizationIdentifiers"><see cref="PartyRecord.OrganizationIdentifier"/>s.</param>
     /// <param name="personIdentifiers"><see cref="PartyRecord.PersonIdentifier"/>s.</param>
-    /// <param name="userIds"><see cref="PartyRecord.User"/>'s <see cref="PartyUserRecord.UserIds"/>.</param>
-    /// <param name="usernames"><see cref="PartyRecord.User"/>'s <see cref="PartyUserRecord.Username"/>.</param>
+    /// <param name="userIds"><see cref="PartyRecord.User"/>'s <see cref="PartyUserRecord.UserIds"/>s.</param>
+    /// <param name="usernames"><see cref="PartyRecord.User"/>'s <see cref="PartyUserRecord.Username"/>s.</param>
+    /// <param name="selfIdentifiedEmails"><see cref="SelfIdentifiedUserRecord.Email"/>s.</param>
     /// <param name="include">Data/fields to include.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>
@@ -173,10 +175,12 @@ public interface IPartyPersistence
     public IAsyncEnumerable<PartyRecord> LookupParties(
         IReadOnlyList<Guid>? partyUuids = null,
         IReadOnlyList<uint>? partyIds = null,
+        IReadOnlyList<PartyExternalRefUrn>? externalUrns = null,
         IReadOnlyList<OrganizationIdentifier>? organizationIdentifiers = null,
         IReadOnlyList<PersonIdentifier>? personIdentifiers = null,
         IReadOnlyList<uint>? userIds = null,
         IReadOnlyList<string>? usernames = null,
+        IReadOnlyList<string>? selfIdentifiedEmails = null,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default);
 

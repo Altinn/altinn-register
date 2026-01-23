@@ -155,6 +155,8 @@ internal static partial class PartyMapper
             IsDeleted = source.IsDeleted,
             DeletedAt = source.DeletedAt,
             User = source.User.Select(static u => u.ToPlatformModel()),
+            SelfIdentifiedUserType = source.SelfIdentifiedUserType.Select(static t => NonExhaustiveEnum.Create(t)),
+            Email = source.Email,
         };
     }
 

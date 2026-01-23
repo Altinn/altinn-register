@@ -207,6 +207,14 @@ public static class RegisterPersistenceExtensions
             _ => null,
         }));
 
+        builder.MapEnum<SelfIdentifiedUserType>("register.self_identified_user_type", new EnumNameTranslator<SelfIdentifiedUserType>(static value => value switch
+        {
+            SelfIdentifiedUserType.Legacy => "legacy",
+            SelfIdentifiedUserType.Educational => "edu",
+            SelfIdentifiedUserType.IdPortenEmail => "idporten-email",
+            _ => null,
+        }));
+
         builder.MapComposite<MailingAddressRecord>("register.co_mailing_address", new CompositeNameTranslator<MailingAddressRecord>(static member => member.Name switch
         {
             nameof(MailingAddressRecord.Address) => "address",

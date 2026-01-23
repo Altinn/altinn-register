@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties.Records;
+using Altinn.Urn;
 using CommunityToolkit.Diagnostics;
 using Npgsql;
 
@@ -432,11 +433,79 @@ public sealed partial class RegisterTestDataGenerator
         FieldValue<DateTimeOffset> createdAt = default,
         FieldValue<DateTimeOffset> modifiedAt = default,
         FieldValue<bool> isDeleted = default,
+        FieldValue<SelfIdentifiedUserType> type = default,
+        FieldValue<string> email = default,
         FieldValue<PartyUserRecord> user = default)
     {
         if (id.IsUnset)
         {
             id = used.GetNextPartyId();
+        }
+
+        if (type.IsUnset)
+        {
+            if (email.HasValue)
+            {
+                type = SelfIdentifiedUserType.IdPortenEmail;
+            }
+            else if (email.IsNull)
+            {
+                SelfIdentifiedUserType t;
+                do
+                {
+                    t = _random.Next<SelfIdentifiedUserType>();
+                } 
+                while (t == SelfIdentifiedUserType.IdPortenEmail);
+
+                type = t;
+            }
+            else
+            {
+                type = _random.Next<SelfIdentifiedUserType>();
+            }
+        }
+
+        FieldValue<PartyExternalRefUrn> externalUrn = FieldValue.Null;
+        if (type.HasValue)
+        {
+            switch (type.Value)
+            {
+                case SelfIdentifiedUserType.Legacy:
+                    if (name.IsUnset)
+                    {
+                        name = $"si-user-{id.Value}";
+                    }
+
+                    externalUrn = name.Select(static n => (PartyExternalRefUrn)PartyExternalRefUrn.LegacySelfIdentifiedUsername.Create(UrnEncoded.Create(n)));
+                    break;
+
+                case SelfIdentifiedUserType.IdPortenEmail:
+                    if (email.IsUnset)
+                    {
+                        email = $"email-{id.Value}@example.com";
+                    }
+
+                    if (name.IsUnset)
+                    {
+                        name = $"email:{email.Value}";
+                    }
+
+                    externalUrn = email.Select(static e => (PartyExternalRefUrn)PartyExternalRefUrn.IDPortenEmail.Create(UrnEncoded.Create(e)));
+                    break;
+
+                case SelfIdentifiedUserType.Educational:
+                    if (name.IsUnset)
+                    {
+                        name = $"si-edu-user-{id.Value}";
+                    }
+
+                    break;
+            }
+
+            if (!email.IsSet)
+            {
+                email = FieldValue.Null;
+            }
         }
 
         if (user.IsUnset)
@@ -445,12 +514,7 @@ public sealed partial class RegisterTestDataGenerator
             var userIds = userIdsEnumerable.Select(static id => (uint)id).OrderByDescending(static id => id).ToImmutableValueArray();
             var userId = userIds[0];
 
-            user = new PartyUserRecord(userId: userId, username: FieldValue.Unset, userIds: userIds);
-        }
-
-        if (name.IsUnset)
-        {
-            name = $"si-user-{id.Value}";
+            user = new PartyUserRecord(userId: userId, username: name, userIds: userIds);
         }
 
         var now = _timeProvider.GetUtcNow();
@@ -468,7 +532,7 @@ public sealed partial class RegisterTestDataGenerator
         {
             PartyUuid = uuid.HasValue ? uuid.Value : Guid.NewGuid(),
             PartyId = id,
-            ExternalUrn = FieldValue.Null, // TODO: Should be based on SI user type
+            ExternalUrn = externalUrn,
             DisplayName = name,
             PersonIdentifier = null,
             OrganizationIdentifier = null,
@@ -479,6 +543,8 @@ public sealed partial class RegisterTestDataGenerator
             OwnerUuid = FieldValue.Null,
             IsDeleted = isDeleted.OrDefault(defaultValue: false),
             DeletedAt = isDeleted.HasValue && isDeleted.Value ? modifiedAt : FieldValue.Null,
+            SelfIdentifiedUserType = type,
+            Email = email,
         };
     }
 
@@ -489,11 +555,13 @@ public sealed partial class RegisterTestDataGenerator
         FieldValue<DateTimeOffset> createdAt = default,
         FieldValue<DateTimeOffset> modifiedAt = default,
         FieldValue<bool> isDeleted = default,
+        FieldValue<SelfIdentifiedUserType> type = default,
+        FieldValue<string> email = default,
         FieldValue<PartyUserRecord> user = default,
         CancellationToken cancellationToken = default)
     {
         return WithIdentifiers(
-            (self: this, uuid, id, name, createdAt, modifiedAt, isDeleted, user),
+            (self: this, uuid, id, name, createdAt, modifiedAt, isDeleted, type, email, user),
             static (used, rng, data)
                 => data.self.GetSelfIdentifiedUserData(
                     used,
@@ -503,6 +571,8 @@ public sealed partial class RegisterTestDataGenerator
                     data.createdAt,
                     data.modifiedAt,
                     data.isDeleted,
+                    data.type,
+                    data.email,
                     data.user),
             cancellationToken);
     }

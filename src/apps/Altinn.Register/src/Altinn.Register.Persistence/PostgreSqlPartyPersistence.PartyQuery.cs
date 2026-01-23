@@ -47,16 +47,20 @@ internal partial class PostgreSqlPartyPersistence
             PartyFields fields,
             FilterParameter paramPartyUuid,
             FilterParameter paramPartyId,
+            FilterParameter paramExternalUrn,
             FilterParameter paramPersonIdentifier,
             FilterParameter paramOrganizationIdentifier,
             FilterParameter paramUserId,
             FilterParameter paramUsername,
+            FilterParameter paramSelfIdentifiedEmail,
             FilterParameter paramPartyUuidList,
             FilterParameter paramPartyIdList,
+            FilterParameter paramExternalUrnList,
             FilterParameter paramPersonIdentifierList,
             FilterParameter paramOrganizationIdentifierList,
             FilterParameter paramUserIdList,
             FilterParameter paramUsernameList,
+            FilterParameter paramSelfIdentifiedEmailList,
             FilterParameter paramPartyTypeList,
             FilterParameter paramStreamFrom,
             FilterParameter paramStreamLimit)
@@ -65,16 +69,20 @@ internal partial class PostgreSqlPartyPersistence
             _fields = fields;
             _paramPartyUuid = paramPartyUuid;
             _paramPartyId = paramPartyId;
+            _paramExternalUrn = paramExternalUrn;
             _paramPersonIdentifier = paramPersonIdentifier;
             _paramOrganizationIdentifier = paramOrganizationIdentifier;
             _paramUserId = paramUserId;
             _paramUsername = paramUsername;
+            _paramSelfIdentifiedEmail = paramSelfIdentifiedEmail;
             _paramPartyUuidList = paramPartyUuidList;
             _paramPartyIdList = paramPartyIdList;
+            _paramExternalUrnList = paramExternalUrnList;
             _paramPersonIdentifierList = paramPersonIdentifierList;
             _paramOrganizationIdentifierList = paramOrganizationIdentifierList;
             _paramUserIdList = paramUserIdList;
             _paramUsernameList = paramUsernameList;
+            _paramSelfIdentifiedEmailList = paramSelfIdentifiedEmailList;
             _paramPartyTypeList = paramPartyTypeList;
             _paramStreamFromExclusive = paramStreamFrom;
             _paramStreamLimit = paramStreamLimit;
@@ -85,16 +93,20 @@ internal partial class PostgreSqlPartyPersistence
         private readonly PartyFields _fields;
         private readonly FilterParameter _paramPartyUuid;
         private readonly FilterParameter _paramPartyId;
+        private readonly FilterParameter _paramExternalUrn;
         private readonly FilterParameter _paramPersonIdentifier;
         private readonly FilterParameter _paramOrganizationIdentifier;
         private readonly FilterParameter _paramUserId;
         private readonly FilterParameter _paramUsername;
+        private readonly FilterParameter _paramSelfIdentifiedEmail;
         private readonly FilterParameter _paramPartyUuidList;
         private readonly FilterParameter _paramPartyIdList;
+        private readonly FilterParameter _paramExternalUrnList;
         private readonly FilterParameter _paramPersonIdentifierList;
         private readonly FilterParameter _paramOrganizationIdentifierList;
         private readonly FilterParameter _paramUserIdList;
         private readonly FilterParameter _paramUsernameList;
+        private readonly FilterParameter _paramSelfIdentifiedEmailList;
         private readonly FilterParameter _paramPartyTypeList;
         private readonly FilterParameter _paramStreamFromExclusive;
         private readonly FilterParameter _paramStreamLimit;
@@ -122,6 +134,12 @@ internal partial class PostgreSqlPartyPersistence
             => AddParameter(cmd, in _paramPartyId, value);
 
         /// <summary>
+        /// Adds a external URN parameter to the command.
+        /// </summary>
+        public NpgsqlParameter<string> AddExternalUrnParameter(NpgsqlCommand cmd, string value)
+            => AddParameter(cmd, in _paramExternalUrn, value);
+
+        /// <summary>
         /// Adds a person identifier parameter to the command.
         /// </summary>
         public NpgsqlParameter<string> AddPersonIdentifierParameter(NpgsqlCommand cmd, string value)
@@ -146,6 +164,12 @@ internal partial class PostgreSqlPartyPersistence
             => AddParameter(cmd, in _paramUsername, value);
 
         /// <summary>
+        /// Adds a self-identified-user email parameter to the command.
+        /// </summary>
+        public NpgsqlParameter<string> AddSelfIdentifiedEmail(NpgsqlCommand cmd, string value)
+            => AddParameter(cmd, in _paramSelfIdentifiedEmail, value);
+
+        /// <summary>
         /// Adds a party UUID list parameter to the command.
         /// </summary>
         public NpgsqlParameter<IList<Guid>> AddPartyUuidListParameter(NpgsqlCommand cmd, IList<Guid> value)
@@ -156,6 +180,12 @@ internal partial class PostgreSqlPartyPersistence
         /// </summary>
         public NpgsqlParameter<IList<long>> AddPartyIdListParameter(NpgsqlCommand cmd, IList<long> value)
             => AddParameter(cmd, in _paramPartyIdList, value);
+
+        /// <summary>
+        /// Adds a external URN list parameter to the command.
+        /// </summary>
+        public NpgsqlParameter<IList<string>> AddExternalUrnListParameter(NpgsqlCommand cmd, IList<string> value)
+            => AddParameter(cmd, in _paramExternalUrnList, value);
 
         /// <summary>
         /// Adds a person identifier list parameter to the command.
@@ -180,6 +210,12 @@ internal partial class PostgreSqlPartyPersistence
         /// </summary>
         public NpgsqlParameter<IList<string>> AddUsernameListParameter(NpgsqlCommand cmd, IList<string> value)
             => AddParameter(cmd, in _paramUsernameList, value);
+
+        /// <summary>
+        /// Adds a self-identified-user email list parameter to the command.
+        /// </summary>
+        public NpgsqlParameter<IList<string>> AddSelfIdentifiedEmailListParameter(NpgsqlCommand cmd, IList<string> value)
+            => AddParameter(cmd, in _paramSelfIdentifiedEmailList, value);
 
         /// <summary>
         /// Adds a party type list parameter to the command.
@@ -411,6 +447,8 @@ internal partial class PostgreSqlPartyPersistence
             static async ValueTask<(PartyRecord Party, bool HasMore)> ReadSelfIdentifiedUserParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
             {
                 var common = await ReadCommonFields(reader, fields, cancellationToken);
+                var selfIdentifiedUserType = await reader.GetConditionalFieldValueAsync<SelfIdentifiedUserType>(fields.SelfIdentifiedUserType, cancellationToken);
+                var email = await reader.GetConditionalFieldValueAsync<string>(fields.SelfIdentifiedUserEmail, cancellationToken);
 
                 // must be the last read-access to the reader
                 Debug.Assert(common.PartyUuid.HasValue);
@@ -432,6 +470,8 @@ internal partial class PostgreSqlPartyPersistence
                     VersionId = common.VersionId,
                     OwnerUuid = common.OwnerUuid,
                     User = user,
+                    SelfIdentifiedUserType = selfIdentifiedUserType,
+                    Email = email,
                 };
     
                 return (party, hasMore);
@@ -609,6 +649,8 @@ internal partial class PostgreSqlPartyPersistence
                     organizationInternetAddress: builder._organizationInternetAddress,
                     organizationMailingAddress: builder._organizationMailingAddress,
                     organizationBusinessAddress: builder._organizationBusinessAddress,
+                    selfIdentifiedUserType: builder._selfIdentifiedUserType,
+                    selfIdentifiedUserEmail: builder._selfIdentifiedUserEmail,
                     systemUserType: builder._systemUserType,
                     userIsActive: builder._userIsActive,
                     userId: builder._userId,
@@ -620,16 +662,20 @@ internal partial class PostgreSqlPartyPersistence
                     fields,
                     paramPartyUuid: builder._paramPartyUuid,
                     paramPartyId: builder._paramPartyId,
+                    paramExternalUrn: builder._paramExternalUrn,
                     paramPersonIdentifier: builder._paramPersonIdentifier,
                     paramOrganizationIdentifier: builder._paramOrganizationIdentifier,
                     paramUserId: builder._paramUserId,
                     paramUsername: builder._paramUsername,
+                    paramSelfIdentifiedEmail: builder._paramSelfIdentifiedEmail,
                     paramPartyUuidList: builder._paramPartyUuidList,
                     paramPartyIdList: builder._paramPartyIdList,
+                    paramExternalUrnList: builder._paramExternalUrnList,
                     paramPersonIdentifierList: builder._paramPersonIdentifierList,
                     paramOrganizationIdentifierList: builder._paramOrganizationIdentifierList,
                     paramUserIdList: builder._paramUserIdList,
                     paramUsernameList: builder._paramUsernameList,
+                    paramSelfIdentifiedEmailList: builder._paramSelfIdentifiedEmailList,
                     paramPartyTypeList: builder._paramPartyTypeList,
                     paramStreamFrom: builder._paramStreamFromExclusive,
                     paramStreamLimit: builder._paramStreamLimit);
@@ -640,16 +686,20 @@ internal partial class PostgreSqlPartyPersistence
             // parameters
             private FilterParameter _paramPartyUuid;
             private FilterParameter _paramPartyId;
+            private FilterParameter _paramExternalUrn;
             private FilterParameter _paramPersonIdentifier;
             private FilterParameter _paramOrganizationIdentifier;
             private FilterParameter _paramUserId;
             private FilterParameter _paramUsername;
+            private FilterParameter _paramSelfIdentifiedEmail;
             private FilterParameter _paramPartyUuidList;
             private FilterParameter _paramPartyIdList;
+            private FilterParameter _paramExternalUrnList;
             private FilterParameter _paramPersonIdentifierList;
             private FilterParameter _paramOrganizationIdentifierList;
             private FilterParameter _paramUserIdList;
             private FilterParameter _paramUsernameList;
+            private FilterParameter _paramSelfIdentifiedEmailList;
             private FilterParameter _paramPartyTypeList;
             private FilterParameter _paramStreamFromExclusive;
             private FilterParameter _paramStreamLimit;
@@ -695,6 +745,10 @@ internal partial class PostgreSqlPartyPersistence
             private sbyte _organizationInternetAddress = -1;
             private sbyte _organizationMailingAddress = -1;
             private sbyte _organizationBusinessAddress = -1;
+
+            // register.self_identified_user
+            private sbyte _selfIdentifiedUserType = -1;
+            private sbyte _selfIdentifiedUserEmail = -1;
 
             // register.system_user
             private sbyte _systemUserType = -1;
@@ -745,6 +799,9 @@ internal partial class PostgreSqlPartyPersistence
                 _organizationMailingAddress = AddField("org.mailing_address", "p_org_mailing_address", includes.HasFlag(PartyFieldIncludes.OrganizationMailingAddress));
                 _organizationBusinessAddress = AddField("org.business_address", "p_business_address", includes.HasFlag(PartyFieldIncludes.OrganizationBusinessAddress));
 
+                _selfIdentifiedUserType = AddField("si_u.\"type\"", "p_self_identified_user_type", includes.HasFlag(PartyFieldIncludes.SelfIdentifiedUserType));
+                _selfIdentifiedUserEmail = AddField("si_u.email", "p_self_identified_user_email", includes.HasFlag(PartyFieldIncludes.SelfIdentifiedUserEmail));
+
                 _systemUserType = AddField("sys_u.\"type\"", "p_system_user_type", includes.HasFlag(PartyFieldIncludes.SystemUserType));
 
                 _userIsActive = AddField("\"user\".is_active", "u_is_active", includes.HasAnyFlags(PartyFieldIncludes.User));
@@ -762,6 +819,11 @@ internal partial class PostgreSqlPartyPersistence
                 if (includes.HasAnyFlags(PartyFieldIncludes.Organization))
                 {
                     _builder.AppendLine().Append(/*strpsql*/"LEFT JOIN register.organization AS org USING (uuid)");
+                }
+
+                if (includes.HasAnyFlags(PartyFieldIncludes.SelfIdentifiedUser))
+                {
+                    _builder.AppendLine().Append(/*strpsql*/"""LEFT JOIN register.self_identified_user AS si_u USING (uuid)""");
                 }
 
                 if (includes.HasAnyFlags(PartyFieldIncludes.SystemUser))
@@ -940,6 +1002,18 @@ internal partial class PostgreSqlPartyPersistence
                                 """);
                         break;
 
+                    case PartyLookupIdentifiers.ExternalUrn:
+                        _paramExternalUrn = new(typeof(string), "externalUrn", NpgsqlDbType.Text);
+                        AddCommonTableExpression(
+                            ref firstExpression,
+                            name,
+                            /*strpsql*/"""
+                                SELECT party."uuid", party.version_id
+                                FROM register.party AS party
+                                WHERE party."ext_urn" = @externalUrn
+                                """);
+                        break;
+
                     case PartyLookupIdentifiers.PersonIdentifier:
                         _paramPersonIdentifier = new(typeof(string), "personIdentifier", NpgsqlDbType.Text);
                         AddCommonTableExpression(
@@ -989,6 +1063,19 @@ internal partial class PostgreSqlPartyPersistence
                                 WHERE "user".username = @username
                                 """);
                         break;
+
+                    case PartyLookupIdentifiers.SelfIdentifiedEmail:
+                        _paramSelfIdentifiedEmail = new(typeof(string), "selfIdentifiedEmail", NpgsqlDbType.Text);
+                        AddCommonTableExpression(
+                            ref firstExpression,
+                            name,
+                            /*strpsql*/"""
+                                SELECT si_u."uuid", party.version_id
+                                FROM register.self_identified_user AS si_u
+                                INNER JOIN register.party AS party USING (uuid)
+                                WHERE si_u.email = @selfIdentifiedEmail
+                                """);
+                        break;
                 }
 
                 Debug.Assert(!firstExpression);
@@ -1025,6 +1112,21 @@ internal partial class PostgreSqlPartyPersistence
                             SELECT party."uuid", party.version_id
                             FROM register.party AS party
                             WHERE party."id" = ANY (@partyIds)
+                            """);
+                }
+
+                if (identifier.HasFlag(PartyLookupIdentifiers.ExternalUrn))
+                {
+                    // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
+                    _paramExternalUrnList = new(typeof(IList<string>), "externalUrns", NpgsqlDbType.Array | NpgsqlDbType.Text);
+                    idSets.Add("uuids_by_external_urn");
+                    AddCommonTableExpression(
+                        ref firstExpression,
+                        "uuids_by_external_urn",
+                        /*strpsql*/"""
+                            SELECT party."uuid", party.version_id
+                            FROM register.party AS party
+                            WHERE party."ext_urn" = ANY (@externalUrns)
                             """);
                 }
 
@@ -1087,6 +1189,22 @@ internal partial class PostgreSqlPartyPersistence
                             FROM register."user" AS "user"
                             INNER JOIN register.party AS party USING (uuid)
                             WHERE "user".username = ANY (@usernames)
+                            """);
+                }
+
+                if (identifier.HasFlag(PartyLookupIdentifiers.SelfIdentifiedEmail))
+                {
+                    // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
+                    _paramSelfIdentifiedEmailList = new(typeof(IList<string>), "selfIdentifiedEmails", NpgsqlDbType.Array | NpgsqlDbType.Text);
+                    idSets.Add("uuids_by_self_identified_email");
+                    AddCommonTableExpression(
+                        ref firstExpression,
+                        "uuids_by_self_identified_email",
+                        /*strpsql*/"""
+                            SELECT si_u."uuid", party.version_id
+                            FROM register.self_identified_user AS si_u
+                            INNER JOIN register.party AS party USING (uuid)
+                            WHERE si_u.email = ANY (@selfIdentifiedEmails)
                             """);
                 }
 
@@ -1264,6 +1382,10 @@ internal partial class PostgreSqlPartyPersistence
             sbyte organizationMailingAddress,
             sbyte organizationBusinessAddress,
 
+            // register.self_identified_user
+            sbyte selfIdentifiedUserType,
+            sbyte selfIdentifiedUserEmail,
+
             // register.system_user
             sbyte systemUserType,
 
@@ -1310,6 +1432,10 @@ internal partial class PostgreSqlPartyPersistence
             public int OrganizationInternetAddress => organizationInternetAddress;
             public int OrganizationMailingAddress => organizationMailingAddress;
             public int OrganizationBusinessAddress => organizationBusinessAddress;
+
+            // register.self_identified_user
+            public int SelfIdentifiedUserType => selfIdentifiedUserType;
+            public int SelfIdentifiedUserEmail => selfIdentifiedUserEmail;
 
             // register.system_user
             public int SystemUserType => systemUserType;
