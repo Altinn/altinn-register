@@ -23,6 +23,7 @@ public class SelfIdentifiedUserTests
                 User = FieldValue.Unset,
                 VersionId = VersionId,
                 SelfIdentifiedUserType = FieldValue.Unset,
+                Email = FieldValue.Unset,
             },
             """
             {
@@ -52,6 +53,7 @@ public class SelfIdentifiedUserTests
                 User = FullUser,
                 VersionId = VersionId,
                 SelfIdentifiedUserType = NonExhaustiveEnum.Create(SelfIdentifiedUserType.Legacy),
+                Email = FieldValue.Null,
             },
             """
             {
@@ -71,7 +73,8 @@ public class SelfIdentifiedUserTests
                 "username": "username",
                 "userIds": [ 50, 30, 1 ]
               },
-              "selfIdentifiedUserType": "legacy"
+              "selfIdentifiedUserType": "legacy",
+              "email": null
             }
             """);
     }
@@ -93,6 +96,7 @@ public class SelfIdentifiedUserTests
                 User = FullUser,
                 VersionId = VersionId,
                 SelfIdentifiedUserType = NonExhaustiveEnum.Create(SelfIdentifiedUserType.Educational),
+                Email = FieldValue.Null,
             },
             """
             {
@@ -112,7 +116,8 @@ public class SelfIdentifiedUserTests
                 "username": "username",
                 "userIds": [ 50, 30, 1 ]
               },
-              "selfIdentifiedUserType": "edu"
+              "selfIdentifiedUserType": "edu",
+              "email": null
             }
             """);
     }
@@ -134,6 +139,7 @@ public class SelfIdentifiedUserTests
                 User = FullUser,
                 VersionId = VersionId,
                 SelfIdentifiedUserType = NonExhaustiveEnum.Create(SelfIdentifiedUserType.IdPortenEmail),
+                Email = "test@example.com",
             },
             """
             {
@@ -153,7 +159,8 @@ public class SelfIdentifiedUserTests
                 "username": "username",
                 "userIds": [ 50, 30, 1 ]
               },
-              "selfIdentifiedUserType": "idporten-email"
+              "selfIdentifiedUserType": "idporten-email",
+              "email": "test@example.com"
             }
             """);
     }
