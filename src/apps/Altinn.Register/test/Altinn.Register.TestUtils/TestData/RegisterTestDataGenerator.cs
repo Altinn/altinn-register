@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
@@ -155,10 +156,12 @@ public sealed partial class RegisterTestDataGenerator
             modifiedAt = now;
         }
 
+        Debug.Assert(identifier.HasValue);
         return new OrganizationRecord
         {
             PartyUuid = uuid.HasValue ? uuid.Value : _random.Guid(),
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.OrganizationId.Create(identifier.Value),
             DisplayName = name.HasValue ? name.Value : "Test",
             PersonIdentifier = null,
             OrganizationIdentifier = identifier,
@@ -339,10 +342,12 @@ public sealed partial class RegisterTestDataGenerator
             modifiedAt = now;
         }
 
+        Debug.Assert(identifier.HasValue);
         return new PersonRecord
         {
             PartyUuid = uuid.HasValue ? uuid.Value : Guid.NewGuid(),
             PartyId = id,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(identifier.Value),
             DisplayName = name.Value!.DisplayName,
             PersonIdentifier = identifier,
             OrganizationIdentifier = null,
@@ -463,6 +468,7 @@ public sealed partial class RegisterTestDataGenerator
         {
             PartyUuid = uuid.HasValue ? uuid.Value : Guid.NewGuid(),
             PartyId = id,
+            ExternalUrn = FieldValue.Null, // TODO: Should be based on SI user type
             DisplayName = name,
             PersonIdentifier = null,
             OrganizationIdentifier = null,
@@ -569,6 +575,7 @@ public sealed partial class RegisterTestDataGenerator
         {
             PartyUuid = uuid.Value,
             PartyId = FieldValue.Null,
+            ExternalUrn = FieldValue.Null,
             DisplayName = name,
             PersonIdentifier = null,
             OrganizationIdentifier = null,
@@ -670,10 +677,12 @@ public sealed partial class RegisterTestDataGenerator
             modifiedAt = now;
         }
 
+        Debug.Assert(uuid.HasValue);
         return new SystemUserRecord
         {
             PartyUuid = uuid.Value,
             PartyId = FieldValue.Null,
+            ExternalUrn = PartyExternalRefUrn.SystemUserUuid.Create(uuid.Value),
             DisplayName = name,
             PersonIdentifier = null,
             OrganizationIdentifier = null,

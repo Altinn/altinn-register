@@ -37,6 +37,7 @@ SELECT
     party.uuid p_uuid,
     party.id p_id,
     party.party_type p_party_type,
+    party.ext_urn p_ext_urn,
     party.display_name p_display_name,
     party.person_identifier p_person_identifier,
     party.organization_identifier p_organization_identifier

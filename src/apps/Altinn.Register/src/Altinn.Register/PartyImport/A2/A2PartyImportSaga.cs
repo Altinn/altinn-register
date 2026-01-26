@@ -173,6 +173,7 @@ public sealed partial class A2PartyImportSaga
             {
                 PartyUuid = profile.UserUuid.Value,
                 OwnerUuid = profile.PartyUuid,
+                ExternalUrn = FieldValue.Null,
                 PartyId = FieldValue.Null,
                 DisplayName = profile.UserName,
                 PersonIdentifier = FieldValue.Null,

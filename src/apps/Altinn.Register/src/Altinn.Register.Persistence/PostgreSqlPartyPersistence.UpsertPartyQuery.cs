@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Altinn.Authorization.ModelUtils;
@@ -304,6 +304,7 @@ internal partial class PostgreSqlPartyPersistence
             FROM register.upsert_party(
                 @uuid,
                 @id,
+                @ext_urn,
                 @user_ids,
                 @set_username,
                 @username,
@@ -348,6 +349,7 @@ internal partial class PostgreSqlPartyPersistence
                 var userIds = party.User.SelectFieldValue(static u => u.UserIds);
 
                 Debug.Assert(party.PartyUuid.HasValue);
+                Debug.Assert(party.ExternalUrn.IsSet);
                 Debug.Assert(party.User.IsUnset || (userIds.HasValue && !userIds.Value.IsDefaultOrEmpty));
                 Debug.Assert(party.PartyType.HasValue && party.PartyType.Value == type);
                 Debug.Assert(party.DisplayName.HasValue);
@@ -378,6 +380,7 @@ internal partial class PostgreSqlPartyPersistence
 
                 parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = party.PartyUuid.Value;
                 parameters.Add<int?>("id", NpgsqlDbType.Bigint).TypedValue = party.PartyId.IsNull ? null : checked((int)party.PartyId.Value);
+                parameters.Add<string?>("ext_urn", NpgsqlDbType.Text).TypedValue = party.ExternalUrn.Value?.Urn;
                 parameters.Add<int[]?>("user_ids", NpgsqlDbType.Bigint | NpgsqlDbType.Array).TypedValue = userIds.OrDefault();
                 parameters.Add<bool>("set_username", NpgsqlDbType.Boolean).TypedValue = username.IsSet;
                 parameters.Add<string?>("username", NpgsqlDbType.Text).TypedValue = username.Value;
@@ -415,6 +418,7 @@ internal partial class PostgreSqlPartyPersistence
                 FROM register.upsert_party_pers(
                     @uuid,
                     @id,
+                    @ext_urn,
                     @user_ids,
                     @set_username,
                     @username,
@@ -474,6 +478,7 @@ internal partial class PostgreSqlPartyPersistence
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_uuid", cancellationToken),
                     OwnerUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_owner", cancellationToken),
                     PartyId = await reader.GetConditionalFieldValueAsync<int>("p_id", cancellationToken).Select(static id => checked((uint)id)),
+                    ExternalUrn = await reader.GetConditionalParsableFieldValueAsync<PartyExternalRefUrn>("p_ext_urn", cancellationToken),
                     User = await ReadUser(reader, cancellationToken),
                     DisplayName = await reader.GetConditionalFieldValueAsync<string>("p_display_name", cancellationToken),
                     PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>("p_person_identifier", cancellationToken),
@@ -505,6 +510,7 @@ internal partial class PostgreSqlPartyPersistence
                 FROM register.upsert_party_org(
                     @uuid,
                     @id,
+                    @ext_urn,
                     @user_ids,
                     @set_username,
                     @username,
@@ -567,6 +573,7 @@ internal partial class PostgreSqlPartyPersistence
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_uuid", cancellationToken),
                     OwnerUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_owner", cancellationToken),
                     PartyId = await reader.GetConditionalFieldValueAsync<int>("p_id", cancellationToken).Select(static id => checked((uint)id)),
+                    ExternalUrn = await reader.GetConditionalParsableFieldValueAsync<PartyExternalRefUrn>("p_ext_urn", cancellationToken),
                     User = await ReadUser(reader, cancellationToken),
                     DisplayName = await reader.GetConditionalFieldValueAsync<string>("p_display_name", cancellationToken),
                     PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>("p_person_identifier", cancellationToken),
@@ -602,6 +609,7 @@ internal partial class PostgreSqlPartyPersistence
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_uuid", cancellationToken),
                     OwnerUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_owner", cancellationToken),
                     PartyId = await reader.GetConditionalFieldValueAsync<int>("p_id", cancellationToken).Select(static id => checked((uint)id)),
+                    ExternalUrn = await reader.GetConditionalParsableFieldValueAsync<PartyExternalRefUrn>("p_ext_urn", cancellationToken),
                     User = await ReadUser(reader, cancellationToken),
                     DisplayName = await reader.GetConditionalFieldValueAsync<string>("p_display_name", cancellationToken),
                     PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>("p_person_identifier", cancellationToken),
@@ -624,6 +632,7 @@ internal partial class PostgreSqlPartyPersistence
                 FROM register.upsert_system_user(
                     @uuid,
                     @id,
+                    @ext_urn,
                     @user_ids,
                     @set_username,
                     @username,
@@ -663,6 +672,7 @@ internal partial class PostgreSqlPartyPersistence
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_uuid", cancellationToken),
                     OwnerUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_owner", cancellationToken),
                     PartyId = await reader.GetConditionalFieldValueAsync<int>("p_id", cancellationToken).Select(static id => checked((uint)id)),
+                    ExternalUrn = await reader.GetConditionalParsableFieldValueAsync<PartyExternalRefUrn>("p_ext_urn", cancellationToken),
                     User = await ReadUser(reader, cancellationToken),
                     DisplayName = await reader.GetConditionalFieldValueAsync<string>("p_display_name", cancellationToken),
                     PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>("p_person_identifier", cancellationToken),
@@ -687,6 +697,7 @@ internal partial class PostgreSqlPartyPersistence
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_uuid", cancellationToken),
                     OwnerUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_owner", cancellationToken),
                     PartyId = await reader.GetConditionalFieldValueAsync<int>("p_id", cancellationToken).Select(static id => checked((uint)id)),
+                    ExternalUrn = await reader.GetConditionalParsableFieldValueAsync<PartyExternalRefUrn>("p_ext_urn", cancellationToken),
                     User = await ReadUser(reader, cancellationToken),
                     DisplayName = await reader.GetConditionalFieldValueAsync<string>("p_display_name", cancellationToken),
                     PersonIdentifier = await reader.GetConditionalParsableFieldValueAsync<PersonIdentifier>("p_person_identifier", cancellationToken),

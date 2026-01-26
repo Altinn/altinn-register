@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -52,6 +52,7 @@ internal static partial class PartyMapper
             Uuid = source.PartyUuid.Value,
             VersionId = source.VersionId.Value,
             PartyId = source.PartyId,
+            ExternalUrn = source.ExternalUrn.Select(NonExhaustive.Create),
             DisplayName = source.DisplayName,
             CreatedAt = source.CreatedAt,
             ModifiedAt = source.ModifiedAt,
@@ -101,6 +102,7 @@ internal static partial class PartyMapper
             Uuid = source.PartyUuid.Value,
             VersionId = source.VersionId.Value,
             PartyId = source.PartyId,
+            ExternalUrn = source.ExternalUrn.Select(NonExhaustive.Create),
             DisplayName = source.DisplayName,
             CreatedAt = source.CreatedAt,
             ModifiedAt = source.ModifiedAt,
@@ -146,6 +148,7 @@ internal static partial class PartyMapper
             Uuid = source.PartyUuid.Value,
             VersionId = source.VersionId.Value,
             PartyId = source.PartyId,
+            ExternalUrn = source.ExternalUrn.Select(NonExhaustive.Create),
             DisplayName = source.DisplayName,
             CreatedAt = source.CreatedAt,
             ModifiedAt = source.ModifiedAt,
@@ -185,6 +188,7 @@ internal static partial class PartyMapper
             Uuid = source.PartyUuid.Value,
             VersionId = source.VersionId.Value,
             PartyId = source.PartyId,
+            ExternalUrn = source.ExternalUrn.Select(NonExhaustive.Create),
             DisplayName = source.DisplayName,
             CreatedAt = source.CreatedAt,
             ModifiedAt = source.ModifiedAt,
@@ -230,6 +234,7 @@ internal static partial class PartyMapper
             Uuid = source.PartyUuid.Value,
             VersionId = source.VersionId.Value,
             PartyId = source.PartyId,
+            ExternalUrn = source.ExternalUrn.Select(NonExhaustive.Create),
             DisplayName = source.DisplayName,
             CreatedAt = source.CreatedAt,
             ModifiedAt = source.ModifiedAt,

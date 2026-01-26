@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
@@ -150,6 +151,7 @@ internal sealed partial class SystemUserImportJob
                     PartyUuid = systemUser.Id,
                     OwnerUuid = owner,
                     PartyId = FieldValue.Null,
+                    ExternalUrn = PartyExternalRefUrn.SystemUserUuid.Create(systemUser.Id),
                     DisplayName = systemUser.Name,
                     PersonIdentifier = FieldValue.Null,
                     OrganizationIdentifier = FieldValue.Null,
