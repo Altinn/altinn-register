@@ -16,17 +16,28 @@
 ALTER TABLE register.party
   ADD COLUMN ext_urn text;
 
-UPDATE register.party
-   SET ext_urn = CONCAT('urn:altinn:person:identifier-no:', "person_identifier"::text)
- WHERE "party_type" = 'person';
+-- CREATE TEMP TABLE party_ext_urn (
+--   uuid uuid PRIMARY KEY NOT NULL,
+--   ext_urn text NOT NULL
+-- ) ON COMMIT DROP;
 
-UPDATE register.party
-   SET ext_urn = CONCAT('urn:altinn:organization:identifier-no:', "organization_identifier"::text)
- WHERE "party_type" = 'organization';
+-- INSERT INTO party_ext_urn (uuid, ext_urn)
+-- SELECT
+--   p.uuid,
+--   CASE
+--     WHEN p.party_type = 'person' THEN CONCAT('urn:altinn:person:identifier-no:', p.person_identifier::text)
+--     WHEN p.party_type = 'organization' THEN CONCAT('urn:altinn:organization:identifier-no:', p.organization_identifier::text)
+--     WHEN p.party_type = 'system-user' THEN CONCAT('urn:altinn:systemuser:uuid:', p.uuid::text)
+--     ELSE NULL
+--   END AS ext_urn
+-- FROM register.party p
+-- WHERE p.party_type IN ('person', 'organization', 'system-user')
+--   AND p.ext_urn IS NULL;
 
-UPDATE register.party
-   SET ext_urn = CONCAT('urn:altinn:systemuser:uuid:', "uuid"::text)
- WHERE "party_type" = 'system-user';
+-- UPDATE register.party p
+-- SET ext_urn = pe.ext_urn
+-- FROM party_ext_urn pe
+-- WHERE p.uuid = pe.uuid;
 
 ALTER TABLE register.party
   ADD CONSTRAINT chk_party_ext_urn CHECK (
@@ -37,6 +48,7 @@ ALTER TABLE register.party
       WHEN party_type = 'enterprise-user' THEN ext_urn IS NULL
       WHEN party_type = 'self-identified-user' THEN TRUE -- Multiple formats, some NULL for self-identified users
     END
-  );
+  )
+  NOT VALID;
 
 CREATE UNIQUE INDEX uq_party_ext_urn ON register.party (ext_urn);
