@@ -597,8 +597,8 @@ public class PartyRecordTests
             PartyId = 1,
             ExternalUrn = FieldValue.Null,
             DisplayName = "1",
-            PersonIdentifier = PersonIdentifier.Parse("25871999336"),
-            OrganizationIdentifier = FieldValue.Unset,
+            PersonIdentifier = FieldValue.Null,
+            OrganizationIdentifier = FieldValue.Null,
             CreatedAt = TimeProvider.GetUtcNow(),
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
@@ -606,6 +606,8 @@ public class PartyRecordTests
             User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
             VersionId = 42,
             OwnerUuid = FieldValue.Null,
+            SelfIdentifiedUserType = FieldValue.Null,
+            Email = FieldValue.Null,
         };
 
         var json = JsonSerializer.SerializeToElement(record, _options);
@@ -617,7 +619,8 @@ public class PartyRecordTests
                 "partyId":1,
                 "externalUrn": null,
                 "displayName":"1",
-                "personIdentifier":"25871999336",
+                "personIdentifier": null,
+                "organizationIdentifier": null,
                 "createdAt":"2000-01-01T00:00:00+00:00",
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":false,
@@ -627,7 +630,9 @@ public class PartyRecordTests
                     "userIds": [1]
                 },
                 "versionId":42,
-                "ownerUuid": null
+                "ownerUuid": null,
+                "selfIdentifiedUserType": null,
+                "email": null
             }
             """);
 

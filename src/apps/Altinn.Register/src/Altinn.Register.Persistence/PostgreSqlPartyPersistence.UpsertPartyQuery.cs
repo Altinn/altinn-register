@@ -323,6 +323,32 @@ internal partial class PostgreSqlPartyPersistence
             """;
 
         /// <summary>
+        /// Attempts to find the zero-based column ordinal for the specified column name in the provided data reader.
+        /// </summary>
+        /// <remarks>
+        /// If <a href="https://github.com/npgsql/npgsql/issues/6423">Npgsql #6423</a> ever get's implemented, this can be removed.
+        /// </remarks>
+        /// <param name="reader">The data reader to search for the column.</param>
+        /// <param name="columnName">The name of the column to locate. The comparison is case-insensitive.</param>
+        /// <param name="ordinal">When this method returns, contains the zero-based ordinal of the column if found; otherwise, -1. This
+        /// parameter is passed uninitialized.</param>
+        /// <returns><see langword="true"/> if the column is found; otherwise, <see langword="false"/>.</returns>
+        protected static bool TryGetOrdinal(NpgsqlDataReader reader, string columnName, out int ordinal)
+        {
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                if (reader.GetName(i).Equals(columnName, StringComparison.OrdinalIgnoreCase))
+                {
+                    ordinal = i;
+                    return true;
+                }
+            }
+
+            ordinal = -1;
+            return false;
+        }
+
+        /// <summary>
         /// Reads user information from a data reader.
         /// </summary>
         protected static async Task<FieldValue<PartyUserRecord>> ReadUser(NpgsqlDataReader reader, CancellationToken cancellationToken)
@@ -340,10 +366,13 @@ internal partial class PostgreSqlPartyPersistence
             return new PartyUserRecord(userId: userId, username: username, userIds: userIds);
         }
 
-        private abstract class Typed<T>(PartyRecordType type, string query = DEFAULT_QUERY)
+        private abstract class Typed<T>(PartyRecordType type)
             : UpsertPartyQuery
             where T : PartyRecord
         {
+            protected virtual string GetQuery(T party)
+                => DEFAULT_QUERY;
+
             protected virtual void ValidateFields(T party)
             {
                 var userIds = party.User.SelectFieldValue(static u => u.UserIds);
@@ -404,13 +433,13 @@ internal partial class PostgreSqlPartyPersistence
             {
                 ValidateFields(party);
 
-                var cmd = batch.CreateBatchCommand(query);
+                var cmd = batch.CreateBatchCommand(GetQuery(party));
                 AddPartyParameters(cmd.Parameters, party);
             }
         }
 
         private sealed class UpsertPersonQuery()
-            : Typed<PersonRecord>(PartyRecordType.Person, QUERY)
+            : Typed<PersonRecord>(PartyRecordType.Person)
         {
             private const string QUERY =
                 /*strpsql*/"""
@@ -443,6 +472,9 @@ internal partial class PostgreSqlPartyPersistence
                     @address,
                     @mailing_address)
                 """;
+
+            protected override string GetQuery(PersonRecord party)
+                => QUERY;
 
             protected override void ValidateFields(PersonRecord party)
             {
@@ -502,7 +534,7 @@ internal partial class PostgreSqlPartyPersistence
         }
 
         private sealed class UpsertOrganizationParty()
-            : Typed<OrganizationRecord>(PartyRecordType.Organization, QUERY)
+            : Typed<OrganizationRecord>(PartyRecordType.Organization)
         {
             private const string QUERY =
                 /*strpsql*/"""
@@ -536,6 +568,9 @@ internal partial class PostgreSqlPartyPersistence
                     @mailing_address,
                     @business_address)
                 """;
+
+            protected override string GetQuery(OrganizationRecord party)
+                => QUERY;
 
             protected override void ValidateFields(OrganizationRecord party)
             {
@@ -602,8 +637,91 @@ internal partial class PostgreSqlPartyPersistence
         private sealed class UpsertSelfIdentifiedUserQuery()
             : Typed<SelfIdentifiedUserRecord>(PartyRecordType.SelfIdentifiedUser)
         {
+            private const string QUERY =
+                /*strpsql*/"""
+                SELECT *
+                FROM register.upsert_self_identified_user(
+                    @uuid,
+                    @id,
+                    @ext_urn,
+                    @user_ids,
+                    @set_username,
+                    @username,
+                    @party_type,
+                    @display_name,
+                    @person_id,
+                    @org_id,
+                    @created_at,
+                    @modified_at,
+                    @set_is_deleted,
+                    @is_deleted,
+                    @set_deleted_at,
+                    @deleted_at,
+                    @set_owner,
+                    @owner,
+                    @self_identified_user_type,
+                    @email)
+                """;
+
+            protected override string GetQuery(SelfIdentifiedUserRecord party)
+            {
+                if (party.SelfIdentifiedUserType.HasValue)
+                {
+                    return QUERY;
+                }
+
+                return base.GetQuery(party);
+            }
+
+            protected override void ValidateFields(SelfIdentifiedUserRecord party)
+            {
+                base.ValidateFields(party);
+                Debug.Assert(party.SelfIdentifiedUserType.IsSet);
+
+                if (party.SelfIdentifiedUserType.HasValue)
+                {
+                    switch (party.SelfIdentifiedUserType.Value)
+                    {
+                        case SelfIdentifiedUserType.IdPortenEmail:
+                            Debug.Assert(party.Email.HasValue);
+                            break;
+
+                        default:
+                            Debug.Assert(party.Email.IsNull);
+                            break;
+                    }
+                }
+                else
+                {
+                    Debug.Assert(party.SelfIdentifiedUserType.IsNull);
+
+                    Debug.Assert(party.Email.IsNull);
+                }
+            }
+
+            protected override void AddPartyParameters(NpgsqlParameterCollection parameters, SelfIdentifiedUserRecord party)
+            {
+                base.AddPartyParameters(parameters, party);
+
+                if (party.SelfIdentifiedUserType.HasValue)
+                {
+                    parameters.Add<SelfIdentifiedUserType>("self_identified_user_type").TypedValue = party.SelfIdentifiedUserType.Value;
+                    parameters.Add<string?>("email", NpgsqlDbType.Text).TypedValue = party.Email.IsNull ? null : party.Email.Value;
+                }
+            }
+
             public override async Task<SelfIdentifiedUserRecord> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken)
             {
+                // For now, we have to deal with the fact that some SI users do not have the SI table in the DB, so not all the information is always available
+                FieldValue<SelfIdentifiedUserType> type = FieldValue.Null;
+                FieldValue<string> email = FieldValue.Null;
+
+                if (TryGetOrdinal(reader, "p_self_identified_user_type", out var typeOrdinal))
+                {
+                    type = await reader.GetConditionalFieldValueAsync<SelfIdentifiedUserType>(typeOrdinal, cancellationToken);
+                    email = await reader.GetConditionalFieldValueAsync<string>("p_self_identified_email", cancellationToken);
+                }
+
                 return new SelfIdentifiedUserRecord
                 {
                     PartyUuid = await reader.GetConditionalFieldValueAsync<Guid>("p_uuid", cancellationToken),
@@ -619,12 +737,15 @@ internal partial class PostgreSqlPartyPersistence
                     IsDeleted = await reader.GetConditionalFieldValueAsync<bool>("p_is_deleted", cancellationToken),
                     DeletedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>("p_deleted_at", cancellationToken),
                     VersionId = await reader.GetConditionalFieldValueAsync<long>("o_version_id", cancellationToken).Select(static v => (ulong)v),
+
+                    SelfIdentifiedUserType = type,
+                    Email = email,
                 };
             }
         }
 
         private sealed class UpsertSystemUserQuery()
-            : Typed<SystemUserRecord>(PartyRecordType.SystemUser, QUERY)
+            : Typed<SystemUserRecord>(PartyRecordType.SystemUser)
         {
             private const string QUERY =
                 /*strpsql*/"""
@@ -650,6 +771,9 @@ internal partial class PostgreSqlPartyPersistence
                     @owner,
                     @system_user_type)
                 """;
+
+            protected override string GetQuery(SystemUserRecord party)
+                => QUERY;
 
             protected override void ValidateFields(SystemUserRecord party)
             {

@@ -421,6 +421,7 @@ public class PartyController
         List<OrganizationIdentifier>? orgIds = null;
         List<uint>? userIds = null;
         List<string>? usernames = null;
+        List<string>? idpEmails = null;
 
         var count = 0;
         foreach (var item in parties.Items)
@@ -463,6 +464,12 @@ public class PartyController
                     usernames.Add(username.Value.Value);
                     break;
 
+                case PartyUrn.IDPortenEmail idpEmail:
+                    fields |= PartyFieldIncludes.SelfIdentifiedUserEmail;
+                    idpEmails ??= new();
+                    idpEmails.Add(idpEmail.Value.Value);
+                    break;
+
                 default:
                     errors.Add(ValidationErrors.PartyUrn_Invalid, $"/data/{count}");
                     break;
@@ -496,11 +503,14 @@ public class PartyController
             personIdentifiers: personIds,
             userIds: userIds,
             usernames: usernames,
-            fields | REQUIRED_FIELDS,
-            cancellationToken)
+            selfIdentifiedEmails: idpEmails,
+            include: fields | REQUIRED_FIELDS,
+            cancellationToken: cancellationToken)
             .Select(static p => p.ToPlatformModel())
             .ToListAsync(cancellationToken);
 
+        // TODO: rewrite this to give out which inputs matched which outputs
+        // see https://github.com/Altinn/altinn-register/issues/659
         var statusCode = StatusCodes.Status200OK;
         var anyMissing = ids.OrEmpty().Any(id => !result.Any(p => p.PartyId.Value == id)) 
             || uuids.OrEmpty().Any(uuid => !result.Any(p => p.Uuid == uuid)) 

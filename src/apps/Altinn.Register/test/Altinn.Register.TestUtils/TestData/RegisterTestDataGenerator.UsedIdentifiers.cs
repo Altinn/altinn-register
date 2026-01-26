@@ -354,6 +354,19 @@ public sealed partial class RegisterTestDataGenerator
             }
         }
 
+        /// <summary>
+        /// Returns a random enum value of type <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">The enum type.</typeparam>
+        /// <returns>A random <typeparamref name="T"/>.</returns>
+        internal T Next<T>()
+            where T : struct, Enum
+        {
+            var values = Enum.GetValues<T>();
+            var index = Next(0, values.Length);
+            return values[index];
+        }
+
         internal bool NextBool(double chance)
         {
             lock (_lock)

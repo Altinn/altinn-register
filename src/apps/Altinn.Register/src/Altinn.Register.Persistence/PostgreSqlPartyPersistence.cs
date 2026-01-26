@@ -196,10 +196,12 @@ internal partial class PostgreSqlPartyPersistence
     public IAsyncEnumerable<PartyRecord> LookupParties(
         IReadOnlyList<Guid>? partyUuids = null,
         IReadOnlyList<uint>? partyIds = null,
+        IReadOnlyList<PartyExternalRefUrn>? externalUrns = null,
         IReadOnlyList<OrganizationIdentifier>? organizationIdentifiers = null,
         IReadOnlyList<PersonIdentifier>? personIdentifiers = null,
         IReadOnlyList<uint>? userIds = null,
         IReadOnlyList<string>? usernames = null,
+        IReadOnlyList<string>? selfIdentifiedEmails = null,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default)
     {
@@ -220,6 +222,13 @@ internal partial class PostgreSqlPartyPersistence
             any = orgs = persons = true;
             identifiers |= PartyLookupIdentifiers.PartyId;
             include |= PartyFieldIncludes.PartyId;
+        }
+
+        if (externalUrns is { Count: > 0 })
+        {
+            any = orgs = persons = true;
+            identifiers |= PartyLookupIdentifiers.ExternalUrn;
+            include |= PartyFieldIncludes.PartyExternalUrn;
         }
 
         if (organizationIdentifiers is { Count: > 0 })
@@ -248,6 +257,13 @@ internal partial class PostgreSqlPartyPersistence
             any = persons = true;
             identifiers |= PartyLookupIdentifiers.Username;
             include |= PartyFieldIncludes.Username;
+        }
+
+        if (selfIdentifiedEmails is { Count: > 0 })
+        {
+            any = persons = true;
+            identifiers |= PartyLookupIdentifiers.SelfIdentifiedEmail;
+            include |= PartyFieldIncludes.SelfIdentifiedUserEmail;
         }
 
         if (!any)
@@ -284,6 +300,11 @@ internal partial class PostgreSqlPartyPersistence
                 query.AddPartyIdListParameter(cmd, [.. partyIds.Select(static id => checked((int)id))]);
             }
 
+            if (externalUrns is { Count: > 0 })
+            {
+                query.AddExternalUrnListParameter(cmd, [.. externalUrns.Select(static o => o.Urn)]);
+            }
+
             if (organizationIdentifiers is { Count: > 0 })
             {
                 query.AddOrganizationIdentifierListParameter(cmd, [.. organizationIdentifiers.Select(static o => o.ToString())]);
@@ -302,6 +323,11 @@ internal partial class PostgreSqlPartyPersistence
             if (usernames is { Count: > 0 })
             {
                 query.AddUsernameListParameter(cmd, [.. usernames]);
+            }
+
+            if (selfIdentifiedEmails is { Count: > 0 })
+            {
+                query.AddSelfIdentifiedEmailListParameter(cmd, [.. selfIdentifiedEmails]);
             }
 
             return PrepareAndReadPartiesAsync(cmd, query, cancellationToken);

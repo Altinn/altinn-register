@@ -230,6 +230,24 @@ public enum PartyFieldIncludes
         | OrganizationEmailAddress | OrganizationInternetAddress | OrganizationMailingAddress | OrganizationBusinessAddress,
 
     /// <summary>
+    /// The self-identified user type, if the party is a self-identified user.
+    /// </summary>
+    [JsonStringEnumMemberName("si.type")]
+    SelfIdentifiedUserType = 1UL << 30,
+
+    /// <summary>
+    /// The self-identified email, if the party is a self-identified idporten-email user.
+    /// </summary>
+    [JsonStringEnumMemberName("si.email")]
+    SelfIdentifiedUserEmail = 1UL << 31,
+
+    /// <summary>
+    /// All self-identified user fields.
+    /// </summary>
+    [JsonStringEnumMemberName("si")]
+    SelfIdentifiedUser = SelfIdentifiedUserType | SelfIdentifiedUserEmail,
+
+    /// <summary>
     /// All system user fields.
     /// </summary>
     /// <remarks>
@@ -243,25 +261,25 @@ public enum PartyFieldIncludes
     /// The system user type, if the party is a system user.
     /// </summary>
     [JsonStringEnumMemberName("sysuser.type")]
-    SystemUserType = 1UL << 30,
+    SystemUserType = 1UL << 32,
 
     /// <summary>
     /// Include subunits (if party is an organization).
     /// </summary>
     [JsonStringEnumMemberName("org.subunits")]
-    SubUnits = 1UL << 31,
+    SubUnits = 1UL << 33,
 
     /// <summary>
     /// The user id(s), if the party has an associated user.
     /// </summary>
     [JsonStringEnumMemberName("user.id")]
-    UserId = 1UL << 32,
+    UserId = 1UL << 34,
 
     /// <summary>
     /// The username, if the party has an associated user.
     /// </summary>
     [JsonStringEnumMemberName("user.name")]
-    Username = 1UL << 33,
+    Username = 1UL << 35,
 
     /// <summary>
     /// All user fields.

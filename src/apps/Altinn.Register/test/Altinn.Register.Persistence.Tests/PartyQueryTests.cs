@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ModelUtils.EnumUtils;
+using Altinn.Authorization.ModelUtils.EnumUtils;
 using Altinn.Register.Core.Parties;
 using Xunit.Abstractions;
 using static Altinn.Register.Persistence.PartyQueryFilters;
@@ -85,13 +85,15 @@ public class PartyQueryTests
             PartyLookupIdentifiers.OrganizationIdentifier,
             PartyLookupIdentifiers.UserId,
             PartyLookupIdentifiers.Username,
+            PartyLookupIdentifiers.SelfIdentifiedEmail,
+            PartyLookupIdentifiers.ExternalUrn,
         ];
 
         IEnumerable<PartyLookupIdentifiers> multipleIdentifiers = [
             .. singleIdentifiers,
 
             // all at once
-            PartyLookupIdentifiers.PartyId | PartyLookupIdentifiers.PartyUuid | PartyLookupIdentifiers.PersonIdentifier | PartyLookupIdentifiers.OrganizationIdentifier | PartyLookupIdentifiers.UserId | PartyLookupIdentifiers.Username,
+            PartyLookupIdentifiers.PartyId | PartyLookupIdentifiers.PartyUuid | PartyLookupIdentifiers.PersonIdentifier | PartyLookupIdentifiers.OrganizationIdentifier | PartyLookupIdentifiers.UserId | PartyLookupIdentifiers.Username | PartyLookupIdentifiers.SelfIdentifiedEmail | PartyLookupIdentifiers.ExternalUrn,
         ];
 
         IEnumerable<PartyListFilters> listFilters = [
@@ -120,7 +122,7 @@ public class PartyQueryTests
         // full includes
         foreach (var filter in filters)
         {
-            var allFields = PartyFieldIncludes.Party | PartyFieldIncludes.User | PartyFieldIncludes.Organization | PartyFieldIncludes.Person | PartyFieldIncludes.SystemUser;
+            var allFields = PartyFieldIncludes.Party | PartyFieldIncludes.User | PartyFieldIncludes.Organization | PartyFieldIncludes.Person | PartyFieldIncludes.SystemUser | PartyFieldIncludes.SelfIdentifiedUser;
             data.Add(allFields, filter);
 
             if (!filter.IsStream)

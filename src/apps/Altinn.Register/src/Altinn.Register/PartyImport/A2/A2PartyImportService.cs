@@ -524,7 +524,7 @@ internal sealed partial class A2PartyImportService
                 // party fields
                 PartyUuid = partyUuid,
                 PartyId = partyId,
-                ExternalUrn = FieldValue.Null, // TODO: depends on the self-identified user type
+                ExternalUrn = FieldValue.Null, // we cannot conclude about the external urn of a SI user based on the party object from A2
                 DisplayName = displayName,
                 PersonIdentifier = null,
                 OrganizationIdentifier = null,
@@ -535,6 +535,8 @@ internal sealed partial class A2PartyImportService
                 OwnerUuid = FieldValue.Null,
                 User = FieldValue.Unset,
                 VersionId = FieldValue.Unset,
+                SelfIdentifiedUserType = FieldValue.Null, // we cannot conclude about the SI user type based on the party object from A2
+                Email = FieldValue.Null, // we cannot conclude about the email based on the party object from A2
             };
         }
 

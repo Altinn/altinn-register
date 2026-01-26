@@ -1,7 +1,9 @@
 #nullable enable
 
+using System.Diagnostics;
 using System.Text;
 using Altinn.Authorization.ProblemDetails;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties.Records;
 
@@ -58,6 +60,18 @@ public static class PartyImportHelper
         else if (party is OrganizationRecord org)
         {
             CheckOrganization(ref builder, org);
+        }
+        else if (party is SelfIdentifiedUserRecord si)
+        {
+            CheckSelfIdentified(ref builder, si);
+        }
+        else if (party is SystemUserRecord sys)
+        {
+            CheckSystemUser(ref builder, sys);
+        }
+        else if (party is EnterpriseUserRecord enterprise)
+        {
+            CheckEnterpriseUser(ref builder, enterprise);
         }
 
         if (builder.TryBuild(out var error))
@@ -116,6 +130,42 @@ public static class PartyImportHelper
             CheckRequired(ref builder, org.InternetAddress.IsSet, "/internetAddress");
             CheckRequired(ref builder, org.MailingAddress.IsSet, "/mailingAddress");
             CheckRequired(ref builder, org.BusinessAddress.IsSet, "/businessAddress");
+        }
+
+        static void CheckSelfIdentified(ref ValidationErrorBuilder builder, SelfIdentifiedUserRecord si)
+        {
+            CheckRequired(ref builder, si.SelfIdentifiedUserType.IsSet, "/selfIdentifiedUserType");
+            
+            if (si.SelfIdentifiedUserType.HasValue)
+            {
+                switch (si.SelfIdentifiedUserType.Value)
+                {
+                    case SelfIdentifiedUserType.IdPortenEmail:
+                        CheckRequired(ref builder, si.Email.HasValue, "/email");
+                        break;
+
+                    default:
+                        Check(ref builder, si.Email.IsNull, ValidationErrors.NotNull, "/email");
+                        break;
+                }
+            }
+            else
+            {
+                Debug.Assert(si.SelfIdentifiedUserType.IsNull);
+
+                Check(ref builder, si.Email.IsNull, ValidationErrors.NotNull, "/email");
+            }
+        }
+
+        static void CheckSystemUser(ref ValidationErrorBuilder builder, SystemUserRecord sys)
+        {
+            CheckRequired(ref builder, sys.OwnerUuid.HasValue, "/owner");
+            CheckRequired(ref builder, sys.SystemUserType.HasValue, "/systemUserType");
+        }
+
+        static void CheckEnterpriseUser(ref ValidationErrorBuilder builder, EnterpriseUserRecord user)
+        {
+            CheckRequired(ref builder, user.OwnerUuid.HasValue, "/owner");
         }
     }
 }
