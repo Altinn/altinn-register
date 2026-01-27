@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.6.0](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.5.0...Altinn.Register.Contracts-v1.6.0) (2026-01-27)
+
+
+### Features
+
+* add email to self-identified users ([#670](https://github.com/Altinn/altinn-register/issues/670)) ([e86a109](https://github.com/Altinn/altinn-register/commit/e86a109bc10f2a76284882a3885a72dc9764b777))
+* add external-urn to party contracts ([#665](https://github.com/Altinn/altinn-register/issues/665)) ([e16b58b](https://github.com/Altinn/altinn-register/commit/e16b58b34e9b11113035c343c6d3432a25a0b007))
+
+
+### Bug Fixes
+
+* make json-converters public ([#676](https://github.com/Altinn/altinn-register/issues/676)) ([a2db0b3](https://github.com/Altinn/altinn-register/commit/a2db0b3603d8cf7eb24994ae8a59d50758f8d2d7))
+
 ## [1.5.0](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.4.1...Altinn.Register.Contracts-v1.5.0) (2026-01-16)
 
 
