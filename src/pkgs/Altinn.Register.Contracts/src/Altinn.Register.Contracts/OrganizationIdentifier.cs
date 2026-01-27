@@ -1,9 +1,9 @@
-﻿using System.Buffers;
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Text.Json;
+using Altinn.Register.Contracts.JsonConverters;
 using Altinn.Swashbuckle.Examples;
 using Altinn.Swashbuckle.Filters;
 
@@ -13,7 +13,7 @@ namespace Altinn.Register.Contracts;
 /// A organization number (a string of 9 digits).
 /// </summary>
 [SwaggerString(Format = "org-no", Pattern = "^[0-9]{9}$")]
-[JsonConverter(typeof(JsonConverter))]
+[JsonConverter(typeof(OrganizationIdentifierJsonConverter))]
 public sealed class OrganizationIdentifier
     : IParsable<OrganizationIdentifier>
     , ISpanParsable<OrganizationIdentifier>
@@ -180,23 +180,4 @@ public sealed class OrganizationIdentifier
     /// <inheritdoc cref="IEqualityOperators{TSelf, TOther, TResult}.op_Inequality"/>
     public static bool operator !=(string? left, OrganizationIdentifier? right)
         => !(left == right);
-
-    private sealed class JsonConverter : JsonConverter<OrganizationIdentifier>
-    {
-        public override OrganizationIdentifier? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        {
-            var str = reader.GetString();
-            if (!TryParse(str, null, out var result))
-            {
-                throw new JsonException("Invalid organization number");
-            }
-
-            return result;
-        }
-
-        public override void Write(Utf8JsonWriter writer, OrganizationIdentifier value, JsonSerializerOptions options)
-        {
-            writer.WriteStringValue(value._value);
-        }
-    }
 }
