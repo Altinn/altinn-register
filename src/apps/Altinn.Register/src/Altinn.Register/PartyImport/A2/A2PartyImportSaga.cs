@@ -26,6 +26,7 @@ public sealed partial class A2PartyImportSaga
     , ISagaStartedBy<A2PartyImportSaga, ImportA2PartyCommand, A2PartyImportSaga.A2PartyImportSagaData>
     , ISagaStartedBy<A2PartyImportSaga, ImportA2UserProfileCommand, A2PartyImportSaga.A2PartyImportSagaData>
     , ISagaHandles<A2PartyImportSaga, CompleteA2PartyImportSagaCommand, A2PartyImportSaga.A2PartyImportSagaData>
+    , ISagaHandles<A2PartyImportSaga, RetryA2PartyImportSagaCommand, A2PartyImportSaga.A2PartyImportSagaData>
 {
     /// <inheritdoc/>
     public static string Name => nameof(A2PartyImportSaga);
@@ -189,6 +190,24 @@ public sealed partial class A2PartyImportSaga
 
             return partyRecord;
         }
+    }
+
+    /// <inheritdoc/>
+    public async Task Handle(RetryA2PartyImportSagaCommand message, CancellationToken cancellationToken)
+    {
+        if (State.PartyUuid == Guid.Empty)
+        {
+            throw new InvalidOperationException("PartyUuid is not set");
+        }
+
+        var now = _timeProvider.GetUtcNow();
+
+        if (await FetchParty(cancellationToken) == FlowControl.Break)
+        {
+            return;
+        }
+
+        await Next(now, cancellationToken);
     }
 
     /// <inheritdoc/>
