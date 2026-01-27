@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
+using Altinn.Register.Contracts.JsonConverters;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.Contracts;
@@ -14,7 +14,7 @@ namespace Altinn.Register.Contracts;
 /// </summary>
 [DebuggerDisplay("Count = {Count}")]
 [DebuggerTypeProxy(typeof(TranslatedText.DebuggerProxy))]
-[JsonConverter(typeof(TranslatedText.JsonConverter))]
+[JsonConverter(typeof(TranslatedTextJsonConverter))]
 public sealed partial class TranslatedText
     : IReadOnlyDictionary<LangCode, string>
     , IDictionary<string, string> // for writing to db
@@ -35,6 +35,11 @@ public sealed partial class TranslatedText
 
     // any additional languages
     private readonly ImmutableArray<KeyValuePair<LangCode, string>> _additional;
+
+    /// <summary>
+    /// Gets additional translations beyond the three required ones.
+    /// </summary>
+    internal ImmutableArray<KeyValuePair<LangCode, string>> Additional => _additional;
 
     // Note: additional must be sorted
     private TranslatedText(string en, string nb, string nn, ImmutableArray<KeyValuePair<LangCode, string>> additional)
@@ -361,78 +366,6 @@ public sealed partial class TranslatedText
 
             [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
             public string Value { get; } = kvp.Value;
-        }
-    }
-
-    private sealed class JsonConverter
-        : JsonConverter<TranslatedText>
-    {
-        public override TranslatedText? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        {
-            if (reader.TokenType == JsonTokenType.Null)
-            {
-                return null;
-            }
-
-            if (reader.TokenType != JsonTokenType.StartObject)
-            {
-                throw new JsonException($"Expected {nameof(TranslatedText)} object.");
-            }
-
-            var builder = CreateBuilder();
-
-            while (reader.Read())
-            {
-                if (reader.TokenType == JsonTokenType.EndObject)
-                {
-                    break;
-                }
-
-                var langCode = LangCode.JsonConverter.ReadAsPropertyName(ref reader);
-
-                if (!reader.Read())
-                {
-                    throw new JsonException($"Expected value for property '{langCode}'.");
-                }
-
-                var value = reader.GetString();
-                if (value is null)
-                {
-                    throw new JsonException($"Expected value for property '{langCode}' to be a string, but got null.");
-                }
-
-                // overwrite as per normal json rules, latest key wins
-                builder[langCode] = value;
-            }
-
-            if (!builder.TryToImmutable(out var result))
-            {
-                throw new JsonException($"Invalid {nameof(TranslatedText)} object.");
-            }
-
-            return result;
-        }
-
-        public override void Write(Utf8JsonWriter writer, TranslatedText value, JsonSerializerOptions options)
-        {
-            writer.WriteStartObject();
-            
-            LangCode.JsonConverter.WriteAsPropertyName(writer, LangCode.En);
-            writer.WriteStringValue(value.En);
-
-            LangCode.JsonConverter.WriteAsPropertyName(writer, LangCode.Nb);
-            writer.WriteStringValue(value.Nb);
-
-            LangCode.JsonConverter.WriteAsPropertyName(writer, LangCode.Nn);
-            writer.WriteStringValue(value.Nn);
-
-            foreach (var kvp in value._additional)
-            {
-                LangCode.JsonConverter.WriteAsPropertyName(writer, kvp.Key);
-                writer.WriteStringValue(kvp.Value);
-            }
-
-            writer.WriteEndObject();
         }
     }
 }

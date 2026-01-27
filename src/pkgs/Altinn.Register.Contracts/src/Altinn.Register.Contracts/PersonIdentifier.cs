@@ -1,11 +1,11 @@
-﻿using System.Buffers;
+using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Text.Json;
+using Altinn.Register.Contracts.JsonConverters;
 using Altinn.Swashbuckle.Examples;
 using Altinn.Swashbuckle.Filters;
 
@@ -15,7 +15,7 @@ namespace Altinn.Register.Contracts;
 /// A organization number (a string of 9 digits).
 /// </summary>
 [SwaggerString(Format = "ssn", Pattern = "^[0-9]{11}$")]
-[JsonConverter(typeof(JsonConverter))]
+[JsonConverter(typeof(PersonIdentifierJsonConverter))]
 public sealed class PersonIdentifier
     : IParsable<PersonIdentifier>
     , ISpanParsable<PersonIdentifier>
@@ -204,23 +204,4 @@ public sealed class PersonIdentifier
     /// <inheritdoc cref="IEqualityOperators{TSelf, TOther, TResult}.op_Inequality"/>
     public static bool operator !=(string? left, PersonIdentifier? right)
         => !(left == right);
-
-    private sealed class JsonConverter : JsonConverter<PersonIdentifier>
-    {
-        public override PersonIdentifier? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        {
-            var str = reader.GetString();
-            if (!TryParse(str, null, out var result))
-            {
-                throw new JsonException("Invalid SSN");
-            }
-
-            return result;
-        }
-
-        public override void Write(Utf8JsonWriter writer, PersonIdentifier value, JsonSerializerOptions options)
-        {
-            writer.WriteStringValue(value._value);
-        }
-    }
 }
