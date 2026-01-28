@@ -14,7 +14,7 @@ namespace Altinn.Register.PartyImport.Npr;
 /// <summary>
 /// National Population Register (NPR) client.
 /// </summary>
-internal class NprClient
+internal partial class NprClient
 {
     private readonly HttpClient _httpClient;
 
@@ -44,16 +44,29 @@ internal class NprClient
             cancellationToken);
 
         // TODO: Handle errors better
-        response.EnsureSuccessStatusCode();
+        activity?.AddTag("response.status_code", (int)response.StatusCode);
+        if (!response.IsSuccessStatusCode)
+        {
+            activity?.SetStatus(System.Diagnostics.ActivityStatusCode.Error, "Failed to get guardianships");
+            response.EnsureSuccessStatusCode(); // throws
+        }
 
-        var responseDto = await response.Content.ReadFromJsonAsync<GuardianshipResponse>(cancellationToken);
-        if (responseDto is null)
+        var responseDto = await response.Content.ReadFromJsonAsync<GuardianshipResponse>(SourceGenerationContext.Default.Options, cancellationToken);
+        if (responseDto is null or { Guardianships: null })
         {
             // TODO: handle errors better
             throw new InvalidOperationException("guardianships returned null");
         }
 
         return responseDto.Guardianships;
+    }
+
+    [JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
+    [JsonSerializable(typeof(GuardianshipResponse))]
+    [JsonSerializable(typeof(GuardianshipJsonConverter.VergemaalEllerFremtidsfullmakt))]
+    private partial class SourceGenerationContext
+        : JsonSerializerContext 
+    {
     }
 
     private sealed class GuardianshipResponse 
@@ -76,7 +89,7 @@ internal class NprClient
         /// <summary>
         /// Gets the role-identifiers for the guardianship.
         /// </summary>
-        public required ImmutableValueArray<string> Roles { get; init; }
+        public required IReadOnlyList<string> Roles { get; init; }
     }
 
     private sealed class GuardianshipJsonConverter
@@ -120,7 +133,7 @@ internal class NprClient
         private bool TryReadGuardianship(ref Utf8JsonReader reader, JsonSerializerOptions options, [NotNullWhen(true)] out Guardianship? guardianship) 
         {
             var dto = JsonSerializer.Deserialize<VergemaalEllerFremtidsfullmakt>(ref reader, options);
-            if (dto is null or { IsActive: false } or { Verge.Roles.IsDefaultOrEmpty: true })
+            if (dto is null or { IsActive: false } or { Verge.Roles: not { Count: > 0 } })
             {
                 guardianship = null;
                 return false;
@@ -134,7 +147,7 @@ internal class NprClient
             return true;
         }
 
-        private sealed class VergemaalEllerFremtidsfullmakt
+        internal sealed class VergemaalEllerFremtidsfullmakt
         {
             [JsonPropertyName("erGjeldende")]
             public required bool IsActive { get; init; }
@@ -143,32 +156,32 @@ internal class NprClient
             public required VergemaalEllerFremtidsfullmaktVerge Verge { get; init; }
         }
 
-        private sealed class VergemaalEllerFremtidsfullmaktVerge
+        internal sealed class VergemaalEllerFremtidsfullmaktVerge
         {
             [JsonPropertyName("foedselsEllerDNummer")]
             public required PersonIdentifier PersonIdentifier { get; init; }
 
             [JsonPropertyName("tjenesteomraade")]
             [JsonConverter(typeof(TjenesteomraadeConverter))]
-            public ImmutableValueArray<string> Roles { get; init; }
+            public required IReadOnlyList<string> Roles { get; init; }
         }
 
-        private sealed class TjenesteomraadeConverter
-            : JsonConverter<ImmutableValueArray<string>>
+        internal sealed class TjenesteomraadeConverter
+            : JsonConverter<IReadOnlyList<string>>
         {
-            public override void Write(Utf8JsonWriter writer, ImmutableValueArray<string> value, JsonSerializerOptions options)
+            public override void Write(Utf8JsonWriter writer, IReadOnlyList<string> value, JsonSerializerOptions options)
             {
                 throw new NotSupportedException("Not writable");
             }
 
-            public override ImmutableValueArray<string> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            public override IReadOnlyList<string> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
                 if (reader.TokenType != JsonTokenType.StartArray)
                 {
                     throw new JsonException("Expected start of array");
                 }
 
-                ImmutableArray<string>.Builder? identifiers = null;
+                List<string>? identifiers = null;
                 while (true)
                 {
                     if (!reader.Read())
@@ -181,17 +194,15 @@ internal class NprClient
                         break;
                     }
 
-                    var pre = reader;
                     var roleIdentifier = ReadTjenesteomraade(ref reader, options);
-
                     if (roleIdentifier is not null)
                     {
-                        identifiers ??= ImmutableArray.CreateBuilder<string>();
+                        identifiers ??= [];
                         identifiers.Add(roleIdentifier);
                     }
                 }
 
-                return identifiers is null ? [] : identifiers.DrainToImmutableValueArray();
+                return ((IReadOnlyList<string>?)identifiers) ?? [];
             }
 
             private string? ReadTjenesteomraade(ref Utf8JsonReader reader, JsonSerializerOptions options)
