@@ -163,7 +163,7 @@ internal partial class NprClient
 
             [JsonPropertyName("tjenesteomraade")]
             [JsonConverter(typeof(TjenesteomraadeConverter))]
-            public required IReadOnlyList<string> Roles { get; init; }
+            public IReadOnlyList<string>? Roles { get; init; }
         }
 
         internal sealed class TjenesteomraadeConverter
