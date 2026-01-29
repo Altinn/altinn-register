@@ -1,20 +1,22 @@
 #nullable enable
 
 using System.Buffers;
-using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core;
+using Altinn.Register.Core.Errors;
 
 namespace Altinn.Register.PartyImport.Npr;
 
 /// <summary>
 /// National Population Register (NPR) client.
 /// </summary>
-internal partial class NprClient
+internal sealed partial class NprClient
 {
     private readonly HttpClient _httpClient;
 
@@ -33,7 +35,7 @@ internal partial class NprClient
     /// <param name="personIdentifier">The identifier of the person whose guardianships are to be retrieved.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A read-only list of guardianships for the specified person. The list is empty if no guardianships are found.</returns>
-    public async Task<IReadOnlyList<Guardianship>> GetGuardianshipsForPerson(
+    public async Task<Result<IReadOnlyList<Guardianship>>> GetGuardianshipsForPerson(
         PersonIdentifier personIdentifier,
         CancellationToken cancellationToken = default) 
     {
@@ -45,10 +47,18 @@ internal partial class NprClient
 
         // TODO: Handle errors better
         activity?.AddTag("response.status_code", (int)response.StatusCode);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return Problems.PartyNotFound;
+        }
+
         if (!response.IsSuccessStatusCode)
         {
-            activity?.SetStatus(System.Diagnostics.ActivityStatusCode.Error, "Failed to get guardianships");
-            response.EnsureSuccessStatusCode(); // throws
+            activity?.SetStatus(ActivityStatusCode.Error, "Failed to get guardianships");
+
+            return Problems.PartyFetchFailed.Create([
+                new("response.status_code", ((int)response.StatusCode).ToString()),
+            ]);
         }
 
         var responseDto = await response.Content.ReadFromJsonAsync<GuardianshipResponse>(SourceGenerationContext.Default.Options, cancellationToken);
@@ -58,7 +68,7 @@ internal partial class NprClient
             throw new InvalidOperationException("guardianships returned null");
         }
 
-        return responseDto.Guardianships;
+        return new(responseDto.Guardianships);
     }
 
     [JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]

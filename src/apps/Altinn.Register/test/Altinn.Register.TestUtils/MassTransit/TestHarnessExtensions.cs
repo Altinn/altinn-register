@@ -30,7 +30,7 @@ public static class TestHarnessExtensions
         CancellationToken cancellationToken = default)
         where TCommand : CommandBase
     {
-        var consumed = await harness.Consumed.SelectAsync<TCommand>(m => m.Context.CorrelationId == command.CorrelationId, cancellationToken).FirstOrDefaultAsync(cancellationToken);
+        var consumed = await harness.Sent.SelectExisting(m => m.Context.CorrelationId == command.CorrelationId).OfType<ISentMessage<TCommand>>().FirstOrDefaultAsync(cancellationToken);
         if (consumed is null)
         {
             Assert.Fail("Consumed message not found");
