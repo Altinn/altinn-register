@@ -6,7 +6,7 @@ using MassTransit;
 namespace Altinn.Register.PartyImport.A2;
 
 /// <summary>
-/// An event that is published when an external role assignment is added.
+/// An event that is published when a saga is completed.
 /// </summary>
 [MessageUrn("event:saga:completed")]
 public sealed record SagaCompletedEvent
