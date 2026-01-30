@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ServiceDefaults.MassTransit.Commands;
@@ -10,6 +11,7 @@ using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.PartyImport.A2;
+using Altinn.Register.PartyImport.Npr;
 using Altinn.Register.TestUtils.MassTransit;
 using Altinn.Register.TestUtils.TestData;
 using Microsoft.Extensions.DependencyInjection;
@@ -208,6 +210,11 @@ public class A2PartyImportConsumerTests
                     DoNotPromptForParty = false,
                 }
             }));
+
+        FakeHttpHandlers.For<NprClient>()
+            .Expect(HttpMethod.Get, "/folkeregisteret/offentlig-med-hjemmel/api/v1/personer/{personIdentifier}")
+            .WithRouteValue("personIdentifier", "25871999336")
+            .Respond(HttpStatusCode.NotFound);
 
         var msg = new ImportA2PartyCommand { PartyUuid = partyUuid, ChangeId = 1, ChangedTime = TimeProvider.GetUtcNow() };
         await CommandSender.Send(msg, TestContext.Current.CancellationToken);

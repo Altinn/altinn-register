@@ -3,7 +3,7 @@ namespace Altinn.Authorization.ServiceDefaults.HttpClient.MaskinPorten;
 /// <summary>
 /// Defines a contract for retrieving access tokens from Maskinporten.
 /// </summary>
-internal interface IMaskinPortenClient
+public interface IMaskinPortenClient
 {
     /// <summary>
     /// Retrieves an access token from Maskinporten using the specified client name.

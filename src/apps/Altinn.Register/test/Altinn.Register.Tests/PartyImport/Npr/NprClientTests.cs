@@ -30,7 +30,7 @@ public class NprClientTests
     {
         ConfigureHandler(personIdentifier);
 
-        var result = await _sut.GetGuardianshipsForPerson(PersonIdentifier.Parse(personIdentifier));
+        var result = (await _sut.GetGuardianshipsForPerson(PersonIdentifier.Parse(personIdentifier))).Value;
         result.Should().HaveCount(guardianships.Length);
 
         for (var i = 0; i < result.Count; i++)

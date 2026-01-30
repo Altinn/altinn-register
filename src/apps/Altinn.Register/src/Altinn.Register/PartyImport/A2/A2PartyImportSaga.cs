@@ -4,17 +4,15 @@ using System.Diagnostics;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts;
-using Altinn.Register.Contracts.ExternalRoles;
-using Altinn.Register.Contracts.Parties;
+using Altinn.Register.Core;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
-using Altinn.Register.Utils;
+using Altinn.Register.PartyImport.Npr;
 using Altinn.Urn;
-using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.PartyImport.A2;
 
@@ -38,6 +36,8 @@ public sealed partial class A2PartyImportSaga
     private readonly IPartyPersistence _parties;
     private readonly IPartyExternalRolePersistence _roles;
     private readonly IImportJobTracker _tracker;
+    private readonly IConfiguration _configuration;
+    private readonly IServiceProvider _services;
     private readonly ILogger<A2PartyImportSaga> _logger;
 
     private A2PartyImportSagaData State => _context.State.Data!;
@@ -60,6 +60,8 @@ public sealed partial class A2PartyImportSaga
         IPartyPersistence parties,
         IPartyExternalRolePersistence roles,
         IImportJobTracker tracker,
+        IConfiguration configuration,
+        IServiceProvider services,
         ILogger<A2PartyImportSaga> logger)
     {
         _context = context;
@@ -69,221 +71,9 @@ public sealed partial class A2PartyImportSaga
         _parties = parties;
         _roles = roles;
         _tracker = tracker;
+        _configuration = configuration;
+        _services = services;
         _logger = logger;
-    }
-
-    /// <inheritdoc/>
-    public static ValueTask<A2PartyImportSagaData> CreateInitialState(IServiceProvider services, ImportA2PartyCommand command)
-        => ValueTask.FromResult(new A2PartyImportSagaData
-        {
-            PartyUuid = command.PartyUuid,
-            UserId = null, // we will only fetch latest user, not any specific one
-            Tracking = command.Tracking,
-        });
-
-    /// <inheritdoc/>
-    public static ValueTask<A2PartyImportSagaData> CreateInitialState(IServiceProvider services, ImportA2UserProfileCommand command)
-        => ValueTask.FromResult(new A2PartyImportSagaData
-        {
-            PartyUuid = command.OwnerPartyUuid,
-            UserId = command.UserId,
-            Tracking = command.Tracking,
-        });
-
-    /// <inheritdoc/>
-    public async Task Handle(ImportA2PartyCommand message, CancellationToken cancellationToken)
-    {
-        Debug.Assert(message.PartyUuid == State.PartyUuid);
-
-        var now = _timeProvider.GetUtcNow();
-
-        if (await FetchParty(cancellationToken) == FlowControl.Break)
-        {
-            return;
-        }
-
-        await Next(now, cancellationToken);
-    }
-    
-    /// <inheritdoc/>
-    public async Task Handle(ImportA2UserProfileCommand message, CancellationToken cancellationToken)
-    {
-        Debug.Assert(message.OwnerPartyUuid == State.PartyUuid);
-
-        var now = _timeProvider.GetUtcNow();
-
-        var profileResult = await _importService.GetProfile(message.UserId, cancellationToken);
-        if (profileResult is { Problem.ErrorCode: var errorCode }
-            && errorCode == Problems.PartyGone.ErrorCode)
-        {
-            // Party is gone, so we can skip it. These should be rare, so don't bother with tracking.
-            Log.ProfileGone(_logger, message.UserId);
-            MarkComplete();
-            return;
-        }
-
-        profileResult.EnsureSuccess();
-        var profile = profileResult.Value;
-
-        switch (profile.ProfileType)
-        {
-            case A2UserProfileType.Person when !profile.IsActive:
-                await UpsertUserRecordAndComplete(profile, cancellationToken);
-                return;
-
-            case A2UserProfileType.Person:
-            case A2UserProfileType.SelfIdentifiedUser:
-                if (State.Party is null && await FetchParty(cancellationToken) == FlowControl.Break)
-                {
-                    return;
-                }
-
-                ApplyProfile(profile, now);
-                break;
-
-            case A2UserProfileType.EnterpriseUser:
-                State.Party = MapEnterpriseProfile(profile, now);
-                break;
-
-            default:
-                ThrowHelper.ThrowInvalidOperationException($"Unknown profile type '{profile.ProfileType}' for user ID {message.UserId}.");
-                break;
-        }
-
-        await Next(now, cancellationToken);
-
-        static EnterpriseUserRecord MapEnterpriseProfile(A2ProfileRecord profile, DateTimeOffset now)
-        {
-            if (!profile.UserUuid.HasValue)
-            {
-                ThrowHelper.ThrowInvalidOperationException($"Enterprise user profile for user ID {profile.UserId} is missing required UserUuid.");
-            }
-
-            if (string.IsNullOrEmpty(profile.UserName))
-            {
-                ThrowHelper.ThrowInvalidOperationException($"Enterprise user profile for user ID {profile.UserId} is missing required UserName.");
-            }
-
-            var isDeleted = !profile.IsActive;
-            FieldValue<DateTimeOffset> deletedAt = FieldValue.Null;
-            if (isDeleted)
-            {
-                deletedAt = profile.LastChangedAt ?? now;
-            }
-
-            var partyRecord = new EnterpriseUserRecord
-            {
-                PartyUuid = profile.UserUuid.Value,
-                OwnerUuid = profile.PartyUuid,
-                ExternalUrn = FieldValue.Null,
-                PartyId = FieldValue.Null,
-                DisplayName = profile.UserName,
-                PersonIdentifier = FieldValue.Null,
-                OrganizationIdentifier = FieldValue.Null,
-                CreatedAt = now,
-                ModifiedAt = now,
-                User = new PartyUserRecord(profile.UserId, profile.UserName, ImmutableValueArray.Create(profile.UserId)),
-                IsDeleted = isDeleted,
-                DeletedAt = deletedAt,
-                VersionId = FieldValue.Unset,
-            };
-
-            return partyRecord;
-        }
-    }
-
-    /// <inheritdoc/>
-    public async Task Handle(RetryA2PartyImportSagaCommand message, CancellationToken cancellationToken)
-    {
-        if (State.PartyUuid == Guid.Empty)
-        {
-            throw new InvalidOperationException("PartyUuid is not set");
-        }
-
-        var now = _timeProvider.GetUtcNow();
-
-        if (await FetchParty(cancellationToken) == FlowControl.Break)
-        {
-            return;
-        }
-
-        await Next(now, cancellationToken);
-    }
-
-    /// <inheritdoc/>
-    public async Task Handle(CompleteA2PartyImportSagaCommand message, CancellationToken cancellationToken)
-    {
-        if (State.Party is null)
-        {
-            throw new InvalidOperationException("Party is not set");
-        }
-
-        PartyImportHelper.ValidatePartyForUpsert(State.Party);
-        var partyResult = await _parties.UpsertParty(State.Party, cancellationToken);
-        partyResult.EnsureSuccess();
-
-        await _context.Publish(
-            new PartyUpdatedEvent
-            {
-                Party = partyResult.Value.PartyUuid.Value.ToPartyReferenceContract(),
-            },
-            cancellationToken);
-
-        var fromParty = State.PartyUuid;
-        List<Task> publishTasks = [];
-        foreach (var (source, assignments) in State.RoleAssignments)
-        {
-            publishTasks.Clear();
-            var upsertEvts = _roles.UpsertExternalRolesFromPartyBySource(
-                commandId: SagaId,
-                partyUuid: fromParty, 
-                roleSource: source, 
-                assignments: assignments.Select(ra => new IPartyExternalRolePersistence.UpsertExternalRoleAssignment
-                {
-                    RoleIdentifier = ra.Identifier,
-                    ToParty = ra.ToPartyUuid,
-                }),
-                cancellationToken: cancellationToken);
-
-            await foreach (var upsertEvt in upsertEvts.WithCancellation(cancellationToken))
-            {
-                var publishTask = upsertEvt.Type switch
-                {
-                    ExternalRoleAssignmentEvent.EventType.Added => _context.Publish(
-                        new ExternalRoleAssignmentAddedEvent
-                        {
-                            VersionId = upsertEvt.VersionId,
-                            Role = upsertEvt.ToPartyExternalRoleReferenceContract(),
-                            From = upsertEvt.FromParty.ToPartyReferenceContract(),
-                            To = upsertEvt.ToParty.ToPartyReferenceContract(),
-                        },
-                        cancellationToken),
-
-                    ExternalRoleAssignmentEvent.EventType.Removed => _context.Publish(
-                        new ExternalRoleAssignmentRemovedEvent
-                        {
-                            VersionId = upsertEvt.VersionId,
-                            Role = upsertEvt.ToPartyExternalRoleReferenceContract(),
-                            From = upsertEvt.FromParty.ToPartyReferenceContract(),
-                            To = upsertEvt.ToParty.ToPartyReferenceContract(),
-                        },
-                        cancellationToken),
-
-                    _ => ThrowHelper.ThrowInvalidOperationException<Task>($"The event type '{upsertEvt.Type}' is not supported."),
-                };
-
-                publishTasks.Add(publishTask);
-            }
-
-            await Task.WhenAll(publishTasks);
-        }
-
-        if (State.Tracking.HasValue)
-        {
-            await _tracker.TrackProcessedStatus(State.Tracking.JobName, new ImportJobProcessingStatus { ProcessedMax = State.Tracking.Progress }, cancellationToken);
-        }
-
-        MarkComplete();
     }
 
     private async Task Next(DateTimeOffset now, CancellationToken cancellationToken)
@@ -309,6 +99,15 @@ public sealed partial class A2PartyImportSaga
         if (State.Party.PartyType.Value is PartyRecordType.Organization && !State.RoleAssignments.ContainsKey(ExternalRoleSource.CentralCoordinatingRegister))
         {
             if (await FetchCcrRoleAssignments(cancellationToken) == FlowControl.Break)
+            {
+                MarkComplete();
+                return;
+            }
+        }
+
+        if (_configuration.GetValue("Altinn:register:PartyImport:Npr:Guardianships:Enable", defaultValue: false) && State.Party.PartyType.Value is PartyRecordType.Person && !State.RoleAssignments.ContainsKey(ExternalRoleSource.CivilRightsAuthority))
+        {
+            if (await FetchCraRoleAssignments(cancellationToken) == FlowControl.Break)
             {
                 MarkComplete();
                 return;
@@ -389,27 +188,10 @@ public sealed partial class A2PartyImportSaga
         }
     }
 
-    private async Task UpsertUserRecordAndComplete(A2ProfileRecord profile, CancellationToken cancellationToken)
-    {
-        await _context.Send(
-            new UpsertUserRecordCommand
-            {
-                PartyUuid = profile.PartyUuid,
-                UserId = profile.UserId,
-                Username = profile.UserName,
-
-                // Note: The `IsActive` field is recently added to A2, so will be null for older versions of A2. The `IsDeleted` field
-                // on the message is the opposite of `IsActive`, but get's stored whenever a user is modified, so may be out of date.
-                IsActive = profile.IsActive,
-                Tracking = State.Tracking,
-            },
-            cancellationToken);
-
-        MarkComplete();
-    }
-
     private async Task<FlowControl> FetchParty(CancellationToken cancellationToken)
     {
+        using var activity = RegisterTelemetry.StartActivity("fetch party altinn 2", ActivityKind.Internal, tags: [new("party.uuid", State.PartyUuid)]);
+
         var partyResult = await _importService.GetParty(State.PartyUuid, cancellationToken);
         if (partyResult is { Problem.ErrorCode: var errorCode }
             && errorCode == Problems.PartyGone.ErrorCode)
@@ -427,6 +209,9 @@ public sealed partial class A2PartyImportSaga
 
     private async Task<FlowControl> FetchCcrRoleAssignments(CancellationToken cancellationToken)
     {
+        Debug.Assert(State.Party is { PartyType.HasValue: true, PartyType.Value: PartyRecordType.Organization });
+        using var activity = RegisterTelemetry.StartActivity("fetch ccr roles from altinn 2", ActivityKind.Internal, tags: [new("party.uuid", State.PartyUuid)]);
+
         var assignments = await _importService.GetExternalRoleAssignmentsFrom(State.Party!.PartyId.Value, State.PartyUuid, cancellationToken)
             .ToListAsync(cancellationToken);
 
@@ -463,6 +248,56 @@ public sealed partial class A2PartyImportSaga
         return FlowControl.Continue;
     }
 
+    private async Task<FlowControl> FetchCraRoleAssignments(CancellationToken cancellationToken)
+    {
+        Debug.Assert(State.Party is { PartyType.HasValue: true, PartyType.Value: PartyRecordType.Person });
+        Debug.Assert(State.Party is { PersonIdentifier.HasValue: true });
+        using var activity = RegisterTelemetry.StartActivity("fetch guardianships from npr", ActivityKind.Internal, tags: [new("party.uuid", State.PartyUuid)]);
+
+        var client = _services.GetRequiredService<NprClient>();
+        var result = await client.GetGuardianshipsForPerson(State.Party.PersonIdentifier.Value, cancellationToken);
+        if (result.IsProblem && result.Problem.ErrorCode == Problems.PartyNotFound.ErrorCode)
+        {
+            // All environments contains persons that are not in NPR. These can be skipped.
+            return FlowControl.Continue;
+        }
+
+        result.EnsureSuccess();
+
+        var guardianships = result.Value;
+        var roleCount = guardianships.Sum(static g => g.Roles.Count);
+
+        var guardians = await _parties.LookupParties(
+            personIdentifiers: [.. guardianships.Select(static g => g.Guardian)],
+            include: PartyFieldIncludes.PartyUuid | PartyFieldIncludes.PartyPersonIdentifier,
+            cancellationToken: cancellationToken)
+            .ToDictionaryAsync(
+                keySelector: static p => p.PersonIdentifier.Value!,
+                elementSelector: static p => p.PartyUuid.Value,
+                cancellationToken: cancellationToken);
+
+        var mapped = new List<UpsertExternalRoleAssignmentsCommand.Assignment>(roleCount);
+        foreach (var guardianship in guardianships)
+        {
+            if (!guardians.TryGetValue(guardianship.Guardian, out var guardianUuid))
+            {
+                throw new InvalidOperationException($"Guardian not found in party database.");
+            }
+
+            foreach (var role in guardianship.Roles)
+            {
+                mapped.Add(new()
+                {
+                    Identifier = role,
+                    ToPartyUuid = guardianUuid,
+                });
+            }
+        }
+
+        State.RoleAssignments.Add(ExternalRoleSource.CivilRightsAuthority, mapped);
+        return FlowControl.Continue;
+    }
+
     /// <summary>
     /// State data for <see cref="A2PartyImportSaga"/>.
     /// </summary>
@@ -496,6 +331,15 @@ public sealed partial class A2PartyImportSaga
         /// Gets or sets the collection of role assignments grouped by external role source.
         /// </summary>
         public Dictionary<ExternalRoleSource, IReadOnlyList<UpsertExternalRoleAssignmentsCommand.Assignment>> RoleAssignments { get; set; } = new();
+
+        /// <summary>
+        /// Clears non-initial state data.
+        /// </summary>
+        internal void Clear()
+        {
+            Party = null;
+            RoleAssignments.Clear();
+        }
     }
 
     private enum FlowControl

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Altinn.Authorization.ServiceDefaults;
+using Altinn.Authorization.ServiceDefaults.HttpClient.MaskinPorten;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Authorization.ServiceDefaults.MassTransit.Testing;
 using Altinn.Authorization.TestUtils.Http;
@@ -7,9 +8,11 @@ using Altinn.Common.AccessToken.Services;
 using Altinn.Common.AccessTokenClient.Services;
 using Altinn.Register.Configuration;
 using Altinn.Register.Controllers.V2;
+using Altinn.Register.IntegrationTests.Fakes;
 using Altinn.Register.IntegrationTests.TestServices;
 using Altinn.Register.IntegrationTests.Tracing;
 using Altinn.Register.PartyImport.A2;
+using Altinn.Register.PartyImport.Npr;
 using Altinn.Register.PartyImport.SystemUser;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Database;
@@ -66,7 +69,7 @@ public sealed class WebApplicationFixture
         {
             builder.ConfigureServices(services =>
             {
-                services.AddSingleton(() => db);
+                services.AddSingleton(db);
                 services.AddOptions<PartyController.Settings>()
                     .Configure(s =>
                     {
@@ -83,13 +86,16 @@ public sealed class WebApplicationFixture
             }
 
             settings.AddInMemoryCollection([
+                /* DB */
                 new("Altinn:Npgsql:register:Enable", "true"),
                 new("Altinn:Npgsql:register:Migrate:Enabled", "true"),
-                ////new("Altinn:Npgsql:register:Seed:Enabled", "true"),
 
                 new("Altinn:Npgsql:register:ConnectionString", db.AppConnectionString),
                 new("Altinn:Npgsql:register:Migrate:ConnectionString", db.MigratorConnectionString),
                 new("Altinn:Npgsql:register:Seed:ConnectionString", db.SeederConnectionString),
+
+                /* Party import */
+                new("Altinn:register:PartyImport:Npr:Guardianships:Enable", "true"),
             ]);
             builder.UseConfiguration(settings.Build());
 
@@ -171,6 +177,8 @@ public sealed class WebApplicationFixture
                 services.AddOptions<A2PartyImportSettings>()
                     .PostConfigure(s => s.BridgeApiEndpoint = FakeHttpEndpoint.HttpsUri);
                 services.AddHttpClient<SystemUserImportService>().ConfigureBaseAddress(FakeHttpEndpoint.HttpsUri);
+                services.AddHttpClient<NprClient>().ConfigureBaseAddress(FakeHttpEndpoint.HttpsUri);
+                services.AddSingleton<IMaskinPortenClient, FakeMaskinPortenClient>();
 
                 AltinnServiceDefaultsMassTransitTestingExtensions.AddAltinnMassTransitTestHarness(
                     services,
