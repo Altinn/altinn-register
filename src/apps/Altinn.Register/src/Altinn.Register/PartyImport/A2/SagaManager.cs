@@ -66,6 +66,8 @@ public sealed class SagaManager
 
         await persistence.SaveState(state, cancellationToken);
         await uow.CommitAsync(cancellationToken);
+
+        await PostHandle(sagaContext, cancellationToken);
     }
 
     /// <summary>
@@ -105,6 +107,8 @@ public sealed class SagaManager
         
         await persistence.SaveState(state, cancellationToken);
         await uow.CommitAsync(cancellationToken);
+
+        await PostHandle(sagaContext, cancellationToken);
     }
 
     private async Task HandleMessage<TSaga, TMessage, TState>(
@@ -138,7 +142,35 @@ public sealed class SagaManager
                 disp.Dispose();
             }
         }
+    }
 
+    private async Task PostHandle<TState>(SagaContext<TState> context, CancellationToken cancellationToken)
+        where TState : class, ISagaStateData<TState>
+    {
+        var state = context.State;
+        
+        switch (state.Status)
+        {
+            case SagaStatus.Faulted:
+                await context.Publish(
+                    new SagaCompletedEvent
+                    {
+                        CorrelationId = state.SagaId,
+                        Success = false,
+                    }, 
+                    cancellationToken);
+                break;
+
+            case SagaStatus.Completed:
+                await context.Publish(
+                    new SagaCompletedEvent
+                    {
+                        CorrelationId = state.SagaId,
+                        Success = true,
+                    },
+                    cancellationToken);
+                break;
+        }
     }
 
     private static class Factory<TSaga, TState>

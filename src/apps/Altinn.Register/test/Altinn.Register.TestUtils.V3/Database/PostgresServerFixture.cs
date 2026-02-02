@@ -259,6 +259,7 @@ public class PostgresServerFixture
     {
         TestContext.Current.TestOutputHelper?.WriteLine("Starting PostgreSQL container...");
 
+        using var rootActivity = TestUtilsActivities.Source.StartActivity(ActivityKind.Internal, name: $"start database server");
         await _container.StartAsync(TestContext.Current.CancellationToken);
 
         var csBuilder = new NpgsqlConnectionStringBuilder(_container.GetConnectionString());

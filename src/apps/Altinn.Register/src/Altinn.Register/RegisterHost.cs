@@ -23,6 +23,7 @@ using Altinn.Register.Model.Extensions;
 using Altinn.Register.ModelBinding;
 using Altinn.Register.PartyImport;
 using Altinn.Register.PartyImport.A2;
+using Altinn.Register.PartyImport.Npr;
 using Altinn.Register.PartyImport.SystemUser;
 using Altinn.Register.Services;
 using Altinn.Register.Services.Implementation;
@@ -182,6 +183,10 @@ internal static partial class RegisterHost
         services.AddHttpClient<SystemUserImportService>()
             .ConfigureBaseAddress("https+http://altinn-authentication/authentication/")
             .AddPlatformAccessTokenHandler();
+
+        services.AddHttpClient<NprClient>()
+            .ConfigureBaseAddress("https://folkeregisteret/")
+            .AddMaskinPortenHandler("register-freg");
 
         services.TryAddPlatformTokenProvider();
         if (!descriptor.IsLocalDev && !descriptor.IsTest)

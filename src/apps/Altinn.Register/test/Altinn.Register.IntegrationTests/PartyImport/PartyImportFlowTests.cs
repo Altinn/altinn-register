@@ -1,8 +1,10 @@
 using System.Diagnostics;
+using System.Net;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Contracts;
+using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
@@ -11,6 +13,7 @@ using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.PartyImport;
 using Altinn.Register.PartyImport.A2;
+using Altinn.Register.PartyImport.Npr;
 using Altinn.Register.TestUtils.MassTransit;
 using Altinn.Register.TestUtils.TestData;
 using Altinn.Urn;
@@ -239,6 +242,11 @@ public class PartyImportFlowTests
                 }
                 """);
 
+        FakeHttpHandlers.For<NprClient>()
+            .Expect(HttpMethod.Get, "/folkeregisteret/offentlig-med-hjemmel/api/v1/personer/{personIdentifier}")
+            .WithRouteValue("personIdentifier", person.PersonIdentifier.Value!.ToString())
+            .Respond(HttpStatusCode.NotFound);
+
         var cmd = new ImportA2UserProfileCommand
         {
             UserId = userId,
@@ -250,10 +258,14 @@ public class PartyImportFlowTests
         await CommandSender.Send(cmd, TestContext.Current.CancellationToken);
 
         var conversation = await TestHarness.Conversation(cmd, TestContext.Current.CancellationToken);
-        var evt = await conversation.Events.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+        var sagaCompletedEvt = await conversation.Events.OfType<SagaCompletedEvent>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+        var evt = await conversation.Events.Completed.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+        var rolesAddedEvts = await conversation.Events.Completed.OfType<ExternalRoleAssignmentAddedEvent>().ToListAsync(TestContext.Current.CancellationToken);
 
         evt.ShouldNotBeNull();
         evt.Party.PartyUuid.ShouldBe(person.PartyUuid.Value);
+
+        rolesAddedEvts.ShouldBeEmpty();
 
         await Check(async (uow, ct) =>
         {
@@ -262,6 +274,244 @@ public class PartyImportFlowTests
             updated.ShouldNotBeNull();
             updated.User.ShouldHaveValue();
             updated.User.Value!.Username.ShouldBeNull();
+        });
+    }
+
+    [Fact]
+    public async Task Person_WithGuardians()
+    {
+        var (person, guardians) = await Setup(async (uow, ct) =>
+        {
+            var testDataGenerator = uow.GetRequiredService<RegisterTestDataGenerator>();
+            var tracking = uow.GetRequiredService<IImportJobTracker>();
+
+            await tracking.TrackQueueStatus("test", new() { EnqueuedMax = 100, SourceMax = 100 }, ct);
+
+            var ids = await testDataGenerator.GetNextUserIds(1, cancellationToken: ct);
+            var person = await uow.CreatePerson(
+                user: new PartyUserRecord(ids[0], "test-user"),
+                cancellationToken: ct);
+
+            var guardians = await uow.CreatePeople(2, ct);
+
+            return (person, guardians);
+        });
+
+        var userId = person.User.Value!.UserId.Value;
+
+        FakeHttpHandlers.For<IA2PartyImportService>()
+            .Expect(HttpMethod.Get, "/profile/api/users/{userId}")
+            .WithRouteValue("userId", userId.ToString())
+            .Respond(
+                "application/json",
+                $$"""
+                {
+                  "UserId": {{userId}},
+                  "UserUUID": null,
+                  "UserType": 1,
+                  "UserName": "",
+                  "ExternalIdentity": "",
+                  "IsReserved": false,
+                  "IsActive": true,
+                  "PhoneNumber": null,
+                  "Email": null,
+                  "PartyId": {{person.PartyId.Value}},
+                  "Party": {
+                    "PartyTypeName": 1,
+                    "SSN": "{{person.PersonIdentifier.Value}}",
+                    "OrgNumber": "",
+                    "Person": {
+                      "SSN": "{{person.PersonIdentifier.Value}}",
+                      "Name": "{{person.ShortName.Value}}",
+                      "FirstName": "{{person.FirstName.Value}}",
+                      "MiddleName": "{{person.MiddleName.Value}}",
+                      "LastName": "{{person.LastName.Value}}",
+                      "TelephoneNumber": "",
+                      "MobileNumber": "",
+                      "MailingAddress": "Amalie Jessens vei 26",
+                      "MailingPostalCode": "3182",
+                      "MailingPostalCity": "HORTEN",
+                      "AddressMunicipalNumber": "",
+                      "AddressMunicipalName": "",
+                      "AddressStreetName": "",
+                      "AddressHouseNumber": "",
+                      "AddressHouseLetter": "",
+                      "AddressPostalCode": "3182",
+                      "AddressCity": "HORTEN",
+                      "DateOfDeath": null
+                    },
+                    "Organization": null,
+                    "PartyId": {{person.PartyId.Value}},
+                    "PartyUUID": "{{person.PartyUuid.Value}}",
+                    "UnitType": null,
+                    "LastChangedInAltinn": "2009-06-06T15:12:18.787+02:00",
+                    "LastChangedInExternalRegister": null,
+                    "Name": "{{person.ShortName.Value}}",
+                    "IsDeleted": false,
+                    "OnlyHierarchyElementWithNoAccess": false,
+                    "ChildParties": null
+                  },
+                  "ProfileSettingPreference": {
+                    "Language": "nb",
+                    "PreSelectedPartyId": 0,
+                    "DoNotPromptForParty": false
+                  }
+                }
+                """);
+
+        FakeHttpHandlers.For<IA2PartyImportService>()
+            .Expect(HttpMethod.Get, "/register/api/parties")
+            .WithQuery("partyuuid", person.PartyUuid.Value.ToString())
+            .Respond(
+                "application/json",
+                $$"""
+                {
+                    "PartyTypeName": 1,
+                    "SSN": "{{person.PersonIdentifier.Value}}",
+                    "OrgNumber": "",
+                    "Person": {
+                        "SSN": "{{person.PersonIdentifier.Value}}",
+                        "Name": "{{person.ShortName.Value}}",
+                        "FirstName": "{{person.FirstName.Value}}",
+                        "MiddleName": "{{person.MiddleName.Value}}",
+                        "LastName": "{{person.LastName.Value}}",
+                        "TelephoneNumber": "",
+                        "MobileNumber": "",
+                        "MailingAddress": "Amalie Jessens vei 26",
+                        "MailingPostalCode": "3182",
+                        "MailingPostalCity": "HORTEN",
+                        "AddressMunicipalNumber": "",
+                        "AddressMunicipalName": "",
+                        "AddressStreetName": "",
+                        "AddressHouseNumber": "",
+                        "AddressHouseLetter": "",
+                        "AddressPostalCode": "3182",
+                        "AddressCity": "HORTEN",
+                        "DateOfDeath": null
+                    },
+                    "Organization": null,
+                    "PartyId": {{person.PartyId.Value}},
+                    "PartyUUID": "{{person.PartyUuid.Value}}",
+                    "UnitType": null,
+                    "LastChangedInAltinn": "2009-06-06T15:12:18.787+02:00",
+                    "LastChangedInExternalRegister": null,
+                    "Name": "{{person.ShortName.Value}}",
+                    "IsDeleted": false,
+                    "OnlyHierarchyElementWithNoAccess": false,
+                    "ChildParties": null
+                }
+                """);
+
+        FakeHttpHandlers.For<NprClient>()
+            .Expect(HttpMethod.Get, "/folkeregisteret/offentlig-med-hjemmel/api/v1/personer/{personIdentifier}")
+            .WithRouteValue("personIdentifier", person.PersonIdentifier.Value!.ToString())
+            .Respond(
+                "application/json",
+                $$"""
+                {
+                  "identifikasjonsnummer": [
+                    {
+                      "ajourholdstidspunkt": "2020-12-22T17:09:36.294+01:00",
+                      "erGjeldende": true,
+                      "kilde": "KILDE_DSF",
+                      "status": "iBruk",
+                      "foedselsEllerDNummer": "{{person.PersonIdentifier.Value}}",
+                      "identifikatortype": "foedselsnummer"
+                    }
+                  ],
+                  "vergemaalEllerFremtidsfullmakt": [
+                    {
+                      "ajourholdstidspunkt": "2023-11-20T14:00:18.540646+01:00",
+                      "erGjeldende": true,
+                      "kilde": "Synutopia",
+                      "aarsak": "Vergemål",
+                      "gyldighetstidspunkt": "2021-11-28T00:00:00+01:00",
+                      "vergemaaltype": "voksen",
+                      "embete": "statsforvaltarenIMoereOgRomsdal",
+                      "verge": {
+                        "foedselsEllerDNummer": "{{guardians[0].PersonIdentifier.Value}}",
+                        "tjenesteomraade": [
+                          {
+                            "vergeTjenestevirksomhet": "nav",
+                            "vergeTjenesteoppgave": "arbeid"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "ajourholdstidspunkt": "2023-11-20T14:00:18.540646+01:00",
+                      "erGjeldende": true,
+                      "kilde": "Synutopia",
+                      "aarsak": "Vergemål",
+                      "gyldighetstidspunkt": "2021-11-28T00:00:00+01:00",
+                      "vergemaaltype": "voksen",
+                      "embete": "statsforvaltarenIMoereOgRomsdal",
+                      "verge": {
+                        "foedselsEllerDNummer": "{{guardians[1].PersonIdentifier.Value}}",
+                        "tjenesteomraade": [
+                          {
+                            "vergeTjenestevirksomhet": "nav",
+                            "vergeTjenesteoppgave": "arbeid"
+                          },
+                          {
+                            "vergeTjenestevirksomhet": "kartverket",
+                            "vergeTjenesteoppgave": "arvPrivatSkifteOgUskifte"
+                          },
+                          {
+                            "vergeTjenestevirksomhet": "oevrige",
+                            "vergeTjenesteoppgave": "avslutningAvHusleiekontrakter"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                """);
+
+        var cmd = new ImportA2UserProfileCommand
+        {
+            UserId = userId,
+            OwnerPartyUuid = person.PartyUuid.Value,
+            IsDeleted = false,
+            Tracking = new("test", 10),
+        };
+
+        await CommandSender.Send(cmd, TestContext.Current.CancellationToken);
+
+        var conversation = await TestHarness.Conversation(cmd, TestContext.Current.CancellationToken);
+        var sagaCompletedEvt = await conversation.Events.OfType<SagaCompletedEvent>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+        var evt = await conversation.Events.Completed.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+        var rolesAddedEvts = await conversation.Events.Completed.OfType<ExternalRoleAssignmentAddedEvent>().ToListAsync(TestContext.Current.CancellationToken);
+
+        evt.ShouldNotBeNull();
+        evt.Party.PartyUuid.ShouldBe(person.PartyUuid.Value);
+
+        rolesAddedEvts.Count.ShouldBe(4);
+        var fromParty = new PartyReference(person.PartyUuid.Value);
+        var to0 = new PartyReference(guardians[0].PartyUuid.Value);
+        var to1 = new PartyReference(guardians[1].PartyUuid.Value);
+
+        rolesAddedEvts.ShouldAllBe(e => e.From == fromParty);
+        rolesAddedEvts.ShouldContain(e => e.To == to0 && e.Role.Identifier == "nav-arbeid");
+        rolesAddedEvts.ShouldContain(e => e.To == to1 && e.Role.Identifier == "nav-arbeid");
+        rolesAddedEvts.ShouldContain(e => e.To == to1 && e.Role.Identifier == "kartverket-arv-privat-skifte-uskifte");
+        rolesAddedEvts.ShouldContain(e => e.To == to1 && e.Role.Identifier == "ovrige-avslutning-husleiekontrakter");
+
+        await Check(async (uow, ct) =>
+        {
+            var parties = uow.GetPartyPersistence();
+            var updated = await parties.GetPartyById(person.PartyUuid.Value, PartyFieldIncludes.User, ct).FirstOrDefaultAsync(ct);
+            updated.ShouldNotBeNull();
+            updated.User.ShouldHaveValue();
+            updated.User.Value!.Username.ShouldBeNull();
+
+            var roles = uow.GetPartyExternalRolePersistence();
+            var assignedRoles = await roles.GetExternalRoleAssignmentsFromParty(person.PartyUuid.Value, cancellationToken: ct).ToListAsync(ct);
+            assignedRoles.Count.ShouldBe(4);
+            assignedRoles.ShouldContain(r => r.ToParty == to0.PartyUuid && r.Identifier == "nav-arbeid");
+            assignedRoles.ShouldContain(r => r.ToParty == to1.PartyUuid && r.Identifier == "nav-arbeid");
+            assignedRoles.ShouldContain(r => r.ToParty == to1.PartyUuid && r.Identifier == "kartverket-arv-privat-skifte-uskifte");
+            assignedRoles.ShouldContain(r => r.ToParty == to1.PartyUuid && r.Identifier == "ovrige-avslutning-husleiekontrakter");
         });
     }
 
