@@ -54,7 +54,7 @@ public sealed class SagaManager
             activityName: $"start {TSaga.Name}");
 
         var persistence = uow.GetRequiredService<ISagaStatePersistence>();
-        var state = await persistence.GetState<TState>(sagaId, cancellationToken);
+        var state = await GetState<TState>(persistence, sagaId, cancellationToken);
 
         if (state.Data is null)
         {
@@ -95,7 +95,7 @@ public sealed class SagaManager
             activityName: $"run {TSaga.Name}");
 
         var persistence = uow.GetRequiredService<ISagaStatePersistence>();
-        var state = await persistence.GetState<TState>(sagaId, cancellationToken);
+        var state = await GetState<TState>(persistence, sagaId, cancellationToken);
 
         if (state.Data is null)
         {
@@ -109,6 +109,29 @@ public sealed class SagaManager
         await uow.CommitAsync(cancellationToken);
 
         await PostHandle(sagaContext, cancellationToken);
+    }
+
+    private async Task<SagaState<TState>> GetState<TState>(ISagaStatePersistence persistence, Guid sagaId, CancellationToken cancellationToken)
+        where TState : class, ISagaStateData<TState>
+    {
+        using var tsc = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        tsc.CancelAfter(TimeSpan.FromSeconds(30));
+
+        try
+        {
+            return await persistence.GetState<TState>(sagaId, tsc.Token);
+        }
+        catch (OperationCanceledException ex) when (ex.CancellationToken == tsc.Token)
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(message: $"GetState for '{sagaId}' cancelled", innerException: ex, cancellationToken);
+            }
+            else
+            {
+                throw new TimeoutException($"GetState for '{sagaId}' timed out", ex);
+            }
+        }
     }
 
     private async Task HandleMessage<TSaga, TMessage, TState>(
