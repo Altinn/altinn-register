@@ -62,13 +62,13 @@ internal sealed partial class NprClient
         }
 
         var responseDto = await response.Content.ReadFromJsonAsync<GuardianshipResponse>(SourceGenerationContext.Default.Options, cancellationToken);
-        if (responseDto is null or { Guardianships: null })
+        if (responseDto is null)
         {
             // TODO: handle errors better
             throw new InvalidOperationException("guardianships returned null");
         }
 
-        return new(responseDto.Guardianships);
+        return new(responseDto.Guardianships ?? []);
     }
 
     [JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
@@ -83,7 +83,7 @@ internal sealed partial class NprClient
     {
         [JsonConverter(typeof(GuardianshipJsonConverter))]
         [JsonPropertyName("vergemaalEllerFremtidsfullmakt")]
-        public required IReadOnlyList<Guardianship> Guardianships { get; init; }
+        public IReadOnlyList<Guardianship>? Guardianships { get; init; }
     }
 
     /// <summary>
