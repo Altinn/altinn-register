@@ -1061,6 +1061,7 @@ internal partial class PostgreSqlPartyPersistence
                                 FROM register."user" AS "user"
                                 INNER JOIN register.party AS party USING (uuid)
                                 WHERE "user".username = @username
+                                  AND "user".is_active
                                 """);
                         break;
 
@@ -1189,6 +1190,7 @@ internal partial class PostgreSqlPartyPersistence
                             FROM register."user" AS "user"
                             INNER JOIN register.party AS party USING (uuid)
                             WHERE "user".username = ANY (@usernames)
+                              AND "user".is_active
                             """);
                 }
 
