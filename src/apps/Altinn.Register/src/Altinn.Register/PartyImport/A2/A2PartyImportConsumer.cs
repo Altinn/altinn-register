@@ -38,4 +38,22 @@ public sealed partial class A2PartyImportConsumer
     /// <inheritdoc />
     public Task Consume(ConsumeContext<RetryA2PartyImportSagaCommand> context)
         => _manager.HandleMessage<A2PartyImportSaga, RetryA2PartyImportSagaCommand, A2PartyImportSaga.A2PartyImportSagaData>(context);
+
+    /// <summary>
+    /// Consumer definition for <see cref="A2PartyImportConsumer"/>.
+    /// </summary>
+    public sealed class Definition
+        : ConsumerDefinition<A2PartyImportConsumer>
+    {
+        /// <inheritdoc/>
+        protected override void ConfigureConsumer(
+            IReceiveEndpointConfigurator endpointConfigurator,
+            IConsumerConfigurator<A2PartyImportConsumer> consumerConfigurator,
+            IRegistrationContext context)
+        {
+            base.ConfigureConsumer(endpointConfigurator, consumerConfigurator, context);
+
+            endpointConfigurator.ConcurrentMessageLimit = 3;
+        }
+    }
 }
