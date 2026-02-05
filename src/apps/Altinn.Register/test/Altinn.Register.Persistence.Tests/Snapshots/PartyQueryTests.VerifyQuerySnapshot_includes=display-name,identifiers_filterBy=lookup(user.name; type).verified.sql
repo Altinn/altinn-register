@@ -6,6 +6,7 @@ WITH uuids_by_username AS (
     FROM register."user" AS "user"
     INNER JOIN register.party AS party USING (uuid)
     WHERE "user".username = ANY (@usernames)
+      AND "user".is_active
 ),
 top_level_uuids_unfiltered AS (
     SELECT "uuid", version_id FROM uuids_by_username
