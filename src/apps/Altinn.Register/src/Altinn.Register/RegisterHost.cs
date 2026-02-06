@@ -9,6 +9,7 @@ using Altinn.Common.AccessTokenClient.Services;
 using Altinn.Common.PEP.Authorization;
 using Altinn.Register.ApiDescriptions;
 using Altinn.Register.Authorization;
+using Altinn.Register.Cleanup;
 using Altinn.Register.Clients;
 using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Configuration;
@@ -259,6 +260,17 @@ internal static partial class RegisterHost
                 settings.Enabled = JobEnabledBuilder.Default
                     .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:SystemUsers:Enable")
                     .WithRequireImportJobFinished(A2PartyImportJob.JobName, threshold: 5_000);
+            });
+
+            services.AddOptions<SagaStateCleanupSettings>()
+                .ValidateDataAnnotations()
+                .ValidateOnStart()
+                .BindConfiguration("Altinn:register:Saga:Cleanup");
+
+            services.AddRecurringJob<SagaStateCleanupJob>(settings =>
+            {
+                settings.LeaseName = SagaStateCleanupJob.JobName;
+                settings.Interval = TimeSpan.FromMinutes(15);
             });
         }
 
