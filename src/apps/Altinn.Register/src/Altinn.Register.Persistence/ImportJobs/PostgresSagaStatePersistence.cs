@@ -15,8 +15,9 @@ namespace Altinn.Register.Persistence.ImportJobs;
 /// <summary>
 /// Postgres backed implementation of <see cref="ISagaStatePersistence"/>.
 /// </summary>
-public sealed class PostgresSagaStatePersistence
+internal sealed class PostgresSagaStatePersistence
     : ISagaStatePersistence
+    , ISagaStateCleanup
 {
     private static readonly JsonSerializerOptions _options = JsonSerializerOptions.Web;
 
@@ -158,6 +159,38 @@ public sealed class PostgresSagaStatePersistence
 
         await cmd.PrepareAsync(cancellationToken);
         await cmd.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    /// <inheritdoc/>
+    public async Task<int> DeleteOldStates(
+        DateTimeOffset? completedBefore = null,
+        DateTimeOffset? faultedBefore = null,
+        DateTimeOffset? inProgressBefore = null,
+        CancellationToken cancellationToken = default)
+    {
+        const string QUERY =
+            /*strpsql*/"""
+            DELETE FROM register.saga_state s
+             WHERE (s.updated < @completedBefore AND s.status = 'completed')
+                OR (s.updated < @faultedBefore AND s.status = 'faulted')
+                OR (s.updated < @inProgressBefore AND s.status = 'in_progress')
+            """;
+
+        if (completedBefore is null && faultedBefore is null && inProgressBefore is null)
+        {
+            ThrowHelper.ThrowArgumentException(nameof(completedBefore), "At least one of the parameters must be provided");
+        }
+
+        _handle.ThrowIfCompleted();
+
+        await using var cmd = _connection.CreateCommand(QUERY);
+
+        cmd.Parameters.Add<DateTimeOffset>("completedBefore", NpgsqlDbType.TimestampTz).TypedValue = completedBefore ?? DateTimeOffset.UnixEpoch;
+        cmd.Parameters.Add<DateTimeOffset>("faultedBefore", NpgsqlDbType.TimestampTz).TypedValue = faultedBefore ?? DateTimeOffset.UnixEpoch;
+        cmd.Parameters.Add<DateTimeOffset>("inProgressBefore", NpgsqlDbType.TimestampTz).TypedValue = inProgressBefore ?? DateTimeOffset.UnixEpoch;
+
+        await cmd.PrepareAsync(cancellationToken);
+        return await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
     private static void WriteTo<T>(Sequence<byte> seq, T state)

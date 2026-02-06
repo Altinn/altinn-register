@@ -26,4 +26,9 @@ internal static class JobNames
     /// Job name for system user import job.
     /// </summary>
     internal const string SystemUserImport = $"{LeaseNames.SystemUserImport}:systemuser";
+
+    /// <summary>
+    /// Job name for saga state cleanup job.
+    /// </summary>
+    internal const string SagaStateCleanup = "saga-state-cleanup";
 }
