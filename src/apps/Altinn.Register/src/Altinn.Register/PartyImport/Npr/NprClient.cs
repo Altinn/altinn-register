@@ -49,7 +49,9 @@ internal sealed partial class NprClient
         activity?.AddTag("response.status_code", (int)response.StatusCode);
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
-            return Problems.PartyNotFound;
+            return Problems.PartyNotFound.Create([
+                new("source", "npr-personer"),
+            ]);
         }
 
         if (!response.IsSuccessStatusCode)
@@ -58,6 +60,7 @@ internal sealed partial class NprClient
 
             return Problems.PartyFetchFailed.Create([
                 new("response.status_code", ((int)response.StatusCode).ToString()),
+                new("source", "npr-personer"),
             ]);
         }
 
