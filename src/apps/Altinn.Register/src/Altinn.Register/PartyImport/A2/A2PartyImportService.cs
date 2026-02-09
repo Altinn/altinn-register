@@ -99,6 +99,7 @@ internal sealed partial class A2PartyImportService
         {
             return Problems.PartyGone.Create([
                 new("partyUuid", partyUuid.ToString()),
+                new("source", "a2-party"),
             ]);
         }
 
@@ -106,6 +107,7 @@ internal sealed partial class A2PartyImportService
         {
             return Problems.PartyNotFound.Create([
                 new("partyUuid", partyUuid.ToString()),
+                new("source", "a2-party"),
             ]);
         }
 
@@ -113,6 +115,7 @@ internal sealed partial class A2PartyImportService
         {
             return Problems.PartyFetchFailed.Create([
                 new("partyUuid", partyUuid.ToString()),
+                new("source", "a2-party"),
             ]);
         }
 
@@ -121,6 +124,7 @@ internal sealed partial class A2PartyImportService
         {
             return Problems.PartyFetchFailed.Create([
                 new("partyUuid", partyUuid.ToString()),
+                new("source", "a2-party"),
             ]);
         }
 
@@ -165,7 +169,13 @@ internal sealed partial class A2PartyImportService
         Guid partyUuid,
         CancellationToken cancellationToken)
     {
-        var profileResult = await GetPartyProfile(url, [new("partyUuid", partyUuid.ToString())], cancellationToken);
+        var profileResult = await GetPartyProfile(
+            url,
+            [
+                new("partyUuid", partyUuid.ToString()),
+                new("source", "a2-user"),
+            ],
+            cancellationToken);
         if (profileResult.IsProblem)
         {
             return profileResult.Problem;
