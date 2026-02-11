@@ -66,6 +66,32 @@ public class DebugController
         => ForwardTo($"parties/{partyId}");
 
     /// <summary>
+    /// Gets trace info.
+    /// </summary>
+    [HttpGet("trace")]
+    [AllowAnonymous]
+    public ActionResult<ActivityInfo> Trace()
+    {
+        var activity = GetRootmost(Activity.Current);
+        return new ActivityInfo(activity);
+
+        static Activity? GetRootmost(Activity? activity)
+        {
+            if (activity is null)
+            {
+                return null;
+            }
+
+            while (activity.Parent is not null)
+            {
+                activity = activity.Parent;
+            }
+
+            return activity;
+        }
+    }
+
+    /// <summary>
     /// Manually trigger import of a party from A2.
     /// </summary>
     /// <param name="command">The import command.</param>
@@ -127,6 +153,28 @@ public class DebugController
             span[query.Length] = '&';
             toAppend.Value.AsSpan().CopyTo(span.Slice(query.Length + 1));
         });
+    }
+
+    /// <summary>
+    /// Activity info for debugging purposes.
+    /// </summary>
+    /// <param name="activity">The current context.</param>
+    public sealed class ActivityInfo(Activity? activity)
+    {
+        /// <summary>Gets the trace id.</summary>
+        public string TraceId => (activity?.Context ?? default).TraceId.ToString();
+
+        /// <summary>Gets the span id.</summary>
+        public string SpanId => (activity?.Context ?? default).SpanId.ToString();
+
+        /// <summary>Gets whether the trace is remote.</summary>
+        public bool IsRemote => (activity?.Context ?? default).IsRemote;
+
+        /// <summary>Gets the trace flags.</summary>
+        public int TraceFlags => (int)(activity?.Context ?? default).TraceFlags;
+
+        /// <summary>Gets whether the activity has a remote parent.</summary>
+        public bool HasRemoteParent => activity?.HasRemoteParent ?? false;
     }
 
     private sealed class HttpProxyResult
