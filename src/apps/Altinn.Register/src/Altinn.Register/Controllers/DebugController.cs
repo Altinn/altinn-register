@@ -175,6 +175,9 @@ public class DebugController
 
         /// <summary>Gets whether the activity has a remote parent.</summary>
         public bool HasRemoteParent => activity?.HasRemoteParent ?? false;
+
+        /// <summary>Gets the parent span id.</summary>
+        public string ParentSpanId => (activity?.ParentSpanId ?? default).ToString();
     }
 
     private sealed class HttpProxyResult
