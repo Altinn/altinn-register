@@ -296,9 +296,9 @@ title:
   nn: Kommune - Skatt og avgift
   en: Municipality - Tax and duty
 description:
-  nb: Omfatter oppgaver som hører inn under områdene arbeidsgiveravgift, kommunale avgifter, eiendomsskatt og skatteattest
-  nn: Omfattar oppgåver som høyrer inn under områda arbeidsgivaravgift, kommunale avgifter, eigedomsskatt og skatteattest
-  en: Includes tasks that fall under the areas of employer's national insurance contributions, municipal fees, property tax, and tax certificates
+  nb: Omfatter oppgaver som hører inn under områdene kommunale avgifter og eiendomsskatt
+  nn: Omfattar oppgåver som høyrer inn under områda kommunale avgifter og eigedomsskatt
+  en: Includes tasks that fall under the areas of municipal fees and property tax
 mapping:
   npr:
     virksomhet: kommune
@@ -374,20 +374,20 @@ mapping:
 
 ---
 area: Namsmannen
-task: Tvangsfullbyrdelse
-identifier: namsmannen-tvangsfullbyrdelse
+task: Tvangsfullbyrdelse, herunder behandling i forliksrådet
+identifier: namsmannen-tvangsfullbyrdelse-forliksradet
 title:
-  nb: Namsmannen - Tvangsfullbyrdelse
-  nn: Namsmannen - Tvangsfullbyrding
-  en: The Enforcement Officer - Enforcement
+  nb: Namsmannen - Tvangsfullbyrdelse, herunder behandling i forliksrådet
+  nn: Namsmannen - Tvangsfullbyrding, inkludert behandling i forliksrådet
+  en: The Enforcement Officer - Enforcement, including proceedings in the conciliation board
 description:
-  nb: Gjelder representasjon i saker om tvangsfullbyrdelse etter tvangsfullbyrdelsesloven
-  nn: Gjeld representasjon i saker om tvangsfullbyrding etter tvangsfullbyrdingslova
-  en: Applies to representation in cases of enforcement under the Enforcement Act
+  nb: Gjelder representasjon i saker om tvangsfullbyrdelse etter tvangsfullbyrdelsesloven, herunder eventuell behandling i forliksrådet av slike saker og oppfølging av saken hos innkrevingsmyndigheten.
+  nn: Gjeld representasjon i saker om tvangsfullbyrding etter tvangsfullbyrdingslova, herunder eventuell behandling i forliksrådet av slike saker og oppfølging av saka hos innkrevjingsmyndigheita.
+  en: Applies to representation in enforcement cases under tvangsfullbyrdelsesloven, including possible proceedings in the conciliation board and follow-up of the case with the collection authority.
 mapping:
   npr:
     virksomhet: namsmannen
-    oppgave: tvangsfullbyrdelse
+    oppgave: tvangsfullbyrdelseOgForliksraadet
 
 ---
 area: Nav
@@ -493,20 +493,20 @@ mapping:
 
 ---
 area: Skatteetaten
-task: Innkreving
-identifier: skatteetaten-innkreving
+task: Innkreving og tvangsfullbyrdelse
+identifier: skatteetaten-innkreving-tvangsfullbyrdelse
 title:
-  nb: Skatteetaten - Innkreving
-  nn: Skatteetaten - Innkrevjing
-  en: The Tax Administration - Collection
+  nb: Skatteetaten - Innkreving og tvangsfullbyrdelse
+  nn: Skatteetaten - Innkrevjing og tvangsfullbyrding
+  en: The Tax Administration - Collection and enforcement
 description:
-  nb: Gjelder oppfølging og behandling av krav fra Skatteetaten, for eksempel restskatt
-  nn: Gjeld oppfølging og behandling av krav frå Skatteetaten, for eksempel restskatt
-  en: Applies to follow-up and processing of claims from the Tax Administration, for example, residual tax
+  nb: Gjelder saker som innkrevingsmyndigheten i Skatteetaten behandler etter innkrevingsloven, fra og med varsel etter tvangsfullbyrdelsesloven §4-18 og §4-19.
+  nn: Gjeld saker som innkrevjingsmyndigheita i Skatteetaten behandlar etter innkrevjingslova, frå og med varsel etter tvangsfullbyrdingslova §4-18 og §4-19.
+  en: Applies to cases handled by the collection authority in the Tax Administration under the Collection Act, from and including notice under Sections 4-18 and 4-19 of tvangsfullbyrdelsesloven.
 mapping:
   npr:
     virksomhet: skatteetaten
-    oppgave: innkreving
+    oppgave: innkrevingTvangsfullbyrdelse
 
 ---
 area: Skatteetaten
@@ -551,30 +551,13 @@ title:
   nn: Skatteetaten - Skatt
   en: The Tax Administration - Tax
 description:
-  nb: Gjelder innsyn i skattedata, og representasjon overfor skattemyndighetene i alle saker om skatteforhold, herunder endring av skattekort, levering av skattemelding, skatteoppgjør og det ordinære løpet for restskatt eller penger til gode.
-  nn: Gjeld innsyn i skattedata, og representasjon overfor skattemyndigheitene i alle saker om skatteforhold, herunder endring av skattekort, levering av skattemelding, skatteoppgjer og det ordinære løpet for restskatt eller pengar til gode.
-  en: Applies to access to tax data and representation before the tax authorities in all matters concerning tax issues, including changing tax cards, submitting tax returns, tax settlements, and the ordinary course of residual tax or money owed.
+  nb: Gjelder innsyn i skattedata, og representasjon overfor skattemyndighetene i alle saker om skatteforhold, herunder endring av skattekort, levering av skattemelding, skatteoppgjør og det ordinære løpet for restskatt eller penger til gode, til og med varsel etter tvangsfullbyrdelsesloven §4-18 og §4-19.
+  nn: Gjeld innsyn i skattedata, og representasjon overfor skattemyndigheitene i alle saker om skatteforhold, herunder endring av skattekort, levering av skattemelding, skatteoppgjer og det ordinære løpet for restskatt eller pengar til gode, til og med varsel etter tvangsfullbyrdingslova §4-18 og §4-19.
+  en: Applies to access to tax data and representation before the tax authorities in all matters concerning tax issues, including changing tax cards, submitting tax returns, tax settlements, and the ordinary course for residual tax or money owed, up to and including notice under Sections 4-18 and 4-19 of tvangsfullbyrdelsesloven.
 mapping:
   npr:
     virksomhet: skatteetaten
     oppgave: skatt
-
----
-area: Statens innkrevingssentral
-task: Gjeldsordning og betalingsavtaler
-identifier: statens-innkrevingssentral-gjeldsordning-betalingsavtaler
-title:
-  nb: Statens innkrevingssentral - Gjeldsordning og betalingsavtaler
-  nn: Statens innkrevingssentral - Gjeldsordning og betalingsavtalar
-  en: The Norwegian National Collection Agency - Debt settlement and payment agreements
-description:
-  nb: Gjelder søknad om og forvaltning av gjeldsordning og betalingsavtaler
-  nn: Gjeld søknad om og forvaltning av gjeldsordning og betalingsavtalar
-  en: Applies to applications for and management of debt settlements and payment agreements
-mapping:
-  npr:
-    virksomhet: statensInnkrevingssentral
-    oppgave: gjeldsordningOgBetalingsavtaler
 
 ---
 area: Statsforvalter
