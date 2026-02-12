@@ -15,7 +15,7 @@ const enqueue = <T extends unknown>(fn: () => Promise<T>): Promise<T> => {
   var task = _queue.then(() => within(fn));
   _queue = task.then(
     (_) => {},
-    (_) => {}
+    (_) => {},
   );
   return task;
 };
@@ -82,7 +82,7 @@ const sonarcloudSchema = z
     z.object({
       enabled: z.boolean().default(true),
       projectKey: z.string().optional(),
-    })
+    }),
   );
 
 const configSchema = z.object({
@@ -202,7 +202,7 @@ const last = (arr: string[]) => arr[arr.length - 1];
 const readProjects = async (
   verticalPath: string,
   verticalRelPath: string,
-  type: ProjectType
+  type: ProjectType,
 ): Promise<readonly Project[]> => {
   const projectFiles = await globby(`${type}/*/*.*proj`, { cwd: verticalPath });
   return projectFiles.map((file) => {
@@ -223,7 +223,7 @@ const readProjects = async (
 
 const readVertical = async (
   type: VerticalType,
-  dirPath: string
+  dirPath: string,
 ): Promise<RawVertical> => {
   const verticalPath = path.resolve(dirPath);
   const dirName = path.basename(verticalPath);
@@ -253,7 +253,7 @@ const readVertical = async (
     name = config.name;
   }
 
-  let shortName = last(name.split("."));
+  let shortName = last(name.split("."))!;
   if (config.shortName) {
     shortName = config.shortName;
   }
@@ -363,7 +363,7 @@ for (const raw of rawVerticals) {
     const resolved = lookup.get(`${dep.type}:${dep.name}`);
     if (!resolved) {
       throw new Error(
-        `Dependency of ${vertical.displayName} not found: ${dep.type}:${dep.name}`
+        `Dependency of ${vertical.displayName} not found: ${dep.type}:${dep.name}`,
       );
     }
 

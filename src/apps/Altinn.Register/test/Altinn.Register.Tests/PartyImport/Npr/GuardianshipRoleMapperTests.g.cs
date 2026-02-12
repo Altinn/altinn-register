@@ -170,10 +170,10 @@ public static partial class GuardianshipRoleMapperTests
             },
             new GuardianshipMetadata
             {
-                Identifier = "namsmannen-tvangsfullbyrdelse",
-                Role = GuardianshipRoles.Namsmannen.Tvangsfullbyrdelse,
+                Identifier = "namsmannen-tvangsfullbyrdelse-forliksradet",
+                Role = GuardianshipRoles.Namsmannen.TvangsfullbyrdelseHerunderBehandlingIForliksrådet,
                 NprArea = "namsmannen",
-                NprTask = "tvangsfullbyrdelse",
+                NprTask = "tvangsfullbyrdelseOgForliksraadet",
             },
             new GuardianshipMetadata
             {
@@ -219,10 +219,10 @@ public static partial class GuardianshipRoleMapperTests
             },
             new GuardianshipMetadata
             {
-                Identifier = "skatteetaten-innkreving",
-                Role = GuardianshipRoles.Skatteetaten.Innkreving,
+                Identifier = "skatteetaten-innkreving-tvangsfullbyrdelse",
+                Role = GuardianshipRoles.Skatteetaten.InnkrevingOgTvangsfullbyrdelse,
                 NprArea = "skatteetaten",
-                NprTask = "innkreving",
+                NprTask = "innkrevingTvangsfullbyrdelse",
             },
             new GuardianshipMetadata
             {
@@ -244,13 +244,6 @@ public static partial class GuardianshipRoleMapperTests
                 Role = GuardianshipRoles.Skatteetaten.Skatt,
                 NprArea = "skatteetaten",
                 NprTask = "skatt",
-            },
-            new GuardianshipMetadata
-            {
-                Identifier = "statens-innkrevingssentral-gjeldsordning-betalingsavtaler",
-                Role = GuardianshipRoles.StatensInnkrevingssentral.GjeldsordningOgBetalingsavtaler,
-                NprArea = "statensInnkrevingssentral",
-                NprTask = "gjeldsordningOgBetalingsavtaler",
             },
             new GuardianshipMetadata
             {
