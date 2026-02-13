@@ -112,11 +112,10 @@ public class NprClientTests
                 RoleFor("inkassoselskap", "forhandleOgInngaaInkassoavtaler"),
                 RoleFor("forsikringsselskap", "forvalteForsikringsavtaler"),
                 RoleFor("namsmannen", "gjeldsordning"),
-                RoleFor("statensInnkrevingssentral", "gjeldsordningOgBetalingsavtaler"),
                 RoleFor("kommune", "helseOgOmsorg"),
                 RoleFor("nav", "hjelpemidler"),
                 RoleFor("oevrige", "inngaaelseAvHusleiekontrakter"),
-                RoleFor("skatteetaten", "innkreving"),
+                RoleFor("skatteetaten", "innkrevingTvangsfullbyrdelse"),
                 RoleFor("kartverket", "kjoepAvEiendom"),
                 RoleFor("oevrige", "kjoepLeieAvVarerOgTjenester"),
                 RoleFor("kredittvurderingsselskap", "kredittsperre"),
@@ -159,7 +158,7 @@ public class NprClientTests
         private PersonIdentifier _guardian = null!;
         private string[] _roles = null!;
 
-        public ExpectedGuardianship() 
+        public ExpectedGuardianship()
         {
         }
 

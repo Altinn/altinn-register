@@ -127,7 +127,10 @@ const GUARDIANSHIPS_FILE = new URL(
 );
 
 function toIdentifier(name: string): string {
-  name = name.toLowerCase().replace(/[-_ \/]+(.)/g, (_, c) => c.toUpperCase());
+  name = name
+    .toLowerCase()
+    .replaceAll(/[,]/g, " ")
+    .replaceAll(/[-_ \/]+(.)/g, (_, c) => c.toUpperCase());
   return name.charAt(0).toUpperCase() + name.slice(1);
 }
 

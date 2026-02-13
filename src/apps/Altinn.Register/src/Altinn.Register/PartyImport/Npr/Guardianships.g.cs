@@ -88,7 +88,7 @@ internal static partial class GuardianshipRoles
         /// <summary>Omfatter tilbud og støtteordninger som hører inn under områdene avlastning og støtte, helsetjenester, omsorgstjenester og velferdsstøtte</summary>
         public static ExternalRoleReference HelseOgOmsorg { get; } = new(ExternalRoleSource.CivilRightsAuthority, "kommune-helse-omsorg");
 
-        /// <summary>Omfatter oppgaver som hører inn under områdene arbeidsgiveravgift, kommunale avgifter, eiendomsskatt og skatteattest</summary>
+        /// <summary>Omfatter oppgaver som hører inn under områdene kommunale avgifter og eiendomsskatt</summary>
         public static ExternalRoleReference SkattOgAvgift { get; } = new(ExternalRoleSource.CivilRightsAuthority, "kommune-skatt-avgift");
 
         /// <summary>Omfatter tilbud og støtteordninger som hører inn under områdene botilbud, kvalifisering til arbeid, økonomiske ytelser og rådgivning</summary>
@@ -111,8 +111,8 @@ internal static partial class GuardianshipRoles
         /// <summary>Gjelder søknad om og/eller forvaltning av eksisterende gjeldsordninger</summary>
         public static ExternalRoleReference Gjeldsordning { get; } = new(ExternalRoleSource.CivilRightsAuthority, "namsmannen-gjeldsordning");
 
-        /// <summary>Gjelder representasjon i saker om tvangsfullbyrdelse etter tvangsfullbyrdelsesloven</summary>
-        public static ExternalRoleReference Tvangsfullbyrdelse { get; } = new(ExternalRoleSource.CivilRightsAuthority, "namsmannen-tvangsfullbyrdelse");
+        /// <summary>Gjelder representasjon i saker om tvangsfullbyrdelse etter tvangsfullbyrdelsesloven, herunder eventuell behandling i forliksrådet av slike saker og oppfølging av saken hos innkrevingsmyndigheten.</summary>
+        public static ExternalRoleReference TvangsfullbyrdelseHerunderBehandlingIForliksrådet { get; } = new(ExternalRoleSource.CivilRightsAuthority, "namsmannen-tvangsfullbyrdelse-forliksradet");
     }
 
     /// <summary>Roles for guardianships in the area 'Nav'.</summary>
@@ -144,8 +144,8 @@ internal static partial class GuardianshipRoles
     /// <summary>Roles for guardianships in the area 'Skatteetaten'.</summary>
     public static partial class Skatteetaten
     {
-        /// <summary>Gjelder oppfølging og behandling av krav fra Skatteetaten, for eksempel restskatt</summary>
-        public static ExternalRoleReference Innkreving { get; } = new(ExternalRoleSource.CivilRightsAuthority, "skatteetaten-innkreving");
+        /// <summary>Gjelder saker som innkrevingsmyndigheten i Skatteetaten behandler etter innkrevingsloven, fra og med varsel etter tvangsfullbyrdelsesloven §4-18 og §4-19.</summary>
+        public static ExternalRoleReference InnkrevingOgTvangsfullbyrdelse { get; } = new(ExternalRoleSource.CivilRightsAuthority, "skatteetaten-innkreving-tvangsfullbyrdelse");
 
         /// <summary>Gjelder endring av postadresse for person med verge</summary>
         public static ExternalRoleReference EndrePostadresse { get; } = new(ExternalRoleSource.CivilRightsAuthority, "skatteetaten-endre-postadresse");
@@ -153,15 +153,8 @@ internal static partial class GuardianshipRoles
         /// <summary>Gjelder endring av bostedsadresse</summary>
         public static ExternalRoleReference MeldeFlytting { get; } = new(ExternalRoleSource.CivilRightsAuthority, "skatteetaten-melde-flytting");
 
-        /// <summary>Gjelder innsyn i skattedata, og representasjon overfor skattemyndighetene i alle saker om skatteforhold, herunder endring av skattekort, levering av skattemelding, skatteoppgjør og det ordinære løpet for restskatt eller penger til gode.</summary>
+        /// <summary>Gjelder innsyn i skattedata, og representasjon overfor skattemyndighetene i alle saker om skatteforhold, herunder endring av skattekort, levering av skattemelding, skatteoppgjør og det ordinære løpet for restskatt eller penger til gode, til og med varsel etter tvangsfullbyrdelsesloven §4-18 og §4-19.</summary>
         public static ExternalRoleReference Skatt { get; } = new(ExternalRoleSource.CivilRightsAuthority, "skatteetaten-skatt");
-    }
-
-    /// <summary>Roles for guardianships in the area 'Statens innkrevingssentral'.</summary>
-    public static partial class StatensInnkrevingssentral
-    {
-        /// <summary>Gjelder søknad om og forvaltning av gjeldsordning og betalingsavtaler</summary>
-        public static ExternalRoleReference GjeldsordningOgBetalingsavtaler { get; } = new(ExternalRoleSource.CivilRightsAuthority, "statens-innkrevingssentral-gjeldsordning-betalingsavtaler");
     }
 
     /// <summary>Roles for guardianships in the area 'Statsforvalter'.</summary>
@@ -219,7 +212,7 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenestevirksomhet;
-        if (s.Length is < 3 or > 25)
+        if (s.Length is < 3 or > 24)
         {
             goto end;
         }
@@ -274,35 +267,19 @@ internal static partial class GuardianshipRoleMapper
         if (s.StartsWith("s"))
         {
             var s_2 = s.Slice(1);
-            if (s_2.Length is < 11 or > 24)
+            if (s_2.Length is < 11 or > 13)
             {
-                goto end;
-            }
-
-            if (s_2.StartsWith("tat"))
-            {
-                var s_2_0 = s_2.Slice(3);
-                if (s_2_0.Length is < 10 or > 21)
-                {
-                    goto end;
-                }
-
-                if (s_2_0.SequenceEqual("sforvalter"))
-                {
-                    return TryFindStatsforvalterRoleByNprValue(vergeTjenesteoppgave, out role);
-                }
-
-                if (s_2_0.SequenceEqual("ensInnkrevingssentral"))
-                {
-                    return TryFindStatensInnkrevingssentralRoleByNprValue(vergeTjenesteoppgave, out role);
-                }
-
                 goto end;
             }
 
             if (s_2.SequenceEqual("katteetaten"))
             {
                 return TryFindSkatteetatenRoleByNprValue(vergeTjenesteoppgave, out role);
+            }
+
+            if (s_2.SequenceEqual("tatsforvalter"))
+            {
+                return TryFindStatsforvalterRoleByNprValue(vergeTjenesteoppgave, out role);
             }
 
             goto end;
@@ -375,7 +352,7 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenestevirksomhet;
-        if (s.Length is < 3 or > 25)
+        if (s.Length is < 3 or > 24)
         {
             goto end;
         }
@@ -430,35 +407,19 @@ internal static partial class GuardianshipRoleMapper
         if (s.StartsWith("s"u8))
         {
             var s_2 = s.Slice(1);
-            if (s_2.Length is < 11 or > 24)
+            if (s_2.Length is < 11 or > 13)
             {
-                goto end;
-            }
-
-            if (s_2.StartsWith("tat"u8))
-            {
-                var s_2_0 = s_2.Slice(3);
-                if (s_2_0.Length is < 10 or > 21)
-                {
-                    goto end;
-                }
-
-                if (s_2_0.SequenceEqual("sforvalter"u8))
-                {
-                    return TryFindStatsforvalterRoleByNprValue(vergeTjenesteoppgave, out role);
-                }
-
-                if (s_2_0.SequenceEqual("ensInnkrevingssentral"u8))
-                {
-                    return TryFindStatensInnkrevingssentralRoleByNprValue(vergeTjenesteoppgave, out role);
-                }
-
                 goto end;
             }
 
             if (s_2.SequenceEqual("katteetaten"u8))
             {
                 return TryFindSkatteetatenRoleByNprValue(vergeTjenesteoppgave, out role);
+            }
+
+            if (s_2.SequenceEqual("tatsforvalter"u8))
+            {
+                return TryFindStatsforvalterRoleByNprValue(vergeTjenesteoppgave, out role);
             }
 
             goto end;
@@ -1075,7 +1036,7 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.Length is < 13 or > 18)
+        if (s.Length is < 13 or > 33)
         {
             goto end;
         }
@@ -1086,9 +1047,9 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        if (s.SequenceEqual("tvangsfullbyrdelse"))
+        if (s.SequenceEqual("tvangsfullbyrdelseOgForliksraadet"))
         {
-            role = GuardianshipRoles.Namsmannen.Tvangsfullbyrdelse;
+            role = GuardianshipRoles.Namsmannen.TvangsfullbyrdelseHerunderBehandlingIForliksrådet;
             return true;
         }
 
@@ -1102,7 +1063,7 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.Length is < 13 or > 18)
+        if (s.Length is < 13 or > 33)
         {
             goto end;
         }
@@ -1113,9 +1074,9 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        if (s.SequenceEqual("tvangsfullbyrdelse"u8))
+        if (s.SequenceEqual("tvangsfullbyrdelseOgForliksraadet"u8))
         {
-            role = GuardianshipRoles.Namsmannen.Tvangsfullbyrdelse;
+            role = GuardianshipRoles.Namsmannen.TvangsfullbyrdelseHerunderBehandlingIForliksrådet;
             return true;
         }
 
@@ -1251,7 +1212,7 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.Length is < 5 or > 16)
+        if (s.Length is < 5 or > 28)
         {
             goto end;
         }
@@ -1259,12 +1220,6 @@ internal static partial class GuardianshipRoleMapper
         if (s.SequenceEqual("skatt"))
         {
             role = GuardianshipRoles.Skatteetaten.Skatt;
-            return true;
-        }
-
-        if (s.SequenceEqual("innkreving"))
-        {
-            role = GuardianshipRoles.Skatteetaten.Innkreving;
             return true;
         }
 
@@ -1280,6 +1235,12 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
+        if (s.SequenceEqual("innkrevingTvangsfullbyrdelse"))
+        {
+            role = GuardianshipRoles.Skatteetaten.InnkrevingOgTvangsfullbyrdelse;
+            return true;
+        }
+
         end:
         role = null;
         return false;
@@ -1290,7 +1251,7 @@ internal static partial class GuardianshipRoleMapper
         [NotNullWhen(true)] out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.Length is < 5 or > 16)
+        if (s.Length is < 5 or > 28)
         {
             goto end;
         }
@@ -1298,12 +1259,6 @@ internal static partial class GuardianshipRoleMapper
         if (s.SequenceEqual("skatt"u8))
         {
             role = GuardianshipRoles.Skatteetaten.Skatt;
-            return true;
-        }
-
-        if (s.SequenceEqual("innkreving"u8))
-        {
-            role = GuardianshipRoles.Skatteetaten.Innkreving;
             return true;
         }
 
@@ -1319,35 +1274,9 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
-        role = null;
-        return false;
-    }
-
-    private static bool TryFindStatensInnkrevingssentralRoleByNprValue(
-        ReadOnlySpan<char> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
-    {
-        var s = vergeTjenesteoppgave;
-        if (s.SequenceEqual("gjeldsordningOgBetalingsavtaler"))
+        if (s.SequenceEqual("innkrevingTvangsfullbyrdelse"u8))
         {
-            role = GuardianshipRoles.StatensInnkrevingssentral.GjeldsordningOgBetalingsavtaler;
-            return true;
-        }
-
-        end:
-        role = null;
-        return false;
-    }
-
-    private static bool TryFindStatensInnkrevingssentralRoleByNprValue(
-        ReadOnlySpan<byte> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
-    {
-        var s = vergeTjenesteoppgave;
-        if (s.SequenceEqual("gjeldsordningOgBetalingsavtaler"u8))
-        {
-            role = GuardianshipRoles.StatensInnkrevingssentral.GjeldsordningOgBetalingsavtaler;
+            role = GuardianshipRoles.Skatteetaten.InnkrevingOgTvangsfullbyrdelse;
             return true;
         }
 

@@ -86,10 +86,6 @@
             "vergeTjenesteoppgave": "gjeldsordning"
           },
           {
-            "vergeTjenestevirksomhet": "statensInnkrevingssentral",
-            "vergeTjenesteoppgave": "gjeldsordningOgBetalingsavtaler"
-          },
-          {
             "vergeTjenestevirksomhet": "kommune",
             "vergeTjenesteoppgave": "helseOgOmsorg"
           },
@@ -103,7 +99,7 @@
           },
           {
             "vergeTjenestevirksomhet": "skatteetaten",
-            "vergeTjenesteoppgave": "innkreving"
+            "vergeTjenesteoppgave": "innkrevingTvangsfullbyrdelse"
           },
           {
             "vergeTjenestevirksomhet": "kartverket",
