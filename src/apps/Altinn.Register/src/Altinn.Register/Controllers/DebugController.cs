@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Buffers;
 using System.Diagnostics;
@@ -14,6 +14,7 @@ using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 using Nerdbank.Streams;
 
 namespace Altinn.Register.Controllers;
@@ -73,7 +74,7 @@ public class DebugController
     public ActionResult<ActivityInfo> Trace()
     {
         var activity = GetRootmost(Activity.Current);
-        return new ActivityInfo(activity);
+        return new ActivityInfo(activity, Request.Headers.TraceParent);
 
         static Activity? GetRootmost(Activity? activity)
         {
@@ -159,7 +160,8 @@ public class DebugController
     /// Activity info for debugging purposes.
     /// </summary>
     /// <param name="activity">The current context.</param>
-    public sealed class ActivityInfo(Activity? activity)
+    /// <param name="traceParent">The traceparent header(s).</param>
+    public sealed class ActivityInfo(Activity? activity, StringValues traceParent)
     {
         /// <summary>Gets the trace id.</summary>
         public string TraceId => (activity?.Context ?? default).TraceId.ToString();
@@ -178,6 +180,9 @@ public class DebugController
 
         /// <summary>Gets the parent span id.</summary>
         public string ParentSpanId => (activity?.ParentSpanId ?? default).ToString();
+
+        /// <summary>Gets the trace header(s).</summary>
+        public IEnumerable<string> TraceParent => traceParent;
     }
 
     private sealed class HttpProxyResult
