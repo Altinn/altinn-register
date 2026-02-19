@@ -56,6 +56,52 @@ internal static class NpgsqlExtensions
     }
 
     /// <summary>
+    /// Adds an optional parameter to the specified NpgsqlParameterCollection, including a corresponding parameter that
+    /// indicates whether the value is set.
+    /// </summary>
+    /// <typeparam name="T">The type of the value to add as a parameter. Must be a non-nullable type.</typeparam>
+    /// <param name="collection">The parameter collection.</param>
+    /// <param name="isSetParameterName">The name of the parameter that will indicate whether the value is set.</param>
+    /// <param name="parameterName">The parameter name.</param>
+    /// <param name="value">A <see cref="FieldValue{T}"/> containing the value to add and a flag indicating whether it is set.</param>
+    /// <returns>The newly created parameter.</returns>
+    public static NpgsqlParameter AddOptional<T>(this NpgsqlParameterCollection collection, string isSetParameterName, string parameterName, FieldValue<T> value)
+        where T : notnull
+    {
+        AddIsSet(collection, isSetParameterName).Value = value.IsSet;
+
+        return TypeHelper<T>.Instance.AddOptional(collection, parameterName, value);
+    }
+
+    /// <summary>
+    /// Adds an optional parameter to the specified NpgsqlParameterCollection, including a corresponding parameter that
+    /// indicates whether the value is set.
+    /// </summary>
+    /// <typeparam name="T">The type of the value to add as a parameter. Must be a non-nullable type.</typeparam>
+    /// <param name="collection">The parameter collection.</param>
+    /// <param name="isSetParameterName">The name of the parameter that will indicate whether the value is set.</param>
+    /// <param name="parameterName">The parameter name.</param>
+    /// <param name="dbType">The parameter <see cref="NpgsqlDbType"/>.</param>
+    /// <param name="value">A <see cref="FieldValue{T}"/> containing the value to add and a flag indicating whether it is set.</param>
+    /// <returns>The newly created parameter.</returns>
+    public static NpgsqlParameter AddOptional<T>(this NpgsqlParameterCollection collection, string isSetParameterName, string parameterName, NpgsqlDbType dbType, FieldValue<T> value)
+        where T : notnull
+    {
+        AddIsSet(collection, isSetParameterName).Value = value.IsSet;
+
+        return TypeHelper<T>.Instance.AddOptional(collection, parameterName, dbType, value);
+    }
+
+    /// <summary>
+    /// Adds a "is set" parameter to the collection, used for indicating whether an optional parameter is set or not.
+    /// </summary>
+    /// <param name="parameters">The parameter collection.</param>
+    /// <param name="parameterName">The name of the "is set" parameter.</param>
+    /// <returns>The newly created parameter.</returns>
+    public static NpgsqlParameter<bool> AddIsSet(this NpgsqlParameterCollection parameters, string parameterName)
+        => Add<bool>(parameters, parameterName, NpgsqlDbType.Boolean);
+
+    /// <summary>
     /// Gets a field value or a default value if the field is <see cref="DBNull.Value"/>.
     /// </summary>
     /// <typeparam name="T">The value type.</typeparam>
@@ -412,5 +458,79 @@ internal static class NpgsqlExtensions
         }
 
         return ThrowHelper.ThrowInvalidOperationException<T>($"Failed to convert value of {columnName} to {typeof(T).Name}");
+    }
+
+    private abstract class TypeHelper<T>
+        where T : notnull
+    {
+        public static TypeHelper<T> Instance { get; }
+            = (TypeHelper<T>)Activator.CreateInstance(
+                typeof(T).IsValueType
+                ? typeof(ValueTypeHelper<>).MakeGenericType(typeof(T))
+                : typeof(ClassTypeHelper<>).MakeGenericType(typeof(T)))!;
+
+        public abstract NpgsqlParameter AddOptional(NpgsqlParameterCollection collection, string parameterName, FieldValue<T> value);
+
+        public abstract NpgsqlParameter AddOptional(NpgsqlParameterCollection collection, string parameterName, NpgsqlDbType dbType, FieldValue<T> value);
+    }
+
+    private sealed class ValueTypeHelper<T>
+        : TypeHelper<T>
+        where T : struct
+    {
+        /// <inheritdoc/>
+        public override NpgsqlParameter AddOptional(NpgsqlParameterCollection collection, string parameterName, FieldValue<T> value)
+        {
+            var parameter = collection.Add<T?>(parameterName);
+            if (value.HasValue)
+            {
+                parameter.TypedValue = value.Value;
+            }
+            else
+            {
+                parameter.TypedValue = null;
+            }
+
+            return parameter;
+        }
+
+        /// <inheritdoc/>
+        public override NpgsqlParameter AddOptional(NpgsqlParameterCollection collection, string parameterName, NpgsqlDbType dbType, FieldValue<T> value)
+        {
+            var parameter = collection.Add<T?>(parameterName, dbType);
+            if (value.HasValue)
+            {
+                parameter.TypedValue = value.Value;
+            }
+            else
+            {
+                parameter.TypedValue = null;
+            }
+
+            return parameter;
+        }
+    }
+
+    private sealed class ClassTypeHelper<T>
+        : TypeHelper<T>
+        where T : class
+    {
+        /// <inheritdoc/>
+        public override NpgsqlParameter AddOptional(NpgsqlParameterCollection collection, string parameterName, FieldValue<T> value)
+        {
+            var parameter = collection.Add<T?>(parameterName);
+            parameter.TypedValue = value.Value;
+
+            return parameter;
+        }
+
+        /// <inheritdoc/>
+        public override NpgsqlParameter AddOptional(NpgsqlParameterCollection collection, string parameterName, NpgsqlDbType dbType, FieldValue<T> value)
+        {
+            var parameter = collection.Add<T?>(parameterName, dbType);
+            parameter.TypedValue = value.Value;
+
+            return parameter;
+        }
     }
 }

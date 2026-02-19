@@ -72,10 +72,7 @@ internal static partial class RegisterHost
             })
             .AddJsonOptions(opt =>
             {
-                if (builder.Environment.IsDevelopment())
-                {
-                    opt.JsonSerializerOptions.WriteIndented = true;
-                }
+                opt.JsonSerializerOptions.WriteIndented = descriptor.IsLocalDev;
             });
 
         services.AddSingleton<ConditionalControllerConvention>();

@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using Altinn.Authorization.ModelUtils;
 
 namespace Altinn.Register.Core.Parties.Records;
@@ -17,6 +17,11 @@ public sealed record OrganizationRecord
         : base(PartyRecordType.Organization)
     {
     }
+
+    /// <summary>
+    /// Gets the source of the organization.
+    /// </summary>
+    public required FieldValue<OrganizationSource> Source { get; init; }
 
     /// <summary>
     /// Gets the status of the organization.

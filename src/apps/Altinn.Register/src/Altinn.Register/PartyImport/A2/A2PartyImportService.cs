@@ -12,6 +12,7 @@ using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
 using CommunityToolkit.Diagnostics;
@@ -649,6 +650,7 @@ internal sealed partial class A2PartyImportService
                 OwnerUuid = FieldValue.Null,
 
                 // person fields
+                Source = PersonSource.NationalPopulationRegister,
                 FirstName = firstName,
                 MiddleName = middleName,
                 LastName = lastName,
@@ -760,6 +762,11 @@ internal sealed partial class A2PartyImportService
                 OwnerUuid = FieldValue.Null,
 
                 // organization fields
+                Source = organizationNumber.ToString() switch
+                {
+                    var s when s.StartsWith('0') => OrganizationSource.BusinessAssessedPartnerships,
+                    _ => OrganizationSource.CentralCoordinatingRegister,
+                },
                 UnitStatus = unitStatus,
                 UnitType = unitType,
                 TelephoneNumber = telephoneNumber,

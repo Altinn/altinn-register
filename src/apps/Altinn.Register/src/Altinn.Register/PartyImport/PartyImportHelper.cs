@@ -109,6 +109,7 @@ public static class PartyImportHelper
 
         static void CheckPerson(ref ValidationErrorBuilder builder, PersonRecord person)
         {
+            Check(ref builder, !person.Source.IsNull, ValidationErrors.Null, "/source");
             CheckRequired(ref builder, person.FirstName.HasValue, "/firstName");
             CheckRequired(ref builder, person.MiddleName.IsSet, "/middleName");
             CheckRequired(ref builder, person.LastName.HasValue, "/lastName");
@@ -121,6 +122,7 @@ public static class PartyImportHelper
 
         static void CheckOrganization(ref ValidationErrorBuilder builder, OrganizationRecord org)
         {
+            Check(ref builder, !org.Source.IsNull, ValidationErrors.Null, "/source");
             CheckRequired(ref builder, org.UnitStatus.HasValue, "/unitStatus");
             CheckRequired(ref builder, org.UnitType.HasValue, "/unitType");
             CheckRequired(ref builder, org.TelephoneNumber.IsSet, "/telephoneNumber");

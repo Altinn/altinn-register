@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.ModelUtils;
 
 namespace Altinn.Register.Core.Parties.Records;
 
@@ -16,6 +16,11 @@ public sealed record PersonRecord
         : base(PartyRecordType.Person)
     {
     }
+
+    /// <summary>
+    /// Gets the source of the person.
+    /// </summary>
+    public required FieldValue<PersonSource> Source { get; init; }
 
     /// <summary>
     /// Gets the first name.

@@ -3,6 +3,7 @@
 using System.Text.Json;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.TestUtils;
 
@@ -244,6 +245,7 @@ public class PartyRecordTests
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Unset,
 
+            Source = FieldValue.Unset,
             FirstName = FieldValue.Unset,
             MiddleName = FieldValue.Unset,
             LastName = FieldValue.Unset,
@@ -286,6 +288,7 @@ public class PartyRecordTests
             VersionId = 42,
             OwnerUuid = FieldValue.Null,
 
+            Source = FieldValue.Unset,
             FirstName = FieldValue.Unset,
             MiddleName = FieldValue.Unset,
             LastName = FieldValue.Unset,
@@ -340,6 +343,7 @@ public class PartyRecordTests
             VersionId = 42,
             OwnerUuid = FieldValue.Null,
 
+            Source = PersonSource.NationalPopulationRegister,
             FirstName = "First",
             MiddleName = null,
             LastName = "Last",
@@ -431,6 +435,7 @@ public class PartyRecordTests
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Unset,
 
+            Source = FieldValue.Unset,
             UnitStatus = FieldValue.Unset,
             UnitType = FieldValue.Unset,
             TelephoneNumber = FieldValue.Unset,
@@ -473,6 +478,7 @@ public class PartyRecordTests
             VersionId = 42,
             OwnerUuid = FieldValue.Null,
 
+            Source = OrganizationSource.CentralCoordinatingRegister,
             UnitStatus = "status",
             UnitType = "type",
             TelephoneNumber = "telephone",
@@ -555,6 +561,7 @@ public class PartyRecordTests
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Unset,
 
+            Source = FieldValue.Unset,
             UnitStatus = FieldValue.Unset,
             UnitType = FieldValue.Unset,
             TelephoneNumber = FieldValue.Unset,
@@ -662,6 +669,7 @@ public class PartyRecordTests
             VersionId = 42,
             OwnerUuid = FieldValue.Null,
 
+            Source = OrganizationSource.CentralCoordinatingRegister,
             UnitStatus = "status",
             UnitType = "type",
             TelephoneNumber = "telephone",

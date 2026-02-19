@@ -179,6 +179,19 @@ public static class RegisterPersistenceExtensions
             _ => null,
         }));
 
+        builder.MapEnum<OrganizationSource>("register.organization_source", new EnumNameTranslator<OrganizationSource>(static value => value switch
+        {
+            OrganizationSource.CentralCoordinatingRegister => "ccr",
+            OrganizationSource.BusinessAssessedPartnerships => "sdf",
+            _ => null,
+        }));
+
+        builder.MapEnum<PersonSource>("register.person_source", new EnumNameTranslator<PersonSource>(static value => value switch
+        {
+            PersonSource.NationalPopulationRegister => "npr",
+            _ => null,
+        }));
+
         builder.MapEnum<ExternalRoleSource>("register.external_role_source", new EnumNameTranslator<ExternalRoleSource>(static value => value switch
         {
             ExternalRoleSource.CentralCoordinatingRegister => "ccr",

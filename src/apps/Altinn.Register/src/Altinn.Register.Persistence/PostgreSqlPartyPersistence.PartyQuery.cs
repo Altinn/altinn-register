@@ -348,6 +348,7 @@ internal partial class PostgreSqlPartyPersistence
             static async ValueTask<(PartyRecord Party, bool HasMore)> ReadPersonParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
             {
                 var common = await ReadCommonFields(reader, fields, cancellationToken);
+                var source = await reader.GetConditionalFieldValueAsync<PersonSource>(fields.PersonSource, cancellationToken);
                 var firstName = await reader.GetConditionalFieldValueAsync<string>(fields.PersonFirstName, cancellationToken);
                 var middleName = await reader.GetConditionalFieldValueAsync<string>(fields.PersonMiddleName, cancellationToken);
                 var lastName = await reader.GetConditionalFieldValueAsync<string>(fields.PersonLastName, cancellationToken);
@@ -376,6 +377,7 @@ internal partial class PostgreSqlPartyPersistence
                     DeletedAt = common.DeletedAt,
                     VersionId = common.VersionId,
                     OwnerUuid = common.OwnerUuid,
+                    Source = source,
                     User = user,
                     FirstName = firstName,
                     MiddleName = middleName,
@@ -393,6 +395,7 @@ internal partial class PostgreSqlPartyPersistence
             static async ValueTask<(PartyRecord Party, bool HasMore)> ReadOrganizationParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
             {
                 var common = await ReadCommonFields(reader, fields, cancellationToken);
+                var source = await reader.GetConditionalFieldValueAsync<OrganizationSource>(fields.OrganizationSource, cancellationToken);
                 var parentOrganizationUuid = await reader.GetConditionalFieldValueAsync<Guid>(fields.ParentUuid, cancellationToken);
                 var unitStatus = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationUnitStatus, cancellationToken);
                 var unitType = await reader.GetConditionalFieldValueAsync<string>(fields.OrganizationUnitType, cancellationToken);
@@ -416,6 +419,7 @@ internal partial class PostgreSqlPartyPersistence
 
                 var party = new OrganizationRecord
                 {
+                    Source = source,
                     PartyUuid = common.PartyUuid,
                     PartyId = common.PartyId,
                     ExternalUrn = common.ExternalUrn,
@@ -640,6 +644,7 @@ internal partial class PostgreSqlPartyPersistence
                     personDateOfDeath: builder._personDateOfDeath,
                     personAddress: builder._personAddress,
                     personMailingAddress: builder._personMailingAddress,
+                    personSource: builder._personSource,
                     organizationUnitStatus: builder._organizationUnitStatus,
                     organizationUnitType: builder._organizationUnitType,
                     organizationTelephoneNumber: builder._organizationTelephoneNumber,
@@ -649,6 +654,7 @@ internal partial class PostgreSqlPartyPersistence
                     organizationInternetAddress: builder._organizationInternetAddress,
                     organizationMailingAddress: builder._organizationMailingAddress,
                     organizationBusinessAddress: builder._organizationBusinessAddress,
+                    organizationSource: builder._organizationSource,
                     selfIdentifiedUserType: builder._selfIdentifiedUserType,
                     selfIdentifiedUserEmail: builder._selfIdentifiedUserEmail,
                     systemUserType: builder._systemUserType,
@@ -734,6 +740,7 @@ internal partial class PostgreSqlPartyPersistence
             private sbyte _personDateOfDeath = -1;
             private sbyte _personAddress = -1;
             private sbyte _personMailingAddress = -1;
+            private sbyte _personSource = -1;
 
             // register.organization
             private sbyte _organizationUnitStatus = -1;
@@ -745,6 +752,7 @@ internal partial class PostgreSqlPartyPersistence
             private sbyte _organizationInternetAddress = -1;
             private sbyte _organizationMailingAddress = -1;
             private sbyte _organizationBusinessAddress = -1;
+            private sbyte _organizationSource = -1;
 
             // register.self_identified_user
             private sbyte _selfIdentifiedUserType = -1;
@@ -788,6 +796,7 @@ internal partial class PostgreSqlPartyPersistence
                 _personDateOfDeath = AddField("person.date_of_death", "p_date_of_death", includes.HasFlag(PartyFieldIncludes.PersonDateOfDeath));
                 _personAddress = AddField("person.address", "p_address", includes.HasFlag(PartyFieldIncludes.PersonAddress));
                 _personMailingAddress = AddField("person.mailing_address", "p_person_mailing_address", includes.HasFlag(PartyFieldIncludes.PersonMailingAddress));
+                _personSource = AddField("person.source", "p_person_source", includes.HasFlag(PartyFieldIncludes.PersonSource));
 
                 _organizationUnitStatus = AddField("org.unit_status", "p_unit_status", includes.HasFlag(PartyFieldIncludes.OrganizationUnitStatus));
                 _organizationUnitType = AddField("org.unit_type", "p_unit_type", includes.HasFlag(PartyFieldIncludes.OrganizationUnitType));
@@ -798,6 +807,7 @@ internal partial class PostgreSqlPartyPersistence
                 _organizationInternetAddress = AddField("org.internet_address", "p_internet_address", includes.HasFlag(PartyFieldIncludes.OrganizationInternetAddress));
                 _organizationMailingAddress = AddField("org.mailing_address", "p_org_mailing_address", includes.HasFlag(PartyFieldIncludes.OrganizationMailingAddress));
                 _organizationBusinessAddress = AddField("org.business_address", "p_business_address", includes.HasFlag(PartyFieldIncludes.OrganizationBusinessAddress));
+                _organizationSource = AddField("org.source", "p_organization_source", includes.HasFlag(PartyFieldIncludes.OrganizationSource));
 
                 _selfIdentifiedUserType = AddField("si_u.\"type\"", "p_self_identified_user_type", includes.HasFlag(PartyFieldIncludes.SelfIdentifiedUserType));
                 _selfIdentifiedUserEmail = AddField("si_u.email", "p_self_identified_user_email", includes.HasFlag(PartyFieldIncludes.SelfIdentifiedUserEmail));
@@ -1372,6 +1382,7 @@ internal partial class PostgreSqlPartyPersistence
             sbyte personDateOfDeath,
             sbyte personAddress,
             sbyte personMailingAddress,
+            sbyte personSource,
 
             // register.organization
             sbyte organizationUnitStatus,
@@ -1383,6 +1394,7 @@ internal partial class PostgreSqlPartyPersistence
             sbyte organizationInternetAddress,
             sbyte organizationMailingAddress,
             sbyte organizationBusinessAddress,
+            sbyte organizationSource,
 
             // register.self_identified_user
             sbyte selfIdentifiedUserType,
@@ -1423,6 +1435,7 @@ internal partial class PostgreSqlPartyPersistence
             public int PersonDateOfDeath => personDateOfDeath;
             public int PersonAddress => personAddress;
             public int PersonMailingAddress => personMailingAddress;
+            public int PersonSource => personSource;
 
             // register.organization
             public int OrganizationUnitStatus => organizationUnitStatus;
@@ -1434,6 +1447,7 @@ internal partial class PostgreSqlPartyPersistence
             public int OrganizationInternetAddress => organizationInternetAddress;
             public int OrganizationMailingAddress => organizationMailingAddress;
             public int OrganizationBusinessAddress => organizationBusinessAddress;
+            public int OrganizationSource => organizationSource;
 
             // register.self_identified_user
             public int SelfIdentifiedUserType => selfIdentifiedUserType;
