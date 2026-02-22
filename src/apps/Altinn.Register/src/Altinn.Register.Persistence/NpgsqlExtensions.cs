@@ -519,7 +519,7 @@ internal static class NpgsqlExtensions
         public override NpgsqlParameter AddOptional(NpgsqlParameterCollection collection, string parameterName, FieldValue<T> value)
         {
             var parameter = collection.Add<T?>(parameterName);
-            parameter.TypedValue = value.Value;
+            parameter.TypedValue = value.HasValue ? value.Value : null;
 
             return parameter;
         }
@@ -528,7 +528,7 @@ internal static class NpgsqlExtensions
         public override NpgsqlParameter AddOptional(NpgsqlParameterCollection collection, string parameterName, NpgsqlDbType dbType, FieldValue<T> value)
         {
             var parameter = collection.Add<T?>(parameterName, dbType);
-            parameter.TypedValue = value.Value;
+            parameter.TypedValue = value.HasValue ? value.Value : null;
 
             return parameter;
         }

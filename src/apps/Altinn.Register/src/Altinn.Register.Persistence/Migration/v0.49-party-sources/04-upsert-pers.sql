@@ -118,6 +118,6 @@ BEGIN
   p_date_of_death := o_pers.date_of_death;
   p_address := o_pers.address;
   p_mailing_address := o_pers.mailing_address;
-  p_source = o_pers.source;
+  p_source := o_pers.source;
 END;
 $$ LANGUAGE plpgsql;
