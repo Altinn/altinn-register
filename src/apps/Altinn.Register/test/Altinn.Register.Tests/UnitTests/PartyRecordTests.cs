@@ -388,6 +388,7 @@ public class PartyRecordTests
                 },
                 "versionId": 42,
                 "ownerUuid": null,
+                "source": "npr",
                 "firstName": "First",
                 "middleName": null,
                 "lastName": "Last",
