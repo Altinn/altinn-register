@@ -1,4 +1,5 @@
 using Altinn.Register;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.IdentityModel.Logging;
 
 WebApplication app = RegisterHost.Create(args);
@@ -26,16 +27,27 @@ if (app.Environment.IsDevelopment())
     IdentityModelEventSource.ShowPII = true;
 
     // Enable Swagger
-    app.UseSwagger();
-    app.UseSwaggerUI(opt =>
+    app.Map("/swagger", preserveMatchedPathSegment: true, subApp =>
     {
-        // build a swagger endpoint for each discovered API version
-        foreach (var desc in app.DescribeApiVersions())
+        subApp.Use(static next => context =>
         {
-            var url = $"/swagger/{desc.GroupName}/swagger.json";
-            var name = desc.GroupName.ToUpperInvariant();
-            opt.SwaggerEndpoint(url, name);
-        }
+            var tagsFeature = context.Features.Get<IHttpMetricsTagsFeature>();
+            tagsFeature?.MetricsDisabled = true;
+
+            return next(context);
+        });
+
+        subApp.UseSwagger();
+        subApp.UseSwaggerUI(opt =>
+        {
+            // build a swagger endpoint for each discovered API version
+            foreach (var desc in app.DescribeApiVersions())
+            {
+                var url = $"/swagger/{desc.GroupName}/swagger.json";
+                var name = desc.GroupName.ToUpperInvariant();
+                opt.SwaggerEndpoint(url, name);
+            }
+        });
     });
 }
 

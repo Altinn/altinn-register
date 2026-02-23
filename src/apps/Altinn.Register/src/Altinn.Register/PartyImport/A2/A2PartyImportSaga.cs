@@ -147,7 +147,7 @@ public sealed partial class A2PartyImportSaga
             si = profile.ExternalAuthenticationReference switch
             {
                 null => ApplyLegacyProfile(si, profile),
-                string s when PartyExternalRefUrn.TryParse(s, out var urn) && urn.IsIDPortenEmail(out var email) => ApplyEpostProfile(si, email.Value),
+                string s when PartyExternalRefUrn.TryParse(s, out var urn) && urn.IsIDPortenEmail(out var email) => ApplyEpostProfile(si, email.Encoded),
                 _ => ApplyEducationalProfile(si),
             };
 
@@ -157,11 +157,13 @@ public sealed partial class A2PartyImportSaga
         static SelfIdentifiedUserRecord ApplyLegacyProfile(SelfIdentifiedUserRecord si, A2ProfileRecord profile)
         {
             Debug.Assert(!string.IsNullOrEmpty(profile.UserName));
+            var username = profile.UserName.ToLowerInvariant();
+
             return si with
             {
                 SelfIdentifiedUserType = SelfIdentifiedUserType.Legacy,
                 Email = FieldValue.Null,
-                ExternalUrn = PartyExternalRefUrn.LegacySelfIdentifiedUsername.Create(UrnEncoded.Create(profile.UserName.ToLowerInvariant())),
+                ExternalUrn = PartyExternalRefUrn.LegacySelfIdentifiedUsername.Create(UrnEncoded.Create(username)),
             };
         }
 
@@ -171,6 +173,7 @@ public sealed partial class A2PartyImportSaga
             {
                 SelfIdentifiedUserType = SelfIdentifiedUserType.Educational,
                 Email = FieldValue.Null,
+                ExternalUrn = FieldValue.Null,
             };
         }
 

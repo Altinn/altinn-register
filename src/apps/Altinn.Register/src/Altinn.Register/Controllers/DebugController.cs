@@ -4,13 +4,15 @@ using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Net.Http.Headers;
+using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Configuration;
+using Altinn.Register.Contracts;
 using Altinn.Register.Conventions;
 using Altinn.Register.PartyImport.A2;
+using Altinn.Register.PartyImport.Npr;
 using Asp.Versioning;
 using CommunityToolkit.Diagnostics;
-using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -40,6 +42,53 @@ public class DebugController
         IOptions<GeneralSettings> generalSettings)
     {
         _generalSettings = generalSettings;
+    }
+
+    /// <summary>
+    /// Temp test
+    /// </summary>
+    [HttpGet("test/{fnr=24886199623}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Test(
+        [FromServices] IHttpClientFactory httpClientFactory,
+        PersonIdentifier fnr,
+        CancellationToken cancellationToken = default)
+    {
+        using var client = httpClientFactory.CreateClient(nameof(NprClient));
+        var response = await client.GetAsync($"folkeregisteret/offentlig-med-hjemmel/api/v1/personer/{fnr}?part=navn&part=foedsel&part=bostedsadresse&part=doedsfall&part=status&part=oppholdsadresse&part=familierelasjon&part=postadresse&part=postadresseIUtlandet&part=vergemaalEllerFremtidsfullmakt&part=sivilstand&part=statsborgerskap&part=historikk&part=identifikasjonsnummer&part=deltBosted&part=adressebeskyttelse&part=utenlandskPersonidentifikasjon&part=foreldreansvar&part=innflytting&part=utflytting&part=foedselINorge&part=opphold&part=RettsligHandleevne&part=bibehold&part=brukAvSamiskSpraak", cancellationToken);
+
+        Response.StatusCode = (int)response.StatusCode;
+        HttpProxyResult.CopyHeaders(response.Headers, Response);
+        HttpProxyResult.CopyHeaders(response.Content.Headers, Response);
+        await response.Content.CopyToAsync(Response.Body, cancellationToken);
+
+        return new EmptyResult();
+    }
+
+    /// <summary>
+    /// Temp test
+    /// </summary>
+    [HttpGet("test2/{fnr=24886199623}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Test2(
+        PersonIdentifier fnr,
+        CancellationToken cancellationToken = default)
+    {
+        var client = HttpContext.RequestServices.GetRequiredService<NprClient>();
+        var response = await client.GetGuardianshipsForPerson(fnr, cancellationToken);
+        if (response.IsProblem)
+        {
+            return response.Problem.ToActionResult();
+        }
+
+        return Ok(new
+        {
+            Data = response.Value.Select(g => new
+            {
+                Guardian = g.Guardian,
+                Roles = g.Roles,
+            }),
+        });
     }
 
     /// <summary>
@@ -218,7 +267,7 @@ public class DebugController
             await response.Content.CopyToAsync(context.HttpContext.Response.Body, context.HttpContext.RequestAborted);
         }
 
-        private void CopyHeaders(HttpHeaders headers, HttpResponse response)
+        public static void CopyHeaders(HttpHeaders headers, HttpResponse response)
         {
             foreach (var (name, values) in headers)
             {
