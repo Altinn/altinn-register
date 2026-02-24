@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Core.Parties;
+namespace Altinn.Register.Core.Parties;
 
 /// <summary>
 /// Represents a party source.

@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Urn;
 using CommunityToolkit.Diagnostics;
@@ -173,6 +174,7 @@ public sealed partial class RegisterTestDataGenerator
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
+            Source = identifier.Value.ToString().StartsWith('0') ? OrganizationSource.BusinessAssessedPartnerships : OrganizationSource.CentralCoordinatingRegister,
             UnitStatus = unitStatus.HasValue ? unitStatus.Value : "N",
             UnitType = unitType.HasValue ? unitType.Value : "AS",
             TelephoneNumber = telephoneNumber.HasValue ? telephoneNumber.Value : null,
@@ -359,6 +361,7 @@ public sealed partial class RegisterTestDataGenerator
             User = user,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
+            Source = PersonSource.NationalPopulationRegister,
             FirstName = name.Value.FirstName,
             MiddleName = name.Value.MiddleName,
             LastName = name.Value.LastName,

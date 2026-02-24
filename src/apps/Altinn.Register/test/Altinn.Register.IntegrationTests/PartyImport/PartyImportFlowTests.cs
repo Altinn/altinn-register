@@ -1514,6 +1514,7 @@ public class PartyImportFlowTests
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
 
+            Source = PersonSource.NationalPopulationRegister,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",
@@ -1597,6 +1598,7 @@ public class PartyImportFlowTests
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
 
+            Source = PersonSource.NationalPopulationRegister,
             FirstName = "Test",
             MiddleName = "Mid",
             LastName = "Testson",

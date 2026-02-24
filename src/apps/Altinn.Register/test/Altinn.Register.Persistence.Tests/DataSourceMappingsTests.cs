@@ -55,6 +55,48 @@ public class DataSourceMappingsTests
     }
 
     [Theory]
+    [EnumMembersData<OrganizationSource>]
+    public async Task MapsOrganizationSource(OrganizationSource partySource)
+    {
+        var source = GetRequiredService<NpgsqlDataSource>();
+        await using var conn = await source.OpenConnectionAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = /*strpsql*/"SELECT @p::register.organization_source";
+
+        var param = cmd.Parameters.Add<OrganizationSource>("p");
+        param.TypedValue = partySource;
+
+        await cmd.PrepareAsync();
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        (await reader.ReadAsync()).Should().BeTrue();
+
+        var result = await reader.GetFieldValueAsync<OrganizationSource>(0);
+        result.Should().Be(partySource);
+    }
+
+    [Theory]
+    [EnumMembersData<PersonSource>]
+    public async Task MapsPersonSource(PersonSource partySource)
+    {
+        var source = GetRequiredService<NpgsqlDataSource>();
+        await using var conn = await source.OpenConnectionAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = /*strpsql*/"SELECT @p::register.person_source";
+
+        var param = cmd.Parameters.Add<PersonSource>("p");
+        param.TypedValue = partySource;
+
+        await cmd.PrepareAsync();
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        (await reader.ReadAsync()).Should().BeTrue();
+
+        var result = await reader.GetFieldValueAsync<PersonSource>(0);
+        result.Should().Be(partySource);
+    }
+
+    [Theory]
     [EnumMembersData<ExternalRoleSource>]
     public async Task MapsExternalRoleSource(ExternalRoleSource roleSource)
     {

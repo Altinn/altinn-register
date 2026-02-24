@@ -222,8 +222,7 @@ internal partial class PostgreSqlPartyPersistence
                 FROM register.upsert_user(
                     @uuid,
                     @user_ids,
-                    @set_username,
-                    @username)
+                    @set_username, @username)
                 """;
 
             await using var cmd = connection.CreateCommand(QUERY);
@@ -234,8 +233,7 @@ internal partial class PostgreSqlPartyPersistence
 
             cmd.Parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = partyUuid;
             cmd.Parameters.Add<int[]>("user_ids", NpgsqlDbType.Bigint | NpgsqlDbType.Array).TypedValue = userIds.Value;
-            cmd.Parameters.Add<bool>("set_username", NpgsqlDbType.Boolean).TypedValue = user.Username.IsSet;
-            cmd.Parameters.Add<string?>("username", NpgsqlDbType.Text).TypedValue = user.Username.Value;
+            cmd.Parameters.AddOptional("set_username", "username", NpgsqlDbType.Text, user.Username);
 
             await cmd.PrepareAsync(cancellationToken);
             await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow, cancellationToken);
@@ -271,8 +269,7 @@ internal partial class PostgreSqlPartyPersistence
                 FROM register.upsert_user_record(
                     @party_uuid,
                     @user_id,
-                    @set_username,
-                    @username,
+                    @set_username, @username,
                     @is_active)
                 """;
 
@@ -280,8 +277,7 @@ internal partial class PostgreSqlPartyPersistence
 
             cmd.Parameters.Add<Guid>("party_uuid", NpgsqlDbType.Uuid).TypedValue = partyUuid;
             cmd.Parameters.Add<long>("user_id", NpgsqlDbType.Bigint).TypedValue = checked((long)userId);
-            cmd.Parameters.Add<bool>("set_username", NpgsqlDbType.Boolean).TypedValue = username.IsSet;
-            cmd.Parameters.Add<string?>("username", NpgsqlDbType.Text).TypedValue = username.HasValue ? username.Value : null;
+            cmd.Parameters.AddOptional("set_username", "username", NpgsqlDbType.Text, username);
             cmd.Parameters.Add<bool>("is_active", NpgsqlDbType.Boolean).TypedValue = isActive;
 
             await cmd.PrepareAsync(cancellationToken);
@@ -306,20 +302,16 @@ internal partial class PostgreSqlPartyPersistence
                 @id,
                 @ext_urn,
                 @user_ids,
-                @set_username,
-                @username,
+                @set_username, @username,
                 @party_type,
                 @display_name,
                 @person_id,
                 @org_id,
                 @created_at,
                 @modified_at,
-                @set_is_deleted,
-                @is_deleted,
-                @set_deleted_at,
-                @deleted_at,
-                @set_owner,
-                @owner)
+                @set_is_deleted, @is_deleted,
+                @set_deleted_at, @deleted_at,
+                @set_owner, @owner)
             """;
 
         /// <summary>
@@ -411,20 +403,16 @@ internal partial class PostgreSqlPartyPersistence
                 parameters.Add<int?>("id", NpgsqlDbType.Bigint).TypedValue = party.PartyId.IsNull ? null : checked((int)party.PartyId.Value);
                 parameters.Add<string?>("ext_urn", NpgsqlDbType.Text).TypedValue = party.ExternalUrn.Value?.Urn;
                 parameters.Add<int[]?>("user_ids", NpgsqlDbType.Bigint | NpgsqlDbType.Array).TypedValue = userIds.OrDefault();
-                parameters.Add<bool>("set_username", NpgsqlDbType.Boolean).TypedValue = username.IsSet;
-                parameters.Add<string?>("username", NpgsqlDbType.Text).TypedValue = username.Value;
+                parameters.AddOptional("set_username", "username", NpgsqlDbType.Text, username);
                 parameters.Add<PartyRecordType>("party_type").TypedValue = party.PartyType.Value;
                 parameters.Add<string>("display_name", NpgsqlDbType.Text).TypedValue = party.DisplayName.Value;
                 parameters.Add<string>("person_id", NpgsqlDbType.Text).TypedValue = party.PersonIdentifier.IsNull ? null : party.PersonIdentifier.Value!.ToString();
                 parameters.Add<string>("org_id", NpgsqlDbType.Text).TypedValue = party.OrganizationIdentifier.IsNull ? null : party.OrganizationIdentifier.Value!.ToString();
                 parameters.Add<DateTimeOffset>("created_at", NpgsqlDbType.TimestampTz).TypedValue = party.CreatedAt.Value.ToUniversalTime();
                 parameters.Add<DateTimeOffset>("modified_at", NpgsqlDbType.TimestampTz).TypedValue = party.ModifiedAt.Value.ToUniversalTime();
-                parameters.Add<bool>("set_is_deleted", NpgsqlDbType.Boolean).TypedValue = party.IsDeleted.IsSet;
-                parameters.Add<bool?>("is_deleted", NpgsqlDbType.Boolean).TypedValue = party.IsDeleted.HasValue ? party.IsDeleted.Value : null;
-                parameters.Add<bool>("set_deleted_at", NpgsqlDbType.Boolean).TypedValue = party.DeletedAt.IsSet;
-                parameters.Add<DateTimeOffset?>("deleted_at", NpgsqlDbType.TimestampTz).TypedValue = party.DeletedAt.HasValue ? party.DeletedAt.Value.ToUniversalTime() : null;
-                parameters.Add<bool>("set_owner", NpgsqlDbType.Boolean).TypedValue = party.OwnerUuid.IsSet;
-                parameters.Add<Guid?>("owner", NpgsqlDbType.Uuid).TypedValue = party.OwnerUuid.HasValue ? party.OwnerUuid.Value : null;
+                parameters.AddOptional("set_is_deleted", "is_deleted", NpgsqlDbType.Boolean, party.IsDeleted);
+                parameters.AddOptional("set_deleted_at", "deleted_at", NpgsqlDbType.TimestampTz, party.DeletedAt.Select(static v => v.ToUniversalTime()));
+                parameters.AddOptional("set_owner", "owner", NpgsqlDbType.Uuid, party.OwnerUuid);
             }
 
             public abstract Task<T> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken);
@@ -449,20 +437,16 @@ internal partial class PostgreSqlPartyPersistence
                     @id,
                     @ext_urn,
                     @user_ids,
-                    @set_username,
-                    @username,
+                    @set_username, @username,
                     @party_type,
                     @display_name,
                     @person_id,
                     @org_id,
                     @created_at,
                     @modified_at,
-                    @set_is_deleted,
-                    @is_deleted,
-                    @set_deleted_at,
-                    @deleted_at,
-                    @set_owner,
-                    @owner,
+                    @set_is_deleted, @is_deleted,
+                    @set_deleted_at, @deleted_at,
+                    @set_owner, @owner,
                     @first_name,
                     @middle_name,
                     @last_name,
@@ -470,7 +454,8 @@ internal partial class PostgreSqlPartyPersistence
                     @date_of_birth,
                     @date_of_death,
                     @address,
-                    @mailing_address)
+                    @mailing_address,
+                    @set_source, @source)
                 """;
 
             protected override string GetQuery(PersonRecord party)
@@ -479,6 +464,7 @@ internal partial class PostgreSqlPartyPersistence
             protected override void ValidateFields(PersonRecord party)
             {
                 base.ValidateFields(party);
+                Debug.Assert(!party.Source.IsNull, "person cannot have source = null");
                 Debug.Assert(party.FirstName.HasValue, "person must have FirstName set");
                 Debug.Assert(party.MiddleName.IsSet, "person must have MiddleName set");
                 Debug.Assert(party.LastName.HasValue, "person must have LastName set");
@@ -501,6 +487,7 @@ internal partial class PostgreSqlPartyPersistence
                 parameters.Add<DateOnly?>("date_of_death").TypedValue = party.DateOfDeath.IsNull ? null : party.DateOfDeath.Value;
                 parameters.Add<StreetAddressRecord>("address").TypedValue = party.Address.Value;
                 parameters.Add<MailingAddressRecord>("mailing_address").TypedValue = party.MailingAddress.Value;
+                parameters.AddOptional("set_source", "source", party.Source);
             }
 
             public override async Task<PersonRecord> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken)
@@ -529,6 +516,7 @@ internal partial class PostgreSqlPartyPersistence
                     DateOfDeath = await reader.GetConditionalFieldValueAsync<DateOnly>("p_date_of_death", cancellationToken),
                     Address = await reader.GetConditionalFieldValueAsync<StreetAddressRecord>("p_address", cancellationToken),
                     MailingAddress = await reader.GetConditionalFieldValueAsync<MailingAddressRecord>("p_mailing_address", cancellationToken),
+                    Source = await reader.GetConditionalFieldValueAsync<PersonSource>("p_source", cancellationToken),
                 };
             }
         }
@@ -544,20 +532,16 @@ internal partial class PostgreSqlPartyPersistence
                     @id,
                     @ext_urn,
                     @user_ids,
-                    @set_username,
-                    @username,
+                    @set_username, @username,
                     @party_type,
                     @display_name,
                     @person_id,
                     @org_id,
                     @created_at,
                     @modified_at,
-                    @set_is_deleted,
-                    @is_deleted,
-                    @set_deleted_at,
-                    @deleted_at,
-                    @set_owner,
-                    @owner,
+                    @set_is_deleted, @is_deleted,
+                    @set_deleted_at, @deleted_at,
+                    @set_owner, @owner,
                     @unit_status,
                     @unit_type,
                     @telephone_number,
@@ -566,7 +550,8 @@ internal partial class PostgreSqlPartyPersistence
                     @email_address,
                     @internet_address,
                     @mailing_address,
-                    @business_address)
+                    @business_address,
+                    @set_source, @source)
                 """;
 
             protected override string GetQuery(OrganizationRecord party)
@@ -599,6 +584,7 @@ internal partial class PostgreSqlPartyPersistence
                 parameters.Add<string>("internet_address", NpgsqlDbType.Text).TypedValue = party.InternetAddress.Value;
                 parameters.Add<MailingAddressRecord>("mailing_address").TypedValue = party.MailingAddress.Value;
                 parameters.Add<MailingAddressRecord>("business_address").TypedValue = party.BusinessAddress.Value;
+                parameters.AddOptional("set_source", "source", party.Source);
             }
 
             public override async Task<OrganizationRecord> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken)
@@ -628,6 +614,7 @@ internal partial class PostgreSqlPartyPersistence
                     InternetAddress = await reader.GetConditionalFieldValueAsync<string>("p_internet_address", cancellationToken),
                     MailingAddress = await reader.GetConditionalFieldValueAsync<MailingAddressRecord>("p_mailing_address", cancellationToken),
                     BusinessAddress = await reader.GetConditionalFieldValueAsync<MailingAddressRecord>("p_business_address", cancellationToken),
+                    Source = await reader.GetConditionalFieldValueAsync<OrganizationSource>("p_source", cancellationToken),
 
                     ParentOrganizationUuid = FieldValue.Unset,
                 };
@@ -645,20 +632,16 @@ internal partial class PostgreSqlPartyPersistence
                     @id,
                     @ext_urn,
                     @user_ids,
-                    @set_username,
-                    @username,
+                    @set_username, @username,
                     @party_type,
                     @display_name,
                     @person_id,
                     @org_id,
                     @created_at,
                     @modified_at,
-                    @set_is_deleted,
-                    @is_deleted,
-                    @set_deleted_at,
-                    @deleted_at,
-                    @set_owner,
-                    @owner,
+                    @set_is_deleted, @is_deleted,
+                    @set_deleted_at, @deleted_at,
+                    @set_owner, @owner,
                     @self_identified_user_type,
                     @email)
                 """;
@@ -755,20 +738,16 @@ internal partial class PostgreSqlPartyPersistence
                     @id,
                     @ext_urn,
                     @user_ids,
-                    @set_username,
-                    @username,
+                    @set_username, @username,
                     @party_type,
                     @display_name,
                     @person_id,
                     @org_id,
                     @created_at,
                     @modified_at,
-                    @set_is_deleted,
-                    @is_deleted,
-                    @set_deleted_at,
-                    @deleted_at,
-                    @set_owner,
-                    @owner,
+                    @set_is_deleted, @is_deleted,
+                    @set_deleted_at, @deleted_at,
+                    @set_owner, @owner,
                     @system_user_type)
                 """;
 
