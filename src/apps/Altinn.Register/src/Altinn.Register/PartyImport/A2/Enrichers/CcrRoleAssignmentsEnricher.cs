@@ -76,7 +76,8 @@ internal sealed partial class CcrRoleAssignmentsEnricher
             });
         }
 
-        context.RoleAssignments.Add(ExternalRoleSource.CentralCoordinatingRegister, mapped);
+        // Note: For idempotency, this should not use Add, but rather overwrite any existing assignments from the same source
+        context.RoleAssignments[ExternalRoleSource.CentralCoordinatingRegister] = mapped;
     }
 
     private static partial class Log

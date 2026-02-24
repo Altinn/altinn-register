@@ -82,6 +82,7 @@ internal sealed class NprEnricher
             }
         }
 
-        context.RoleAssignments.Add(ExternalRoleSource.CivilRightsAuthority, mapped);
+        // Note: For idempotency, this should not use Add, but rather overwrite any existing assignments from the same source
+        context.RoleAssignments[ExternalRoleSource.CivilRightsAuthority] = mapped;
     }
 }
