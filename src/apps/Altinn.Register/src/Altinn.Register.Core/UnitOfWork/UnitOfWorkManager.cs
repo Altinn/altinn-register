@@ -1,4 +1,4 @@
-﻿using System.Buffers;
+using System.Buffers;
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -196,6 +196,11 @@ internal class UnitOfWorkManager
                 return unitOfWork.Handle;
             }
 
+            if (serviceType == typeof(IServiceProvider))
+            {
+                return unitOfWork.ServiceProvider;
+            }
+
             if (_services.TryGetValue(serviceType, out var activator))
             {
                 return activator(unitOfWork);
@@ -216,6 +221,11 @@ internal class UnitOfWorkManager
             if (serviceType == typeof(IUnitOfWorkHandle))
             {
                 return unitOfWork.Handle;
+            }
+
+            if (serviceType == typeof(IServiceProvider))
+            {
+                return unitOfWork.ServiceProvider;
             }
 
             if (_services.TryGetValue(serviceType, out var activator))
@@ -259,8 +269,7 @@ internal class UnitOfWorkManager
                 }
             }
 
-            services.AsSpan().Clear();
-            ArrayPool<object?>.Shared.Return(services);
+            ArrayPool<object?>.Shared.Return(services, clearArray: true);
         }
 
         private sealed class Handle
@@ -398,6 +407,28 @@ internal class UnitOfWorkManager
             }
         }
 
+        private sealed class UnitOfWorkServiceProvider
+            : IServiceProvider
+            , ISupportRequiredService
+        {
+            private readonly UnitOfWork _uow;
+            private readonly IServiceProvider _fallback;
+
+            public UnitOfWorkServiceProvider(UnitOfWork uow, IServiceProvider fallback)
+            {
+                _uow = uow;
+                _fallback = fallback;
+            }
+
+            /// <inheritdoc/>
+            public object? GetService(Type serviceType)
+                => _uow.GetService(serviceType, _fallback);
+
+            /// <inheritdoc/>
+            public object GetRequiredService(Type serviceType)
+                => _uow.GetRequiredService(serviceType, _fallback);
+        }
+
         private sealed class UnitOfWork
             : IUnitOfWork
         {
@@ -431,7 +462,7 @@ internal class UnitOfWorkManager
                 {
                     ref var serviceSlot = ref self._services[index];
 
-                    serviceSlot ??= factory.Create(self);
+                    serviceSlot ??= factory.Create(self.ServiceProvider);
 
                     return serviceSlot!;
                 };
@@ -439,7 +470,7 @@ internal class UnitOfWorkManager
 
             private readonly Handle _handle;
             private readonly Activity? _activity;
-            private readonly IServiceProvider _serviceProvider;
+            private readonly UnitOfWorkServiceProvider _serviceProvider;
             private readonly ImmutableArray<IUnitOfWorkParticipant> _participants;
             private readonly Impl _impl;
             private object?[] _services;
@@ -453,11 +484,11 @@ internal class UnitOfWorkManager
             {
                 _handle = handle;
                 _activity = activity;
-                _serviceProvider = serviceProvider;
                 _participants = participants;
                 _impl = impl;
 
                 _services = _impl.RentServices();
+                _serviceProvider = new UnitOfWorkServiceProvider(this, serviceProvider);
             }
 
             public Handle Handle
@@ -468,6 +499,9 @@ internal class UnitOfWorkManager
 
             public CancellationToken Token
                 => _handle.Token;
+
+            internal UnitOfWorkServiceProvider ServiceProvider
+                => _serviceProvider;
 
 #if DEBUG
             ~UnitOfWork()
@@ -503,19 +537,25 @@ internal class UnitOfWorkManager
                 }
             }
 
-            object? IServiceProvider.GetService(Type serviceType)
+            internal object? GetService(Type serviceType, IServiceProvider fallback)
             {
                 ((IUnitOfWorkHandle)_handle).ThrowIfCompleted();
 
-                return _impl.GetService(_serviceProvider, this, serviceType);
+                return _impl.GetService(fallback, this, serviceType);
             }
+
+            internal object GetRequiredService(Type serviceType, IServiceProvider fallback)
+            {
+                ((IUnitOfWorkHandle)_handle).ThrowIfCompleted();
+
+                return _impl.GetRequiredService(fallback, this, serviceType);
+            }
+
+            object? IServiceProvider.GetService(Type serviceType)
+                => _serviceProvider.GetService(serviceType);
 
             object ISupportRequiredService.GetRequiredService(Type serviceType)
-            {
-                ((IUnitOfWorkHandle)_handle).ThrowIfCompleted();
-
-                return _impl.GetRequiredService(_serviceProvider, this, serviceType);
-            }
+                => _serviceProvider.GetRequiredService(serviceType);
 
             public ValueTask CommitAsync(CancellationToken cancellationToken = default)
             {

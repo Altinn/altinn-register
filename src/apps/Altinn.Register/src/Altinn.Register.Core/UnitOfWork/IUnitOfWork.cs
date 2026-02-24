@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Diagnostics;
+using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Register.Core.UnitOfWork;
