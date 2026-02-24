@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Core.UnitOfWork;
+using Altinn.Register.Core.UnitOfWork;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -110,8 +110,8 @@ public static class UnitOfWorkServiceCollectionExtensions
         {
         }
 
-        public TService Create(IUnitOfWork unitOfWork)
-            => _factory(unitOfWork);
+        public TService Create(IServiceProvider services)
+            => _factory(services);
     }
 
     private sealed class UnitOfWorkServiceFactory<TService, TImplementation>
@@ -122,7 +122,7 @@ public static class UnitOfWorkServiceCollectionExtensions
         private static readonly ObjectFactory<TImplementation> _factory
             = ActivatorUtilities.CreateFactory<TImplementation>([]);
 
-        public TService Create(IUnitOfWork unitOfWork)
-            => _factory(unitOfWork, []);
+        public TService Create(IServiceProvider services)
+            => _factory(services, []);
     }
 }
