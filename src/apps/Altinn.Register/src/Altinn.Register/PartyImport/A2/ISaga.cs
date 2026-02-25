@@ -1,6 +1,5 @@
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Core.ImportJobs;
-using MassTransit;
 
 namespace Altinn.Register.PartyImport.A2;
 

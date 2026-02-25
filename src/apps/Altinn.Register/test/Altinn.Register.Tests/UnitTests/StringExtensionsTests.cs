@@ -1,7 +1,5 @@
 using Altinn.Register.Core;
 
-using Xunit;
-
 namespace Altinn.Register.Tests.UnitTests
 {
     public class StringExtensionsTests

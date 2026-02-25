@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using Altinn.Authorization.ServiceDefaults;
-using Altinn.Register.Core;
 using Altinn.Register.TestUtils.Http;
 using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.Configuration;

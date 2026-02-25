@@ -1,5 +1,3 @@
-using Xunit;
-
 namespace Altinn.Register.TestUtils;
 
 /// <summary>

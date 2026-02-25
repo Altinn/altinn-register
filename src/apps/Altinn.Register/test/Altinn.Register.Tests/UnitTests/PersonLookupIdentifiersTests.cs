@@ -1,11 +1,8 @@
 #nullable enable
 
-using System;
 using System.Text;
 
 using Altinn.Register.Models;
-
-using Xunit;
 
 namespace Altinn.Register.Tests.UnitTests
 {

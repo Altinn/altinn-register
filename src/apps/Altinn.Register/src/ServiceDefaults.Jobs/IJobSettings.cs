@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-
 namespace Altinn.Authorization.ServiceDefaults.Jobs;
 
 /// <summary>

@@ -10,7 +10,6 @@ using Altinn.Register.Conventions;
 using Altinn.Register.PartyImport.A2;
 using Asp.Versioning;
 using CommunityToolkit.Diagnostics;
-using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;

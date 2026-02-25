@@ -8,8 +8,6 @@ using Microsoft.Extensions.Options;
 
 using Moq;
 
-using Xunit;
-
 namespace Altinn.Register.Tests.UnitTests
 {
     public class PersonLookupCacheDecoratorTests

@@ -1,7 +1,5 @@
 #nullable enable
 
-using System;
-
 using Altinn.Common.AccessToken;
 using Altinn.Common.PEP.Authorization;
 

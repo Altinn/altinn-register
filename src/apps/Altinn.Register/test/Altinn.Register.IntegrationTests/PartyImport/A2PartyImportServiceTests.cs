@@ -1,9 +1,7 @@
 using System.Net;
-using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Core.Errors;
-using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.PartyImport.SystemUser;
 using Altinn.Register.TestUtils.Http;

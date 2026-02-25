@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ProblemDetails;
-using FluentAssertions;
 using FluentAssertions.Execution;
 
 namespace Altinn.Register.TestUtils.Assertions;

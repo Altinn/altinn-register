@@ -3,7 +3,6 @@
 using System.Collections.Immutable;
 using System.Text;
 using Altinn.Register.Contracts.V1;
-using Altinn.Register.Core.Parties;
 using Altinn.Register.Model.Extensions;
 
 using CommunityToolkit.Diagnostics;
