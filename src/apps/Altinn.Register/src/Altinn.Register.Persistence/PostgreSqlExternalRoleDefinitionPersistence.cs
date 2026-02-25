@@ -8,7 +8,7 @@ namespace Altinn.Register.Persistence;
 /// <summary>
 /// Persistence service for external role definitions.
 /// </summary>
-internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence 
+internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
     : IExternalRoleDefinitionPersistence
 {
     private readonly Cache _cache;

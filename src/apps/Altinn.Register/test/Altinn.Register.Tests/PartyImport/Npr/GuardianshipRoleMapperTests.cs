@@ -39,7 +39,7 @@ public partial class GuardianshipRoleMapperTests
         GuardianshipRoleMapper.TryFindRoleByNprValues("notExisting"u8, "noTask"u8, out _).Should().BeFalse();
     }
 
-    public static TheoryData<GuardianshipMetadata> Guardianships 
+    public static TheoryData<GuardianshipMetadata> Guardianships
         => GetGuardianshipRoles();
 
     private static partial TheoryData<GuardianshipMetadata> GetGuardianshipRoles();
@@ -54,7 +54,7 @@ public partial class GuardianshipRoleMapperTests
         private string _nprTask = null!;
 
         public required string Identifier
-        { 
+        {
             get => _identifier;
             init => _identifier = value;
         }

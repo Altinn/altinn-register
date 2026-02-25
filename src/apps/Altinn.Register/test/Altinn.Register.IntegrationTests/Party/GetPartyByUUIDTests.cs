@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;

@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Persistence.AsyncEnumerables;
+using Altinn.Register.Persistence.AsyncEnumerables;
 
 namespace Altinn.Register.Persistence.Tests;
 

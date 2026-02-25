@@ -19,7 +19,7 @@ public sealed class SagaState<T>
         SagaId = sagaId;
         Status = status;
         Data = data;
-        
+
         HashSet<Guid> msgs = [.. messages];
         Messages = msgs;
     }

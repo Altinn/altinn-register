@@ -51,7 +51,7 @@ public class A2PartyImportServiceTests
             var service = GetRequiredService<IA2PartyImportService>();
 
             var result = await GetUserParty(service, partyUuid);
-            
+
             result.IsProblem.ShouldBeTrue();
             result.Problem.ErrorCode.ShouldBe(Problems.PartyGone.ErrorCode);
         }
@@ -519,7 +519,7 @@ public class SystemUserImportServiceTests
         result.Count.ShouldBe(2);
         result[0].SequenceMax.ShouldBe(2UL);
         result[0].Count.ShouldBe(2);
-        
+
         var item1 = result[0][0];
         var item2 = result[0][1];
 

@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Core.ImportJobs;
+using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Persistence.ImportJobs;
 using Altinn.Register.TestUtils;
 
@@ -248,7 +248,7 @@ public class PostgresqlImportJobTrackerTests
             interval: TimeSpan.FromMilliseconds(2),
             stepSize: TimeSpan.FromMilliseconds(10));
 
-        Func<string, Task> clearCache 
+        Func<string, Task> clearCache
             = clearCacheBeforeEach
             ? id => _tracker!.ClearCache(id)
             : _ => Task.CompletedTask;

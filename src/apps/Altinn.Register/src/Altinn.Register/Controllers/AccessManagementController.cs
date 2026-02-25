@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Contracts;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Models;

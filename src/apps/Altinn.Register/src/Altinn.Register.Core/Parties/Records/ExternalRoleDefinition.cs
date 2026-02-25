@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Altinn.Register.Contracts;
 
 namespace Altinn.Register.Core.Parties.Records;
@@ -8,7 +8,7 @@ namespace Altinn.Register.Core.Parties.Records;
 /// </summary>
 [DebuggerDisplay("{Identifier,nq} ({Source,nq})")]
 public sealed record ExternalRoleDefinition
-{ 
+{
     /// <summary>
     /// Gets the source of the external role.
     /// </summary>

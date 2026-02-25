@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Persistence;
+namespace Altinn.Register.Persistence;
 
 /// <summary>
 /// Vacuum index cleanup options.

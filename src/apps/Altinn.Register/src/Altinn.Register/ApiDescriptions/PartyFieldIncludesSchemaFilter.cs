@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Core.Parties;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.ModelBinding;
 
 namespace Altinn.Register.ApiDescriptions;

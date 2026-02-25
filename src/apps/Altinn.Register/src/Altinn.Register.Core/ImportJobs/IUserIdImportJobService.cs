@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Core.Parties.Records;
+using Altinn.Register.Core.Parties.Records;
 
 namespace Altinn.Register.Core.ImportJobs;
 

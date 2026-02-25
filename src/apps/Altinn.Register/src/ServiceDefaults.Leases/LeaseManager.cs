@@ -50,12 +50,12 @@ public sealed class LeaseManager
     {
         StackTrace? source = null;
 
-        #if DEBUG
+#if DEBUG
         source = new StackTrace();
-        #endif
+#endif
 
         LeaseTicket? ticket = null;
-        
+
         try
         {
             var result = await _provider.TryAcquireLease(leaseId, OwnedLease.LeaseRenewalInterval, ifUnacquiredFor, cancellationToken);
@@ -67,7 +67,7 @@ public sealed class LeaseManager
 
             ticket = result.Lease;
             var lease = _factory(_services, [_provider, ticket, source, cancellationToken]);
-            
+
             ticket = null;
             return new Lease(lease.LeaseId, lease, expires: result.Expires, lastAcquiredAt: result.LastAcquiredAt, lastReleasedAt: result.LastReleasedAt);
         }

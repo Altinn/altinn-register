@@ -26,12 +26,12 @@ public sealed class TokenRequestException(string message, Exception? inner, Http
 
     private static string CreateMessage(
         MaskinPortenCacheKey key,
-        HttpStatusCode? statusCode, 
+        HttpStatusCode? statusCode,
         (string? Error, string? Description)? error)
     {
         var builder = new StringBuilder("Failed to get token from Maskinporten.");
         builder.Append($" ClientId: '{key.ClientId}'; Scope: '{key.Scope}';");
-        
+
         if (statusCode is not null)
         {
             builder.Append($" StatusCode: {(int)statusCode} '{statusCode}';");

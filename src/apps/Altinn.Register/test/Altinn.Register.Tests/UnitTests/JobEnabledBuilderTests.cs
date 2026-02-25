@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Register.Tests.Utils;

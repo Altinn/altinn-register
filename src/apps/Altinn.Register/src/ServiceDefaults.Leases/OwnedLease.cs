@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.Logging;
 

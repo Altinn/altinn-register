@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Register.Jobs;
 using CommunityToolkit.Diagnostics;

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
@@ -54,7 +54,7 @@ internal abstract partial class MassTransitTransportHelper
                     options.ConnectionName = BusName;
                 });
 
-            builder.Services.AddQuartz(q => 
+            builder.Services.AddQuartz(q =>
             {
                 q.SchedulerId = "AUTO"; // TODO: use instance ID from pod-name or similar
                 q.UsePersistentStore(s =>

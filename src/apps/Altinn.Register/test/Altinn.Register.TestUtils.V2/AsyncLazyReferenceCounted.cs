@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Diagnostics;
+using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.TestUtils;
 
@@ -116,7 +116,7 @@ public sealed class AsyncLazyReferenceCounted<T>
         private int _disposed = 0;
         private AsyncLazyReferenceCounted<T> _rc;
 
-        public T Value 
+        public T Value
         {
             get
             {

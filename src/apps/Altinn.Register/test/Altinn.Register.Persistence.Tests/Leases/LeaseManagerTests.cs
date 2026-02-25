@@ -25,7 +25,7 @@ public class LeaseManagerTests
     protected override async ValueTask ConfigureServices(IServiceCollection services)
     {
         await base.ConfigureServices(services);
-        
+
         services.AddLeaseManager();
     }
 

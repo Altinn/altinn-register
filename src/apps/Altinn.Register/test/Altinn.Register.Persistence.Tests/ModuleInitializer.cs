@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using Altinn.Authorization.ModelUtils.EnumUtils;
 using Altinn.Register.Core.Parties;
 

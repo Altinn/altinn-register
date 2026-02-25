@@ -1,4 +1,4 @@
-﻿namespace Altinn.Authorization.ServiceDefaults.Jobs;
+namespace Altinn.Authorization.ServiceDefaults.Jobs;
 
 /// <summary>
 /// A job that can be run on a schedule or on host lifecycle events.

@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Authorization.ServiceDefaults.MassTransit;
@@ -6,7 +6,7 @@ namespace Altinn.Authorization.ServiceDefaults.MassTransit;
 /// <summary>
 /// Builder for configuring mass transit.
 /// </summary>
-public interface IMassTransitBuilder 
+public interface IMassTransitBuilder
 {
     /// <summary>
     /// Gets the service collection.

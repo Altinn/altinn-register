@@ -116,7 +116,7 @@ public class ConfigureMaskinPortenClientFromConfigurationTests
     {
         public static IEqualityComparer<JsonWebKey> Instance { get; } = new JsonWebKeyComparer();
 
-        private JsonWebKeyComparer() 
+        private JsonWebKeyComparer()
         {
         }
 

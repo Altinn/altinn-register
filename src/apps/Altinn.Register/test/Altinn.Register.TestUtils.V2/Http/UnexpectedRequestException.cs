@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.TestUtils.Http;
+namespace Altinn.Register.TestUtils.Http;
 
 /// <summary>
 /// An exception that's thrown if an unexpected request is received.

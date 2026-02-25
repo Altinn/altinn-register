@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Clients.Interfaces;
+using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Models;
 using Altinn.Register.Services.Interfaces;
 

@@ -1,4 +1,4 @@
-﻿using System.Buffers;
+using System.Buffers;
 using Nerdbank.Streams;
 
 namespace Altinn.Register.TestUtils.Http;

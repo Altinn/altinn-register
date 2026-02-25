@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 
 namespace Altinn.Register.Tests.Utils;
 

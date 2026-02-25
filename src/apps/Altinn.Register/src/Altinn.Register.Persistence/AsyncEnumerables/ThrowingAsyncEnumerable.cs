@@ -1,4 +1,4 @@
-﻿using System.Runtime.ExceptionServices;
+using System.Runtime.ExceptionServices;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.Persistence.AsyncEnumerables;

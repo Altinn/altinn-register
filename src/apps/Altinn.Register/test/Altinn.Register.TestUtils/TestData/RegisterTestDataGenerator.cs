@@ -40,7 +40,7 @@ public sealed partial class RegisterTestDataGenerator
         CancellationToken cancellationToken)
     {
         return WithIdentifiers(
-            func, 
+            func,
             static (used, rng, fn) => fn(used, rng),
             cancellationToken);
     }
@@ -91,7 +91,7 @@ public sealed partial class RegisterTestDataGenerator
         bool isDNumber,
         CancellationToken cancellationToken = default)
         => WithIdentifiers(
-            (birthDate, isDNumber), 
+            (birthDate, isDNumber),
             static (used, rng, data) => used.GetNewPersonIdentifier(rng, data.birthDate, data.isDNumber),
             cancellationToken);
 
@@ -102,7 +102,7 @@ public sealed partial class RegisterTestDataGenerator
 
     public ValueTask<IReadOnlyList<uint>> GetNextUserIds(int count = 1, CancellationToken cancellationToken = default)
         => WithIdentifiers(
-            ValueTuple.Create(count), 
+            ValueTuple.Create(count),
             static (used, rng, data) => used.GetNextUserIds(data.Item1),
             cancellationToken);
 
@@ -423,7 +423,7 @@ public sealed partial class RegisterTestDataGenerator
     public ValueTask<ImmutableArray<PersonRecord>> GetPeopleData(int count, CancellationToken cancellationToken = default)
     {
         return WithIdentifiers(
-            (self: this, count), 
+            (self: this, count),
             static (used, rng, data) => data.self.GetPeopleData(used, data.count),
             cancellationToken);
     }
@@ -457,7 +457,7 @@ public sealed partial class RegisterTestDataGenerator
                 do
                 {
                     t = _random.Next<SelfIdentifiedUserType>();
-                } 
+                }
                 while (t == SelfIdentifiedUserType.IdPortenEmail);
 
                 type = t;

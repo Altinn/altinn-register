@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Core.Parties;
+namespace Altinn.Register.Core.Parties;
 
 /// <summary>
 /// A service for cleaning up party persistence storage.

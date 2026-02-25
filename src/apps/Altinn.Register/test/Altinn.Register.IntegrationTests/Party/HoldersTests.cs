@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Models;

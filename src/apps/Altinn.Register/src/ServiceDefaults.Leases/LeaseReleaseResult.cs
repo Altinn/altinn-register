@@ -1,4 +1,4 @@
-﻿namespace Altinn.Authorization.ServiceDefaults.Leases;
+namespace Altinn.Authorization.ServiceDefaults.Leases;
 
 /// <summary>
 /// The result of calling <see cref="ILeaseProvider.ReleaseLease(LeaseTicket, CancellationToken)"/>.

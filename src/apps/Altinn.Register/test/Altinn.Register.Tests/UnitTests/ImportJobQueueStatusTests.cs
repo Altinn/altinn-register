@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Core.ImportJobs;
+using Altinn.Register.Core.ImportJobs;
 
 namespace Altinn.Register.Tests.UnitTests;
 

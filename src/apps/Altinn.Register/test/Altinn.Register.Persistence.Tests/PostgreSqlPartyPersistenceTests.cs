@@ -2183,7 +2183,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var tx2Conn = uow2.GetRequiredService<NpgsqlConnection>();
 
         Assert.Equal(9223372036854775807UL, await GetVisible());
-        
+
         var val1 = await NextVal(tx1Conn);
         var val2 = await NextVal(tx2Conn);
         val1.Should().BeLessThan(val2);
@@ -2263,7 +2263,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         await NewTransaction();
         var userIds = await TestDataGenerator.GetNextUserIds();
-        var toUpdate = toInsert with 
+        var toUpdate = toInsert with
         {
             User = new PartyUserRecord(userId: userIds[0], username: FieldValue.Unset, userIds: userIds.ToImmutableValueArray()),
         };
@@ -2545,7 +2545,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         cmd.Parameters.Add<Guid>("partyId", NpgsqlTypes.NpgsqlDbType.Uuid).TypedValue = uuid;
 
         await using var reader = await cmd.ExecuteReaderAsync();
-        
+
         (await reader.ReadAsync()).Should().BeTrue();
         reader.GetInt64("user_id").Should().Be(10);
         reader.GetBoolean("is_active").Should().BeTrue();

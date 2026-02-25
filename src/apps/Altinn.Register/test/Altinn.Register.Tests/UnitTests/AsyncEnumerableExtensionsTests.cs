@@ -5,7 +5,7 @@ using Altinn.Register.Tests.Utils;
 
 namespace Altinn.Register.Tests.UnitTests;
 
-public class AsyncEnumerableExtensionsTests 
+public class AsyncEnumerableExtensionsTests
 {
     [Fact]
     public void Merge_Throws_IfNullSource()
@@ -131,7 +131,7 @@ public class AsyncEnumerableExtensionsTests
         Assert.Equal(10, result.Count);
     }
 
-    private sealed class CancellableEnumerable<T> 
+    private sealed class CancellableEnumerable<T>
         : IAsyncEnumerable<T>
     {
         private readonly CancellationToken _token;

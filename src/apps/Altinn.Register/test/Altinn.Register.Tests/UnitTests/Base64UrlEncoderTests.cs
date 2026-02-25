@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Buffers;
 using Altinn.Register.Utils;

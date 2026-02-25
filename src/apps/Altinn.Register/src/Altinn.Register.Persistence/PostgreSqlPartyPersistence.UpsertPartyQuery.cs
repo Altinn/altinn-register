@@ -96,7 +96,7 @@ internal partial class PostgreSqlPartyPersistence
                         await foreach (var result in ExecuteBatch(batch, cancellationToken))
                         {
                             yield return result;
-                            
+
                             if (result.IsProblem)
                             {
                                 yield break;
@@ -113,7 +113,7 @@ internal partial class PostgreSqlPartyPersistence
                     await foreach (var result in ExecuteBatch(batch, cancellationToken))
                     {
                         yield return result;
-                        
+
                         if (result.IsProblem)
                         {
                             yield break;

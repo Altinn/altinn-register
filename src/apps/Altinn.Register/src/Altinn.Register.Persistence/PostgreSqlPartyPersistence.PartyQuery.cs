@@ -275,7 +275,7 @@ internal partial class PostgreSqlPartyPersistence
             {
                 (party, hasMore) = await ReadParty(reader, cancellationToken);
                 yield return party;
-            } 
+            }
             while (hasMore);
         }
 
@@ -477,7 +477,7 @@ internal partial class PostgreSqlPartyPersistence
                     SelfIdentifiedUserType = selfIdentifiedUserType,
                     Email = email,
                 };
-    
+
                 return (party, hasMore);
             }
 

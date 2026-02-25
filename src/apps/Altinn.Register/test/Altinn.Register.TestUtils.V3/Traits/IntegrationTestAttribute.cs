@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.TestUtils.Traits;
+namespace Altinn.Register.TestUtils.Traits;
 
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly, AllowMultiple = true)]
 public sealed class IntegrationTestAttribute()

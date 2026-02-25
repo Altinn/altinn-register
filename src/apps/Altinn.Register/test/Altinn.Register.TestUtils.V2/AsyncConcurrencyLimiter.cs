@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.TestUtils;

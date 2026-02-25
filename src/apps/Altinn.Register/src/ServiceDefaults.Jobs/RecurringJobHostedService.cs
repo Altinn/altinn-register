@@ -640,7 +640,7 @@ internal sealed partial class RecurringJobHostedService
             {
                 pending ??= [];
                 pending.Add(WaitFor(ready, registration));
-                
+
                 continue;
             }
 
@@ -676,7 +676,7 @@ internal sealed partial class RecurringJobHostedService
     private sealed record JobRunResult
     {
         public static JobRunResult Disabled { get; } = new(Outcome.Disabled, exception: null);
-        
+
         public static JobRunResult Success(string name, TimeSpan duration)
             => new(Outcome.Success, exception: null) { Name = name, Duration = duration };
 
@@ -754,7 +754,7 @@ internal sealed partial class RecurringJobHostedService
             return new(this, _timeProvider, _logger, jobName);
         }
 
-        public void TrackAwake() 
+        public void TrackAwake()
         {
             lock (_lock)
             {

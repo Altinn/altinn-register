@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ModelUtils;
 
 namespace Altinn.Register.Contracts.Tests;

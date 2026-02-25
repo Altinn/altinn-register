@@ -15,7 +15,7 @@ namespace Altinn.Register.Services.Implementation;
 /// App implementation of the authorization service where the app uses the Altinn platform api.
 /// </summary>
 [ExcludeFromCodeCoverage]
-internal sealed partial class AuthorizationClient 
+internal sealed partial class AuthorizationClient
     : IAuthorizationClient
 {
     private static readonly JsonSerializerOptions _options = JsonSerializerOptions.Web;

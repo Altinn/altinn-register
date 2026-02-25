@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using Altinn.Register.Core.Utils;
 
@@ -16,7 +16,7 @@ public class ByteSizeTests
         var success = value.TryFormat(buffer, out var written, format: default, provider: null);
 
         actualString.Should().Be(expected);
-        
+
         success.Should().BeTrue();
         written.Should().Be(expected.Length);
         new string(buffer[..written]).Should().Be(expected);

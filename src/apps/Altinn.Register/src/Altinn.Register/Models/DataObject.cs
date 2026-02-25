@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Text.Json.Serialization;
 using Microsoft.OpenApi.Models;

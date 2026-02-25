@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 

@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Model.Extensions;
+namespace Altinn.Register.Model.Extensions;
 
 /// <summary>
 /// Extension methods for <see cref="Span{T}"/>.

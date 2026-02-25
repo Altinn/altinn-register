@@ -1,9 +1,9 @@
-﻿namespace Altinn.Register.Core.ImportJobs;
+namespace Altinn.Register.Core.ImportJobs;
 
 /// <summary>
 /// Status/progress tracker for import jobs.
 /// </summary>
-public interface IImportJobTracker 
+public interface IImportJobTracker
 {
     /// <summary>
     /// Gets queue status of the import job.

@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.TestUtils;

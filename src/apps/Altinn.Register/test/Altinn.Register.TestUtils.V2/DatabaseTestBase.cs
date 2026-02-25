@@ -1,4 +1,4 @@
-﻿using Altinn.Register.TestUtils.TestData;
+using Altinn.Register.TestUtils.TestData;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

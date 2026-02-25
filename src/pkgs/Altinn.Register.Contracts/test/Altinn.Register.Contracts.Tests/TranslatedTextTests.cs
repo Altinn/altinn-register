@@ -194,7 +194,7 @@ public class TranslatedTextTests
     public void Builder_Indexer_ThrowsOnMissingKey()
     {
         var builder = TranslatedText.CreateBuilder();
-        
+
         Assert.Throws<KeyNotFoundException>(() => builder[LangCode.En]);
     }
 

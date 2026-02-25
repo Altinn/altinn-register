@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ServiceDefaults.Jobs;
+using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Register.Core.ImportJobs;
 
 namespace Altinn.Register.Model.Extensions;

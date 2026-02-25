@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Contracts;
+namespace Altinn.Register.Contracts;
 
 /// <summary>
 /// Represents the assignment of an external role to a party.

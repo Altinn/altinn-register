@@ -1,4 +1,4 @@
-﻿namespace Altinn.Authorization.ServiceDefaults.Jobs;
+namespace Altinn.Authorization.ServiceDefaults.Jobs;
 
 /// <summary>
 /// Interface used to explicitly set the job name on a job type.

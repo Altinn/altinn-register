@@ -110,7 +110,7 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
 
             var state = stateTask.GetAwaiter().GetResult();
             return ValueTask.FromResult(func(state, arg));
-            
+
             async static ValueTask<TResult> AwaitStateAsync(ValueTask<State> stateTask, TState arg, Func<State, TState, TResult> func)
             {
                 var state = await stateTask;

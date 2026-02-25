@@ -101,10 +101,10 @@ public sealed class PostgreSqlManager
         }
 
         static async Task CreateRoles(
-            NpgsqlConnection connection, 
-            (string Name, string Pass) owner, 
-            (string Name, string Pass) migrator, 
-            (string Name, string Pass) seeder, 
+            NpgsqlConnection connection,
+            (string Name, string Pass) owner,
+            (string Name, string Pass) migrator,
+            (string Name, string Pass) seeder,
             (string Name, string Pass) app)
         {
             await using var batch = connection.CreateBatch();

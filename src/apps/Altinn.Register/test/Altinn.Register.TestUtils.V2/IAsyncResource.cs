@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.TestUtils;
+namespace Altinn.Register.TestUtils;
 
 /// <summary>
 /// Represents a resource that is created and destroyed asynchronously.

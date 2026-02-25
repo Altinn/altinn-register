@@ -15,7 +15,7 @@ internal sealed partial class CcrRoleAssignmentsEnricher
     : IA2PartyImportSagaEnrichmentStep
 {
     /// <inheritdoc/>
-    public static string StepName 
+    public static string StepName
         => "ccr-roles";
 
     /// <inheritdoc/>

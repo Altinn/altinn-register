@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Register.TestUtils;
 
@@ -17,7 +17,7 @@ public abstract class ServicesTestBase
     public IServiceProvider Services => _serviceScope!.Value.ServiceProvider;
 
     /// <inheritdoc cref="ServiceProviderServiceExtensions.GetRequiredService{T}(IServiceProvider)"/>
-    public T GetRequiredService<T>() 
+    public T GetRequiredService<T>()
         where T : notnull
         => Services.GetRequiredService<T>();
 

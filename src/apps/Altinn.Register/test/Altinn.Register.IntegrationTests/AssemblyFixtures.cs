@@ -1,4 +1,4 @@
-﻿using Altinn.Register.IntegrationTests.Fixtures;
+using Altinn.Register.IntegrationTests.Fixtures;
 using Altinn.Register.TestUtils.Database;
 using Altinn.Register.TestUtils.Traits;
 

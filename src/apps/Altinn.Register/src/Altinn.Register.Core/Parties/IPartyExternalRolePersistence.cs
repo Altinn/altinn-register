@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Parties.Records;

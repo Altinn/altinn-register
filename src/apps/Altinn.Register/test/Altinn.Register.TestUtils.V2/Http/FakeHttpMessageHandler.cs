@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Text;
 using CommunityToolkit.Diagnostics;
 using Xunit.Sdk;
@@ -100,7 +100,7 @@ public class FakeHttpMessageHandler
         lock (_lock)
         {
             _requests.Add(context);
-            
+
             if (_expectations.TryPeek(out var expectation))
             {
                 if (!expectation.CanHandle(context))

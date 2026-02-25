@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace Altinn.Register.TestUtils.Http.Filters;
 

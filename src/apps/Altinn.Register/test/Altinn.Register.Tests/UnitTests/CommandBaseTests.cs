@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using MassTransit;
 

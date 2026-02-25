@@ -327,7 +327,7 @@ public class PostgresServerFixture
                 return connectionString;
             }
 
-            var builder = new NpgsqlConnectionStringBuilder(_server._dataSource!.ConnectionString) 
+            var builder = new NpgsqlConnectionStringBuilder(_server._dataSource!.ConnectionString)
             {
                 Database = _databaseName,
                 Username = user.Name,

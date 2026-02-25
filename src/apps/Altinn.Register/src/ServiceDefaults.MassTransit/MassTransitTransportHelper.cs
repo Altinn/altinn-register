@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Diagnostics;
 using MassTransit;
 using Microsoft.Extensions.Diagnostics.HealthChecks;

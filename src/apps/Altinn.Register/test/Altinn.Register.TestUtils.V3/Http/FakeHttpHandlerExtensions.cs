@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.TestUtils.Http;
+using Altinn.Authorization.TestUtils.Http;
 
 namespace Altinn.Register.TestUtils.Http;
 

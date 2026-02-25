@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
@@ -192,7 +192,7 @@ internal class JsonElementEquivalencyStep
         public Type RuntimeType => throw new NotImplementedException();
 
         private JsonArrayObjectInfo()
-        { 
+        {
         }
     }
 }

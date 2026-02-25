@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -146,7 +146,7 @@ internal sealed class SpanTree
         }
 
         public DateTimeOffset Min { get; }
-        
+
         public DateTimeOffset Max { get; }
 
         public ImmutableArray<SpanItem>.Enumerator GetEnumerator()
@@ -215,7 +215,7 @@ internal sealed class SpanTree
                 .Where(static c =>
                 {
                     if (!c._duration.HasValue)
-                    { 
+                    {
                         return false;
                     }
 
@@ -252,7 +252,7 @@ internal sealed class SpanTree
 
             // tags
             var builder = ImmutableArray.CreateBuilder<KeyValuePair<string, string>>();
-            
+
             if (activity.GetTagItem("retry.count") is int retries)
             {
                 builder.Add(KeyValuePair.Create("retries", retries.ToString()));
@@ -262,7 +262,7 @@ internal sealed class SpanTree
             {
                 builder.Add(KeyValuePair.Create("job-name", jobName));
             }
-            
+
             _tags = builder.DrainToImmutable();
         }
     }

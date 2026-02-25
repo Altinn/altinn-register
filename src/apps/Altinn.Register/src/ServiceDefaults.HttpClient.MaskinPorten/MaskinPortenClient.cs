@@ -361,7 +361,7 @@ internal sealed partial class MaskinPortenClient
     {
         [LoggerMessage(1, LogLevel.Debug, "Fetch Maskinporten token for ClientId: '{clientId}', Scope: '{scope}', Resource: '{resource}', ConsumerOrg: '{consumerOrg}'.")]
         private static partial void FetchToken(ILogger logger, string clientId, string scope, string? resource, string? consumerOrg);
-        
+
         public static void FetchToken(ILogger logger, MaskinPortenCacheKey key)
             => FetchToken(logger, key.ClientId, key.Scope, key.Resource, key.ConsumerOrg);
 

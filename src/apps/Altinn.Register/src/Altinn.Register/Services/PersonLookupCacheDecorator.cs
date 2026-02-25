@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Altinn.Register.Contracts.V1;
 using Altinn.Register.Core;
 

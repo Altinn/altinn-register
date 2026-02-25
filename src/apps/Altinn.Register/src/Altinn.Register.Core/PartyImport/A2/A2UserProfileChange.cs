@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Core.PartyImport.A2;
+namespace Altinn.Register.Core.PartyImport.A2;
 
 /// <summary>
 /// Represents a change-event for a user profile in Altinn 2.

@@ -42,11 +42,11 @@ public static class AltinnNpgsqlAspireHostingExtensions
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
 
-        var passwordParameter = password?.Resource 
+        var passwordParameter = password?.Resource
             ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder.ApplicationBuilder, $"{databaseName}-password");
-        var ownerPasswordParameter = ownerPassword?.Resource 
+        var ownerPasswordParameter = ownerPassword?.Resource
             ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder.ApplicationBuilder, $"{databaseName}-owner-password");
-        var migratorPasswordParameter = migratorPassword?.Resource 
+        var migratorPasswordParameter = migratorPassword?.Resource
             ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder.ApplicationBuilder, $"{databaseName}-migrator-password");
         var seederPasswordParameter = seederPassword?.Resource
             ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder.ApplicationBuilder, $"{databaseName}-seeder-password");
@@ -77,8 +77,8 @@ public static class AltinnNpgsqlAspireHostingExtensions
     /// <param name="connectionName">An override of the source resource's name for the connection string.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<TDestination> WithReference<TDestination>(
-        this IResourceBuilder<TDestination> builder, 
-        IResourceBuilder<AltinnPostgresDatabaseResource> source, 
+        this IResourceBuilder<TDestination> builder,
+        IResourceBuilder<AltinnPostgresDatabaseResource> source,
         string? connectionName = null)
         where TDestination : IResourceWithEnvironment, IResourceWithWaitSupport
     {

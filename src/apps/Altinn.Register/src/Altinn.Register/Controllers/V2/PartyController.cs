@@ -33,11 +33,11 @@ namespace Altinn.Register.Controllers.V2;
 public class PartyController
     : ControllerBase
 {
-    private const PartyFieldIncludes REQUIRED_FIELDS = 
-          PartyFieldIncludes.PartyUuid 
-        | PartyFieldIncludes.PartyType 
-        | PartyFieldIncludes.PartyOrganizationIdentifier 
-        | PartyFieldIncludes.PartyPersonIdentifier 
+    private const PartyFieldIncludes REQUIRED_FIELDS =
+          PartyFieldIncludes.PartyUuid
+        | PartyFieldIncludes.PartyType
+        | PartyFieldIncludes.PartyOrganizationIdentifier
+        | PartyFieldIncludes.PartyPersonIdentifier
         | PartyFieldIncludes.PartyVersionId;
 
     /// <summary>
@@ -119,7 +119,7 @@ public class PartyController
         string? nextLink = null;
         if (parties.Count > 0)
         {
-            var routeValues = new RouteValueDictionary() 
+            var routeValues = new RouteValueDictionary()
             {
                 { "token", Opaque.Create(parties[^1].VersionId) },
                 { "fields", PartyFieldIncludesModelBinder.Format(fields) },
@@ -212,7 +212,7 @@ public class PartyController
     [HttpGet("{partyUuid:guid}/customers/ccr/regnskapsforer")]
     [ProducesResponseType<ListObject<Party>>(StatusCodes.Status200OK)]
     public Task<ActionResult<ListObject<Party>>> GetRegnskapsforerCustomers(
-        [FromRoute] Guid partyUuid, 
+        [FromRoute] Guid partyUuid,
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         CancellationToken cancellationToken = default)
         => GetCustomers(partyUuid, _regnskapsforerRole, fields, cancellationToken);
@@ -512,9 +512,9 @@ public class PartyController
         // TODO: rewrite this to give out which inputs matched which outputs
         // see https://github.com/Altinn/altinn-register/issues/659
         var statusCode = StatusCodes.Status200OK;
-        var anyMissing = ids.OrEmpty().Any(id => !result.Any(p => p.PartyId.Value == id)) 
-            || uuids.OrEmpty().Any(uuid => !result.Any(p => p.Uuid == uuid)) 
-            || orgIds.OrEmpty().Any(orgId => !result.Any(p => p is Organization o && o.OrganizationIdentifier == orgId)) 
+        var anyMissing = ids.OrEmpty().Any(id => !result.Any(p => p.PartyId.Value == id))
+            || uuids.OrEmpty().Any(uuid => !result.Any(p => p.Uuid == uuid))
+            || orgIds.OrEmpty().Any(orgId => !result.Any(p => p is Organization o && o.OrganizationIdentifier == orgId))
             || personIds.OrEmpty().Any(personId => !result.Any(p => p is Person pp && pp.PersonIdentifier == personId))
             || userIds.OrEmpty().Any(uid => !result.Any(p => p.User.HasValue && p.User.Value.UserIds.HasValue && p.User.Value.UserIds.Value.Contains(uid)))
             || usernames.OrEmpty().Any(username => !result.Any(p => p.User.HasValue && p.User.Value.Username.HasValue && string.Equals(p.User.Value.Username.Value, username, StringComparison.OrdinalIgnoreCase)));
@@ -524,7 +524,7 @@ public class PartyController
             statusCode = StatusCodes.Status206PartialContent;
         }
 
-        return StatusCode(statusCode,  ListObject.Create(result));
+        return StatusCode(statusCode, ListObject.Create(result));
     }
 
     private static ExternalRoleReference _hovedenhetRole = new(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet");

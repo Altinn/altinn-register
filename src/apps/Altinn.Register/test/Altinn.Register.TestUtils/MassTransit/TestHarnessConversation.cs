@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using MassTransit.Testing;
 
@@ -34,9 +34,9 @@ public sealed class TestHarnessConversation
         => new AsyncMessageList<EventBase, IPublishedMessage<EventBase>, IPublishedMessage>(
             _harness,
             (IReceivedMessage m) => m.Context.ConversationId == _conversationId,
-            _harness.Published, 
-            (IPublishedMessage m) => m.Context.ConversationId == _conversationId, 
-            static m => m.Context.Message, 
+            _harness.Published,
+            (IPublishedMessage m) => m.Context.ConversationId == _conversationId,
+            static m => m.Context.Message,
             _cancellationToken);
 
     /// <summary>
@@ -46,8 +46,8 @@ public sealed class TestHarnessConversation
         => new AsyncMessageList<CommandBase, IReceivedMessage<CommandBase>, IReceivedMessage>(
             _harness,
             (IReceivedMessage m) => m.Context.ConversationId == _conversationId,
-            _harness.Consumed, 
-            (IReceivedMessage m) => m.Context.ConversationId == _conversationId, 
-            static m => m.Context.Message, 
+            _harness.Consumed,
+            (IReceivedMessage m) => m.Context.ConversationId == _conversationId,
+            static m => m.Context.Message,
             _cancellationToken);
 }

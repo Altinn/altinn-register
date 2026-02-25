@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Persistence.Utils;
 using CommunityToolkit.Diagnostics;
@@ -123,7 +123,7 @@ internal sealed class SavePointManager
         public ValueTask DisposeAsync()
         {
             var state = Interlocked.Exchange(ref _state, STATE_DISPOSED);
-            
+
             if (state == STATE_LIVE)
             {
                 return new(_mgr.RollbackAsync(_info, CancellationToken.None));
@@ -141,7 +141,7 @@ internal sealed class SavePointManager
                 STATE_LIVE => _mgr.ReleaseAsync(_info, cancellationToken),
                 STATE_RELEASED => ThrowHelper.ThrowInvalidOperationException<Task>("Save point has already been released."),
                 STATE_ROLLED_BACK => ThrowHelper.ThrowInvalidOperationException<Task>("Save point has already been rolled back."),
-                
+
                 // STATE_DISPOSED:
                 _ => ThrowHelper.ThrowObjectDisposedException<Task>(nameof(SavePointHandle)),
             };
@@ -156,7 +156,7 @@ internal sealed class SavePointManager
                 STATE_LIVE => _mgr.RollbackAsync(_info, cancellationToken),
                 STATE_RELEASED => ThrowHelper.ThrowInvalidOperationException<Task>("Save point has already been released."),
                 STATE_ROLLED_BACK => ThrowHelper.ThrowInvalidOperationException<Task>("Save point has already been rolled back."),
-                
+
                 // STATE_DISPOSED:
                 _ => ThrowHelper.ThrowObjectDisposedException<Task>(nameof(SavePointHandle)),
             };

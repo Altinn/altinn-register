@@ -5,7 +5,7 @@ using Altinn.Register.Models;
 
 namespace Altinn.Register.Tests.UnitTests;
 
-public class PartyTypesSetTests 
+public class PartyTypesSetTests
 {
     [Fact]
     public void Contains_AllTypes()

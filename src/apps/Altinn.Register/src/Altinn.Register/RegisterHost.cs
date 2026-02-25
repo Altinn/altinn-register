@@ -314,7 +314,7 @@ internal static partial class RegisterHost
                         {
                             orig = $"Contracts.{groups[1].ValueSpan}.{orig}";
                         }
-                        else 
+                        else
                         {
                             orig = $"Contracts.{orig}";
                         }

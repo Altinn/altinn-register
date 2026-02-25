@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Buffers;
 using System.Buffers.Text;
@@ -97,7 +97,7 @@ internal sealed record SystemUserItem
         public bool IsUint(out uint value)
         {
             value = _uint;
-            
+
             return value > 0;
         }
 

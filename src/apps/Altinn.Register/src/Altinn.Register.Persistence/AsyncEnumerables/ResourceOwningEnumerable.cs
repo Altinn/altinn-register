@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Diagnostics;
+using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.Persistence.AsyncEnumerables;
 
@@ -37,7 +37,7 @@ internal class ResourceOwningEnumerable<T>
     public async IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
         await using var resources = _resources;
-        
+
         await foreach (var item in _source.WithCancellation(cancellationToken))
         {
             yield return item;

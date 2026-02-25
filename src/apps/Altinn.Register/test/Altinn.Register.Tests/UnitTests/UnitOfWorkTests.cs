@@ -43,7 +43,7 @@ public class UnitOfWorkTests
         : IServiceProvider
     {
         public static NullServices Instance { get; } = new();
-     
+
         public object? GetService(Type serviceType) => null;
     }
 }

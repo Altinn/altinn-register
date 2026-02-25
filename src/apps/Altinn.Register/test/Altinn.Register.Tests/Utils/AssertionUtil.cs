@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Altinn.Register.Contracts.V1;
 using Xunit;
 

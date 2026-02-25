@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Core.PartyImport.A2;
+namespace Altinn.Register.Core.PartyImport.A2;
 
 /// <summary>
 /// Represents a base class for changes in Altinn 2.

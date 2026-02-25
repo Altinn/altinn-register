@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Json;
 using Altinn.Register.Contracts;
 using Altinn.Register.Models;

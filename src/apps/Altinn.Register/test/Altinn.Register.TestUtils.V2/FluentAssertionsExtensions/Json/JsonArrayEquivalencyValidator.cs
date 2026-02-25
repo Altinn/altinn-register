@@ -1,4 +1,4 @@
-﻿using System.Buffers;
+using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -336,7 +336,7 @@ internal ref struct JsonArrayEquivalencyValidator
 
         public Type RuntimeType => typeof(Span<JsonElement>);
 
-        private JsonArrayObjectInfo() 
+        private JsonArrayObjectInfo()
         {
         }
     }

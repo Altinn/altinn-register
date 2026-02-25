@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text;
 
 namespace Altinn.Register.TestUtils.Tracing;

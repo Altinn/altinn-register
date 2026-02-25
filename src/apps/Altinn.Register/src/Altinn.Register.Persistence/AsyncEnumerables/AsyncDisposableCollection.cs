@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 
 namespace Altinn.Register.Persistence.AsyncEnumerables;
 
@@ -52,7 +52,7 @@ internal class AsyncDisposableCollection
     public ValueTask DisposeAsync()
     {
         var resources = Interlocked.Exchange(ref _resources, ImmutableQueue<IAsyncDisposable>.Empty);
-        
+
         return DisposeAsync(resources);
 
         static ValueTask DisposeAsync(ImmutableQueue<IAsyncDisposable> resources)
@@ -73,7 +73,7 @@ internal class AsyncDisposableCollection
         static async ValueTask AwaitAndDisposeAsync(ValueTask task, ImmutableQueue<IAsyncDisposable> resources)
         {
             await task;
-            
+
             while (!resources.IsEmpty)
             {
                 resources = resources.Dequeue(out var resource);

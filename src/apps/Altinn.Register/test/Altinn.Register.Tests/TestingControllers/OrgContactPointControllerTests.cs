@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using Altinn.Register.Models;
@@ -38,14 +38,14 @@ public class OrgContactPointControllerTests(WebApplicationFixture fixture)
 
         // Arrange
         _orgContactPointService.Setup(s => s.GetContactPoints(It.Is<OrgContactPointLookup>(o => o.OrganizationNumbers.Contains(orgNo)), It.IsAny<CancellationToken>())).ReturnsAsync(orgContactsPointList);
-        
+
         HttpClient client = CreateClient();
 
-        HttpRequestMessage httpRequestMessage = 
+        HttpRequestMessage httpRequestMessage =
             new HttpRequestMessage(HttpMethod.Post, "/register/api/v1/organizations/contactpoint/lookup")
-        {
-            Content = new StringContent(JsonSerializer.Serialize(orgContactPointLookup), Encoding.UTF8, "application/json")
-        };
+            {
+                Content = new StringContent(JsonSerializer.Serialize(orgContactPointLookup), Encoding.UTF8, "application/json")
+            };
 
         // Act
         HttpResponseMessage response = await client.SendAsync(httpRequestMessage);

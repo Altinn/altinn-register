@@ -226,7 +226,7 @@ public class DebugController
                 {
                     continue;
                 }
-                
+
                 foreach (var value in values)
                 {
                     response.Headers.Append(name, value);

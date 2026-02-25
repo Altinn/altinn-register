@@ -58,7 +58,7 @@ public class PostgresSagaStatePersistenceTests
         await Unit(async persistence =>
         {
             var state = await persistence.GetState<PersonState>(sagaId);
-            
+
             state.SagaId.Should().Be(sagaId);
             state.Status.Should().Be(SagaStatus.InProgress);
             state.Messages.Should().ContainSingle().Which.Should().Be(sagaId);

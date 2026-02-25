@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Models;
@@ -82,6 +82,6 @@ public class CustomersTests
     }
 
     public static TheoryData<string, string> CustomerRoleIdentifiers => new MatrixTheoryData<string, string>(
-        ["revisor", "regnskapsforer", "forretningsforer"], 
+        ["revisor", "regnskapsforer", "forretningsforer"],
         ["v1", "v2"]);
 }

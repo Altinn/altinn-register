@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using MassTransit.Testing;
 
@@ -80,7 +80,7 @@ internal sealed class AsyncMessageList<T, TOuter, TBase>
     private async IAsyncEnumerable<TOuter> GetOuterEnumeratorThrowOnFaults([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, cancellationToken);
-        
+
         var faults = _harness.Consumed.SelectAsync(m => m.Exception is not null && _faultFilter(m), cts.Token);
         var exnLock = new Lock();
         Exception? exn = null;

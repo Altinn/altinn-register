@@ -20,7 +20,7 @@ internal sealed class PostgresImportJobStatePersistence
     : IImportJobStatePersistence
 {
     private static readonly JsonSerializerOptions _options = JsonSerializerOptions.Web;
-    
+
     private static readonly JsonWriterOptions _writerOptions = new JsonWriterOptions
     {
         Encoder = _options.Encoder,
@@ -30,7 +30,7 @@ internal sealed class PostgresImportJobStatePersistence
         MaxDepth = _options.MaxDepth,
         NewLine = _options.NewLine,
     };
-    
+
     private static readonly JsonReaderOptions _readerOptions = new JsonReaderOptions
     {
         AllowTrailingCommas = _options.AllowTrailingCommas,
@@ -173,7 +173,7 @@ internal sealed class PostgresImportJobStatePersistence
 
         var type = await reader.GetFieldValueAsync<string>("state_type", cancellationToken);
         await using var stream = await reader.GetFieldValueAsync<Stream>("state_value", cancellationToken);
-        
+
         using var seq = new Sequence<byte>(arrayPool: ArrayPool<byte>.Shared);
         await stream.CopyToAsync(seq.AsStream(), cancellationToken);
 

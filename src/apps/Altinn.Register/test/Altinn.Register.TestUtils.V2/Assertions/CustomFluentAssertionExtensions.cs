@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Core.Utils;
 using Altinn.Register.TestUtils.Assertions;

@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Http.Resilience;
+using Microsoft.Extensions.Http.Resilience;
 
 namespace Altinn.Register.Utils;
 

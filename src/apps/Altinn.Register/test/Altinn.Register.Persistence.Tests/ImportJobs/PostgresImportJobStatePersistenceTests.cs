@@ -188,7 +188,7 @@ public class PostgresImportJobStatePersistenceTests
         : IImportJobState<IntState>
     {
         public static string StateType => nameof(IntState);
-        
+
         public required int Value { get; init; }
     }
 }

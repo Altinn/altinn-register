@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Contracts.V1;
+namespace Altinn.Register.Contracts.V1;
 
 /// <summary>
 /// Specifies the components that should be included when retrieving party's information.

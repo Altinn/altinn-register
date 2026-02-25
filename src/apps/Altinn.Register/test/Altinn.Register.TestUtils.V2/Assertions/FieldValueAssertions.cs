@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ModelUtils;
 using CommunityToolkit.Diagnostics;

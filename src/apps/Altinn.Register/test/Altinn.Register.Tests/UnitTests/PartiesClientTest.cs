@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -34,7 +34,7 @@ namespace Altinn.Register.Tests.UnitTests
             Guid partyUuid = new Guid("4c3b4909-eb17-45d5-bde1-256e065e196a");
             string cacheKey = $"PartyUUID:{partyUuid}";
             bool inCache = _memoryCache.TryGetValue(cacheKey, out Party fromCache);
-                
+
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
                 sblRequest = request;
@@ -65,7 +65,7 @@ namespace Altinn.Register.Tests.UnitTests
                 };
                 return await CreateHttpResponseMessage(party);
             });
-            
+
             var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partiesClientLogger.Object, _memoryCache);
 
             // Act
@@ -165,7 +165,7 @@ namespace Altinn.Register.Tests.UnitTests
             // Assert
             Assert.Null(actual);
             Assert.False(inCache);
-            
+
             Assert.NotNull(sblRequest);
             Assert.Equal(HttpMethod.Get, sblRequest.Method);
             Assert.EndsWith($"parties?partyuuid=4c3b4909-eb17-45d5-bde1-256e065e196a", sblRequest.RequestUri!.ToString());
@@ -206,7 +206,7 @@ namespace Altinn.Register.Tests.UnitTests
             // Arrange
             HttpRequestMessage sblRequest = null;
             List<Guid> partyUuids = new List<Guid> { new("4c3b4909-eb17-45d5-bde1-256e065e196a"), new("93630d41-ca61-4b5c-b8fb-3346b561f6ff"), new("e622554e-3de5-44cd-a822-c66024768013") };
-            
+
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
                 sblRequest = request;
@@ -264,7 +264,7 @@ namespace Altinn.Register.Tests.UnitTests
                         }
                     }
                 };
-                
+
                 return await CreateHttpResponseMessage(partyList);
             });
 
@@ -378,7 +378,7 @@ namespace Altinn.Register.Tests.UnitTests
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
                 sblRequest = request;
-                
+
                 return await CreateHttpErrorResponse(HttpStatusCode.NotFound);
             });
 
@@ -389,7 +389,7 @@ namespace Altinn.Register.Tests.UnitTests
 
             // Assert
             Assert.Empty(actual);
-            
+
             Assert.NotNull(sblRequest);
             Assert.Equal(HttpMethod.Post, sblRequest.Method);
             Assert.EndsWith($"parties/byuuid?fetchsubunits=false", sblRequest.RequestUri!.ToString().ToLower());
@@ -440,7 +440,7 @@ namespace Altinn.Register.Tests.UnitTests
                 }
 
                 Assert.Equivalent(ssnOrOrgNos, body);
-                return await CreateHttpResponseMessage(new List<Party> 
+                return await CreateHttpResponseMessage(new List<Party>
                 {
                     new Party
                     {

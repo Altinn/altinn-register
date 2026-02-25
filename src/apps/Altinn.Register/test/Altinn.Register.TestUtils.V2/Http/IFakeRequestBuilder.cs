@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.TestUtils.Http;
+namespace Altinn.Register.TestUtils.Http;
 
 /// <summary>
 /// Combination of <see cref="IFilterFakeRequest"/> and <see cref="ISetFakeRequestHandler"/>.

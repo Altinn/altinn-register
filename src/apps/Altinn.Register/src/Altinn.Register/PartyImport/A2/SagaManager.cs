@@ -104,7 +104,7 @@ public sealed class SagaManager
 
         var sagaContext = SagaContext<TState>.Create(context, _commandSender, state);
         await HandleMessage<TSaga, TMessage, TState>(uow, sagaContext, message, cancellationToken);
-        
+
         await persistence.SaveState(state, cancellationToken);
         await uow.CommitAsync(cancellationToken);
 
@@ -171,7 +171,7 @@ public sealed class SagaManager
         where TState : class, ISagaStateData<TState>
     {
         var state = context.State;
-        
+
         switch (state.Status)
         {
             case SagaStatus.Faulted:
@@ -180,7 +180,7 @@ public sealed class SagaManager
                     {
                         CorrelationId = state.SagaId,
                         Success = false,
-                    }, 
+                    },
                     cancellationToken);
                 break;
 

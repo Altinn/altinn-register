@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Core.ImportJobs;
+using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Microsoft.Extensions.DependencyInjection;
 

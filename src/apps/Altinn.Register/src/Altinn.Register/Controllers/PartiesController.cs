@@ -23,7 +23,7 @@ namespace Altinn.Register.Controllers;
 [ApiVersion(1.0)]
 [Authorize(Policy = "InternalOrPlatformAccess")]
 [Route("register/api/v{version:apiVersion}/parties")]
-public partial class PartiesController 
+public partial class PartiesController
     : ControllerBase
 {
     private readonly IV1PartyService _partyClient;

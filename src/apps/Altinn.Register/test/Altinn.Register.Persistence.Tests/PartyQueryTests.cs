@@ -6,7 +6,7 @@ using static Altinn.Register.Persistence.PostgreSqlPartyPersistence;
 
 namespace Altinn.Register.Persistence.Tests;
 
-public class PartyQueryTests 
+public class PartyQueryTests
 {
     private static FlagsEnumModel<PartyFieldIncludes> _includesModel = FlagsEnumModel.Create<PartyFieldIncludes>();
 
@@ -21,7 +21,7 @@ public class PartyQueryTests
 
         var includesString = _includesModel.Format(includes);
         var filterByString = filter.ToString();
-        
+
         var query = PartyQuery.Get(includes, filter);
 
         var queryString =

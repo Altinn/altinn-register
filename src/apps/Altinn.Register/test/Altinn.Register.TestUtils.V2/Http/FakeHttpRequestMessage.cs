@@ -1,4 +1,4 @@
-﻿using System.Buffers;
+using System.Buffers;
 using Microsoft.AspNetCore.Routing;
 using Nerdbank.Streams;
 
@@ -51,7 +51,7 @@ public class FakeHttpRequestMessage
         base.Content = content;
         Version = original.Version;
         VersionPolicy = original.VersionPolicy;
-        
+
         foreach (var h in original.Headers)
         {
             Headers.TryAddWithoutValidation(h.Key, h.Value);

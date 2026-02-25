@@ -103,7 +103,7 @@ public sealed class LangCode
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        static LangCode GetOrCreateCached(string code) 
+        static LangCode GetOrCreateCached(string code)
             => _codes.GetOrAdd(code, static c => new(c, Encoding.UTF8.GetBytes(c)));
     }
 

@@ -47,22 +47,22 @@ public abstract class BaseControllerTests
     async Task IAsyncLifetime.DisposeAsync()
     {
         await DisposeAsync();
-        if (_scope is { } scope) 
-        { 
+        if (_scope is { } scope)
+        {
             await scope.DisposeAsync();
         }
 
-        if (_services is IAsyncDisposable iad) 
-        { 
+        if (_services is IAsyncDisposable iad)
+        {
             await iad.DisposeAsync();
         }
-        else if (_services is IDisposable id) 
-        { 
-            id.Dispose(); 
+        else if (_services is IDisposable id)
+        {
+            id.Dispose();
         }
 
-        if (_webApp is { } webApp) 
-        { 
+        if (_webApp is { } webApp)
+        {
             await webApp.DisposeAsync();
         }
     }

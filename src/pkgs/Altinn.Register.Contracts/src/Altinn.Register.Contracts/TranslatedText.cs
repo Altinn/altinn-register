@@ -25,7 +25,7 @@ public sealed partial class TranslatedText
     /// Creates a new <see cref="Builder"/> instance.
     /// </summary>
     /// <returns>A new <see cref="Builder"/>.</returns>
-    public static Builder CreateBuilder() 
+    public static Builder CreateBuilder()
         => Builder.Create();
 
     // the three required languages
@@ -111,7 +111,7 @@ public sealed partial class TranslatedText
         yield return new KeyValuePair<LangCode, string>(LangCode.En, _en);
         yield return new KeyValuePair<LangCode, string>(LangCode.Nb, _nb);
         yield return new KeyValuePair<LangCode, string>(LangCode.Nn, _nn);
-        
+
         foreach (var kvp in _additional)
         {
             yield return kvp;
@@ -119,7 +119,7 @@ public sealed partial class TranslatedText
     }
 
     /// <inheritdoc/>
-    IEnumerator IEnumerable.GetEnumerator() 
+    IEnumerator IEnumerable.GetEnumerator()
         => ((IEnumerable<KeyValuePair<LangCode, string>>)this).GetEnumerator();
 
     /// <inheritdoc/>
@@ -155,7 +155,7 @@ public sealed partial class TranslatedText
                     return true;
                 }
             }
-            
+
             value = null;
             return false;
         }
