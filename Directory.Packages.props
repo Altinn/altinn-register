@@ -69,6 +69,7 @@
     <PackageVersion Include="Scrutor" Version="6.1.0" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
+    <PackageVersion Include="Roslynator.Formatting.Analyzers" Version="4.15.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore.Annotations" Version="9.0.6" />
     <PackageVersion Include="Swashbuckle.AspNetCore.Filters" Version="9.0.1" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="9.0.6" />

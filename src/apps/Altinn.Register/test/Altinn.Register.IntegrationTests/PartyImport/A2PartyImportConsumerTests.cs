@@ -240,8 +240,8 @@ public class A2PartyImportConsumerTests
         });
     }
 
-    public static TheoryData<PersonNameInput> PartyNameHandlingData =>
-    [
+    public static TheoryData<PersonNameInput> PartyNameHandlingData
+        => [
         new PersonNameInput()
         {
             Name = null,

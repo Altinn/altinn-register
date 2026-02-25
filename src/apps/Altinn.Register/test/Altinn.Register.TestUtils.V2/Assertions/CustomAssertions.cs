@@ -23,10 +23,10 @@ public abstract class CustomAssertions<T>(T subject)
     protected abstract string Identifier { get; }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) =>
-        throw new NotSupportedException("Equals is not part of Fluent Assertions. Did you mean Be() instead?");
+    public override bool Equals(object? obj)
+        => throw new NotSupportedException("Equals is not part of Fluent Assertions. Did you mean Be() instead?");
 
     /// <inheritdoc/>
-    public override int GetHashCode() =>
-        throw new NotSupportedException("GetHashCode is not part of Fluent Assertions.");
+    public override int GetHashCode()
+        => throw new NotSupportedException("GetHashCode is not part of Fluent Assertions.");
 }
