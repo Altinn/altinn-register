@@ -12,9 +12,10 @@ const LocalizedString = type({
 
 export type LocalizedString = typeof LocalizedString.infer;
 
-const HasIdentifier = type({
-  identifier: "string > 0",
-});
+const HasIdentifierOrIsExpired = type.or(
+  { identifier: "string > 0", expired: type("false").default(false) },
+  { expired: "true" },
+);
 
 const NprMapping = type({
   virksomhet: type(/^[a-z]+([A-Z][a-z]+)*$/),
@@ -25,37 +26,58 @@ const Mappings = type({
   npr: NprMapping,
 });
 
-const GuardianshipDefinition = type({
-  area: "string > 0",
-  task: "string > 0",
-  identifier: type(/^[a-z][a-z0-9]+(?:-[a-z0-9]+)*$/).and("string <= 64"),
-  title: LocalizedString,
-  description: LocalizedString,
-  mapping: Mappings,
-}).pipe((obj) => {
-  const areaIdentifier = toIdentifier(obj.area);
-  const taskIdentifier = toIdentifier(obj.task);
+const GuardianshipDefinition = type
+  .and(
+    type({
+      area: "string > 0",
+      task: "string > 0",
+      mapping: Mappings,
+    }),
+    type.or(
+      {
+        expired: "true",
+      },
+      {
+        expired: type("false").default(false),
+        identifier: type(/^[a-z][a-z0-9]+(?:-[a-z0-9]+)*$/).and("string <= 64"),
+        title: LocalizedString,
+        description: LocalizedString,
+      },
+    ),
+  )
+  .pipe((obj) => {
+    const areaIdentifier = toIdentifier(obj.area);
+    const taskIdentifier = toIdentifier(obj.task);
 
-  return {
-    ...obj,
-    codeIdentifiers: {
-      area: areaIdentifier,
-      task: taskIdentifier,
-    },
-  };
-});
+    return {
+      ...obj,
+      codeIdentifiers: {
+        area: areaIdentifier,
+        task: taskIdentifier,
+      },
+    };
+  });
 
 export type GuardianshipDefinition = typeof GuardianshipDefinition.infer;
+export type ExpiredGuardianshipDefinition = Extract<
+  GuardianshipDefinition,
+  { expired: true }
+>;
+export type CurrentGuardianshipDefinition = Extract<
+  GuardianshipDefinition,
+  { expired: false }
+>;
 
 const YamlSchema = type("string").pipe((text, ctx) => {
+  type YamlEntry = {
+    pos: { line: number };
+    result: ArkErrors | GuardianshipDefinition;
+  };
+
   const lineCounter = new YAML.LineCounter();
-  const identifiers = new Map<
-    string,
-    {
-      pos: { line: number };
-      result: ArkErrors | GuardianshipDefinition;
-    }[]
-  >();
+  const identifiers = new Map<string, YamlEntry[]>();
+  const expired: YamlEntry[] = [];
+
   for (const doc of YAML.parseAllDocuments(text, { lineCounter })) {
     if (doc.errors.length > 0) {
       for (const err of doc.errors) {
@@ -73,13 +95,22 @@ const YamlSchema = type("string").pipe((text, ctx) => {
     const linePos = lineCounter.linePos(doc.range[0]);
     const obj = doc.toJS();
     ctx.path.push(`Document starting at line ${linePos.line}`);
-    const identifierResult = HasIdentifier(obj);
+    const identifierResult = HasIdentifierOrIsExpired(obj);
     if (identifierResult instanceof type.errors) {
       ctx.errors.merge(identifierResult);
     }
     ctx.path.pop();
 
     if (identifierResult instanceof type.errors) {
+      continue;
+    }
+
+    if (identifierResult.expired) {
+      expired.push({
+        pos: linePos,
+        result: GuardianshipDefinition(obj),
+      });
+
       continue;
     }
 
@@ -110,6 +141,16 @@ const YamlSchema = type("string").pipe((text, ctx) => {
       } else {
         results.push(entry.result);
       }
+    }
+    ctx.path.pop();
+  }
+
+  for (const expiredEntry of expired) {
+    ctx.path.push(`Document starting at line ${expiredEntry.pos.line}`);
+    if (expiredEntry.result instanceof type.errors) {
+      ctx.errors.merge(expiredEntry.result);
+    } else {
+      results.push(expiredEntry.result);
     }
     ctx.path.pop();
   }

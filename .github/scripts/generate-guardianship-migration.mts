@@ -1,6 +1,6 @@
 import {
   getGuardianships,
-  type GuardianshipDefinition,
+  type CurrentGuardianshipDefinition,
   type LocalizedString,
 } from "./lib/guardianships.mts";
 
@@ -38,7 +38,7 @@ const indent = (lines: string[], indentation: string = "  "): string[] =>
 
 const suffixLast = (lines: string[], suffix: string = ","): string[] =>
   lines.map((line, index, array) =>
-    index === array.length - 1 ? `${line}${suffix}` : line
+    index === array.length - 1 ? `${line}${suffix}` : line,
   );
 
 const formatLocalizedString = (localized: LocalizedString) => {
@@ -46,14 +46,16 @@ const formatLocalizedString = (localized: LocalizedString) => {
     ([lang, value], index, array) => {
       const start = `${escapeLiteral(lang)}, ${escapeLiteral(value)}`;
       return index < array.length - 1 ? `${start},` : start;
-    }
+    },
   );
 
   return ["hstore(ARRAY[", ...indent(valueLines), "])"];
 };
 
 const sourceLine = `${escapeLiteral("cra")},`;
-const formatGuardianshipValues = (guardianship: GuardianshipDefinition) => {
+const formatGuardianshipValues = (
+  guardianship: CurrentGuardianshipDefinition,
+) => {
   const identifierLine = `${escapeLiteral(guardianship.identifier)},`;
   const nameLines = suffixLast(formatLocalizedString(guardianship.title));
   const descriptionLines = formatLocalizedString(guardianship.description);
@@ -61,7 +63,7 @@ const formatGuardianshipValues = (guardianship: GuardianshipDefinition) => {
   return [sourceLine, identifierLine, ...nameLines, ...descriptionLines];
 };
 
-const guardianships = await getGuardianships();
+const guardianships = (await getGuardianships()).filter((g) => !g.expired);
 if (guardianships.length === 0) {
   throw new Error("No guardianships found to generate migration for.");
 }

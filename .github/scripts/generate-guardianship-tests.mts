@@ -1,5 +1,7 @@
-import { getAreas, type GuardianshipArea } from "./lib/guardianships.mts";
-import { type TrieNode } from "./lib/trie.mts";
+import {
+  getAreas,
+  type CurrentGuardianshipDefinition,
+} from "./lib/guardianships.mts";
 
 const { map: areas } = await getAreas();
 
@@ -21,13 +23,31 @@ function* indent(
 
 function* guardianshipMetas(): Iterable<string> {
   for (const area of areas.values()) {
-    for (const task of area.tasks.values()) {
+    for (const task of area.tasks
+      .values()
+      .filter((task) => !task.guardianship.expired)) {
+      const guardianship = task.guardianship as CurrentGuardianshipDefinition;
+
       yield `new GuardianshipMetadata`;
       yield `{`;
-      yield ind(`Identifier = "${task.guardianship.identifier}",`);
+      yield ind(`Identifier = "${guardianship.identifier}",`);
       yield ind(
         `Role = GuardianshipRoles.${area.identifier}.${task.identifier},`,
       );
+      yield ind(`NprArea = "${area.mapping.npr}",`);
+      yield ind(`NprTask = "${task.mapping.npr}",`);
+      yield `},`;
+    }
+  }
+}
+
+function* expiredGuardianshipMetas(): Iterable<string> {
+  for (const area of areas.values()) {
+    for (const task of area.tasks
+      .values()
+      .filter((task) => task.guardianship.expired)) {
+      yield `new ExpiredGuardianshipMetadata`;
+      yield `{`;
       yield ind(`NprArea = "${area.mapping.npr}",`);
       yield ind(`NprTask = "${task.mapping.npr}",`);
       yield `},`;
@@ -54,6 +74,13 @@ const lines = [
     `{`,
     ind(`return new([`),
     ...indent(indent(guardianshipMetas())),
+    ind(`]);`),
+    `}`,
+    ``,
+    `private static partial TheoryData<ExpiredGuardianshipMetadata> GetExpiredGuardianshipRoles()`,
+    `{`,
+    ind(`return new([`),
+    ...indent(indent(expiredGuardianshipMetas())),
     ind(`]);`),
     `}`,
   ]),

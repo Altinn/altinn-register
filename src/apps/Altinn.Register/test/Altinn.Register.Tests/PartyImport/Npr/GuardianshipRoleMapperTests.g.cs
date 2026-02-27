@@ -222,7 +222,7 @@ public static partial class GuardianshipRoleMapperTests
                 Identifier = "skatteetaten-innkreving-tvangsfullbyrdelse",
                 Role = GuardianshipRoles.Skatteetaten.InnkrevingOgTvangsfullbyrdelse,
                 NprArea = "skatteetaten",
-                NprTask = "innkrevingTvangsfullbyrdelse",
+                NprTask = "innkrevingOgTvangsfullbyrdelse",
             },
             new GuardianshipMetadata
             {
@@ -307,6 +307,37 @@ public static partial class GuardianshipRoleMapperTests
                 Role = GuardianshipRoles.Øvrige.DisponereInntekterTilÅDekkeUtgifter,
                 NprArea = "oevrige",
                 NprTask = "disponereInntekterTilAaDekkeUtgifter",
+            },
+        ]);
+    }
+
+    private static partial TheoryData<ExpiredGuardianshipMetadata> GetExpiredGuardianshipRoles()
+    {
+        return new([
+            new ExpiredGuardianshipMetadata
+            {
+                NprArea = "bank",
+                NprTask = "selgeAksjerOgVerdipapirer",
+            },
+            new ExpiredGuardianshipMetadata
+            {
+                NprArea = "namsmannen",
+                NprTask = "tvangsfullbyrdelse",
+            },
+            new ExpiredGuardianshipMetadata
+            {
+                NprArea = "skatteetaten",
+                NprTask = "innkreving",
+            },
+            new ExpiredGuardianshipMetadata
+            {
+                NprArea = "oevrige",
+                NprTask = "avtalerOgRettigheter",
+            },
+            new ExpiredGuardianshipMetadata
+            {
+                NprArea = "statensInnkrevingssentral",
+                NprTask = "gjeldsordningOgBetalingsavtaler",
             },
         ]);
     }

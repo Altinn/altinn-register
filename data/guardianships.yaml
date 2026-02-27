@@ -506,7 +506,7 @@ description:
 mapping:
   npr:
     virksomhet: skatteetaten
-    oppgave: innkrevingTvangsfullbyrdelse
+    oppgave: innkrevingOgTvangsfullbyrdelse
 
 ---
 area: Skatteetaten
@@ -711,3 +711,52 @@ mapping:
   npr:
     virksomhet: oevrige
     oppgave: disponereInntekterTilAaDekkeUtgifter
+
+
+######################################################################################################################################
+# Expired guardianships
+######################################################################################################################################
+---
+area: Namsmannen
+task: Tvangsfullbyrdelse
+expired: true
+mapping:
+  npr:
+    virksomhet: namsmannen
+    oppgave: tvangsfullbyrdelse
+
+---
+area: Statens Innkrevingssentral
+task: Gjeldsordning og betalingsavtaler
+expired: true
+mapping:
+  npr:
+    virksomhet: statensInnkrevingssentral
+    oppgave: gjeldsordningOgBetalingsavtaler
+
+---
+area: Bank
+task: Selge aksjer og verdipapirer
+expired: true
+mapping:
+  npr:
+    virksomhet: bank
+    oppgave: selgeAksjerOgVerdipapirer
+
+---
+area: Øvrige
+task: Avtaler og rettigheter
+expired: true
+mapping:
+  npr:
+    virksomhet: oevrige
+    oppgave: avtalerOgRettigheter
+
+---
+area: Skatteetaten
+task: Innkreving
+expired: true
+mapping:
+  npr:
+    virksomhet: skatteetaten
+    oppgave: innkreving

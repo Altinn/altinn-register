@@ -316,7 +316,7 @@ internal sealed partial class NprClient
 
                     if (GuardianshipRoleMapper.TryFindRoleByNprValues(vergeTjenestevirksomhet, vergeTjenesteoppgave, out var role))
                     {
-                        return role.Identifier;
+                        return role?.Identifier;
                     }
 
                     // TODO: better exception type

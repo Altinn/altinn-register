@@ -1,6 +1,5 @@
 #nullable enable
 
-using System.Diagnostics.CodeAnalysis;
 using Altinn.Register.Contracts.ExternalRoles;
 
 namespace Altinn.Register.PartyImport.Npr;
@@ -12,10 +11,11 @@ internal partial class GuardianshipRoleMapper
     /// <param name="vergeTjenestevirksomhet">The NPR value for the guardianship area.</param>
     /// <param name="vergeTjenesteoppgave">The NPR value for the guardianship task.</param>
     /// <param name="role">The found role, if any.</param>
+    /// <remarks>If the role is expired, <see langword="null"/> is returned.</remarks>
     /// <returns><see langword="true"/> if a role was found; otherwise, <see langword="false"/>.</returns>
     public static bool TryFindRoleByNprValues(
         string vergeTjenestevirksomhet,
         string vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
         => TryFindRoleByNprValues(vergeTjenestevirksomhet.AsSpan(), vergeTjenesteoppgave.AsSpan(), out role);
 }

@@ -115,7 +115,7 @@ public class NprClientTests
                 RoleFor("kommune", "helseOgOmsorg"),
                 RoleFor("nav", "hjelpemidler"),
                 RoleFor("oevrige", "inngaaelseAvHusleiekontrakter"),
-                RoleFor("skatteetaten", "innkrevingTvangsfullbyrdelse"),
+                RoleFor("skatteetaten", "innkrevingOgTvangsfullbyrdelse"),
                 RoleFor("kartverket", "kjoepAvEiendom"),
                 RoleFor("oevrige", "kjoepLeieAvVarerOgTjenester"),
                 RoleFor("kredittvurderingsselskap", "kredittsperre"),
@@ -137,7 +137,7 @@ public class NprClientTests
 
         static string RoleFor(string vergeTjenestevirksomhet, string vergeTjenesteoppgave)
         {
-            if (!GuardianshipRoleMapper.TryFindRoleByNprValues(vergeTjenestevirksomhet, vergeTjenesteoppgave, out var role))
+            if (!GuardianshipRoleMapper.TryFindRoleByNprValues(vergeTjenestevirksomhet, vergeTjenesteoppgave, out var role) || role is null)
             {
                 throw new InvalidOperationException($"Role not found: vergeTjenestevirksomhet = '{vergeTjenestevirksomhet}', vergeTjenesteoppgave = '{vergeTjenesteoppgave}'");
             }
