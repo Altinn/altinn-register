@@ -4,8 +4,8 @@ WORKDIR /app
 # Copy everything and build
 COPY . .
 RUN cd ./src/apps/Altinn.Register/src/Altinn.Register \
-  && dotnet build Altinn.Register.csproj -c Release -o /app_output \
-  && dotnet publish Altinn.Register.csproj -c Release -o /app_output
+    && dotnet build Altinn.Register.csproj -c Release -o /app_output \
+    && dotnet publish Altinn.Register.csproj -c Release -o /app_output
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine@sha256:c60d76bf35b268f7bab7d5f4e5405c89dcc45616453004e89baea303677ca635 AS final
 EXPOSE 5020
