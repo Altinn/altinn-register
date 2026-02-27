@@ -11,6 +11,7 @@ public sealed partial class A2PartyImportConsumer
     : IConsumer<ImportA2PartyCommand>
     , IConsumer<ImportA2UserProfileCommand>
     , IConsumer<CompleteA2PartyImportSagaCommand>
+    , IConsumer<EnrichA2PartyImportSagaCommand>
     , IConsumer<RetryA2PartyImportSagaCommand>
 {
     private readonly SagaManager _manager;
@@ -34,6 +35,10 @@ public sealed partial class A2PartyImportConsumer
     /// <inheritdoc />
     public Task Consume(ConsumeContext<CompleteA2PartyImportSagaCommand> context)
         => _manager.HandleMessage<A2PartyImportSaga, CompleteA2PartyImportSagaCommand, A2PartyImportSaga.A2PartyImportSagaData>(context);
+
+    /// <inheritdoc />
+    public Task Consume(ConsumeContext<EnrichA2PartyImportSagaCommand> context)
+        => _manager.HandleMessage<A2PartyImportSaga, EnrichA2PartyImportSagaCommand, A2PartyImportSaga.A2PartyImportSagaData>(context);
 
     /// <inheritdoc />
     public Task Consume(ConsumeContext<RetryA2PartyImportSagaCommand> context)

@@ -21,13 +21,11 @@ public partial class A2PartyImportSaga
     {
         Debug.Assert(message.PartyUuid == State.PartyUuid);
 
-        var now = _timeProvider.GetUtcNow();
-
         if (await FetchParty(cancellationToken) == FlowControl.Break)
         {
             return;
         }
 
-        await Next(now, cancellationToken);
+        await Enrich(cancellationToken);
     }
 }

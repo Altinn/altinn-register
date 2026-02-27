@@ -54,7 +54,7 @@ public partial class A2PartyImportSaga
                     return;
                 }
 
-                ApplyProfile(profile, now);
+                State.Party = Enrichers.A2ProfileHelper.ApplyProfile(State.Party, profile, now);
                 break;
 
             case A2UserProfileType.EnterpriseUser:
@@ -66,7 +66,7 @@ public partial class A2PartyImportSaga
                 break;
         }
 
-        await Next(now, cancellationToken);
+        await Enrich(cancellationToken);
 
         static EnterpriseUserRecord MapEnterpriseProfile(A2ProfileRecord profile, DateTimeOffset now)
         {

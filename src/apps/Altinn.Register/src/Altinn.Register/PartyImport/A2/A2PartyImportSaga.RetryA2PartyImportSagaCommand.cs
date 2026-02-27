@@ -13,14 +13,12 @@ public partial class A2PartyImportSaga
             throw new InvalidOperationException("PartyUuid is not set");
         }
 
-        var now = _timeProvider.GetUtcNow();
-
         State.Clear();
         if (await FetchParty(cancellationToken) == FlowControl.Break)
         {
             return;
         }
 
-        await Next(now, cancellationToken);
+        await Enrich(cancellationToken);
     }
 }
