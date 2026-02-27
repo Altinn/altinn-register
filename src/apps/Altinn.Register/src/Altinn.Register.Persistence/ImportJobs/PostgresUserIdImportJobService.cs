@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties.Records;
@@ -67,7 +67,7 @@ internal partial class PostgresUserIdImportJobService
         cancellationToken = cts.Token;
 
         await using var cmd = _connection.CreateCommand(QUERY);
-        
+
         cmd.Parameters.Add<string>("jobId", NpgsqlDbType.Text).TypedValue = jobId;
         cmd.Parameters.Add<List<PartyRecordType>>("partyTypes").TypedValue = [.. partyTypes];
 
@@ -129,7 +129,7 @@ internal partial class PostgresUserIdImportJobService
 
         await cmd.PrepareAsync(cancellationToken);
         var deleted = await cmd.ExecuteNonQueryAsync(cancellationToken);
-        
+
         Log.ClearedJobStateForPartiesWithUserId(_logger, jobId, deleted);
     }
 

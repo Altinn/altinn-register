@@ -104,7 +104,7 @@ public class PostgresUserIdImportJobServiceTests
     public class GetPartiesWithoutUserIdAndJobStateTests
         : PostgresUserIdImportJobServiceTests
     {
-        private static readonly IReadOnlySet<PartyRecordType> _partyTypes = 
+        private static readonly IReadOnlySet<PartyRecordType> _partyTypes =
             new HashSet<PartyRecordType>
             {
                 PartyRecordType.Person,

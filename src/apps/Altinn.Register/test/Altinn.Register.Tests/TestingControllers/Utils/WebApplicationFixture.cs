@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using Altinn.Authorization.ServiceDefaults;
 using Microsoft.AspNetCore.Hosting;
@@ -45,7 +45,7 @@ public class WebApplicationFixture
         });
     }
 
-    private class WebApplicationFactory 
+    private class WebApplicationFactory
         : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -56,7 +56,7 @@ public class WebApplicationFixture
                     new("Altinn:IsTest", "true"),
                 ])
                 .Build();
-            
+
             builder.UseConfiguration(settings);
             builder.ConfigureLogging(builder => builder.ClearProviders());
 

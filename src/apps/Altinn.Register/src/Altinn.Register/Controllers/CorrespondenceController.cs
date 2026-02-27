@@ -64,7 +64,7 @@ public class CorrespondenceController(IUnitOfWorkManager uowManager, V2.PartyCon
             Debug.Assert(assignment.ToParty.HasValue);
             Debug.Assert(assignment.FromParty.HasValue && assignment.FromParty.Value == partyUuid);
 
-            var isCorrespondenceRole = assignment switch 
+            var isCorrespondenceRole = assignment switch
             {
                 { Source.Value: ExternalRoleSource.CentralCoordinatingRegister, Identifier.Value: { } identifier } when CorrespondenceRolesIdentifiers.Contains(identifier) => true,
                 _ => false,

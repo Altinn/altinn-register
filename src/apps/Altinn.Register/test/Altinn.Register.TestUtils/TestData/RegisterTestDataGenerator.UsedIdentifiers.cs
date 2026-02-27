@@ -293,7 +293,7 @@ public sealed partial class RegisterTestDataGenerator
                 do
                 {
                     newValue = generator(rng);
-                    
+
                     lock (_lock)
                     {
                         added = _set.Add(newValue);
@@ -307,10 +307,10 @@ public sealed partial class RegisterTestDataGenerator
             public T Gen<TData>(SharedDeterministicRandom rng, TData data, Func<SharedDeterministicRandom, TData, T> generator)
             {
                 Guard.IsNotNull(generator);
-                
+
                 T newValue;
                 bool added;
-                
+
                 do
                 {
                     newValue = generator(rng, data);

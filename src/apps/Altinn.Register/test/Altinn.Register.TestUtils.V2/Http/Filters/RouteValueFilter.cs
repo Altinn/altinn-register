@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.TestUtils.Http.Filters;
+namespace Altinn.Register.TestUtils.Http.Filters;
 
 internal sealed class RouteValueFilter
     : IFakeRequestFilter

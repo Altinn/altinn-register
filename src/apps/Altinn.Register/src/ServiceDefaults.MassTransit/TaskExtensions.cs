@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using MassTransit.Internals;
 
 namespace Altinn.Authorization.ServiceDefaults.MassTransit;

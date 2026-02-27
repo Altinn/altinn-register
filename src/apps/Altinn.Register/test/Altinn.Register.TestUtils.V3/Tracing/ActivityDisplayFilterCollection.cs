@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.TestUtils.Tracing;
+namespace Altinn.Register.TestUtils.Tracing;
 
 internal sealed class ActivityDisplayFilterCollection
 {

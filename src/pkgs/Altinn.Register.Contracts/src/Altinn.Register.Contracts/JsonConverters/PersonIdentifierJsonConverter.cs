@@ -5,7 +5,7 @@ namespace Altinn.Register.Contracts.JsonConverters;
 /// <summary>
 /// <see cref="JsonConverter"/> for <see cref="PersonIdentifier"/>.
 /// </summary>
-public sealed class PersonIdentifierJsonConverter 
+public sealed class PersonIdentifierJsonConverter
     : JsonConverter<PersonIdentifier>
 {
     /// <inheritdoc/>

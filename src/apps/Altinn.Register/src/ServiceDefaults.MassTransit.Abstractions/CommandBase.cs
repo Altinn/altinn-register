@@ -47,6 +47,6 @@ public abstract record CommandBase
     }
 
     /// <inheritdoc/>
-    Guid IMessageBase.MessageId 
+    Guid IMessageBase.MessageId
         => CommandId;
 }

@@ -36,7 +36,7 @@ public record ExternalRoleRef
             }
 
             _source = value;
-            
+
             if (IsFinalized)
             {
                 _urn = CreateUrn();

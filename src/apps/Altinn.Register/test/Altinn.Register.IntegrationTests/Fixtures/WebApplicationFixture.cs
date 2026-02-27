@@ -30,7 +30,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.ServiceDiscovery;
 using Microsoft.Extensions.Time.Testing;
 
 namespace Altinn.Register.IntegrationTests.Fixtures;

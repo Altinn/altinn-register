@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Numerics;
 using Altinn.Authorization.ModelUtils.EnumUtils;
 using CommunityToolkit.Diagnostics;

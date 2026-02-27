@@ -246,7 +246,7 @@ public class DataSourceMappingsTests
 
         public string? PostalCode { get; set; }
 
-        public MailingAddressRecord ToMailingAddress() 
+        public MailingAddressRecord ToMailingAddress()
             => new MailingAddressRecord
             {
                 Address = Address,

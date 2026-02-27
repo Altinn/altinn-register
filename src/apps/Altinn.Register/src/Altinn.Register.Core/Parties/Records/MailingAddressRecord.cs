@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Core.Parties.Records;
+namespace Altinn.Register.Core.Parties.Records;
 
 /// <summary>
 /// Represents a mailing address.

@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Register.Core;
 using CommunityToolkit.Diagnostics;

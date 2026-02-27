@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 
@@ -34,7 +34,7 @@ public class OrgContactPointControllerTests : IClassFixture<WebApplicationFactor
         });
 
         _webApplicationFactorySetup.SblBridgeHttpMessageHandler = messageHandler;
-        
+
         HttpClient client = _webApplicationFactorySetup.GetTestServerClient();
 
         OrgContactPointLookup orgContactPointLookup = new()
@@ -42,9 +42,9 @@ public class OrgContactPointControllerTests : IClassFixture<WebApplicationFactor
             OrganizationNumbers = ["980123456"]
         };
 
-        HttpRequestMessage testRequest = 
+        HttpRequestMessage testRequest =
             new HttpRequestMessage(HttpMethod.Post, "/register/api/v1/organizations/contactpoint/lookup")
-            { 
+            {
                 Content = new StringContent(JsonSerializer.Serialize(orgContactPointLookup), Encoding.UTF8, "application/json")
             };
 

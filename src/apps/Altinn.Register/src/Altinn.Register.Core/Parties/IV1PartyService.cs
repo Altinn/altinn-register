@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Contracts.V1;
+using Altinn.Register.Contracts.V1;
 using V1Models = Altinn.Register.Contracts.V1;
 
 namespace Altinn.Register.Core.Parties;

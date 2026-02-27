@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Reflection;
@@ -301,7 +301,7 @@ internal static class FakeRequestDelegateFactory
             public override async ValueTask Execute(HttpResponseMessage result, FakeRequestContext context, CancellationToken cancellationToken)
             {
                 await context.Response.SetContent(result.Content, cancellationToken);
-                
+
                 context.Response.StatusCode = result.StatusCode;
                 context.Response.ReasonPhrase = result.ReasonPhrase;
                 context.Response.Version = result.Version;

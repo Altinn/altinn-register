@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Core.Utils;
+using Altinn.Register.Core.Utils;
 using Altinn.Register.TestUtils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -13,7 +13,7 @@ public class PostgreSqlSizeServiceTests
     protected override ValueTask ConfigureServices(IServiceCollection services)
     {
         services.TryAddSingleton<PostgreSqlSizeService>();
-        
+
         return base.ConfigureServices(services);
     }
 

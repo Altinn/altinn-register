@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using Altinn.Register.Contracts.V1;
 using Altinn.Register.Core;
 using Altinn.Register.Services;
@@ -7,8 +7,6 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 
 using Moq;
-
-using Xunit;
 
 namespace Altinn.Register.Tests.UnitTests
 {

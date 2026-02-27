@@ -1,5 +1,3 @@
-﻿using Xunit;
-
 namespace Altinn.Register.TestUtils;
 
 /// <summary>
@@ -19,7 +17,7 @@ public abstract class AsyncTestBase
         => InitializeAsync().AsTask();
 
     /// <inheritdoc cref="IAsyncDisposable.DisposeAsync()"/>
-    protected virtual ValueTask DisposeAsync() 
+    protected virtual ValueTask DisposeAsync()
         => ValueTask.CompletedTask;
 
     /// <inheritdoc cref="IAsyncLifetime.InitializeAsync()"/>

@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Core.PartyImport.A2;
+namespace Altinn.Register.Core.PartyImport.A2;
 
 /// <summary>
 /// Represents the type of a user profile in Altinn 2.

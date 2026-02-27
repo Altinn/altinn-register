@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Contracts;
+namespace Altinn.Register.Contracts;
 
 /// <summary>
 /// Represents a street address.

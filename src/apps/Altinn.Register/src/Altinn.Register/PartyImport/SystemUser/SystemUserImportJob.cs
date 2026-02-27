@@ -199,7 +199,7 @@ internal sealed partial class SystemUserImportJob
         await _sender.Send(failedSystemUserCmd, cancellationToken);
     }
 
-    private record State 
+    private record State
         : IImportJobState<State>
     {
         public static string StateType => $"{JobName}:state@1";

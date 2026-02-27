@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Altinn.Register.AppHost;
 
@@ -14,7 +14,7 @@ internal static class ResourceExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The builder.</param>
     /// <returns><paramref name="builder"/>.</returns>
-    public static IResourceBuilder<T> WithPublicEndpoints<T>(this IResourceBuilder<T> builder) 
+    public static IResourceBuilder<T> WithPublicEndpoints<T>(this IResourceBuilder<T> builder)
         where T : IResourceWithEndpoints
     {
         if (builder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out var endpoints))

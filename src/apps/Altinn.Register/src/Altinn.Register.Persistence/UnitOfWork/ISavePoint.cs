@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Persistence.UnitOfWork;
+namespace Altinn.Register.Persistence.UnitOfWork;
 
 /// <summary>
 /// Represents a save point in a transaction.

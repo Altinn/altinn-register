@@ -73,7 +73,7 @@ internal partial class PostgreSqlPartyPersistence
             var param = config.DbType.HasValue
                 ? cmd.Parameters.Add<T>(config.Name, config.DbType.Value)
                 : cmd.Parameters.Add<T>(config.Name);
-            
+
             param.TypedValue = value;
 
             return param;
@@ -99,7 +99,7 @@ internal partial class PostgreSqlPartyPersistence
         {
             public static PartyRoleQuery Create(PartyExternalRoleAssignmentFieldIncludes includes, PartyRoleFilters filterBy)
             {
-                if (includes == PartyExternalRoleAssignmentFieldIncludes.None) 
+                if (includes == PartyExternalRoleAssignmentFieldIncludes.None)
                 {
                     ThrowHelper.ThrowArgumentException(nameof(includes), "No fields specified");
                 }
@@ -268,7 +268,7 @@ internal partial class PostgreSqlPartyPersistence
             sbyte roleIdentifier,
             sbyte roleFromParty,
             sbyte roleToParty,
-            
+
             // register.external_role_definition
             sbyte roleDefinitionName,
             sbyte roleDefinitionDescription)

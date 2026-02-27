@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ModelUtils.EnumUtils;
+using Altinn.Authorization.ModelUtils.EnumUtils;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 

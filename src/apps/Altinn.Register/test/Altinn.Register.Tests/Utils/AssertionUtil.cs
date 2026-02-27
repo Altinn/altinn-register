@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
 using Altinn.Register.Contracts.V1;
-using Xunit;
 
 namespace Altinn.Register.Tests.Utils
 {

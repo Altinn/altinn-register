@@ -80,7 +80,7 @@ public static class RegisterPersistenceExtensions
     public static IHostApplicationBuilder AddPartyPersistence(this IHostApplicationBuilder builder)
     {
         AddDatabase(builder);
-        
+
         builder.Services.AddUnitOfWorkParticipant<NpgsqlUnitOfWorkParticipant.Factory>();
         builder.Services.AddUnitOfWorkService<PostgreSqlPartyPersistence>();
         builder.Services.AddUnitOfWorkService<IPartyPersistence>(static s => s.GetRequiredService<PostgreSqlPartyPersistence>());
@@ -251,7 +251,7 @@ public static class RegisterPersistenceExtensions
             _ => null,
         }));
 
-        builder.MapComposite<ArgUpsertExternalRoleAssignment>("register.arg_upsert_external_role_assignment", new CompositeNameTranslator<ArgUpsertExternalRoleAssignment>(static member => member.Name switch 
+        builder.MapComposite<ArgUpsertExternalRoleAssignment>("register.arg_upsert_external_role_assignment", new CompositeNameTranslator<ArgUpsertExternalRoleAssignment>(static member => member.Name switch
         {
             nameof(ArgUpsertExternalRoleAssignment.ToParty) => "to_party",
             nameof(ArgUpsertExternalRoleAssignment.Identifier) => "identifier",

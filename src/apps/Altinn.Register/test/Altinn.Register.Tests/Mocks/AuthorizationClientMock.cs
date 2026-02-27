@@ -1,9 +1,9 @@
-﻿using Altinn.Authorization.ProblemDetails;
+using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Services.Interfaces;
 
 namespace Altinn.Register.Tests.Mocks;
 
-public class AuthorizationClientMock 
+public class AuthorizationClientMock
     : IAuthorizationClient
 {
     public Task<Result<bool>> ValidateSelectedParty(int userId, int partyId, CancellationToken cancellationToken)

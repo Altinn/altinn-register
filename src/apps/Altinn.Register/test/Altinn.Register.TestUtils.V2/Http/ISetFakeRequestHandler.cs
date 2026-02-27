@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.TestUtils.Http;
+namespace Altinn.Register.TestUtils.Http;
 
 /// <summary>
 /// Interface used to set a delegate that handles requests for this <see cref="IFakeRequestHandler"/>.

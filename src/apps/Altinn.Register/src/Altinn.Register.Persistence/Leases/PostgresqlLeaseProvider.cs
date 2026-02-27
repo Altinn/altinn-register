@@ -35,7 +35,7 @@ internal partial class PostgresqlLeaseProvider
     /// Initializes a new instance of the <see cref="PostgresqlLeaseProvider"/> class.
     /// </summary>
     public PostgresqlLeaseProvider(
-        NpgsqlDataSource dataSource, 
+        NpgsqlDataSource dataSource,
         TimeProvider timeProvider,
         ILogger<PostgresqlLeaseProvider> logger)
     {
@@ -282,7 +282,7 @@ internal partial class PostgresqlLeaseProvider
             }
         }
 
-        private AcquireResult(string id) 
+        private AcquireResult(string id)
         {
             Id = id;
         }
@@ -304,7 +304,7 @@ internal partial class PostgresqlLeaseProvider
             public override LeaseAcquireResult ToLeaseAcquireResult()
                 => LeaseAcquireResult.Failed(DateTimeOffset.MinValue, Acquired, Released);
         }
-        
+
         public sealed record LeaseUnavailable(string Id, DateTimeOffset Acquired, DateTimeOffset Expires)
             : AcquireResult(Id)
         {
@@ -482,7 +482,7 @@ internal partial class PostgresqlLeaseProvider
 
         [LoggerMessage(6, LogLevel.Debug, "Lease {LeaseId} acquire result: {Result}")]
         private static partial void LeaseAcquireResult(ILogger logger, string leaseId, AcquireResult result);
-        
+
         public static void LeaseAcquireResult(ILogger logger, AcquireResult result) => LeaseAcquireResult(logger, result.Id, result);
 
         [LoggerMessage(7, LogLevel.Debug, "Lease {LeaseId} renew result: {Result}")]

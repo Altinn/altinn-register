@@ -360,7 +360,7 @@ public class RecurringJobHostedServiceTests
         var counter = new AtomicCounter();
 
         await using var sut = CreateService(
-            [Counter.RunAt(lifecycle, counter)], 
+            [Counter.RunAt(lifecycle, counter)],
             [condition]);
 
         await Run(sut);
@@ -567,7 +567,7 @@ public class RecurringJobHostedServiceTests
         var checksRan = new AtomicCounter();
 
         await using var sut = CreateService([
-            Counter.Scheduled(TimeSpan.FromHours(1), counter, enabled: (_, _) => 
+            Counter.Scheduled(TimeSpan.FromHours(1), counter, enabled: (_, _) =>
             {
                 checksRan.Increment();
                 return ValueTask.FromResult(JobShouldRunResult.Conditional(nameof(enabled), enabled.Value));
@@ -614,7 +614,7 @@ public class RecurringJobHostedServiceTests
                     
                     // this job took 10 minutes
                     timeProvider.Advance(TimeSpan.FromMinutes(10));
-                    
+
                     return Task.CompletedTask;
                 },
                 services => ValueTask.FromResult(true)),

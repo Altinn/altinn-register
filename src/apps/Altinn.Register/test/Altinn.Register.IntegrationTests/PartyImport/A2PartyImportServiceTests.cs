@@ -1,9 +1,7 @@
 using System.Net;
-using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Core.Errors;
-using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.PartyImport.SystemUser;
 using Altinn.Register.TestUtils.Http;
@@ -51,7 +49,7 @@ public class A2PartyImportServiceTests
             var service = GetRequiredService<IA2PartyImportService>();
 
             var result = await GetUserParty(service, partyUuid);
-            
+
             result.IsProblem.ShouldBeTrue();
             result.Problem.ErrorCode.ShouldBe(Problems.PartyGone.ErrorCode);
         }
@@ -519,7 +517,7 @@ public class SystemUserImportServiceTests
         result.Count.ShouldBe(2);
         result[0].SequenceMax.ShouldBe(2UL);
         result[0].Count.ShouldBe(2);
-        
+
         var item1 = result[0][0];
         var item2 = result[0][1];
 

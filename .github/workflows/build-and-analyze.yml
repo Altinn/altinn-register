@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 jobs:
   check-slns:
-    name: Check sln files
+    name: Check sln files & formatting
     if: ((github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false) || github.event_name == 'push') && github.repository_owner == 'Altinn' && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
@@ -19,6 +19,7 @@ jobs:
           dotnet-version: |
             8.0.x
             9.0.x
+            10.0.x
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -31,6 +32,9 @@ jobs:
             - cwd: .github/scripts
               args: [--frozen-lockfile]
             - args: [--global, tsx]
+
+      - name: Check formatting
+        run: dotnet format --verify-no-changes
 
       - name: Update all sln files
         run: tsx ./.github/scripts/update-sln-files.mts

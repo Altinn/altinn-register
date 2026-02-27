@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Core.UnitOfWork;
+namespace Altinn.Register.Core.UnitOfWork;
 
 /// <summary>
 /// A service that forms a part of a unit of work.

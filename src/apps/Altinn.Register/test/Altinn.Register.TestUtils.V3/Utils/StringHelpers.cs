@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -101,10 +101,10 @@ public static partial class StringHelpers
 
         return toString; // ToString() may return null.
 
-        static string ToStringEnum(Enum value) =>
-            value.GetType().Name + "." + value;
+        static string ToStringEnum(Enum value)
+            => value.GetType().Name + "." + value;
 
-        static string ToStringDateTime(DateTime value) =>
-            value.ToString("o");
+        static string ToStringDateTime(DateTime value)
+            => value.ToString("o");
     }
 }

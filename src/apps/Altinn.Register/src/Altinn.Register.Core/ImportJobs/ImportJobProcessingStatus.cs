@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Core.ImportJobs;
+namespace Altinn.Register.Core.ImportJobs;
 
 /// <summary>
 /// Import job processing status, consisting of the highest processed item.

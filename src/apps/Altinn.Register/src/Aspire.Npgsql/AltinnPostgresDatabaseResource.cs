@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using CommunityToolkit.Diagnostics;
 
@@ -28,8 +28,8 @@ public class AltinnPostgresDatabaseResource
     /// <param name="seederRoleNameParameter">A parameter that contains the PostgreSQL server role name for the database seeder, or <see langword="null"/> to use a default value.</param>
     /// <param name="seederPasswordParameter">A parameter that contains the PostgreSQL server password for the database seeder.</param>
     public AltinnPostgresDatabaseResource(
-        string name, 
-        string databaseName, 
+        string name,
+        string databaseName,
         PostgresServerResource postgresParentResource,
         ParameterResource? roleNameParameter,
         ParameterResource passwordParameter,
@@ -38,7 +38,7 @@ public class AltinnPostgresDatabaseResource
         ParameterResource? migratorRoleNameParameter,
         ParameterResource migratorPasswordParameter,
         ParameterResource? seederRoleNameParameter,
-        ParameterResource seederPasswordParameter) 
+        ParameterResource seederPasswordParameter)
         : base(name)
     {
         Parent = postgresParentResource;
@@ -106,9 +106,9 @@ public class AltinnPostgresDatabaseResource
     /// <summary>
     /// Gets a <see cref="ReferenceExpression"/> for the role name of the application user of the database.
     /// </summary>
-    internal ReferenceExpression RoleNameReference 
-        => RoleNameParameter is not null 
-        ? ReferenceExpression.Create($"{RoleNameParameter}") 
+    internal ReferenceExpression RoleNameReference
+        => RoleNameParameter is not null
+        ? ReferenceExpression.Create($"{RoleNameParameter}")
         : ReferenceExpression.Create($"{DatabaseName}");
 
     /// <summary>
@@ -210,7 +210,7 @@ public class AltinnPostgresDatabaseResource
     private sealed class ConnectionStringResource(AltinnPostgresDatabaseResource resource, ConnectionStrings connectionString)
         : IResourceWithConnectionString
     {
-        ReferenceExpression IResourceWithConnectionString.ConnectionStringExpression 
+        ReferenceExpression IResourceWithConnectionString.ConnectionStringExpression
             => connectionString switch
             {
                 ConnectionStrings.Application => resource.ApplicationConnectionStringValueExpression,
@@ -237,10 +237,10 @@ public class AltinnPostgresDatabaseResource
             return $"{{{Name}.connectionStrings.{name}}}";
         }
 
-        public string Name 
+        public string Name
             => resource.Name;
 
-        ResourceAnnotationCollection IResource.Annotations 
+        ResourceAnnotationCollection IResource.Annotations
             => resource.Annotations;
     }
 

@@ -1,4 +1,4 @@
-﻿using Npgsql;
+using Npgsql;
 
 namespace Altinn.Register.TestUtils;
 
@@ -69,25 +69,25 @@ public sealed class PostgreSqlDatabase
     /// <summary>
     /// Gets the data source for the owner of the database.
     /// </summary>
-    public NpgsqlDataSource OwnerDataSource 
+    public NpgsqlDataSource OwnerDataSource
         => GetDataSource(ref _ownerDataSource, _ownerConnectionString);
 
     /// <summary>
     /// Gets the data source for the migrator of the database.
     /// </summary>
-    public NpgsqlDataSource MigratorDataSource 
+    public NpgsqlDataSource MigratorDataSource
         => GetDataSource(ref _migratorDataSource, _migratorConnectionString);
 
     /// <summary>
     /// Gets the data source for the seeder of the database.
     /// </summary>
-    public NpgsqlDataSource SeederDataSource 
+    public NpgsqlDataSource SeederDataSource
         => GetDataSource(ref _seederDataSource, _seederConnectionString);
 
     /// <summary>
     /// Gets the data source for the database.
     /// </summary>
-    public NpgsqlDataSource DataSource 
+    public NpgsqlDataSource DataSource
         => GetDataSource(ref _dataSource, _connectionString);
 
     /// <inheritdoc/>

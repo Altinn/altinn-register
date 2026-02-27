@@ -137,7 +137,7 @@ public static class PartyImportHelper
         static void CheckSelfIdentified(ref ValidationErrorBuilder builder, SelfIdentifiedUserRecord si)
         {
             CheckRequired(ref builder, si.SelfIdentifiedUserType.IsSet, "/selfIdentifiedUserType");
-            
+
             if (si.SelfIdentifiedUserType.HasValue)
             {
                 switch (si.SelfIdentifiedUserType.Value)

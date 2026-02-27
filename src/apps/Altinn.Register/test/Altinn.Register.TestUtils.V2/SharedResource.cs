@@ -1,5 +1,4 @@
-﻿using CommunityToolkit.Diagnostics;
-using Xunit;
+using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.TestUtils;
 

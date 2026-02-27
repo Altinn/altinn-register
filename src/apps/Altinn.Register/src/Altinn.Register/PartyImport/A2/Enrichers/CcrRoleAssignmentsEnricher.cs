@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using Altinn.Register.Contracts;
-using Altinn.Register.Core;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
@@ -15,7 +14,7 @@ internal sealed partial class CcrRoleAssignmentsEnricher
     : IA2PartyImportSagaEnrichmentStep
 {
     /// <inheritdoc/>
-    public static string StepName 
+    public static string StepName
         => "ccr-roles";
 
     /// <inheritdoc/>

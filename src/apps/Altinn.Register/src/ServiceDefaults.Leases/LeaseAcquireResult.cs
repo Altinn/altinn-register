@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Altinn.Authorization.ServiceDefaults.Leases;
 
@@ -43,7 +43,7 @@ public sealed record LeaseAcquireResult
     /// Initializes a new instance of the <see cref="LeaseAcquireResult"/> class.
     /// </summary>
     private LeaseAcquireResult(
-        LeaseTicket? lease, 
+        LeaseTicket? lease,
         DateTimeOffset expires,
         DateTimeOffset? lastAcquiredAt,
         DateTimeOffset? lastReleasedAt)

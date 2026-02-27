@@ -61,7 +61,7 @@ namespace Altinn.Register.Core
         {
             string uniqueCacheKey = PersonLookupFailedAttempts + activeUser;
 
-            if (_memoryCache.TryGetValue(uniqueCacheKey, out int failedAttempts) 
+            if (_memoryCache.TryGetValue(uniqueCacheKey, out int failedAttempts)
                 && failedAttempts >= _personLookupSettings.MaximumFailedAttempts)
             {
                 Log.UserHasPerformedTooManyFailedPersonLookupAttempts(_logger, activeUser);

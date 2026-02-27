@@ -562,7 +562,7 @@ public class PostgresqlLeaseProviderTests
         cmd.Parameters.Add<string>("id", NpgsqlDbType.Text).TypedValue = id;
         await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow | CommandBehavior.SingleResult);
         var read = await reader.ReadAsync();
-        
+
         using var scope = new AssertionScope();
         read.Should().BeTrue();
 

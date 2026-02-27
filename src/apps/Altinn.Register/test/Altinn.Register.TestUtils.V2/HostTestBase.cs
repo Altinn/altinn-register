@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using Altinn.Authorization.ServiceDefaults;
-using Altinn.Register.Core;
 using Altinn.Register.TestUtils.Http;
 using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -29,7 +28,7 @@ public abstract class HostTestBase
     /// <summary>
     /// Gets a time provider.
     /// </summary>
-    protected FakeTimeProvider TimeProvider 
+    protected FakeTimeProvider TimeProvider
         => _timeProvider;
 
     /// <summary>
@@ -108,7 +107,7 @@ public abstract class HostTestBase
     protected override sealed async ValueTask<IServiceProvider> InitializeServiceProvider()
     {
         var host = await InitializeHost();
-        
+
         _host = host;
 
         await _host.StartAsync();
@@ -147,7 +146,7 @@ public abstract class HostTestBase
             {
                 await asyncDisposable.DisposeAsync();
             }
-                
+
             host.Dispose();
         }
 
@@ -203,8 +202,8 @@ public abstract class HostTestBase
     {
         private int _disposed = 0;
 
-        public void Dispose() 
-        { 
+        public void Dispose()
+        {
             if (Interlocked.Exchange(ref _disposed, 1) == 0)
             {
                 dispose();

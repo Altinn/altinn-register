@@ -10,7 +10,7 @@ public class LangCodeTests
     public void FromCode_En_ReturnsEn()
     {
         LangCode code = LangCode.FromCode("en");
-        
+
         code.ShouldBeSameAs(LangCode.En);
     }
 
@@ -26,7 +26,7 @@ public class LangCodeTests
     public void FromCode_Nn_ReturnsNn()
     {
         LangCode code = LangCode.FromCode("nn");
-        
+
         code.ShouldBeSameAs(LangCode.Nn);
     }
 

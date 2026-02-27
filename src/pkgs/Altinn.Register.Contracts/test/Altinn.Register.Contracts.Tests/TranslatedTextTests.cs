@@ -1,7 +1,6 @@
 #nullable enable
 
 using System.Text.Json;
-using Altinn.Register.Contracts;
 
 namespace Altinn.Register.Contracts.Tests;
 
@@ -194,7 +193,7 @@ public class TranslatedTextTests
     public void Builder_Indexer_ThrowsOnMissingKey()
     {
         var builder = TranslatedText.CreateBuilder();
-        
+
         Assert.Throws<KeyNotFoundException>(() => builder[LangCode.En]);
     }
 

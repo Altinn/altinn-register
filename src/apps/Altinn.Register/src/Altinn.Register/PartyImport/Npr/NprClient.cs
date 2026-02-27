@@ -37,7 +37,7 @@ internal sealed partial class NprClient
     /// <returns>A read-only list of guardianships for the specified person. The list is empty if no guardianships are found.</returns>
     public async Task<Result<IReadOnlyList<Guardianship>>> GetGuardianshipsForPerson(
         PersonIdentifier personIdentifier,
-        CancellationToken cancellationToken = default) 
+        CancellationToken cancellationToken = default)
     {
         using var activity = RegisterTelemetry.StartActivity("get guardianships");
 
@@ -78,11 +78,11 @@ internal sealed partial class NprClient
     [JsonSerializable(typeof(GuardianshipResponse))]
     [JsonSerializable(typeof(GuardianshipJsonConverter.VergemaalEllerFremtidsfullmakt))]
     private partial class SourceGenerationContext
-        : JsonSerializerContext 
+        : JsonSerializerContext
     {
     }
 
-    private sealed class GuardianshipResponse 
+    private sealed class GuardianshipResponse
     {
         [JsonConverter(typeof(GuardianshipJsonConverter))]
         [JsonPropertyName("vergemaalEllerFremtidsfullmakt")]
@@ -121,7 +121,7 @@ internal sealed partial class NprClient
             }
 
             List<Guardianship> guardianships = new();
-            
+
             while (true)
             {
                 if (!reader.Read())
@@ -143,7 +143,7 @@ internal sealed partial class NprClient
             return guardianships;
         }
 
-        private bool TryReadGuardianship(ref Utf8JsonReader reader, JsonSerializerOptions options, [NotNullWhen(true)] out Guardianship? guardianship) 
+        private bool TryReadGuardianship(ref Utf8JsonReader reader, JsonSerializerOptions options, [NotNullWhen(true)] out Guardianship? guardianship)
         {
             var dto = JsonSerializer.Deserialize<VergemaalEllerFremtidsfullmakt>(ref reader, options);
             if (dto is null or { IsActive: false } or { Verge.Roles: not { Count: > 0 } })

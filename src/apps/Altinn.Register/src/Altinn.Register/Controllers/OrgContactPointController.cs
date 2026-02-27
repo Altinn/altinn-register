@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Models;
+using Altinn.Register.Models;
 using Altinn.Register.Services.Interfaces;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;

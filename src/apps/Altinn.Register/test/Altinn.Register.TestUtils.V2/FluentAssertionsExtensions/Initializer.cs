@@ -1,6 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using FluentAssertions;
 
 namespace Altinn.Register.TestUtils.FluentAssertionsExtensions;
 

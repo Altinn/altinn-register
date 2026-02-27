@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Persistence.AsyncEnumerables;
+namespace Altinn.Register.Persistence.AsyncEnumerables;
 
 /// <summary>
 /// A manager of async resource lifetimes.

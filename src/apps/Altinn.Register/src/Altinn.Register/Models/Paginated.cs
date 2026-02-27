@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;

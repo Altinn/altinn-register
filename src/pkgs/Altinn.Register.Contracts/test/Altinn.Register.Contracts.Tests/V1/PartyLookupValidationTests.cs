@@ -1,9 +1,9 @@
-﻿using Altinn.Register.Contracts.Tests.Shouldly;
+using Altinn.Register.Contracts.Tests.Shouldly;
 using Altinn.Register.Contracts.V1;
 
 namespace Altinn.Register.Contracts.Tests.V1;
 
-public class PartyLookupValidationTests 
+public class PartyLookupValidationTests
 {
     [Fact]
     public void NoPropertiesSet_ReturnsIssue()

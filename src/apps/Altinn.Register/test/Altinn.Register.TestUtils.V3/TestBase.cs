@@ -1,4 +1,4 @@
-﻿using Altinn.Register.TestUtils.Tracing;
+using Altinn.Register.TestUtils.Tracing;
 
 namespace Altinn.Register.TestUtils;
 

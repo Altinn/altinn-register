@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -25,7 +25,7 @@ public readonly record struct ImportJobQueueStatus
     /// Gets the highest known item at the source.
     /// </summary>
     public readonly required ulong? SourceMax
-    { 
+    {
         get => _sourceMax switch
         {
             -1 => null,

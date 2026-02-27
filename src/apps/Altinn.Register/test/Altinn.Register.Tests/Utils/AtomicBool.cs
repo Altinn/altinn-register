@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Tests.Utils;
+namespace Altinn.Register.Tests.Utils;
 
 internal sealed class AtomicBool(bool initialValue = false)
 {
@@ -12,6 +12,6 @@ internal sealed class AtomicBool(bool initialValue = false)
         Interlocked.Exchange(ref _value, value ? TRUE : FALSE);
     }
 
-    public bool Value 
+    public bool Value
         => Volatile.Read(ref _value) == TRUE;
 }

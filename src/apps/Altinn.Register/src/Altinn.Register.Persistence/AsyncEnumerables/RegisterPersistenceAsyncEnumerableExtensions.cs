@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Persistence.AsyncEnumerables;
+namespace Altinn.Register.Persistence.AsyncEnumerables;
 
 /// <summary>
 /// Extension methods for <see cref="IAsyncEnumerable{T}"/>.

@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Persistence.DbArgTypes;
+namespace Altinn.Register.Persistence.DbArgTypes;
 
 /// <summary>
 /// Argument to the database function register.upsert_external_role_assignments.

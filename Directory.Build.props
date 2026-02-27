@@ -15,4 +15,8 @@
     <Authors>Altinn Platform Contributors</Authors>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Roslynator.Formatting.Analyzers" PrivateAssets="all" IncludeAssets="analyzers" />
+  </ItemGroup>
+
 </Project>

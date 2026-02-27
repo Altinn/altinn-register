@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.ModelBinding;
+namespace Altinn.Register.ModelBinding;
 
 /// <summary>
 /// A contract for creating singleton instances in a type-safe manner. .

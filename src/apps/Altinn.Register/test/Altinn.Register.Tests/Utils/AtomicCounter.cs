@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Tests.Utils;
+namespace Altinn.Register.Tests.Utils;
 
 internal sealed class AtomicCounter
 {
@@ -9,6 +9,6 @@ internal sealed class AtomicCounter
         Interlocked.Increment(ref _value);
     }
 
-    public uint Value 
+    public uint Value
         => Volatile.Read(ref _value);
 }

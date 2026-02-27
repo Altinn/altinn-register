@@ -69,7 +69,7 @@ namespace Altinn.Register.Controllers
             {
                 person = await _personLookup.GetPerson(
                     personLookup.NationalIdentityNumber,
-                    personLookup.LastName, 
+                    personLookup.LastName,
                     userId.Value,
                     cancellationToken);
             }

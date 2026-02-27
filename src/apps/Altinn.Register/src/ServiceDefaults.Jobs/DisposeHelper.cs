@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Authorization.ServiceDefaults.Jobs;

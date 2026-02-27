@@ -1,4 +1,4 @@
-﻿using MassTransit.Testing;
+using MassTransit.Testing;
 
 namespace Altinn.Register.TestUtils.MassTransit;
 

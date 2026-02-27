@@ -1,9 +1,8 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
 using Altinn.Register.TestUtils.FluentAssertionsExtensions.Json;
-using FluentAssertions;
 using FluentAssertions.Equivalency;
 using FluentAssertions.Execution;
 
@@ -192,7 +191,7 @@ internal class JsonElementEquivalencyStep
         public Type RuntimeType => throw new NotImplementedException();
 
         private JsonArrayObjectInfo()
-        { 
+        {
         }
     }
 }

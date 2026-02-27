@@ -357,7 +357,7 @@ public class A2PartyImportServiceTests
                     "LastChangeInSegment": 2
                 }
                 """);
-        
+
         handler.Expect(HttpMethod.Get, "/register/api/parties/partychanges/2")
             .Respond(
                 contentType: "application/json",

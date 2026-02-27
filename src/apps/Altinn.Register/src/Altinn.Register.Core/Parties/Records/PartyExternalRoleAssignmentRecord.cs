@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
 
 namespace Altinn.Register.Core.Parties.Records;

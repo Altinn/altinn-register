@@ -1,7 +1,6 @@
-﻿#nullable enable
+#nullable enable
 
 using Altinn.Authorization.ServiceDefaults.MassTransit;
-using MassTransit;
 
 namespace Altinn.Register.PartyImport.SystemUser;
 

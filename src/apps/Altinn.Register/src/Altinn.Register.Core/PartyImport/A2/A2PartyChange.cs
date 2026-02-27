@@ -1,5 +1,3 @@
-﻿using System.Text.Json.Serialization;
-
 namespace Altinn.Register.Core.PartyImport.A2;
 
 /// <summary>

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace Altinn.Register.TestUtils;
@@ -65,8 +65,8 @@ internal static class TypeNameHelper
         }
         else if (_builtInTypeNames.TryGetValue(type, out string? builtInName))
         {
-            if (builder is null) 
-            { 
+            if (builder is null)
+            {
                 return builtInName;
             }
 
@@ -76,7 +76,7 @@ internal static class TypeNameHelper
         {
             if (options.IncludeGenericParameterNames)
             {
-                if (builder is null) 
+                if (builder is null)
                 {
                     return type.Name;
                 }

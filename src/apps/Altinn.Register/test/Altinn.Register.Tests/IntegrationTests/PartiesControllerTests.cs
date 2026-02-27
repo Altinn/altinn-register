@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
@@ -519,7 +519,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         try
         {
             actualResult = JsonSerializer.Deserialize<PartyNamesLookupResult>(responseContent, _options);
-        } 
+        }
         catch (JsonException ex)
         {
             throw new Exception(

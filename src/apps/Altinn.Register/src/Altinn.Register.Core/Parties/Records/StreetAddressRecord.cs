@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Core.Parties.Records;
+namespace Altinn.Register.Core.Parties.Records;
 
 /// <summary>
 /// Represents a street address.
@@ -29,7 +29,7 @@ public record StreetAddressRecord
     /// Gets the house letter of the street address.
     /// </summary>
     public string? HouseLetter { get; init; }
-    
+
     /// <summary>
     /// Gets the postal code of the mailing address.
     /// </summary>

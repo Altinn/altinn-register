@@ -1,4 +1,4 @@
-﻿using Altinn.Register.ModelBinding;
+using Altinn.Register.ModelBinding;
 
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 

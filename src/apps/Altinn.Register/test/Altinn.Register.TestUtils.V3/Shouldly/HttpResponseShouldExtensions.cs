@@ -1,4 +1,4 @@
-﻿using System.Buffers;
+using System.Buffers;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Net;
@@ -171,8 +171,8 @@ public static class HttpResponseShouldExtensions
             var codePart = context.CodePart;
             var actual = context.Actual;
             var expected = context.Expected;
-            
-            var actualString = 
+
+            var actualString =
                 $"""
 
                 {actual}

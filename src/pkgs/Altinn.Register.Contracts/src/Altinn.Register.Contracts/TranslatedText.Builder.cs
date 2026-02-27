@@ -41,10 +41,10 @@ public partial class TranslatedText
         #region IDictionary<TKey, TValue> Properties
 
         /// <inheritdoc/>
-        public int Count 
-            => (_en is not null ? 1 : 0) 
-            + (_nb is not null ? 1 : 0) 
-            + (_nn is not null ? 1 : 0) 
+        public int Count
+            => (_en is not null ? 1 : 0)
+            + (_nb is not null ? 1 : 0)
+            + (_nn is not null ? 1 : 0)
             + (_additional?.Count ?? 0);
 
         /// <inheritdoc/>
@@ -408,7 +408,7 @@ public partial class TranslatedText
             static bool SetAdditionalValue(ref ImmutableArray<KeyValuePair<LangCode, string>>.Builder? additional, LangCode key, string value, bool overwrite)
             {
                 additional ??= ImmutableArray.CreateBuilder<KeyValuePair<LangCode, string>>();
-                
+
                 for (var i = 0; i < additional.Count; i++)
                 {
                     if (additional[i].Key == key)

@@ -28,7 +28,7 @@ public class UrnTests
     {
         private PartyExternalRefUrn _urn = null!;
 
-        public required PartyExternalRefUrn Urn 
+        public required PartyExternalRefUrn Urn
         {
             get => _urn;
             init => _urn = value;

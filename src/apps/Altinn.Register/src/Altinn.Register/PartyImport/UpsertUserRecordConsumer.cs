@@ -3,7 +3,6 @@
 using System.Diagnostics.Metrics;
 using Altinn.Authorization.ServiceDefaults.Telemetry;
 using Altinn.Register.Contracts.Parties;
-using Altinn.Register.Core;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Utils;

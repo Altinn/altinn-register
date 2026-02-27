@@ -117,7 +117,7 @@ public class MaskinPortenClientTests
         Configure("test");
         Handler.Expect(HttpMethod.Post, "/token")
             .Respond(
-                "application/json", 
+                "application/json",
                 """
                 {}
                 """);
@@ -296,10 +296,10 @@ public class MaskinPortenClientTests
     public async Task GetAccessToken_IsRefetched_WhenExpired()
     {
         var options = Configure("test");
-        
+
         Handler.Expect(HttpMethod.Post, "/token")
             .Respond(CreateToken(options));
-        
+
         Handler.Expect(HttpMethod.Post, "/token")
             .Respond(CreateToken(options));
 
@@ -355,8 +355,8 @@ public class MaskinPortenClientTests
                 Content = responseContent,
             };
         };
-    
-    private MaskinPortenClientOptions Configure(string name, Action<MaskinPortenClientOptions> configure) 
+
+    private MaskinPortenClientOptions Configure(string name, Action<MaskinPortenClientOptions> configure)
     {
         var options = Configure(name);
         configure(options);
@@ -373,7 +373,7 @@ public class MaskinPortenClientTests
         options.TokenDuration = TimeSpan.FromMinutes(2);
         options.ClientId = Guid.NewGuid().ToString();
         options.Scope = $"fake-scope-{random.Next(0, 100)} fake-scope-{random.Next(0, 100)}";
-        
+
         if (random.NextDouble() > 0.8)
         {
             options.Resource = $"fake-resource-{random.Next(0, 100)}";

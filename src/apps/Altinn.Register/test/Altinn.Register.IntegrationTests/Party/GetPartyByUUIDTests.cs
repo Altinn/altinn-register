@@ -1,8 +1,7 @@
-﻿using System.Net;
+using System.Net;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
-using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.TestUtils.TestData;
 
 namespace Altinn.Register.IntegrationTests.Party;

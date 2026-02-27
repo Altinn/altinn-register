@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Altinn.Register.Core;
 using Altinn.Register.Core.Utils;
 using CommunityToolkit.Diagnostics;
@@ -301,7 +301,7 @@ internal sealed partial class PostgreSqlSizeService
         }
     }
 
-    private static partial class Log 
+    private static partial class Log
     {
         [LoggerMessage(EventId = 1, Level = LogLevel.Warning, Message = "Table '{Schema}.{Table}' size {Size} exceeds threshold {Threshold}.")]
         public static partial void TableSizeExceedsThreshold(ILogger logger, string schema, string table, ByteSize size, ByteSize threshold);

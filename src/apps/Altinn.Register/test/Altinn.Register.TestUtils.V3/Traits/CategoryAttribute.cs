@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Diagnostics;
+using CommunityToolkit.Diagnostics;
 using Xunit.v3;
 
 namespace Altinn.Register.TestUtils.Traits;
@@ -26,6 +26,6 @@ public class CategoryAttribute
     public string Name { get; }
 
     /// <inheritdoc/>
-    public IReadOnlyCollection<KeyValuePair<string, string>> GetTraits() =>
-        [new(TraitName, Name)];
+    public IReadOnlyCollection<KeyValuePair<string, string>> GetTraits()
+        => [new(TraitName, Name)];
 }

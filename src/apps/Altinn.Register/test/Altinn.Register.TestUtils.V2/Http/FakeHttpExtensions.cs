@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
 using System.Text;
 using Altinn.Register.TestUtils.Http.Filters;
@@ -42,7 +42,7 @@ public static class FakeHttpExtensions
         where T : IFilterFakeRequest
     {
         builder.AddFilter(QueryParamFilter.Create(queryParam, value));
-        
+
         return builder;
     }
 

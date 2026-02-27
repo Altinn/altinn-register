@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Altinn.Authorization.ModelUtils;
 
 namespace Altinn.Register.Contracts.Tests;

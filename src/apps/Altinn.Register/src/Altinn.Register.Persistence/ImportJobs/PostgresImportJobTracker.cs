@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -202,7 +202,7 @@ internal partial class PostgresImportJobTracker
             {
                 // allow keeping the connection for a short while
                 var done = !await reader.WaitToReadAsync(cancellationToken).WaitAsync(TimeSpan.FromSeconds(1), _timeProvider);
-                
+
                 if (done)
                 {
                     // no more items, channel is closed

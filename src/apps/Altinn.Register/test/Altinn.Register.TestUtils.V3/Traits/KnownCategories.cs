@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.TestUtils.Traits;
+namespace Altinn.Register.TestUtils.Traits;
 
 public static class KnownCategories
 {

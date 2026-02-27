@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Contracts;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.TestUtils;
 using Xunit.Abstractions;
@@ -97,7 +97,7 @@ public class PostgreSqlExternalRoleDefinitionPersistenceTests(ITestOutputHelper 
                 CompleteCompletedVTask(tcs, vtask);
                 return;
             }
-            
+
             var awaiter = vtask.GetAwaiter();
             awaiter.UnsafeOnCompleted(() =>
             {

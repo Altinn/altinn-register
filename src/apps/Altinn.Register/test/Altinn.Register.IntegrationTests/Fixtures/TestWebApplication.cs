@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Core.Utils;
+using Altinn.Register.Core.Utils;
 using Altinn.Register.IntegrationTests.TestServices;
 using Altinn.Register.IntegrationTests.Tracing;
 using Altinn.Register.TestUtils;
@@ -18,7 +18,7 @@ public sealed class TestWebApplication
     public static async Task<TestWebApplication> Create()
     {
         var fixture = await TestContext.Current.GetRequiredFixture<WebApplicationFixture>();
-        
+
         return await fixture.CreateServer();
     }
 

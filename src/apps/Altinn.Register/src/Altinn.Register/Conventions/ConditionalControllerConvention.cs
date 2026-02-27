@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Mvc;
@@ -73,7 +73,7 @@ internal sealed class ConditionalControllerConvention
         action.Selectors.Clear();
         action.Properties.Clear();
         action.Filters.Clear();
-        
+
         action.Filters.Add(DisabledFilter.Instance);
 
         controller.Actions.Remove(action);

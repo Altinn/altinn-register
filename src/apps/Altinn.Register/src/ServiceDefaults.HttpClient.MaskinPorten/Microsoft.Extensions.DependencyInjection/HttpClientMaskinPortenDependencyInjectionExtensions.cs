@@ -20,7 +20,7 @@ public static class HttpClientMaskinPortenDependencyInjectionExtensions
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <returns>A <see cref="IHttpClientBuilder"/> for configuring the HTTP client used to get access-tokens from MaskinPorten.</returns>
-    public static IHttpClientBuilder AddMaskinPortenClient(this IServiceCollection services) 
+    public static IHttpClientBuilder AddMaskinPortenClient(this IServiceCollection services)
         => AddMaskinPortenClientDependencies(services);
 
     /// <summary>

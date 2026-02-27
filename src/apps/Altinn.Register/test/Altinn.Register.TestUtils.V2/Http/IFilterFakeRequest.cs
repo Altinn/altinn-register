@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.TestUtils.Http;
+namespace Altinn.Register.TestUtils.Http;
 
 /// <summary>
 /// Interface used to add filters to a <see cref="IFakeRequestHandler"/>.

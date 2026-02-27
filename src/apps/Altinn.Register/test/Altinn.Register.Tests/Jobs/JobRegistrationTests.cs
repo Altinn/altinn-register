@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using Altinn.Authorization.ServiceDefaults.Jobs;
 
@@ -16,11 +16,11 @@ public class JobRegistrationTests
         actualName.Should().Be(expectedName);
     }
 
-    private class DefaultJobName 
-    { 
+    private class DefaultJobName
+    {
     }
 
-    private class CustomJobName 
+    private class CustomJobName
         : IHasJobName<CustomJobName>
     {
         public static string JobName => "i-am-custom-job";

@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Text.Json;
 using Altinn.Register.Contracts;
@@ -6,7 +6,7 @@ using Altinn.Swashbuckle.Examples;
 
 namespace Altinn.Register.Tests.UnitTests;
 
-public class PersonIdentifierTests 
+public class PersonIdentifierTests
 {
     [Theory]
     [InlineData("02013299997")]

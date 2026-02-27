@@ -1,4 +1,4 @@
-﻿using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Contracts.Parties;
@@ -20,7 +20,7 @@ public class PartyImportBatchConsumerTests
     {
         await GetRequiredService<IImportJobTracker>()
             .TrackQueueStatus(
-                "test", 
+                "test",
                 new()
                 {
                     SourceMax = 10,

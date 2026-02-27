@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -109,7 +109,7 @@ public readonly record struct ByteSize
         {
             result = new(convertedValue);
             return true;
-        } 
+        }
         else
         {
             result = default;
@@ -394,12 +394,12 @@ public readonly record struct ByteSize
     static ByteSize IAdditionOperators<ByteSize, ByteSize, ByteSize>.operator +(ByteSize left, ByteSize right) => left + right;
 
     /// <inheritdoc/>
-    static ByteSize IUnaryNegationOperators<ByteSize, ByteSize>.operator -(ByteSize value) 
+    static ByteSize IUnaryNegationOperators<ByteSize, ByteSize>.operator -(ByteSize value)
     {
         return new(Inner(value._value));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static T Inner<T>(T value) 
+        static T Inner<T>(T value)
             where T : INumberBase<T>
             => -value;
     }
@@ -506,7 +506,7 @@ public readonly record struct ByteSize
         // TODO: Care about format?
         string unit = "B";
         double value = _value;
-        
+
         if (this >= Tebibyte)
         {
             unit = "TiB";

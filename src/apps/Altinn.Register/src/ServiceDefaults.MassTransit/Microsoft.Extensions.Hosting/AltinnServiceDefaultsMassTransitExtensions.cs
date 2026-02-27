@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Authorization.ServiceDefaults.MassTransit.Commands;
 using CommunityToolkit.Diagnostics;

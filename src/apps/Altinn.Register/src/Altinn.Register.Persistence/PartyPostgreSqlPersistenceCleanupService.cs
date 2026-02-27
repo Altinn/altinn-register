@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using Altinn.Register.Core.Parties;
 
 namespace Altinn.Register.Persistence;

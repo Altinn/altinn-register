@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Jobs;
+namespace Altinn.Register.Jobs;
 
 /// <summary>
 /// Settings for <see cref="RecurringJobHostedService"/>.

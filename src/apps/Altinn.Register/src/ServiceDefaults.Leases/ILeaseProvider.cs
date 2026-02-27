@@ -4,7 +4,7 @@ namespace Altinn.Authorization.ServiceDefaults.Leases;
 /// A provider of leases. Leases are a synchronization primitive that can be used to ensure
 /// that only one process is performing a certain task at a time.
 /// </summary>
-public interface ILeaseProvider 
+public interface ILeaseProvider
 {
     /// <summary>
     /// Attempts to acquire a lease.

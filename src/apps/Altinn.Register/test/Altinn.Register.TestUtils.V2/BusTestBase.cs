@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Authorization.ServiceDefaults.MassTransit.Commands;
 using Altinn.Authorization.ServiceDefaults.MassTransit.Testing;

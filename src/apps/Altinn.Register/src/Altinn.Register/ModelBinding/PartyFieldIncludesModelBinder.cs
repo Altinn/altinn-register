@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using Altinn.Authorization.ModelUtils.EnumUtils;
 using Altinn.Register.Core.Parties;

@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System.Collections;
 using Altinn.Authorization.ModelUtils.EnumUtils;

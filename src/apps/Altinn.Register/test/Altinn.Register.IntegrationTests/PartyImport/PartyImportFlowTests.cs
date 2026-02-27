@@ -953,7 +953,7 @@ public class PartyImportFlowTests
             created.User.Value!.Username.ShouldBe(siUser.User.Value!.Username);
             created.DisplayName.ShouldBe(siUser.DisplayName);
             created.IsDeleted.ShouldBe(false);
-            
+
             var createSi = created.ShouldBeOfType<SelfIdentifiedUserRecord>();
             createSi.SelfIdentifiedUserType.ShouldBe(SelfIdentifiedUserType.Educational);
         });
@@ -1470,7 +1470,7 @@ public class PartyImportFlowTests
         // Last: Person is updated with username from deleted SI user
         await UpsertParty(new UpsertPartyCommand
         {
-            Party = person with 
+            Party = person with
             {
                 User = new PartyUserRecord(userId: pUserId, username: username, userIds: ImmutableValueArray.Create(pUserId)),
             },

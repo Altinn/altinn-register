@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Core.UnitOfWork;
+namespace Altinn.Register.Core.UnitOfWork;
 
 /// <summary>
 /// The status of a unit of work.

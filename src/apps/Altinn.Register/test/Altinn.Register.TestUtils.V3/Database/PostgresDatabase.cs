@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.TestUtils.Database;
+namespace Altinn.Register.TestUtils.Database;
 
 public sealed class PostgresDatabase
     : IAsyncDisposable

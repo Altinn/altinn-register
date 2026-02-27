@@ -223,7 +223,7 @@ public sealed partial class PartyImportBatchConsumer
             int count = 0;
             TagList tags = default;
             tags.Add("external-role.source", ToTagString(group.Key));
-            
+
             foreach (var context in group)
             {
                 count++;

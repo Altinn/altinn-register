@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Core.ImportJobs;
+namespace Altinn.Register.Core.ImportJobs;
 
 /// <summary>
 /// Import job queue status, consisting of the highest enqueued item and the highest known source item at the time of

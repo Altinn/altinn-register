@@ -1,4 +1,4 @@
-﻿namespace Altinn.Register.Contracts.V1;
+namespace Altinn.Register.Contracts.V1;
 
 /// <summary>
 /// Represents the components of a person's name.

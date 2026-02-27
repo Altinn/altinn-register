@@ -46,7 +46,7 @@ internal partial class PostgreSqlPartyPersistence
 
     /// <inheritdoc/>
     public IAsyncEnumerable<PartyRecord> GetPartyById(
-        Guid partyUuid, 
+        Guid partyUuid,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
         CancellationToken cancellationToken = default)
     {
@@ -209,7 +209,7 @@ internal partial class PostgreSqlPartyPersistence
 
         bool any = false, orgs = false, persons = false;
         PartyLookupIdentifiers identifiers = PartyLookupIdentifiers.None;
-        
+
         if (partyUuids is { Count: > 0 })
         {
             any = orgs = persons = true;
@@ -294,7 +294,7 @@ internal partial class PostgreSqlPartyPersistence
             {
                 query.AddPartyUuidListParameter(cmd, [.. partyUuids]);
             }
-            
+
             if (partyIds is { Count: > 0 })
             {
                 query.AddPartyIdListParameter(cmd, [.. partyIds.Select(static id => checked((int)id))]);
@@ -782,7 +782,7 @@ internal partial class PostgreSqlPartyPersistence
             }
         }
     }
-    
+
     [Flags]
     private enum PartyRoleFilters
         : byte

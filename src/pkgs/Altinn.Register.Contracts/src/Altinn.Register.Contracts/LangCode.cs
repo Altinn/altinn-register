@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -103,7 +102,7 @@ public sealed class LangCode
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        static LangCode GetOrCreateCached(string code) 
+        static LangCode GetOrCreateCached(string code)
             => _codes.GetOrAdd(code, static c => new(c, Encoding.UTF8.GetBytes(c)));
     }
 

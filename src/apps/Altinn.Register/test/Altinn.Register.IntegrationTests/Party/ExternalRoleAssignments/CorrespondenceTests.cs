@@ -1,4 +1,4 @@
-﻿using Altinn.Register.Contracts;
+using Altinn.Register.Contracts;
 using Altinn.Register.Models;
 using Altinn.Register.TestUtils.TestData;
 
