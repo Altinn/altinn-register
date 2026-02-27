@@ -27,6 +27,24 @@ public partial class GuardianshipRoleMapperTests
         role.Should().Be(meta.Role);
     }
 
+    [Theory]
+    [MemberData(nameof(ExpiredGuardianships))]
+    public static void MatchesNprAreaTask_Expired(ExpiredGuardianshipMetadata meta)
+    {
+        GuardianshipRoleMapper.TryFindRoleByNprValues(meta.NprArea, meta.NprTask, out var role).Should().BeTrue();
+        role.Should().BeNull();
+    }
+
+    [Theory]
+    [MemberData(nameof(ExpiredGuardianships))]
+    public static void MatchesNprAreaAndTaskUtf8_Expired(ExpiredGuardianshipMetadata meta)
+    {
+        var area = Encoding.UTF8.GetBytes(meta.NprArea);
+        var task = Encoding.UTF8.GetBytes(meta.NprTask);
+        GuardianshipRoleMapper.TryFindRoleByNprValues(area, task, out var role).Should().BeTrue();
+        role.Should().BeNull();
+    }
+
     [Fact]
     public static void DoesNotMatchInvalidNprAreaAndTask()
     {
@@ -42,7 +60,12 @@ public partial class GuardianshipRoleMapperTests
     public static TheoryData<GuardianshipMetadata> Guardianships
         => GetGuardianshipRoles();
 
+    public static TheoryData<ExpiredGuardianshipMetadata> ExpiredGuardianships
+        => GetExpiredGuardianshipRoles();
+
     private static partial TheoryData<GuardianshipMetadata> GetGuardianshipRoles();
+
+    private static partial TheoryData<ExpiredGuardianshipMetadata> GetExpiredGuardianshipRoles();
 
     [DebuggerDisplay("Role = {Identifier}")]
     public sealed record class GuardianshipMetadata
@@ -91,6 +114,41 @@ public partial class GuardianshipRoleMapperTests
         void IXunitSerializable.Serialize(IXunitSerializationInfo info)
         {
             info.AddValue(nameof(Identifier), Identifier, typeof(string));
+            info.AddValue(nameof(NprArea), NprArea, typeof(string));
+            info.AddValue(nameof(NprTask), NprTask, typeof(string));
+        }
+    }
+
+    [DebuggerDisplay("Npr = \"{NprArea,nq}/{NprTask,nq}\"")]
+    public sealed record class ExpiredGuardianshipMetadata
+        : IXunitSerializable
+    {
+        private string _nprArea = null!;
+        private string _nprTask = null!;
+
+        public required string NprArea
+        {
+            get => _nprArea;
+            init => _nprArea = value;
+        }
+
+        public required string NprTask
+        {
+            get => _nprTask;
+            init => _nprTask = value;
+        }
+
+        public override string ToString()
+            => $"{NprArea}/{NprTask}";
+
+        void IXunitSerializable.Deserialize(IXunitSerializationInfo info)
+        {
+            _nprArea = info.GetValue<string>(nameof(NprArea));
+            _nprTask = info.GetValue<string>(nameof(NprTask));
+        }
+
+        void IXunitSerializable.Serialize(IXunitSerializationInfo info)
+        {
             info.AddValue(nameof(NprArea), NprArea, typeof(string));
             info.AddValue(nameof(NprTask), NprTask, typeof(string));
         }

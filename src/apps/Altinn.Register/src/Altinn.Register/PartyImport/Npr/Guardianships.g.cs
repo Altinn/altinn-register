@@ -195,6 +195,11 @@ internal static partial class GuardianshipRoles
         /// <summary>Gjelder adgangen til å bruke vergehaverens inntekter til å betale regninger, betjene gjeld, og dekke øvrige utgifter</summary>
         public static ExternalRoleReference DisponereInntekterTilÅDekkeUtgifter { get; } = new(ExternalRoleSource.CivilRightsAuthority, "ovrige-disponere-inntekter-dekke-utgifter");
     }
+
+    /// <summary>Roles for guardianships in the area 'Statens Innkrevingssentral'.</summary>
+    public static partial class StatensInnkrevingssentral
+    {
+    }
 }
 
 /// <summary>Mappings of guardianship values from npr to Altinn Register.</summary>
@@ -205,14 +210,15 @@ internal static partial class GuardianshipRoleMapper
     /// <param name="vergeTjenestevirksomhet">The NPR value for the guardianship area.</param>
     /// <param name="vergeTjenesteoppgave">The NPR value for the guardianship task.</param>
     /// <param name="role">The found role, if any.</param>
+    /// <remarks>If the role is expired, <see langword="null"/> is returned.</remarks>
     /// <returns><see langword="true"/> if a role was found; otherwise, <see langword="false"/>.</returns>
     public static bool TryFindRoleByNprValues(
         ReadOnlySpan<char> vergeTjenestevirksomhet,
         ReadOnlySpan<char> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenestevirksomhet;
-        if (s.Length is < 3 or > 24)
+        if (s.Length is < 3 or > 25)
         {
             goto end;
         }
@@ -267,19 +273,35 @@ internal static partial class GuardianshipRoleMapper
         if (s.StartsWith("s"))
         {
             var s_2 = s.Slice(1);
-            if (s_2.Length is < 11 or > 13)
+            if (s_2.Length is < 11 or > 24)
             {
+                goto end;
+            }
+
+            if (s_2.StartsWith("tat"))
+            {
+                var s_2_0 = s_2.Slice(3);
+                if (s_2_0.Length is < 10 or > 21)
+                {
+                    goto end;
+                }
+
+                if (s_2_0.SequenceEqual("sforvalter"))
+                {
+                    return TryFindStatsforvalterRoleByNprValue(vergeTjenesteoppgave, out role);
+                }
+
+                if (s_2_0.SequenceEqual("ensInnkrevingssentral"))
+                {
+                    return TryFindStatensInnkrevingssentralRoleByNprValue(vergeTjenesteoppgave, out role);
+                }
+
                 goto end;
             }
 
             if (s_2.SequenceEqual("katteetaten"))
             {
                 return TryFindSkatteetatenRoleByNprValue(vergeTjenesteoppgave, out role);
-            }
-
-            if (s_2.SequenceEqual("tatsforvalter"))
-            {
-                return TryFindStatsforvalterRoleByNprValue(vergeTjenesteoppgave, out role);
             }
 
             goto end;
@@ -345,14 +367,15 @@ internal static partial class GuardianshipRoleMapper
     /// <param name="vergeTjenestevirksomhet">The NPR value for the guardianship area.</param>
     /// <param name="vergeTjenesteoppgave">The NPR value for the guardianship task.</param>
     /// <param name="role">The found role, if any.</param>
+    /// <remarks>If the role is expired, <see langword="null"/> is returned.</remarks>
     /// <returns><see langword="true"/> if a role was found; otherwise, <see langword="false"/>.</returns>
     public static bool TryFindRoleByNprValues(
         ReadOnlySpan<byte> vergeTjenestevirksomhet,
         ReadOnlySpan<byte> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenestevirksomhet;
-        if (s.Length is < 3 or > 24)
+        if (s.Length is < 3 or > 25)
         {
             goto end;
         }
@@ -407,19 +430,35 @@ internal static partial class GuardianshipRoleMapper
         if (s.StartsWith("s"u8))
         {
             var s_2 = s.Slice(1);
-            if (s_2.Length is < 11 or > 13)
+            if (s_2.Length is < 11 or > 24)
             {
+                goto end;
+            }
+
+            if (s_2.StartsWith("tat"u8))
+            {
+                var s_2_0 = s_2.Slice(3);
+                if (s_2_0.Length is < 10 or > 21)
+                {
+                    goto end;
+                }
+
+                if (s_2_0.SequenceEqual("sforvalter"u8))
+                {
+                    return TryFindStatsforvalterRoleByNprValue(vergeTjenesteoppgave, out role);
+                }
+
+                if (s_2_0.SequenceEqual("ensInnkrevingssentral"u8))
+                {
+                    return TryFindStatensInnkrevingssentralRoleByNprValue(vergeTjenesteoppgave, out role);
+                }
+
                 goto end;
             }
 
             if (s_2.SequenceEqual("katteetaten"u8))
             {
                 return TryFindSkatteetatenRoleByNprValue(vergeTjenesteoppgave, out role);
-            }
-
-            if (s_2.SequenceEqual("tatsforvalter"u8))
-            {
-                return TryFindStatsforvalterRoleByNprValue(vergeTjenesteoppgave, out role);
             }
 
             goto end;
@@ -483,10 +522,10 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindBankRoleByNprValue(
         ReadOnlySpan<char> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.Length is < 18 or > 24)
+        if (s.Length is < 18 or > 25)
         {
             goto end;
         }
@@ -503,6 +542,12 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
+        if (s.SequenceEqual("selgeAksjerOgVerdipapirer"))
+        {
+            role = null;
+            return true;
+        }
+
         end:
         role = null;
         return false;
@@ -510,10 +555,10 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindBankRoleByNprValue(
         ReadOnlySpan<byte> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.Length is < 18 or > 24)
+        if (s.Length is < 18 or > 25)
         {
             goto end;
         }
@@ -530,6 +575,12 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
+        if (s.SequenceEqual("selgeAksjerOgVerdipapirer"u8))
+        {
+            role = null;
+            return true;
+        }
+
         end:
         role = null;
         return false;
@@ -537,7 +588,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindForsikringsselskapRoleByNprValue(
         ReadOnlySpan<char> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.SequenceEqual("forvalteForsikringsavtaler"))
@@ -553,7 +604,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindForsikringsselskapRoleByNprValue(
         ReadOnlySpan<byte> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.SequenceEqual("forvalteForsikringsavtaler"u8))
@@ -569,7 +620,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindHelfoRoleByNprValue(
         ReadOnlySpan<char> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.Length is < 8 or > 25)
@@ -596,7 +647,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindHelfoRoleByNprValue(
         ReadOnlySpan<byte> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.Length is < 8 or > 25)
@@ -623,7 +674,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindHusbankenRoleByNprValue(
         ReadOnlySpan<char> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.Length is < 9 or > 9)
@@ -650,7 +701,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindHusbankenRoleByNprValue(
         ReadOnlySpan<byte> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.Length is < 9 or > 9)
@@ -677,7 +728,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindInkassoselskapRoleByNprValue(
         ReadOnlySpan<char> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.SequenceEqual("forhandleOgInngaaInkassoavtaler"))
@@ -693,7 +744,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindInkassoselskapRoleByNprValue(
         ReadOnlySpan<byte> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.SequenceEqual("forhandleOgInngaaInkassoavtaler"u8))
@@ -709,7 +760,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindKartverketRoleByNprValue(
         ReadOnlySpan<char> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.Length is < 8 or > 33)
@@ -788,7 +839,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindKartverketRoleByNprValue(
         ReadOnlySpan<byte> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.Length is < 8 or > 33)
@@ -867,7 +918,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindKommuneRoleByNprValue(
         ReadOnlySpan<char> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.Length is < 13 or > 16)
@@ -934,7 +985,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindKommuneRoleByNprValue(
         ReadOnlySpan<byte> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.Length is < 13 or > 16)
@@ -1001,7 +1052,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindKredittvurderingsselskapRoleByNprValue(
         ReadOnlySpan<char> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.SequenceEqual("kredittsperre"))
@@ -1017,7 +1068,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindKredittvurderingsselskapRoleByNprValue(
         ReadOnlySpan<byte> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.SequenceEqual("kredittsperre"u8))
@@ -1033,7 +1084,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindNamsmannenRoleByNprValue(
         ReadOnlySpan<char> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.Length is < 13 or > 33)
@@ -1047,10 +1098,27 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        if (s.SequenceEqual("tvangsfullbyrdelseOgForliksraadet"))
+        if (s.StartsWith("tvangsfullbyrdelse"))
         {
-            role = GuardianshipRoles.Namsmannen.TvangsfullbyrdelseHerunderBehandlingIForliksrådet;
-            return true;
+            var s_0 = s.Slice(18);
+            if (s_0.Length is < 0 or > 15)
+            {
+                goto end;
+            }
+
+            if (s_0.SequenceEqual("OgForliksraadet"))
+            {
+                role = GuardianshipRoles.Namsmannen.TvangsfullbyrdelseHerunderBehandlingIForliksrådet;
+                return true;
+            }
+
+            if (s_0.Length == 0)
+            {
+                role = null;
+                return true;
+            }
+
+            goto end;
         }
 
         end:
@@ -1060,7 +1128,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindNamsmannenRoleByNprValue(
         ReadOnlySpan<byte> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.Length is < 13 or > 33)
@@ -1074,10 +1142,27 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        if (s.SequenceEqual("tvangsfullbyrdelseOgForliksraadet"u8))
+        if (s.StartsWith("tvangsfullbyrdelse"u8))
         {
-            role = GuardianshipRoles.Namsmannen.TvangsfullbyrdelseHerunderBehandlingIForliksrådet;
-            return true;
+            var s_0 = s.Slice(18);
+            if (s_0.Length is < 0 or > 15)
+            {
+                goto end;
+            }
+
+            if (s_0.SequenceEqual("OgForliksraadet"u8))
+            {
+                role = GuardianshipRoles.Namsmannen.TvangsfullbyrdelseHerunderBehandlingIForliksrådet;
+                return true;
+            }
+
+            if (s_0.Length == 0)
+            {
+                role = null;
+                return true;
+            }
+
+            goto end;
         }
 
         end:
@@ -1087,7 +1172,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindNavRoleByNprValue(
         ReadOnlySpan<char> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.Length is < 6 or > 16)
@@ -1132,7 +1217,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindNavRoleByNprValue(
         ReadOnlySpan<byte> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.Length is < 6 or > 16)
@@ -1177,7 +1262,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindPasientreiserRoleByNprValue(
         ReadOnlySpan<char> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.SequenceEqual("refusjonAvPasientreiser"))
@@ -1193,7 +1278,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindPasientreiserRoleByNprValue(
         ReadOnlySpan<byte> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.SequenceEqual("refusjonAvPasientreiser"u8))
@@ -1209,10 +1294,10 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindSkatteetatenRoleByNprValue(
         ReadOnlySpan<char> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.Length is < 5 or > 28)
+        if (s.Length is < 5 or > 30)
         {
             goto end;
         }
@@ -1221,6 +1306,29 @@ internal static partial class GuardianshipRoleMapper
         {
             role = GuardianshipRoles.Skatteetaten.Skatt;
             return true;
+        }
+
+        if (s.StartsWith("innkreving"))
+        {
+            var s_0 = s.Slice(10);
+            if (s_0.Length is < 0 or > 20)
+            {
+                goto end;
+            }
+
+            if (s_0.SequenceEqual("OgTvangsfullbyrdelse"))
+            {
+                role = GuardianshipRoles.Skatteetaten.InnkrevingOgTvangsfullbyrdelse;
+                return true;
+            }
+
+            if (s_0.Length == 0)
+            {
+                role = null;
+                return true;
+            }
+
+            goto end;
         }
 
         if (s.SequenceEqual("meldeFlytting"))
@@ -1235,12 +1343,6 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        if (s.SequenceEqual("innkrevingTvangsfullbyrdelse"))
-        {
-            role = GuardianshipRoles.Skatteetaten.InnkrevingOgTvangsfullbyrdelse;
-            return true;
-        }
-
         end:
         role = null;
         return false;
@@ -1248,10 +1350,10 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindSkatteetatenRoleByNprValue(
         ReadOnlySpan<byte> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.Length is < 5 or > 28)
+        if (s.Length is < 5 or > 30)
         {
             goto end;
         }
@@ -1260,6 +1362,29 @@ internal static partial class GuardianshipRoleMapper
         {
             role = GuardianshipRoles.Skatteetaten.Skatt;
             return true;
+        }
+
+        if (s.StartsWith("innkreving"u8))
+        {
+            var s_0 = s.Slice(10);
+            if (s_0.Length is < 0 or > 20)
+            {
+                goto end;
+            }
+
+            if (s_0.SequenceEqual("OgTvangsfullbyrdelse"u8))
+            {
+                role = GuardianshipRoles.Skatteetaten.InnkrevingOgTvangsfullbyrdelse;
+                return true;
+            }
+
+            if (s_0.Length == 0)
+            {
+                role = null;
+                return true;
+            }
+
+            goto end;
         }
 
         if (s.SequenceEqual("meldeFlytting"u8))
@@ -1274,12 +1399,6 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        if (s.SequenceEqual("innkrevingTvangsfullbyrdelse"u8))
-        {
-            role = GuardianshipRoles.Skatteetaten.InnkrevingOgTvangsfullbyrdelse;
-            return true;
-        }
-
         end:
         role = null;
         return false;
@@ -1287,7 +1406,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindStatsforvalterRoleByNprValue(
         ReadOnlySpan<char> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.SequenceEqual("soekeOmSamtykkeTilDisposisjon"))
@@ -1303,7 +1422,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindStatsforvalterRoleByNprValue(
         ReadOnlySpan<byte> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.SequenceEqual("soekeOmSamtykkeTilDisposisjon"u8))
@@ -1319,7 +1438,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindTingrettenRoleByNprValue(
         ReadOnlySpan<char> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.Length is < 15 or > 25)
@@ -1363,7 +1482,7 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindTingrettenRoleByNprValue(
         ReadOnlySpan<byte> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
         if (s.Length is < 15 or > 25)
@@ -1407,11 +1526,34 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindØvrigeRoleByNprValue(
         ReadOnlySpan<char> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.Length is < 27 or > 36)
+        if (s.Length is < 20 or > 36)
         {
+            goto end;
+        }
+
+        if (s.StartsWith("av"))
+        {
+            var s_0 = s.Slice(2);
+            if (s_0.Length is < 18 or > 27)
+            {
+                goto end;
+            }
+
+            if (s_0.SequenceEqual("talerOgRettigheter"))
+            {
+                role = null;
+                return true;
+            }
+
+            if (s_0.SequenceEqual("slutningAvHusleiekontrakter"))
+            {
+                role = GuardianshipRoles.Øvrige.AvslutningAvHusleiekontrakter;
+                return true;
+            }
+
             goto end;
         }
 
@@ -1433,12 +1575,6 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        if (s.SequenceEqual("avslutningAvHusleiekontrakter"))
-        {
-            role = GuardianshipRoles.Øvrige.AvslutningAvHusleiekontrakter;
-            return true;
-        }
-
         if (s.SequenceEqual("disponereInntekterTilAaDekkeUtgifter"))
         {
             role = GuardianshipRoles.Øvrige.DisponereInntekterTilÅDekkeUtgifter;
@@ -1452,11 +1588,34 @@ internal static partial class GuardianshipRoleMapper
 
     private static bool TryFindØvrigeRoleByNprValue(
         ReadOnlySpan<byte> vergeTjenesteoppgave,
-        [NotNullWhen(true)] out ExternalRoleReference? role)
+        out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.Length is < 27 or > 36)
+        if (s.Length is < 20 or > 36)
         {
+            goto end;
+        }
+
+        if (s.StartsWith("av"u8))
+        {
+            var s_0 = s.Slice(2);
+            if (s_0.Length is < 18 or > 27)
+            {
+                goto end;
+            }
+
+            if (s_0.SequenceEqual("talerOgRettigheter"u8))
+            {
+                role = null;
+                return true;
+            }
+
+            if (s_0.SequenceEqual("slutningAvHusleiekontrakter"u8))
+            {
+                role = GuardianshipRoles.Øvrige.AvslutningAvHusleiekontrakter;
+                return true;
+            }
+
             goto end;
         }
 
@@ -1478,15 +1637,41 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        if (s.SequenceEqual("avslutningAvHusleiekontrakter"u8))
-        {
-            role = GuardianshipRoles.Øvrige.AvslutningAvHusleiekontrakter;
-            return true;
-        }
-
         if (s.SequenceEqual("disponereInntekterTilAaDekkeUtgifter"u8))
         {
             role = GuardianshipRoles.Øvrige.DisponereInntekterTilÅDekkeUtgifter;
+            return true;
+        }
+
+        end:
+        role = null;
+        return false;
+    }
+
+    private static bool TryFindStatensInnkrevingssentralRoleByNprValue(
+        ReadOnlySpan<char> vergeTjenesteoppgave,
+        out ExternalRoleReference? role)
+    {
+        var s = vergeTjenesteoppgave;
+        if (s.SequenceEqual("gjeldsordningOgBetalingsavtaler"))
+        {
+            role = null;
+            return true;
+        }
+
+        end:
+        role = null;
+        return false;
+    }
+
+    private static bool TryFindStatensInnkrevingssentralRoleByNprValue(
+        ReadOnlySpan<byte> vergeTjenesteoppgave,
+        out ExternalRoleReference? role)
+    {
+        var s = vergeTjenesteoppgave;
+        if (s.SequenceEqual("gjeldsordningOgBetalingsavtaler"u8))
+        {
+            role = null;
             return true;
         }
 

@@ -1,4 +1,8 @@
-import { getAreas, type GuardianshipArea } from "./lib/guardianships.mts";
+import {
+  getAreas,
+  type CurrentGuardianshipDefinition,
+  type GuardianshipArea,
+} from "./lib/guardianships.mts";
 import { type TrieNode } from "./lib/trie.mts";
 
 const { map: areas, trie: tries } = await getAreas();
@@ -21,13 +25,17 @@ function* indent(
 
 function* areaRoleProperties(area: GuardianshipArea): Iterable<string> {
   let first = true;
-  for (const task of area.tasks.values()) {
+  for (const task of area.tasks
+    .values()
+    .filter((task) => !task.guardianship.expired)) {
+    const guardianship = task.guardianship as CurrentGuardianshipDefinition;
+
     if (first) first = false;
     else yield ``;
 
-    yield `/// <summary>${task.guardianship.description.nb}</summary>`;
+    yield `/// <summary>${guardianship.description.nb}</summary>`;
     yield `public static ExternalRoleReference ${task.identifier} { get; } = new(ExternalRoleSource.CivilRightsAuthority, "${
-      task.guardianship.identifier
+      guardianship.identifier
     }");`;
   }
 }
@@ -111,11 +119,12 @@ function* tryFind(): Iterable<string> {
   yield `/// <param name="vergeTjenestevirksomhet">The NPR value for the guardianship area.</param>`;
   yield `/// <param name="vergeTjenesteoppgave">The NPR value for the guardianship task.</param>`;
   yield `/// <param name="role">The found role, if any.</param>`;
+  yield `/// <remarks>If the role is expired, <see langword="null"/> is returned.</remarks>`;
   yield `/// <returns><see langword="true"/> if a role was found; otherwise, <see langword="false"/>.</returns>`;
   yield `public static bool TryFindRoleByNprValues(`;
   yield ind(`ReadOnlySpan<char> vergeTjenestevirksomhet,`);
   yield ind(`ReadOnlySpan<char> vergeTjenesteoppgave,`);
-  yield ind(`[NotNullWhen(true)] out ExternalRoleReference? role)`);
+  yield ind(`out ExternalRoleReference? role)`);
   yield `{`;
   yield ind(`var s = vergeTjenestevirksomhet;`);
   yield* indent(
@@ -135,11 +144,12 @@ function* tryFind(): Iterable<string> {
   yield `/// <param name="vergeTjenestevirksomhet">The NPR value for the guardianship area.</param>`;
   yield `/// <param name="vergeTjenesteoppgave">The NPR value for the guardianship task.</param>`;
   yield `/// <param name="role">The found role, if any.</param>`;
+  yield `/// <remarks>If the role is expired, <see langword="null"/> is returned.</remarks>`;
   yield `/// <returns><see langword="true"/> if a role was found; otherwise, <see langword="false"/>.</returns>`;
   yield `public static bool TryFindRoleByNprValues(`;
   yield ind(`ReadOnlySpan<byte> vergeTjenestevirksomhet,`);
   yield ind(`ReadOnlySpan<byte> vergeTjenesteoppgave,`);
-  yield ind(`[NotNullWhen(true)] out ExternalRoleReference? role)`);
+  yield ind(`out ExternalRoleReference? role)`);
   yield `{`;
   yield ind(`var s = vergeTjenestevirksomhet;`);
   yield* indent(
@@ -163,14 +173,18 @@ function* tryFind(): Iterable<string> {
     yield ``;
     yield `private static bool TryFind${area.identifier}RoleByNprValue(`;
     yield ind(`ReadOnlySpan<char> vergeTjenesteoppgave,`);
-    yield ind(`[NotNullWhen(true)] out ExternalRoleReference? role)`);
+    yield ind(`out ExternalRoleReference? role)`);
     yield `{`;
     yield ind(`var s = vergeTjenesteoppgave;`);
     yield* indent(
       trieMatch(area.trie, `s`, function* (match) {
-        yield `role = GuardianshipRoles.${
-          area.identifier
-        }.${match.codeIdentifiers.task};`;
+        if (match.expired) {
+          yield `role = null;`;
+        } else {
+          yield `role = GuardianshipRoles.${
+            area.identifier
+          }.${match.codeIdentifiers.task};`;
+        }
         yield `return true;`;
       }),
     );
@@ -184,7 +198,7 @@ function* tryFind(): Iterable<string> {
     yield ``;
     yield `private static bool TryFind${area.identifier}RoleByNprValue(`;
     yield ind(`ReadOnlySpan<byte> vergeTjenesteoppgave,`);
-    yield ind(`[NotNullWhen(true)] out ExternalRoleReference? role)`);
+    yield ind(`out ExternalRoleReference? role)`);
     yield `{`;
     yield ind(`var s = vergeTjenesteoppgave;`);
     yield* indent(
@@ -192,7 +206,13 @@ function* tryFind(): Iterable<string> {
         area.trie,
         `s`,
         function* (match) {
-          yield `role = GuardianshipRoles.${area.identifier}.${match.codeIdentifiers.task};`;
+          if (match.expired) {
+            yield `role = null;`;
+          } else {
+            yield `role = GuardianshipRoles.${
+              area.identifier
+            }.${match.codeIdentifiers.task};`;
+          }
           yield `return true;`;
         },
         true,

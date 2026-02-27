@@ -54,6 +54,10 @@
           {
             "vergeTjenestevirksomhet": "oevrige",
             "vergeTjenesteoppgave": "avslutningAvHusleiekontrakter"
+          },
+          {
+            "vergeTjenestevirksomhet": "bank",
+            "vergeTjenesteoppgave": "selgeAksjerOgVerdipapirer"
           }
         ]
       }
