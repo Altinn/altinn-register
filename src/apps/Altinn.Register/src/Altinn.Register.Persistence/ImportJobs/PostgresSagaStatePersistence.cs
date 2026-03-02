@@ -31,13 +31,6 @@ internal sealed class PostgresSagaStatePersistence
         NewLine = _options.NewLine,
     };
 
-    private static readonly JsonReaderOptions _readerOptions = new JsonReaderOptions
-    {
-        AllowTrailingCommas = _options.AllowTrailingCommas,
-        CommentHandling = _options.ReadCommentHandling,
-        MaxDepth = _options.MaxDepth,
-    };
-
     private readonly IUnitOfWorkHandle _handle;
     private readonly NpgsqlConnection _connection;
     private readonly TimeProvider _timeProvider;
@@ -61,7 +54,7 @@ internal sealed class PostgresSagaStatePersistence
     {
         const string QUERY =
             /*strpsql*/"""
-            SELECT s.*
+            SELECT s.status, s.state_type, s.message_ids, s.state_value
             FROM  register.saga_state s
             WHERE s.id = @id
             FOR NO KEY UPDATE
@@ -75,7 +68,7 @@ internal sealed class PostgresSagaStatePersistence
 
         await cmd.PrepareAsync(cancellationToken);
 
-        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SequentialAccess | CommandBehavior.SingleResult | CommandBehavior.SingleRow, cancellationToken);
         if (!await reader.ReadAsync(cancellationToken))
         {
             return new(sagaId, SagaStatus.InProgress, null, []);
@@ -86,10 +79,7 @@ internal sealed class PostgresSagaStatePersistence
         var messages = await reader.GetFieldValueAsync<Guid[]>("message_ids", cancellationToken);
         await using var stream = await reader.GetFieldValueAsync<Stream>("state_value", cancellationToken);
 
-        using var seq = new Sequence<byte>(arrayPool: ArrayPool<byte>.Shared);
-        await stream.CopyToAsync(seq.AsStream(), cancellationToken);
-
-        return ReadFrom<T>(seq.AsReadOnlySequence, type) switch
+        return await ReadFrom<T>(stream, type, cancellationToken) switch
         {
             null => throw new InvalidOperationException($"State in database is not deserializable to saga state of type '{typeof(T)}'"),
             T state => new(sagaId, status, state, messages),
@@ -201,29 +191,19 @@ internal sealed class PostgresSagaStatePersistence
         writer.Flush();
     }
 
-    private static T? ReadFrom<T>(ReadOnlySequence<byte> seq, string stateType)
+    private static ValueTask<T?> ReadFrom<T>(Stream stream, string stateType, CancellationToken cancellationToken)
         where T : class, ISagaStateData<T>
     {
-        if (seq.Length <= 0)
-        {
-            return default;
-        }
-
-        var versionByte = seq.First.Span[0];
-        seq = seq.Slice(1);
-
+        var versionByte = stream.ReadByte();
         return versionByte switch
         {
-            1 => ReadFromV1<T>(seq, stateType),
-            _ => ThrowHelper.ThrowNotSupportedException<T?>($"Unsupported JSONB version byte received: {versionByte}"),
+            -1 => ValueTask.FromResult<T?>(default),
+            1 => ReadFromV1<T>(stream, stateType, cancellationToken),
+            _ => ThrowHelper.ThrowNotSupportedException<ValueTask<T?>>($"Unsupported JSONB version byte received: {versionByte}"),
         };
     }
 
-    private static T? ReadFromV1<T>(ReadOnlySequence<byte> seq, string stateType)
+    private static ValueTask<T?> ReadFromV1<T>(Stream stream, string stateType, CancellationToken cancellationToken)
         where T : ISagaStateData<T>
-    {
-        var reader = new Utf8JsonReader(seq, _readerOptions);
-
-        return T.Read(ref reader, stateType, _options);
-    }
+        => T.ReadAsync(stream, stateType, _options, cancellationToken);
 }
