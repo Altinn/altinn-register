@@ -43,7 +43,7 @@ BEGIN
   NEW.version_id = nextval('register.party_version_id_seq');
   RETURN NEW;
 END
-$BODY$ 
+$BODY$
 LANGUAGE plpgsql;
 
 CREATE TRIGGER update_party_version_id

@@ -64,10 +64,10 @@ public abstract class JobRegistration(
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <remarks>
     /// Enabled runs in singleton scope, so it should not resolve scoped services. Should never throw.
-    /// 
+    ///
     /// Note: this is an earlier check than <see cref="IJob.ShouldRun(CancellationToken)"/>, which
     /// technically runs in the scope of the job itself. This means that if this returns <see langword="false"/>,
-    /// the job will not be created or run at all, and the job's <see cref="IJob.ShouldRun(CancellationToken)"/> 
+    /// the job will not be created or run at all, and the job's <see cref="IJob.ShouldRun(CancellationToken)"/>
     /// method will not be called. <see cref="Enabled(IServiceProvider, CancellationToken)"/> is typically used to
     /// check if the job is enabled based on configuration or other conditions that do not require the job to be
     /// instantiated.

@@ -337,4 +337,3 @@ INSERT INTO register.party_source_ref(party_uuid, "source", source_identifier, s
 INSERT INTO register.party_source_ref(party_uuid, "source", source_identifier, source_created, source_updated)
   VALUES ('90eee4e8-7b0f-4c77-a060-e18f9468c86a'::uuid, 'npr'::register.party_source, '11865698080', '2024-08-14 12:47:22.633017+02', '2024-08-14 13:23:09.237844+02'),
 ('4ae36f79-d8f2-4cf3-baf1-03178a28e77b'::uuid, 'npr'::register.party_source, '24124400860', '2024-08-14 12:47:22.634674+02', '2024-08-14 13:23:09.239608+02');
-

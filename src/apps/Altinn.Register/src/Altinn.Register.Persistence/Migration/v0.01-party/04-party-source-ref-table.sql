@@ -8,4 +8,3 @@ CREATE TABLE register.party_source_ref(
   PRIMARY KEY (party_uuid, source, source_identifier)
 )
 TABLESPACE pg_default;
-

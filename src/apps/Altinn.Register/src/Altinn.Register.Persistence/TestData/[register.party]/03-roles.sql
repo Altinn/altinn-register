@@ -241,4 +241,3 @@ INSERT INTO register.external_role_assignment("source", identifier, from_party, 
 ('ccr'::register.external_role_source, 'hovedenhet'::register.identifier, 'c9a9cf08-03fe-4d5b-91dc-63c561de9356'::uuid, '0eb8bdbd-6881-41dc-bf19-cc2f52b4864c'::uuid),
 ('ccr'::register.external_role_source, 'hovedenhet'::register.identifier, '5a051ad0-faa8-44e1-a572-ef4c3ef3e870'::uuid, 'a5750a4c-5528-485f-9f6c-466e80871f16'::uuid),
 ('ccr'::register.external_role_source, 'hovedenhet'::register.identifier, '1ce4a0a9-dbb4-4d53-8997-d435de4531fa'::uuid, 'a5750a4c-5528-485f-9f6c-466e80871f16'::uuid);
-

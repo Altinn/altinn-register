@@ -7,4 +7,3 @@ CREATE TABLE register.external_role_definition(
   PRIMARY KEY (source, identifier)
 )
 TABLESPACE pg_default;
-

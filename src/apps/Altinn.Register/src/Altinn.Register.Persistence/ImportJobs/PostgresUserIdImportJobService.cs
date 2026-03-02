@@ -42,10 +42,10 @@ internal partial class PostgresUserIdImportJobService
         const string QUERY =
             /*strpsql*/"""
             SELECT p."uuid", p."party_type"
-            FROM register.party p 
-            LEFT JOIN register."user" u 
-               ON  u."uuid" = p."uuid" 
-              AND u.is_active 
+            FROM register.party p
+            LEFT JOIN register."user" u
+               ON  u."uuid" = p."uuid"
+              AND u.is_active
             LEFT JOIN register.import_job_party_state s
                ON  s.party_uuid = p."uuid"
               AND s.job_id = @jobId

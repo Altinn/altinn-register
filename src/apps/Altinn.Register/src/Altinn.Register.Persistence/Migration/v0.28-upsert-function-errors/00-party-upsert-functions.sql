@@ -23,7 +23,7 @@ BEGIN
     INSERT INTO register.user (uuid, user_id, is_active)
     VALUES (p_uuid, p_active_user_id, TRUE)
     RETURNING * INTO db_active_user;
-  
+
   ELSE
     -- Validate that the user_id is not updated to a different value
     IF db_active_user.user_id <> p_active_user_id THEN
@@ -34,7 +34,7 @@ BEGIN
             , COLUMN = 'user_id';
     END IF;
   END IF;
-  
+
   -- If we have historical user ids, insert them as inactive
   IF array_length(p_inactive_user_ids, 1) IS NOT NULL THEN
     -- note: p_inactive_user_ids should never be long, and as such we're fine with using slower loops here
@@ -49,7 +49,7 @@ BEGIN
         -- ID not in use, insert it as inactive
         INSERT INTO register.user (uuid, user_id, is_active)
         VALUES (p_uuid, p_loop_user_id, FALSE);
-      
+
       ELSIF p_other_uuid <> p_uuid THEN
         -- ID in use, but not by this party. Raise an error.
         RAISE EXCEPTION 'User ID % is already in use by another party %', p_loop_user_id, p_other_uuid

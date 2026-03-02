@@ -442,7 +442,7 @@ public readonly record struct ByteSize
 
     #endregion
 
-    #region Parsing 
+    #region Parsing
 
     /// <inheritdoc/>
     static ByteSize INumberBase<ByteSize>.Parse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider)

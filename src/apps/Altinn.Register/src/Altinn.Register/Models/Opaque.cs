@@ -34,8 +34,8 @@ public static partial class Opaque
     /// </summary>
     /// <param name="opaqueType">The <see cref="Opaque{T}"/> type.</param>
     /// <returns>
-    /// The type argument of the <paramref name="opaqueType"/> parameter, 
-    /// if the <paramref name="opaqueType"/> is a closed generic request 
+    /// The type argument of the <paramref name="opaqueType"/> parameter,
+    /// if the <paramref name="opaqueType"/> is a closed generic request
     /// opaque type, otherwise <see langword="null"/>.
     /// </returns>
     public static Type? GetUnderlyingType(Type opaqueType)

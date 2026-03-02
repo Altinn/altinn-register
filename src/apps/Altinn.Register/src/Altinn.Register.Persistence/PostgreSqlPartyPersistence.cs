@@ -593,7 +593,7 @@ internal partial class PostgreSqlPartyPersistence
             WITH maxval AS (
                 SELECT register.tx_max_safeval('register.external_role_assignment_event_id_seq') maxval
             )
-            SELECT 
+            SELECT
                 "id",
                 "type",
                 "source",
@@ -729,7 +729,7 @@ internal partial class PostgreSqlPartyPersistence
     {
         private const string QUERY =
             /*strpsql*/"""
-                SELECT 
+                SELECT
                     "version_id",
                     "type",
                     "identifier",

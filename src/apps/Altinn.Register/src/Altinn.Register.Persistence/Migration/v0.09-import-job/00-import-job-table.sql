@@ -11,4 +11,3 @@ CREATE TABLE register.import_job(
   CONSTRAINT processed_max_positive CHECK (processed_max >= 0)
 )
 TABLESPACE pg_default;
-

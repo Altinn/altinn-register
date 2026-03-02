@@ -19,4 +19,3 @@ CREATE UNIQUE INDEX uq_party_id ON register.party(id) INCLUDE (uuid, id, party_t
 CREATE UNIQUE INDEX uq_person_identifier ON register.party(person_identifier) INCLUDE (uuid, id, party_type, name, person_identifier, organization_identifier) TABLESPACE pg_default;
 
 CREATE UNIQUE INDEX uq_organization_identifier ON register.party(organization_identifier) INCLUDE (uuid, id, party_type, name, person_identifier, organization_identifier) TABLESPACE pg_default;
-

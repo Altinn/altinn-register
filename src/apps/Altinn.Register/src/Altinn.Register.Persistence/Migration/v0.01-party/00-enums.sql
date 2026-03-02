@@ -9,4 +9,3 @@ CREATE TYPE register.party_source AS ENUM(
   'folkeregistered',
   'enhetsregisteret'
 );
-

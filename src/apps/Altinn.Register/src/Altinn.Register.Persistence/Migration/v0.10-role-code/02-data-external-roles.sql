@@ -174,4 +174,3 @@ INSERT INTO register.external_role_definition(source, identifier, code, name, de
 
 INSERT INTO register.external_role_definition(source, identifier, code, name, description)
   VALUES ('ccr'::register.party_source, 'ados'::register.identifier, 'ADOS', 'en=>"Administrative unit - public sector", nb=>"Administrativ enhet - offentlig sektor", nn=>"Administrativ eining - offentleg sektor"'::register.translated_text, 'en=>"Administrative unit - public sector", nb=>"Administrativ enhet - offentlig sektor", nn=>"Administrativ eining - offentleg sektor"'::register.translated_text);
-

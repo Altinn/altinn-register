@@ -11,4 +11,3 @@
 CREATE INDEX party_source_ref_party_uuid_idx ON register.party_source_ref(party_uuid);
 
 CREATE INDEX party_source_ref_source_id_idx ON register.party_source_ref(source, source_identifier);
-

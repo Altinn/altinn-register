@@ -34,7 +34,7 @@ BEGIN
     IF NOT s_is_deleted THEN
       p_is_deleted := FALSE;
     END IF;
-    
+
     IF NOT s_owner THEN
       p_owner := NULL;
     END IF;

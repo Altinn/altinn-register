@@ -40,7 +40,7 @@ BEGIN
     IF NOT s_deleted_at THEN
       p_deleted_at := NULL;
     END IF;
-    
+
     IF NOT s_owner THEN
       p_owner := NULL;
     END IF;

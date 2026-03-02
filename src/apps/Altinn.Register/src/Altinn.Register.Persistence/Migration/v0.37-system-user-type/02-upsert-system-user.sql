@@ -68,7 +68,7 @@ BEGIN
     INSERT INTO register."system_user" ("uuid", "type")
     VALUES (p_uuid, p_system_user_type)
     RETURNING * INTO o_system_user;
-  
+
   ELSE
     -- Update the system_user
     UPDATE register."system_user" u
