@@ -91,7 +91,7 @@ BEGIN
     INSERT INTO register."self_identified_user" ("uuid", "type", "email")
     VALUES (p_uuid, p_self_identified_user_type, p_self_identified_email)
     RETURNING * INTO o_self_identified_user;
-  
+
   ELSE
     -- Validate that the updated party does not modify any immutable fields
     IF o_self_identified_user."type" <> p_self_identified_user_type THEN

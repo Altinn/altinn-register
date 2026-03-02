@@ -13,4 +13,3 @@ CREATE TYPE register._address AS (
 -- Domain: register.address
 -- No checks at this time, but create a domain so they can be added later
 CREATE DOMAIN register.address AS register._address;
-

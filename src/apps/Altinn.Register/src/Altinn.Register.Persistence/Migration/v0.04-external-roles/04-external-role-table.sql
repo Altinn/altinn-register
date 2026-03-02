@@ -8,4 +8,3 @@ CREATE TABLE register.external_role(
   FOREIGN KEY (source, identifier) REFERENCES register.external_role_definition(source, identifier) ON DELETE CASCADE ON UPDATE CASCADE
 )
 TABLESPACE pg_default;
-

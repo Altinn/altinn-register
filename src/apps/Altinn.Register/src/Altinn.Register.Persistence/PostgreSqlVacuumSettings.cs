@@ -16,7 +16,7 @@ internal readonly record struct PostgreSqlVacuumSettings
     public bool? Full { get; init; }
 
     /// <summary>
-    /// Selects aggressive “freezing” of tuples. 
+    /// Selects aggressive “freezing” of tuples.
     /// </summary>
     public bool? Freeze { get; init; }
 
@@ -52,7 +52,7 @@ internal readonly record struct PostgreSqlVacuumSettings
     /// The default is AUTO, which allows VACUUM to skip index vacuuming when appropriate. If INDEX_CLEANUP is set to ON,
     /// VACUUM will conservatively remove all dead tuples from indexes. This may be useful for backwards compatibility with
     /// earlier releases of PostgreSQL where this was the standard behavior.
-    /// 
+    ///
     /// This option has no effect for tables that have no index and is ignored if the FULL option is used. It also has no effect
     /// on the transaction ID wraparound failsafe mechanism. When triggered it will skip index vacuuming, even when INDEX_CLEANUP
     /// is set to ON.

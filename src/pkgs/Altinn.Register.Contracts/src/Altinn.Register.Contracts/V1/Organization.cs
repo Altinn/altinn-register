@@ -51,12 +51,12 @@ public record Organization
     public string? MailingAddress { get; set; }
 
     /// <summary>
-    /// Gets or sets the mailing postal code 
+    /// Gets or sets the mailing postal code
     /// </summary>
     public string? MailingPostalCode { get; set; }
 
     /// <summary>
-    /// Gets or sets the mailing postal city 
+    /// Gets or sets the mailing postal city
     /// </summary>
     public string? MailingPostalCity { get; set; }
 

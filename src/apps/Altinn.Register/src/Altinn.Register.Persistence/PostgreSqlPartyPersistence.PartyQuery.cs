@@ -957,7 +957,7 @@ internal partial class PostgreSqlPartyPersistence
                             NULL::uuid AS sort_second
                         FROM top_level_uuids
                         UNION
-                        SELECT 
+                        SELECT
                             child_uuid AS "uuid",
                             parent_uuid,
                             parent_version_id AS sort_first,

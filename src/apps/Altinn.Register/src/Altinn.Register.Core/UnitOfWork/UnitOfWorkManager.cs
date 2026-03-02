@@ -349,7 +349,7 @@ internal class UnitOfWorkManager
                         ThrowHelper.ThrowInvalidOperationException(
                             $"""
                             The unit of work has been completed.
-                            
+
                             ==================================================
                             The unit of work was closed at: {_closedStackTrace}.
 

@@ -611,7 +611,7 @@ public class RecurringJobHostedServiceTests
                     var timeProvider = services.GetRequiredService<FakeTimeProvider>();
 
                     counter.Increment();
-                    
+
                     // this job took 10 minutes
                     timeProvider.Advance(TimeSpan.FromMinutes(10));
 

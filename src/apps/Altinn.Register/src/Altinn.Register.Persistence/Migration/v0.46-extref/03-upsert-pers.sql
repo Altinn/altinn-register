@@ -84,7 +84,7 @@ BEGIN
     INSERT INTO register.person ("uuid", first_name, middle_name, last_name, short_name, date_of_birth, date_of_death, address, mailing_address)
     VALUES (p_uuid, p_first_name, p_middle_name, p_last_name, p_short_name, p_date_of_birth, p_date_of_death, p_address, p_mailing_address)
     RETURNING * INTO o_pers;
-  
+
   ELSE
     -- Update the person
     UPDATE register.person p

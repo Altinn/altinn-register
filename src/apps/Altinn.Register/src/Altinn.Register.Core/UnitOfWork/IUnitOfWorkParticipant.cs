@@ -17,7 +17,7 @@ public interface IUnitOfWorkParticipant
     /// </summary>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <remarks>
-    /// This is also performed by calling <see cref="IAsyncDisposable.DisposeAsync"/> 
+    /// This is also performed by calling <see cref="IAsyncDisposable.DisposeAsync"/>
     /// if the unit of work has not already been committed or rolled back.
     /// </remarks>
     ValueTask RollbackAsync(CancellationToken cancellationToken = default);

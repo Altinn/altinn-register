@@ -76,7 +76,7 @@ BEGIN
     INSERT INTO register.organization ("uuid", unit_status, unit_type, telephone_number, mobile_number, fax_number, email_address, internet_address, mailing_address, business_address)
     VALUES (p_uuid, p_unit_status, p_unit_type, p_telephone_number, p_mobile_number, p_fax_number, p_email_address, p_internet_address, p_mailing_address, p_business_address)
     RETURNING * INTO o_org;
-  
+
   ELSE
     -- Update the organization
     UPDATE register.organization o

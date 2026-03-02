@@ -5,4 +5,3 @@ CREATE TABLE register.lease(
   expires timestamp with time zone NOT NULL
 )
 TABLESPACE pg_default;
-

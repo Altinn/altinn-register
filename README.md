@@ -1,6 +1,6 @@
 # Altinn Register
 
-> [!NOTE]  
+> [!NOTE]
 > This repository contains files with long file-names, that may fail to clone on Windows. In order to fix this, run the following command to configure git to allow for long paths on Windows:
 >
 > ```bash

@@ -4,7 +4,7 @@ BEGIN
   NEW.version_id = register.tx_nextval('register.party_version_id_seq');
   RETURN NEW;
 END
-$BODY$ 
+$BODY$
 LANGUAGE plpgsql;
 
 ALTER TABLE register.party

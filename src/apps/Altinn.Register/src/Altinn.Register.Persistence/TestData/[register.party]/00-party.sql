@@ -337,4 +337,3 @@ INSERT INTO register.party(uuid, id, party_type, display_name, person_identifier
 INSERT INTO register.party(uuid, id, party_type, display_name, person_identifier, organization_identifier, created, updated)
   VALUES ('55dac0c1-951c-4f3f-97fc-0f6800cc6cd6'::uuid, 50020357, 'person'::register.party_type, 'TOFT JOHN', '31083500142', NULL, '2024-08-14 12:39:15.503145+02', '2024-08-14 13:23:09.228429+02'),
 ('d57748bb-a84b-4c23-9fd6-51846cccc22c'::uuid, 50020882, 'person'::register.party_type, 'BACKE MAY', '09033700870', NULL, '2024-08-14 12:39:15.503961+02', '2024-08-14 13:23:09.230214+02');
-

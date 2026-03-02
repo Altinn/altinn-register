@@ -12,4 +12,3 @@ CREATE TABLE register.organization(
   business_address register.address
 )
 TABLESPACE pg_default;
-

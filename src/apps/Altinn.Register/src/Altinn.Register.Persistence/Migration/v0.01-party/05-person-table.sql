@@ -10,4 +10,3 @@ CREATE TABLE register.person(
   date_of_death date
 )
 TABLESPACE pg_default;
-

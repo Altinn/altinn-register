@@ -56,7 +56,7 @@ BEGIN
     UPDATE register.user u
     SET username = CASE WHEN NOT p_is_active THEN NULL
                         WHEN s_username THEN p_username
-                        ELSE u.username 
+                        ELSE u.username
                    END,
         is_active = p_is_active
     WHERE u.id = o_user.id
