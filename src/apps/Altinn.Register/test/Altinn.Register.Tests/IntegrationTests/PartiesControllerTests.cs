@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -443,30 +444,26 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
     public async Task PostPartyNamesLookup_ValidInput_NameComponents_OK(string[] socialSecurityNumbers, string nameComponentOption)
     {
         // Arrange
-        List<PartyName> testPartyNames = [];
         List<int> testPartyIds = [50012345, 50012347];
-        Dictionary<string, int> testPartyIdsBySsn = [];
+        Party[] testParties = await Task.WhenAll(testPartyIds.Select(id => TestDataLoader.Load<Party>(id.ToString())));
 
-        var loadTasks = testPartyIds.Select(async testPartyId =>
-        {
-            Party party = await TestDataLoader.Load<Party>(testPartyId.ToString());
-            testPartyIdsBySsn[party.SSN] = testPartyId;
-
-            testPartyNames.Add(new PartyName
+        Dictionary<string, int> testPartyIdsBySsn = testParties.ToDictionary(party => party.SSN, p => p.PartyId);
+        List<PartyName> testPartyNames = testParties
+            .Select(party => new PartyName
             {
                 Ssn = party.SSN,
                 Name = party.Name,
-                PersonName = party.Person != null ? new PersonNameComponents
-                {
-                    FirstName = party.Person.FirstName,
-                    MiddleName = party.Person.MiddleName,
-                    LastName = party.Person.LastName
-                }
-                : null
-            });
-        });
-
-        await Task.WhenAll(loadTasks);
+                PersonName =
+                    party.Person != null
+                    ? new PersonNameComponents
+                    {
+                        FirstName = party.Person.FirstName,
+                        MiddleName = party.Person.MiddleName,
+                        LastName = party.Person.LastName
+                    }
+                    : null
+            })
+            .ToList();
 
         PartyNamesLookupResult expectedResult = new()
         {
@@ -485,12 +482,10 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
             Parties = socialSecurityNumbers.Select(ssn => new PartyLookup { Ssn = ssn }).ToList()
         };
 
-        int sblEndpointInvoked = 0;
-        HttpRequestMessage sblRequest = null;
+        ConcurrentBag<HttpRequestMessage> sblRequests = new();
         DelegatingHandlerStub messageHandler = new(async (request, cancellationToken) =>
         {
-            sblRequest = request;
-            sblEndpointInvoked++;
+            sblRequests.Add(request);
 
             string ssn = JsonSerializer.Deserialize<string>(await request.Content!.ReadAsStringAsync(cancellationToken));
             Party matchParty = await TestDataLoader.Load<Party>(testPartyIdsBySsn[ssn].ToString());
@@ -532,10 +527,10 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         }
 
         // Assert
-        Assert.NotNull(sblRequest);
-        Assert.Equal(HttpMethod.Post, sblRequest.Method);
-        Assert.Equal(testPartyIds.Count, sblEndpointInvoked);
-        Assert.EndsWith("/lookupObject", sblRequest.RequestUri.ToString());
+        sblRequests.Should().NotBeEmpty();
+        sblRequests.Should().OnlyContain(request => request.Method == HttpMethod.Post);
+        sblRequests.Should().OnlyContain(request => request.RequestUri.OriginalString.EndsWith("/lookupObject"));
+        sblRequests.Should().HaveCount(testPartyIds.Count);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
