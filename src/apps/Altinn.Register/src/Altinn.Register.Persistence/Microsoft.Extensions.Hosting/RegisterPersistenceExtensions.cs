@@ -6,12 +6,14 @@ using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Authorization.ServiceDefaults.Npgsql.TestSeed;
 using Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql;
 using Altinn.Register.Contracts;
+using Altinn.Register.Core.CcrLog;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.Utils;
 using Altinn.Register.Persistence;
+using Altinn.Register.Persistence.CcrLog;
 using Altinn.Register.Persistence.DbArgTypes;
 using Altinn.Register.Persistence.ImportJobs;
 using Altinn.Register.Persistence.Leases;
@@ -98,6 +100,9 @@ public static class RegisterPersistenceExtensions
         builder.Services.AddScoped<PostgreSqlExternalRoleDefinitionPersistence>();
         builder.Services.AddScoped<IExternalRoleDefinitionPersistence>(static s => s.GetRequiredService<PostgreSqlExternalRoleDefinitionPersistence>());
         builder.Services.AddSingleton<IPartyPersistenceCleanupService, PartyPostgreSqlPersistenceCleanupService>();
+
+        builder.Services.AddSingleton<PostgresCcrLogWriter>();
+        builder.Services.AddSingleton<ICcrLogWriter>(static s => s.GetRequiredService<PostgresCcrLogWriter>());
 
         return builder;
     }
