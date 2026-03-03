@@ -3,8 +3,11 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Altinn.Register.Conventions;
+using Altinn.Register.Core.CcrLog;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -23,6 +26,7 @@ public class CcrController
     : ControllerBase
 {
     private readonly TimeProvider _timeProvider;
+    private readonly IConfiguration _configuration;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IServiceScopeFactory _serviceScopeFactory;
 
@@ -31,10 +35,12 @@ public class CcrController
     /// </summary>
     public CcrController(
         TimeProvider timeProvider,
+        IConfiguration configuration,
         IHttpClientFactory httpClientFactory,
         IServiceScopeFactory serviceScopeFactory)
     {
         _timeProvider = timeProvider;
+        _configuration = configuration;
         _httpClientFactory = httpClientFactory;
         _serviceScopeFactory = serviceScopeFactory;
     }
@@ -47,6 +53,7 @@ public class CcrController
     /// </remarks>
     [HttpPost("update")]
     [ApiExplorerSettings(IgnoreApi = true)]
+    [ConfigurationCondition("Altinn:register:Ccr:Update:Enabled")]
     public async Task Update(CancellationToken cancellationToken = default)
     {
         using RecordOperationState state = new(_timeProvider.GetUtcNow(), Request.GetDisplayUrl());
@@ -58,14 +65,34 @@ public class CcrController
         using var request = new HttpRequestMessage(HttpMethod.Post, "RegisterExternal/RegisterERExternalBasic.svc");
         state.WriteRequest(request);
 
+        var start = _timeProvider.GetTimestamp();
         using var response = await client.SendAsync(request, cancellationToken);
+        state.ResponseStatusCode = response.StatusCode;
         state.ReadResponseHeaders(response.Headers, response.Content.Headers);
         await state.ReadResponseBody(response.Content, cancellationToken);
+        state.Duration = _timeProvider.GetElapsedTime(start);
 
         await state.WriteResponse(Response, cancellationToken);
         await Response.CompleteAsync();
 
-        // TODO: Save state to database
+        if (_configuration.GetValue("Altinn:register:Ccr:Update:Record", defaultValue: false))
+        {
+            EnqueueRecord(state);
+        }
+    }
+
+    private void EnqueueRecord(RecordOperationState state)
+    {
+        var clone = state.MoveOwnership();
+        _ = Task.Run(async () =>
+        {
+            using var state = clone;
+            await using var scope = _serviceScopeFactory.CreateAsyncScope();
+            var recorder = scope.ServiceProvider.GetRequiredService<ICcrLogWriter>();
+            var cancellationToken = scope.ServiceProvider.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping;
+
+            await state.Record(recorder, cancellationToken);
+        });
     }
 
     private sealed class RecordOperationState(DateTimeOffset now, string url)
@@ -78,8 +105,62 @@ public class CcrController
         private Sequence<byte>? _requestHeaders;
         private Sequence<byte>? _requestBody;
 
+        private HttpStatusCode _responseStatusCode;
         private Sequence<byte>? _responseHeaders;
         private Sequence<byte>? _responseBody;
+        private TimeSpan _duration;
+
+        private RecordOperationState(RecordOperationState source)
+            : this(source._requestStart, source._requestUrl)
+        {
+            _id = source._id;
+
+            _requestHeaders = source._requestHeaders;
+            _requestBody = source._requestBody;
+
+            _responseStatusCode = source._responseStatusCode;
+            _responseHeaders = source._responseHeaders;
+            _responseBody = source._responseBody;
+            _duration = source._duration;
+        }
+
+        public RecordOperationState MoveOwnership()
+        {
+            RecordOperationState clone = new(this);
+
+            // null out the fields in the source to prevent disposal
+            _requestHeaders = null;
+            _requestBody = null;
+            _responseHeaders = null;
+            _responseBody = null;
+
+            return clone;
+        }
+
+        public Task Record(ICcrLogWriter recorder, CancellationToken cancellationToken)
+        {
+            return recorder.LogCcrSoapRequest(
+                id: _id,
+                requestStart: _requestStart,
+                requestUrl: _requestUrl,
+                requestHeaders: _requestHeaders,
+                requestBody: _requestBody,
+                responseStatusCode: _responseStatusCode,
+                responseHeaders: _responseHeaders,
+                responseBody: _responseBody,
+                duration: _duration,
+                cancellationToken: cancellationToken);
+        }
+
+        public HttpStatusCode ResponseStatusCode
+        {
+            set => _responseStatusCode = value;
+        }
+
+        public TimeSpan Duration
+        {
+            set => _duration = value;
+        }
 
         public void ReadRequestHeaders(IHeaderDictionary headers)
         {
@@ -180,10 +261,10 @@ public class CcrController
         {
             Debug.Assert(request is not null);
             Debug.Assert(_requestHeaders is not null);
-            Debug.Assert(_responseBody is not null);
+            Debug.Assert(_requestBody is not null);
 
+            request.Content = new StreamContent(_requestBody.AsReadOnlySequence.AsStream());
             WriteRequestHeaders(request, _requestHeaders);
-            throw new NotImplementedException();
         }
 
         public void Dispose()
@@ -236,6 +317,7 @@ public class CcrController
                 {
                     var value = reader.GetString()!;
                     writeHeader(target, name, value);
+                    reader.Read();
                 }
                 else
                 {
@@ -250,6 +332,7 @@ public class CcrController
                     }
 
                     writeHeader(target, name, values.ToArray());
+                    reader.Read();
                 }
             }
         }

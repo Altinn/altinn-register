@@ -6,7 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Register.Persistence.CcrLog;
-using Altinn.Register.Persistence.Tests.Utils;
+using Altinn.Register.TestsUtils.Npgsql;
 using Altinn.Register.TestUtils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
