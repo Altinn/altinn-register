@@ -55,7 +55,7 @@ public class CcrController
         await state.ReadRequestBody(Request.BodyReader, cancellationToken);
 
         using var client = _httpClientFactory.CreateClient("a2:ccr");
-        using var request = new HttpRequestMessage(HttpMethod.Post, "RegisterExternal/RegisterERExternalBasic.svc?wsdl");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "RegisterExternal/RegisterERExternalBasic.svc");
         state.WriteRequest(request);
 
         using var response = await client.SendAsync(request, cancellationToken);

@@ -186,6 +186,9 @@ internal static partial class RegisterHost
             .ConfigureBaseAddress("https://folkeregisteret/")
             .AddMaskinPortenHandler("register-freg");
 
+        services.AddHttpClient("a2:ccr")
+            .ConfigureBaseAddress("https://altinn2/");
+
         services.TryAddPlatformTokenProvider();
         if (!descriptor.IsLocalDev && !descriptor.IsTest)
         {

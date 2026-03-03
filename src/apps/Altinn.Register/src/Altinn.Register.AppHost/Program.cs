@@ -34,6 +34,7 @@ var rabbitMq = builder.AddRabbitMQ("rabbitmq", userName: rabbitMqUsername, port:
 // dependencies
 var authentication = builder.AddExternalService("altinn-authentication", $"https://platform.{authenticationEnvFragment}.altinn.cloud/");
 var freg = builder.AddExternalService("folkeregisteret", "https://folkeregisteret-api-konsument.sits.no/");
+var altinn2 = builder.AddExternalService("altinn2", $"https://{authenticationEnvFragment}.altinn.cloud/");
 
 // environment callbacks
 var configureRabbitMq = (EnvironmentCallbackContext ctx) =>
