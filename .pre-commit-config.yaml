@@ -9,3 +9,12 @@ repos:
       - id: "check-yaml"
         args: ["--allow-multiple-documents"]
       - id: "check-json"
+
+  - repo: local
+    hooks:
+      - id: "dotnet-format"
+        name: Format C#
+        entry: dotnet format
+        files: "\\.cs$"
+        language: system
+        pass_filenames: false
