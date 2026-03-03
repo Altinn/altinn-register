@@ -117,8 +117,8 @@ internal static partial class RegisterHost
             })
             .ValidateDataAnnotations();
 
-        services.AddSingleton<IAuthorizationHandler, AccessTokenHandler>();
-        services.AddScoped<IAuthorizationHandler, ScopeAccessHandler>();
+        //services.AddSingleton<IAuthorizationHandler, AccessTokenHandler>();
+        //services.AddScoped<IAuthorizationHandler, ScopeAccessHandler>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddSingleton<IPublicSigningKeyProvider, PublicSigningKeyProvider>();
 
