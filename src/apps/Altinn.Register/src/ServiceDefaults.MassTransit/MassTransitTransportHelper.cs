@@ -81,6 +81,14 @@ internal abstract partial class MassTransitTransportHelper(MassTransitSettings s
     }
 
     /// <summary>
+    /// Configures migrations to be run as part of host-init.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder"/>.</param>
+    public virtual void AddMigrations(IHostApplicationBuilder builder)
+    {
+    }
+
+    /// <summary>
     /// Configures the bus.
     /// </summary>
     /// <param name="configurator">The bus configurator.</param>

@@ -28,18 +28,7 @@ internal abstract partial class MassTransitTransportHelper
             var descriptor = builder.GetAltinnServiceDescriptor();
             var quartzSchema = builder.Configuration.GetValue($"Altinn:MassTransit:{descriptor.Name}:Quartz:Schema", defaultValue: $"{descriptor.Name}_quartz")!;
             var connectionString = builder.Configuration.GetValue<string>($"Altinn:Npgsql:{descriptor.Name}:ConnectionString");
-            var yuniqlSchema = builder.Configuration.GetValue($"Altinn:Npgsql:{descriptor.Name}:Yuniql:MigrationsTable:Schema", defaultValue: "yuniql");
-            var yuniqlTable = builder.Configuration.GetValue($"Altinn:Npgsql:{descriptor.Name}:Yuniql:MigrationsTable:QuartzTable", defaultValue: $"{descriptor.Name}_quartz_migrations");
-            var migrationsFs = new ManifestEmbeddedFileProvider(typeof(MassTransitTransportHelper).Assembly, "Migration");
-
-            builder.AddAltinnPostgresDataSource()
-                .AddYuniqlMigrations(typeof(MassTransitTransportHelper), y =>
-                {
-                    y.WorkspaceFileProvider = migrationsFs;
-                    y.MigrationsTable.Schema = yuniqlSchema;
-                    y.MigrationsTable.Name = yuniqlTable;
-                    y.Tokens.Add("SCHEMA", quartzSchema);
-                });
+            AddMigrations(builder);
 
             builder.Services.AddOptions<RabbitMqTransportOptions>()
                 .Configure(options =>
@@ -73,6 +62,25 @@ internal abstract partial class MassTransitTransportHelper
             {
                 opt.WaitForJobsToComplete = true;
             });
+        }
+
+        public override void AddMigrations(IHostApplicationBuilder builder)
+        {
+            // TODO: make better
+            var descriptor = builder.GetAltinnServiceDescriptor();
+            var quartzSchema = builder.Configuration.GetValue($"Altinn:MassTransit:{descriptor.Name}:Quartz:Schema", defaultValue: $"{descriptor.Name}_quartz")!;
+            var yuniqlSchema = builder.Configuration.GetValue($"Altinn:Npgsql:{descriptor.Name}:Yuniql:MigrationsTable:Schema", defaultValue: "yuniql");
+            var yuniqlTable = builder.Configuration.GetValue($"Altinn:Npgsql:{descriptor.Name}:Yuniql:MigrationsTable:QuartzTable", defaultValue: $"{descriptor.Name}_quartz_migrations");
+            var migrationsFs = new ManifestEmbeddedFileProvider(typeof(MassTransitTransportHelper).Assembly, "Migration");
+
+            builder.AddAltinnPostgresDataSource()
+                .AddYuniqlMigrations(typeof(MassTransitTransportHelper), y =>
+                {
+                    y.WorkspaceFileProvider = migrationsFs;
+                    y.MigrationsTable.Schema = yuniqlSchema;
+                    y.MigrationsTable.Name = yuniqlTable;
+                    y.Tokens.Add("SCHEMA", quartzSchema);
+                });
         }
 
         public override void ConfigureBus(IBusRegistrationConfigurator configurator, Action<IBusRegistrationContext, IBusFactoryConfigurator> configureBus)
