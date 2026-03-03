@@ -207,12 +207,13 @@ internal static partial class RegisterHost
 
         var initOnly = config.GetValue<bool>("Altinn:RunInitOnly");
         var isTest = config.GetValue<bool>("Altinn:IsTest");
+        var mtEnabled = config.GetValue<bool>("Altinn:MassTransit:register:Enable");
         if (!initOnly && !isTest)
         {
             const string A2PartyImportJobTag = "a2-import";
             Func<IServiceProvider, CancellationToken, ValueTask> waitForBus = static (s, ct) => new ValueTask(s.GetRequiredService<IBusLifetime>().WaitForBus(ct));
 
-            if (config.GetValue<bool>("Altinn:MassTransit:register:Enable"))
+            if (mtEnabled)
             {
                 builder.AddAltinnMassTransit(
                     configureMassTransit: (cfg) =>
@@ -269,6 +270,10 @@ internal static partial class RegisterHost
                 settings.LeaseName = SagaStateCleanupJob.JobName;
                 settings.Interval = TimeSpan.FromMinutes(15);
             });
+        }
+        else if (initOnly && mtEnabled)
+        {
+            builder.AddAltinnMassTransitMigrations();
         }
 
         services.AddOpenApiExampleProvider();

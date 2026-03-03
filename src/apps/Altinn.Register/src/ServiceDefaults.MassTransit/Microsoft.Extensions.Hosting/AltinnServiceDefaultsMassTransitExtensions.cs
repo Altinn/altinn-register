@@ -22,6 +22,29 @@ public static class AltinnServiceDefaultsMassTransitExtensions
         => $"Altinn:MassTransit:{connectionName}";
 
     /// <summary>
+    /// Configures migrations to run. This is intended to be used in an init-container.
+    /// </summary>
+    /// <param name="builder">The application builder.</param>
+    public static void AddAltinnMassTransitMigrations(this IHostApplicationBuilder builder)
+    {
+        var serviceDescriptor = builder.GetAltinnServiceDescriptor();
+
+        AddAltinnMassTransitMigrations(builder, DefaultConfigSectionName(serviceDescriptor.Name), serviceDescriptor.Name);
+    }
+
+    private static void AddAltinnMassTransitMigrations(this IHostApplicationBuilder builder, string configurationSectionName, string busName)
+    {
+        Guard.IsNotNull(builder);
+
+        var configuration = builder.Configuration.GetSection(configurationSectionName);
+        MassTransitSettings settings = new();
+        configuration.Bind(settings);
+
+        MassTransitTransportHelper helper = MassTransitTransportHelper.For(settings, busName);
+        helper.AddMigrations(builder);
+    }
+
+    /// <summary>
     /// Adds MassTransit to the host.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder"/>.</param>
