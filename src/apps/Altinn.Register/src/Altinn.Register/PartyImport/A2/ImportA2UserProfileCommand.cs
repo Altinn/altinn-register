@@ -16,6 +16,11 @@ public sealed record ImportA2UserProfileCommand
     public required ulong UserId { get; init; }
 
     /// <summary>
+    /// Gets the party UUID.
+    /// </summary>
+    public required Guid PartyUuid { get; init; }
+
+    /// <summary>
     /// Gets the owner party UUID.
     /// </summary>
     public required Guid OwnerPartyUuid { get; init; }

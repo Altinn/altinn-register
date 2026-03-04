@@ -88,6 +88,7 @@ public sealed partial class A2PartyImportSaga
                   new EnrichA2PartyImportSagaCommand
                   {
                       CorrelationId = SagaId,
+                      PartyUuid = State.PartyUuid,
                   },
                   cancellationToken);
 
@@ -98,6 +99,7 @@ public sealed partial class A2PartyImportSaga
             new CompleteA2PartyImportSagaCommand
             {
                 CorrelationId = SagaId,
+                PartyUuid = State.PartyUuid,
             },
             cancellationToken);
     }

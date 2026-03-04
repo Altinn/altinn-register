@@ -10,4 +10,8 @@ namespace Altinn.Register.PartyImport.A2;
 public sealed record CompleteA2PartyImportSagaCommand
     : CommandBase
 {
+    /// <summary>
+    /// Gets the party UUID.
+    /// </summary>
+    public required Guid PartyUuid { get; init; }
 }

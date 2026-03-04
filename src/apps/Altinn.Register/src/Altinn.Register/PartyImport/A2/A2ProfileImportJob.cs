@@ -80,6 +80,7 @@ public sealed partial class A2ProfileImportJob
             var cmds = page.Select(static update => new ImportA2UserProfileCommand
             {
                 UserId = update.UserId,
+                PartyUuid = update.UserUuid,
                 OwnerPartyUuid = update.OwnerPartyUuid,
                 IsDeleted = update.IsDeleted,
                 Tracking = new(JobName, update.ChangeId),

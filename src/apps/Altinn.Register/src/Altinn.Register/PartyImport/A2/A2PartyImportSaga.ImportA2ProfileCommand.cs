@@ -16,7 +16,7 @@ public partial class A2PartyImportSaga
     public static ValueTask<A2PartyImportSagaData> CreateInitialState(IServiceProvider services, ImportA2UserProfileCommand command)
         => ValueTask.FromResult(new A2PartyImportSagaData
         {
-            PartyUuid = command.OwnerPartyUuid,
+            PartyUuid = command.PartyUuid,
             UserId = command.UserId,
             Tracking = command.Tracking,
         });
@@ -24,7 +24,7 @@ public partial class A2PartyImportSaga
     /// <inheritdoc/>
     public async Task Handle(ImportA2UserProfileCommand message, CancellationToken cancellationToken)
     {
-        Debug.Assert(message.OwnerPartyUuid == State.PartyUuid);
+        Debug.Assert(message.PartyUuid == State.PartyUuid);
 
         var now = _timeProvider.GetUtcNow();
 
