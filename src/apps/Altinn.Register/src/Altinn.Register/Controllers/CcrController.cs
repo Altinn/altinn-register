@@ -54,6 +54,7 @@ public class CcrController
     [HttpPost("update")]
     [ApiExplorerSettings(IgnoreApi = true)]
     [ConfigurationCondition("Altinn:register:Ccr:Update:Enabled")]
+    [RequestSizeLimit(50_000_000 /* 50 MB */)]
     public async Task Update(CancellationToken cancellationToken = default)
     {
         using RecordOperationState state = new(_timeProvider.GetUtcNow(), Request.GetDisplayUrl());
@@ -98,6 +99,25 @@ public class CcrController
     private sealed class RecordOperationState(DateTimeOffset now, string url)
         : IDisposable
     {
+        private static readonly SearchValues<string> UnproxiedHeaders
+            = SearchValues.Create(
+                [
+                    "connection",
+                    "keep-alive",
+                    "proxy-authenticate",
+                    "proxy-authorization",
+                    "te",
+                    "trailer",
+                    "transfer-encoding",
+                    "upgrade",
+                    "host", // re-calculated by HttpClient
+                    "content-length", // re-calculated by HttpClient
+                    "x-forwarded-for",
+                    "x-forwarded-host",
+                    "x-forwarded-proto",
+                ],
+                StringComparison.OrdinalIgnoreCase);
+
         private readonly Guid _id = Guid.CreateVersion7();
         private readonly DateTimeOffset _requestStart = now;
 
@@ -253,6 +273,7 @@ public class CcrController
             Debug.Assert(_responseHeaders is not null);
             Debug.Assert(_responseBody is not null);
 
+            response.StatusCode = (int)_responseStatusCode;
             WriteResponseHeaders(response, _responseHeaders);
             return WriteResponseBody(response.BodyWriter, _responseBody, cancellationToken);
         }
@@ -290,11 +311,19 @@ public class CcrController
 
             WriteHeaders(headers, request, static (request, name, values) =>
             {
+                if (ShouldIgnoreHeader(name))
+                {
+                    return;
+                }
+
                 if (!request.Headers.TryAddWithoutValidation(name, (IEnumerable<string>)values))
                 {
                     request.Content?.Headers.TryAddWithoutValidation(name, (IEnumerable<string>)values);
                 }
             });
+
+            static bool ShouldIgnoreHeader(string name)
+                => UnproxiedHeaders.Contains(name);
         }
 
         private static void WriteHeaders<T>(Sequence<byte> headers, T target, Action<T, string, StringValues> writeHeader)

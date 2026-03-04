@@ -1,5 +1,6 @@
 #nullable enable
 
+using CommunityToolkit.Diagnostics;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 
 namespace Altinn.Register.Conventions;
@@ -7,6 +8,7 @@ namespace Altinn.Register.Conventions;
 /// <summary>
 /// A condition that disables a controller/action if a specified configuration key is not set to true.
 /// </summary>
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
 public sealed class ConfigurationConditionAttribute
     : Attribute
     , IControllerModelCondition
@@ -20,6 +22,8 @@ public sealed class ConfigurationConditionAttribute
     /// <param name="configurationKey">The configuration key to check.</param>
     public ConfigurationConditionAttribute(string configurationKey)
     {
+        Guard.IsNotNullOrEmpty(configurationKey);
+
         _configurationKey = configurationKey;
     }
 
