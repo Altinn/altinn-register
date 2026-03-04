@@ -15,6 +15,7 @@ public partial class A2PartyImportSaga
                   new CompleteA2PartyImportSagaCommand
                   {
                       CorrelationId = SagaId,
+                      PartyUuid = State.PartyUuid,
                   },
                   cancellationToken);
             return;

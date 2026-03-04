@@ -104,6 +104,7 @@ public class PartyImportFlowTests
         var cmd = new ImportA2UserProfileCommand
         {
             UserId = oldId,
+            PartyUuid = person.PartyUuid.Value,
             OwnerPartyUuid = person.PartyUuid.Value,
             IsDeleted = true,
             Tracking = new("test", 10),
@@ -250,6 +251,7 @@ public class PartyImportFlowTests
         var cmd = new ImportA2UserProfileCommand
         {
             UserId = userId,
+            PartyUuid = person.PartyUuid.Value,
             OwnerPartyUuid = person.PartyUuid.Value,
             IsDeleted = false,
             Tracking = new("test", 10),
@@ -471,6 +473,7 @@ public class PartyImportFlowTests
         var cmd = new ImportA2UserProfileCommand
         {
             UserId = userId,
+            PartyUuid = person.PartyUuid.Value,
             OwnerPartyUuid = person.PartyUuid.Value,
             IsDeleted = false,
             Tracking = new("test", 10),
@@ -594,6 +597,7 @@ public class PartyImportFlowTests
         var cmd = new ImportA2UserProfileCommand
         {
             UserId = userId,
+            PartyUuid = person.PartyUuid.Value,
             OwnerPartyUuid = person.PartyUuid.Value,
             IsDeleted = true,
             Tracking = new("test", 10),
@@ -707,6 +711,7 @@ public class PartyImportFlowTests
         var cmd = new ImportA2UserProfileCommand
         {
             UserId = userId,
+            PartyUuid = siUser.PartyUuid.Value,
             OwnerPartyUuid = siUser.PartyUuid.Value,
             IsDeleted = false,
             Tracking = new("test", 10),
@@ -821,6 +826,7 @@ public class PartyImportFlowTests
         var cmd = new ImportA2UserProfileCommand
         {
             UserId = userId,
+            PartyUuid = siUser.PartyUuid.Value,
             OwnerPartyUuid = siUser.PartyUuid.Value,
             IsDeleted = true,
             Tracking = new("test", 10),
@@ -1151,6 +1157,7 @@ public class PartyImportFlowTests
         var cmd = new ImportA2UserProfileCommand
         {
             UserId = id,
+            PartyUuid = uuid,
             OwnerPartyUuid = org.PartyUuid.Value,
             IsDeleted = false,
             Tracking = new("test", 10),
@@ -1256,6 +1263,7 @@ public class PartyImportFlowTests
         var cmd = new ImportA2UserProfileCommand
         {
             UserId = id,
+            PartyUuid = uuid,
             OwnerPartyUuid = org.PartyUuid.Value,
             IsDeleted = true,
             Tracking = new("test", 10),
@@ -1372,6 +1380,7 @@ public class PartyImportFlowTests
         await UpsertParty(new ImportA2UserProfileCommand
         {
             UserId = siUserId,
+            PartyUuid = siUuid,
             OwnerPartyUuid = siUuid,
             IsDeleted = false,
             Tracking = new("test", 10),
@@ -1454,6 +1463,7 @@ public class PartyImportFlowTests
         await UpsertParty(new ImportA2UserProfileCommand
         {
             UserId = siUserId,
+            PartyUuid = siUuid,
             OwnerPartyUuid = siUuid,
             IsDeleted = true,
             Tracking = new("test", 11),
