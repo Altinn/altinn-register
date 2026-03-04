@@ -180,7 +180,7 @@ internal partial class PostgresImportJobTracker
             {
                 await RunInner(reader, scope.ServiceProvider, cache, cancellationToken);
             }
-            catch (OperationCanceledException e) when (e.CancellationToken == cancellationToken)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 break;
             }

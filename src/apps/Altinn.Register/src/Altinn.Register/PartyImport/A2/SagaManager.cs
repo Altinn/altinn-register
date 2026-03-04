@@ -121,7 +121,7 @@ public sealed class SagaManager
         {
             return await persistence.GetState<TState>(sagaId, tsc.Token);
         }
-        catch (OperationCanceledException ex) when (ex.CancellationToken == tsc.Token)
+        catch (OperationCanceledException ex) when (tsc.Token.IsCancellationRequested)
         {
             if (cancellationToken.IsCancellationRequested)
             {
