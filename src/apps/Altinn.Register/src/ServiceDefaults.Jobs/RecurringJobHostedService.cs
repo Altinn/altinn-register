@@ -281,7 +281,7 @@ internal sealed partial class RecurringJobHostedService
                             return JobRunResult.Skipped(name);
                         }
                     }
-                    catch (OperationCanceledException e) when (e.CancellationToken == cancellationToken)
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                     {
                         throw;
                     }
@@ -317,7 +317,7 @@ internal sealed partial class RecurringJobHostedService
                         activity?.SetStatus(ActivityStatusCode.Ok);
                         return JobRunResult.Success(name, elapsed);
                     }
-                    catch (OperationCanceledException e) when (e.CancellationToken == cancellationToken)
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                     {
                         throw;
                     }
@@ -382,7 +382,7 @@ internal sealed partial class RecurringJobHostedService
             {
                 canRun = await condition.ShouldRun(cancellationToken);
             }
-            catch (OperationCanceledException e) when (e.CancellationToken == cancellationToken)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 throw;
             }
@@ -420,7 +420,7 @@ internal sealed partial class RecurringJobHostedService
 
             return enabledResult.ShouldRun;
         }
-        catch (OperationCanceledException e) when (e.CancellationToken == cancellationToken)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }
