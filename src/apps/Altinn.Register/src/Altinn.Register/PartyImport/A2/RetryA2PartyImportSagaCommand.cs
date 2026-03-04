@@ -13,5 +13,5 @@ public sealed record RetryA2PartyImportSagaCommand
     /// <summary>
     /// Gets the party UUID.
     /// </summary>
-    public required Guid PartyUuid { get; init; }
+    public Guid? PartyUuid { get; init; }
 }
