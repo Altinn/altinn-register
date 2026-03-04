@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc.ApplicationModels;
 namespace Altinn.Register.Conventions;
 
 /// <summary>
-/// A condition that disables a controller if the application is not running in a development environment.
+/// A condition that disables a controller/action if the application is not running in a development environment.
 /// </summary>
 [ExcludeFromCodeCoverage]
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false, Inherited = true)]

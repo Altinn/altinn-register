@@ -93,6 +93,10 @@ public sealed class WebApplicationFixture
                 new("Altinn:Npgsql:register:Migrate:ConnectionString", db.MigratorConnectionString),
                 new("Altinn:Npgsql:register:Seed:ConnectionString", db.SeederConnectionString),
 
+                /* CCR */
+                new("Altinn:register:Ccr:Update:Enabled", "true"),
+                new("Altinn:register:Ccr:Update:Record", "true"),
+
                 /* Party import */
                 new("Altinn:register:PartyImport:Npr:Guardianships:Enable", "true"),
             ]);
@@ -175,6 +179,7 @@ public sealed class WebApplicationFixture
                     .PostConfigure(s => s.BridgeApiEndpoint = FakeHttpEndpoint.HttpsUri.ToString());
                 services.AddOptions<A2PartyImportSettings>()
                     .PostConfigure(s => s.BridgeApiEndpoint = FakeHttpEndpoint.HttpsUri);
+                services.AddHttpClient("a2:ccr").ConfigureBaseAddress(FakeHttpEndpoint.HttpsUri);
                 services.AddHttpClient<SystemUserImportService>().ConfigureBaseAddress(FakeHttpEndpoint.HttpsUri);
                 services.AddHttpClient<NprClient>().ConfigureBaseAddress(FakeHttpEndpoint.HttpsUri);
                 services.AddSingleton<IMaskinPortenClient, FakeMaskinPortenClient>();
