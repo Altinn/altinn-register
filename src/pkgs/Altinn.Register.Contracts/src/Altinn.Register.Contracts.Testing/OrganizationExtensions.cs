@@ -13,7 +13,7 @@ public static class OrganizationExtensions
         /// Creates a minimal "valid" organization model, with all optional fields set to <see cref="FieldValue.Unset"/>.
         /// </summary>
         /// <param name="organizationIdentifier">The organization identifier.</param>
-        /// <param name="uuid">Optional uuid for the person. If unspecified, a <see cref="Guid.NewGuid()"/> is used.</param>
+        /// <param name="uuid">Optional uuid for the organization. If unspecified, a <see cref="Guid.NewGuid()"/> is used.</param>
         /// <returns>A minimal <see cref="Organization"/>.</returns>
         public static Organization Minimal(
             OrganizationIdentifier organizationIdentifier,
