@@ -146,7 +146,7 @@ internal sealed partial class NprClient
         private bool TryReadGuardianship(ref Utf8JsonReader reader, JsonSerializerOptions options, [NotNullWhen(true)] out Guardianship? guardianship)
         {
             var dto = JsonSerializer.Deserialize<VergemaalEllerFremtidsfullmakt>(ref reader, options);
-            if (dto is null or { IsActive: false } or { Verge.Roles: not { Count: > 0 } })
+            if (dto is null or { IsActive: false } or { Verge.Roles: not { Count: > 0 } } or { Verge.PersonIdentifier: null })
             {
                 guardianship = null;
                 return false;
@@ -172,7 +172,7 @@ internal sealed partial class NprClient
         internal sealed class VergemaalEllerFremtidsfullmaktVerge
         {
             [JsonPropertyName("foedselsEllerDNummer")]
-            public required PersonIdentifier PersonIdentifier { get; init; }
+            public PersonIdentifier? PersonIdentifier { get; init; }
 
             [JsonPropertyName("tjenesteomraade")]
             [JsonConverter(typeof(TjenesteomraadeConverter))]
