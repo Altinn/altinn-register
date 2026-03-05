@@ -132,6 +132,7 @@ public class NprClientTests
                 RoleFor("kommune", "skattOgAvgift"),
             ]),
         ]);
+        data.Add("24826296980", []);
 
         return data;
 
