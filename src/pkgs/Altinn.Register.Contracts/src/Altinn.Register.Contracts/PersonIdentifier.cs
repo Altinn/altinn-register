@@ -12,7 +12,7 @@ using Altinn.Swashbuckle.Filters;
 namespace Altinn.Register.Contracts;
 
 /// <summary>
-/// A organization number (a string of 9 digits).
+/// A person-identification number (a string of 11 digits).
 /// </summary>
 [SwaggerString(Format = "ssn", Pattern = "^[0-9]{11}$")]
 [JsonConverter(typeof(PersonIdentifierJsonConverter))]
