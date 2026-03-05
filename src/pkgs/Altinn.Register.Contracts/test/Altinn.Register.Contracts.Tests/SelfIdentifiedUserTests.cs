@@ -1,4 +1,5 @@
 using Altinn.Authorization.ModelUtils;
+using Altinn.Register.Contracts.Testing;
 using Altinn.Urn;
 
 namespace Altinn.Register.Contracts.Tests;
@@ -9,22 +10,26 @@ public class SelfIdentifiedUserTests
     [Fact]
     public async Task MinimalSelfIdentifiedUser()
     {
+        var si = SelfIdentifiedUser.Minimal(Uuid);
+        si.ShouldBe(new SelfIdentifiedUser
+        {
+            Uuid = Uuid,
+            ExternalUrn = FieldValue.Null,
+            PartyId = FieldValue.Unset,
+            DisplayName = FieldValue.Unset,
+            CreatedAt = FieldValue.Unset,
+            ModifiedAt = FieldValue.Unset,
+            IsDeleted = FieldValue.Unset,
+            DeletedAt = FieldValue.Unset,
+            User = FieldValue.Unset,
+            VersionId = VersionId,
+
+            SelfIdentifiedUserType = FieldValue.Unset,
+            Email = FieldValue.Unset,
+        });
+
         await ValidateParty(
-            new SelfIdentifiedUser
-            {
-                Uuid = Uuid,
-                ExternalUrn = FieldValue.Null,
-                PartyId = FieldValue.Unset,
-                DisplayName = FieldValue.Unset,
-                CreatedAt = FieldValue.Unset,
-                ModifiedAt = FieldValue.Unset,
-                IsDeleted = FieldValue.Unset,
-                DeletedAt = FieldValue.Unset,
-                User = FieldValue.Unset,
-                VersionId = VersionId,
-                SelfIdentifiedUserType = FieldValue.Unset,
-                Email = FieldValue.Unset,
-            },
+            si,
             """
             {
               "partyType": "self-identified-user",
@@ -32,6 +37,77 @@ public class SelfIdentifiedUserTests
               "versionId": 1,
               "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000001",
               "externalUrn": null
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task MinimalSelfIdentifiedUser_Legacy()
+    {
+        var si = SelfIdentifiedUser.MinimalLegacy(Username, Uuid);
+        si.ShouldBe(new SelfIdentifiedUser
+        {
+            Uuid = Uuid,
+            ExternalUrn = NonExhaustive.Create<PartyExternalRefUrn>(PartyExternalRefUrn.LegacySelfIdentifiedUsername.Create(UrnEncoded.Create(Username))),
+            PartyId = FieldValue.Unset,
+            DisplayName = FieldValue.Unset,
+            CreatedAt = FieldValue.Unset,
+            ModifiedAt = FieldValue.Unset,
+            IsDeleted = FieldValue.Unset,
+            DeletedAt = FieldValue.Unset,
+            User = FieldValue.Unset,
+            VersionId = VersionId,
+
+            SelfIdentifiedUserType = NonExhaustiveEnum.Create(SelfIdentifiedUserType.Legacy),
+            Email = FieldValue.Unset,
+        });
+
+        await ValidateParty(
+            si,
+            """
+            {
+              "partyType": "self-identified-user",
+              "partyUuid": "00000000-0000-0000-0000-000000000001",
+              "versionId": 1,
+              "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000001",
+              "selfIdentifiedUserType": "legacy",
+              "externalUrn": "urn:altinn:person:legacy-selfidentified:username"
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task MinimalSelfIdentifiedUser_Email()
+    {
+        var si = SelfIdentifiedUser.MinimalEmail("email@example.com", Uuid);
+        si.ShouldBe(new SelfIdentifiedUser
+        {
+            Uuid = Uuid,
+            ExternalUrn = NonExhaustive.Create<PartyExternalRefUrn>(PartyExternalRefUrn.IDPortenEmail.Create(UrnEncoded.Create("email@example.com"))),
+            PartyId = FieldValue.Unset,
+            DisplayName = FieldValue.Unset,
+            CreatedAt = FieldValue.Unset,
+            ModifiedAt = FieldValue.Unset,
+            IsDeleted = FieldValue.Unset,
+            DeletedAt = FieldValue.Unset,
+            User = FieldValue.Unset,
+            VersionId = VersionId,
+
+            SelfIdentifiedUserType = NonExhaustiveEnum.Create(SelfIdentifiedUserType.IdPortenEmail),
+            Email = "email@example.com",
+        });
+
+        await ValidateParty(
+            si,
+            """
+            {
+              "partyType": "self-identified-user",
+              "partyUuid": "00000000-0000-0000-0000-000000000001",
+              "versionId": 1,
+              "urn": "urn:altinn:party:uuid:00000000-0000-0000-0000-000000000001",
+              "selfIdentifiedUserType": "idporten-email",
+              "externalUrn": "urn:altinn:person:idporten-email:email@example.com",
+              "email": "email@example.com"
             }
             """);
     }
@@ -52,6 +128,7 @@ public class SelfIdentifiedUserTests
                 DeletedAt = FieldValue.Null,
                 User = FullUser,
                 VersionId = VersionId,
+
                 SelfIdentifiedUserType = NonExhaustiveEnum.Create(SelfIdentifiedUserType.Legacy),
                 Email = FieldValue.Null,
             },
@@ -95,6 +172,7 @@ public class SelfIdentifiedUserTests
                 DeletedAt = FieldValue.Null,
                 User = FullUser,
                 VersionId = VersionId,
+
                 SelfIdentifiedUserType = NonExhaustiveEnum.Create(SelfIdentifiedUserType.Educational),
                 Email = FieldValue.Null,
             },
@@ -138,6 +216,7 @@ public class SelfIdentifiedUserTests
                 DeletedAt = FieldValue.Null,
                 User = FullUser,
                 VersionId = VersionId,
+
                 SelfIdentifiedUserType = NonExhaustiveEnum.Create(SelfIdentifiedUserType.IdPortenEmail),
                 Email = "test@example.com",
             },
