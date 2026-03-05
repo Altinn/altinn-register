@@ -1,4 +1,5 @@
 using Altinn.Authorization.ModelUtils;
+using Altinn.Register.Contracts.Testing;
 
 namespace Altinn.Register.Contracts.Tests;
 
@@ -11,31 +12,34 @@ public class OrganizationTests
     [Fact]
     public async Task MinimalOrganization()
     {
-        await ValidateParty(
-            new Organization
-            {
-                Uuid = Uuid,
-                ExternalUrn = NonExhaustive.Create<PartyExternalRefUrn>(PartyExternalRefUrn.OrganizationId.Create(OrganizationIdentifier)),
-                PartyId = FieldValue.Unset,
-                DisplayName = FieldValue.Unset,
-                CreatedAt = FieldValue.Unset,
-                ModifiedAt = FieldValue.Unset,
-                IsDeleted = FieldValue.Unset,
-                DeletedAt = FieldValue.Unset,
-                User = FieldValue.Unset,
-                VersionId = VersionId,
+        var org = Organization.Minimal(OrganizationIdentifier, Uuid);
+        org.ShouldBe(new Organization
+        {
+            Uuid = Uuid,
+            ExternalUrn = NonExhaustive.Create<PartyExternalRefUrn>(PartyExternalRefUrn.OrganizationId.Create(OrganizationIdentifier)),
+            PartyId = FieldValue.Unset,
+            DisplayName = FieldValue.Unset,
+            CreatedAt = FieldValue.Unset,
+            ModifiedAt = FieldValue.Unset,
+            IsDeleted = FieldValue.Unset,
+            DeletedAt = FieldValue.Unset,
+            User = FieldValue.Unset,
+            VersionId = VersionId,
 
-                OrganizationIdentifier = OrganizationIdentifier,
-                UnitStatus = FieldValue.Unset,
-                UnitType = FieldValue.Unset,
-                TelephoneNumber = FieldValue.Unset,
-                MobileNumber = FieldValue.Unset,
-                FaxNumber = FieldValue.Unset,
-                EmailAddress = FieldValue.Unset,
-                InternetAddress = FieldValue.Unset,
-                MailingAddress = FieldValue.Unset,
-                BusinessAddress = FieldValue.Unset,
-            },
+            OrganizationIdentifier = OrganizationIdentifier,
+            UnitStatus = FieldValue.Unset,
+            UnitType = FieldValue.Unset,
+            TelephoneNumber = FieldValue.Unset,
+            MobileNumber = FieldValue.Unset,
+            FaxNumber = FieldValue.Unset,
+            EmailAddress = FieldValue.Unset,
+            InternetAddress = FieldValue.Unset,
+            MailingAddress = FieldValue.Unset,
+            BusinessAddress = FieldValue.Unset,
+        });
+
+        await ValidateParty(
+            org,
             """
             {
               "partyType": "organization",

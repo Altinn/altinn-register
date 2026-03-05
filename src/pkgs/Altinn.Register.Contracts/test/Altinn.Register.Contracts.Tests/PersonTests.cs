@@ -1,4 +1,5 @@
 using Altinn.Authorization.ModelUtils;
+using Altinn.Register.Contracts.Testing;
 
 namespace Altinn.Register.Contracts.Tests;
 
@@ -11,30 +12,33 @@ public class PersonTests
     [Fact]
     public async Task MinimalPerson()
     {
-        await ValidateParty(
-            new Person
-            {
-                Uuid = Uuid,
-                ExternalUrn = NonExhaustive.Create<PartyExternalRefUrn>(PartyExternalRefUrn.PersonId.Create(PersonIdentifier)),
-                PartyId = FieldValue.Unset,
-                DisplayName = FieldValue.Unset,
-                CreatedAt = FieldValue.Unset,
-                ModifiedAt = FieldValue.Unset,
-                IsDeleted = FieldValue.Unset,
-                DeletedAt = FieldValue.Unset,
-                User = FieldValue.Unset,
-                VersionId = VersionId,
+        var person = Person.Minimal(PersonIdentifier, Uuid);
+        person.ShouldBe(new Person
+        {
+            Uuid = Uuid,
+            ExternalUrn = NonExhaustive.Create<PartyExternalRefUrn>(PartyExternalRefUrn.PersonId.Create(PersonIdentifier)),
+            PartyId = FieldValue.Unset,
+            DisplayName = FieldValue.Unset,
+            CreatedAt = FieldValue.Unset,
+            ModifiedAt = FieldValue.Unset,
+            IsDeleted = FieldValue.Unset,
+            DeletedAt = FieldValue.Unset,
+            User = FieldValue.Unset,
+            VersionId = VersionId,
 
-                PersonIdentifier = PersonIdentifier,
-                FirstName = FieldValue.Unset,
-                MiddleName = FieldValue.Unset,
-                LastName = FieldValue.Unset,
-                ShortName = FieldValue.Unset,
-                Address = FieldValue.Unset,
-                MailingAddress = FieldValue.Unset,
-                DateOfBirth = FieldValue.Unset,
-                DateOfDeath = FieldValue.Unset,
-            },
+            PersonIdentifier = PersonIdentifier,
+            FirstName = FieldValue.Unset,
+            MiddleName = FieldValue.Unset,
+            LastName = FieldValue.Unset,
+            ShortName = FieldValue.Unset,
+            Address = FieldValue.Unset,
+            MailingAddress = FieldValue.Unset,
+            DateOfBirth = FieldValue.Unset,
+            DateOfDeath = FieldValue.Unset,
+        });
+
+        await ValidateParty(
+            person,
             """
             {
               "partyType": "person",

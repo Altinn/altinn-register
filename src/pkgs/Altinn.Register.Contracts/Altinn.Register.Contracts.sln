@@ -11,6 +11,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{0C88DD14-F
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.Contracts.Tests", "test\Altinn.Register.Contracts.Tests\Altinn.Register.Contracts.Tests.csproj", "{A1AFF787-7DEA-4010-9608-2684CAB81DC8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.Contracts.Testing", "src\Altinn.Register.Contracts.Testing\Altinn.Register.Contracts.Testing.csproj", "{DA143245-3322-43E4-B1D3-3062E4F85C75}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,18 @@ Global
 		{A1AFF787-7DEA-4010-9608-2684CAB81DC8}.Release|x64.Build.0 = Release|Any CPU
 		{A1AFF787-7DEA-4010-9608-2684CAB81DC8}.Release|x86.ActiveCfg = Release|Any CPU
 		{A1AFF787-7DEA-4010-9608-2684CAB81DC8}.Release|x86.Build.0 = Release|Any CPU
+		{DA143245-3322-43E4-B1D3-3062E4F85C75}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA143245-3322-43E4-B1D3-3062E4F85C75}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA143245-3322-43E4-B1D3-3062E4F85C75}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DA143245-3322-43E4-B1D3-3062E4F85C75}.Debug|x64.Build.0 = Debug|Any CPU
+		{DA143245-3322-43E4-B1D3-3062E4F85C75}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DA143245-3322-43E4-B1D3-3062E4F85C75}.Debug|x86.Build.0 = Debug|Any CPU
+		{DA143245-3322-43E4-B1D3-3062E4F85C75}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA143245-3322-43E4-B1D3-3062E4F85C75}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA143245-3322-43E4-B1D3-3062E4F85C75}.Release|x64.ActiveCfg = Release|Any CPU
+		{DA143245-3322-43E4-B1D3-3062E4F85C75}.Release|x64.Build.0 = Release|Any CPU
+		{DA143245-3322-43E4-B1D3-3062E4F85C75}.Release|x86.ActiveCfg = Release|Any CPU
+		{DA143245-3322-43E4-B1D3-3062E4F85C75}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -52,5 +66,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{2DCD281E-9582-43D1-8598-E61A48884F41} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{A1AFF787-7DEA-4010-9608-2684CAB81DC8} = {0C88DD14-F956-CE84-757C-A364CCF449FC}
+		{DA143245-3322-43E4-B1D3-3062E4F85C75} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

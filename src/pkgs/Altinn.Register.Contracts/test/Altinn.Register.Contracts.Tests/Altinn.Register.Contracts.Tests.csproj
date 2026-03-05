@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Altinn.Register.Contracts.Testing\Altinn.Register.Contracts.Testing.csproj" />
     <ProjectReference Include="..\..\src\Altinn.Register.Contracts\Altinn.Register.Contracts.csproj" />
   </ItemGroup>
 
