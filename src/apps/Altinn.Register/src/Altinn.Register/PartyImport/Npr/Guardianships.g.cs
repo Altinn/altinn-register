@@ -200,6 +200,11 @@ internal static partial class GuardianshipRoles
     public static partial class StatensInnkrevingssentral
     {
     }
+
+    /// <summary>Roles for guardianships in the area 'Lånekassen'.</summary>
+    public static partial class Lånekassen
+    {
+    }
 }
 
 /// <summary>Mappings of guardianship values from npr to Altinn Register.</summary>
@@ -341,6 +346,11 @@ internal static partial class GuardianshipRoleMapper
         if (s.SequenceEqual("tingretten"))
         {
             return TryFindTingrettenRoleByNprValue(vergeTjenesteoppgave, out role);
+        }
+
+        if (s.SequenceEqual("laanekassen"))
+        {
+            return TryFindLånekassenRoleByNprValue(vergeTjenesteoppgave, out role);
         }
 
         if (s.SequenceEqual("pasientreiser"))
@@ -498,6 +508,11 @@ internal static partial class GuardianshipRoleMapper
         if (s.SequenceEqual("tingretten"u8))
         {
             return TryFindTingrettenRoleByNprValue(vergeTjenesteoppgave, out role);
+        }
+
+        if (s.SequenceEqual("laanekassen"u8))
+        {
+            return TryFindLånekassenRoleByNprValue(vergeTjenesteoppgave, out role);
         }
 
         if (s.SequenceEqual("pasientreiser"u8))
@@ -1653,10 +1668,27 @@ internal static partial class GuardianshipRoleMapper
         out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.SequenceEqual("gjeldsordningOgBetalingsavtaler"))
+        if (s.StartsWith("gjeldsordning"))
         {
-            role = null;
-            return true;
+            var s_0 = s.Slice(13);
+            if (s_0.Length is < 0 or > 18)
+            {
+                goto end;
+            }
+
+            if (s_0.SequenceEqual("OgBetalingsavtaler"))
+            {
+                role = null;
+                return true;
+            }
+
+            if (s_0.Length == 0)
+            {
+                role = null;
+                return true;
+            }
+
+            goto end;
         }
 
         end:
@@ -1669,7 +1701,56 @@ internal static partial class GuardianshipRoleMapper
         out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
-        if (s.SequenceEqual("gjeldsordningOgBetalingsavtaler"u8))
+        if (s.StartsWith("gjeldsordning"u8))
+        {
+            var s_0 = s.Slice(13);
+            if (s_0.Length is < 0 or > 18)
+            {
+                goto end;
+            }
+
+            if (s_0.SequenceEqual("OgBetalingsavtaler"u8))
+            {
+                role = null;
+                return true;
+            }
+
+            if (s_0.Length == 0)
+            {
+                role = null;
+                return true;
+            }
+
+            goto end;
+        }
+
+        end:
+        role = null;
+        return false;
+    }
+
+    private static bool TryFindLånekassenRoleByNprValue(
+        ReadOnlySpan<char> vergeTjenesteoppgave,
+        out ExternalRoleReference? role)
+    {
+        var s = vergeTjenesteoppgave;
+        if (s.SequenceEqual("laanOgStipend"))
+        {
+            role = null;
+            return true;
+        }
+
+        end:
+        role = null;
+        return false;
+    }
+
+    private static bool TryFindLånekassenRoleByNprValue(
+        ReadOnlySpan<byte> vergeTjenesteoppgave,
+        out ExternalRoleReference? role)
+    {
+        var s = vergeTjenesteoppgave;
+        if (s.SequenceEqual("laanOgStipend"u8))
         {
             role = null;
             return true;

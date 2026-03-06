@@ -735,6 +735,15 @@ mapping:
     oppgave: gjeldsordningOgBetalingsavtaler
 
 ---
+area: Statens Innkrevingssentral
+task: Gjeldsordning
+expired: true
+mapping:
+  npr:
+    virksomhet: statensInnkrevingssentral
+    oppgave: gjeldsordning
+
+---
 area: Bank
 task: Selge aksjer og verdipapirer
 expired: true
@@ -760,3 +769,12 @@ mapping:
   npr:
     virksomhet: skatteetaten
     oppgave: innkreving
+
+---
+area: Lånekassen
+task: Lån og stipend
+expired: true
+mapping:
+  npr:
+    virksomhet: laanekassen
+    oppgave: laanOgStipend
