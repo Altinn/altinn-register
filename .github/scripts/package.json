@@ -6,7 +6,7 @@
   "author": "",
   "private": true,
   "devDependencies": {
-    "@actions/core": "^1.11.1",
+    "@actions/core": "^3.0.0",
     "@octokit/action": "^8.0.0",
     "@types/node": "^22.19.0",
     "arktype": "^2.1.28",
