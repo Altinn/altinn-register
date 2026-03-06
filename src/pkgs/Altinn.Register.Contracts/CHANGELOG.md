@@ -1,18 +1,5 @@
 # Changelog
 
-## [1.7.0](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.6.0...Altinn.Register.Contracts-v1.7.0) (2026-03-05)
-
-
-### Features
-
-* add contracts test-utils ([#720](https://github.com/Altinn/altinn-register/issues/720)) ([9bc2703](https://github.com/Altinn/altinn-register/commit/9bc2703d051414038ad62634a62ca572fa448eb1))
-
-
-### Bug Fixes
-
-* PersonIdentifier doccomments ([#719](https://github.com/Altinn/altinn-register/issues/719)) ([6361f8e](https://github.com/Altinn/altinn-register/commit/6361f8ee9a3722f444a3e6f04a3ba51b330eeba7))
-* pre-commit dotnet formatting ([#713](https://github.com/Altinn/altinn-register/issues/713)) ([b617a5e](https://github.com/Altinn/altinn-register/commit/b617a5e05ad5c88e057b86ecd622ddc73082d0f4))
-
 ## [1.6.0](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.5.0...Altinn.Register.Contracts-v1.6.0) (2026-01-27)
 
 
