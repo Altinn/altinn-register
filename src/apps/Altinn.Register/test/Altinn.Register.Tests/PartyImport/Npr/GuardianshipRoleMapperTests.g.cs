@@ -339,6 +339,16 @@ public static partial class GuardianshipRoleMapperTests
                 NprArea = "statensInnkrevingssentral",
                 NprTask = "gjeldsordningOgBetalingsavtaler",
             },
+            new ExpiredGuardianshipMetadata
+            {
+                NprArea = "statensInnkrevingssentral",
+                NprTask = "gjeldsordning",
+            },
+            new ExpiredGuardianshipMetadata
+            {
+                NprArea = "laanekassen",
+                NprTask = "laanOgStipend",
+            },
         ]);
     }
 }
