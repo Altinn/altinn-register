@@ -4,6 +4,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Altinn.Authorization.ProblemDetails;
@@ -102,7 +103,7 @@ internal sealed partial class NprClient
         /// <summary>
         /// Gets the role-identifiers for the guardianship.
         /// </summary>
-        public required IReadOnlyList<string> Roles { get; init; }
+        public required IReadOnlySet<string> Roles { get; init; }
     }
 
     private sealed class GuardianshipJsonConverter
@@ -120,7 +121,7 @@ internal sealed partial class NprClient
                 throw new JsonException("Expected start of array");
             }
 
-            List<Guardianship> guardianships = new();
+            Dictionary<PersonIdentifier, HashSet<string>>? guardianships = null;
 
             while (true)
             {
@@ -134,29 +135,44 @@ internal sealed partial class NprClient
                     break;
                 }
 
-                if (TryReadGuardianship(ref reader, options, out var guardianship))
+                if (TryReadGuardianship(ref reader, options, out var verge))
                 {
-                    guardianships.Add(guardianship);
+                    guardianships ??= new();
+                    ref var roles = ref CollectionsMarshal.GetValueRefOrAddDefault(guardianships, verge.PersonIdentifier!, out var exists);
+                    if (!exists)
+                    {
+                        roles = verge.Roles!;
+                    }
+                    else
+                    {
+                        roles!.UnionWith(verge.Roles!);
+                    }
                 }
             }
 
-            return guardianships;
+            if (guardianships is null)
+            {
+                return [];
+            }
+
+            return [.. guardianships
+                .Select(kvp => new Guardianship
+                {
+                    Guardian = kvp.Key,
+                    Roles = kvp.Value,
+                })];
         }
 
-        private bool TryReadGuardianship(ref Utf8JsonReader reader, JsonSerializerOptions options, [NotNullWhen(true)] out Guardianship? guardianship)
+        private bool TryReadGuardianship(ref Utf8JsonReader reader, JsonSerializerOptions options, [NotNullWhen(true)] out VergemaalEllerFremtidsfullmaktVerge? verge)
         {
             var dto = JsonSerializer.Deserialize<VergemaalEllerFremtidsfullmakt>(ref reader, options);
             if (dto is null or { IsActive: false } or { Verge.Roles: not { Count: > 0 } } or { Verge.PersonIdentifier: null })
             {
-                guardianship = null;
+                verge = null;
                 return false;
             }
 
-            guardianship = new Guardianship()
-            {
-                Guardian = dto.Verge.PersonIdentifier,
-                Roles = dto.Verge.Roles,
-            };
+            verge = dto.Verge;
             return true;
         }
 
@@ -176,25 +192,25 @@ internal sealed partial class NprClient
 
             [JsonPropertyName("tjenesteomraade")]
             [JsonConverter(typeof(TjenesteomraadeConverter))]
-            public IReadOnlyList<string>? Roles { get; init; }
+            public HashSet<string>? Roles { get; init; }
         }
 
         internal sealed class TjenesteomraadeConverter
-            : JsonConverter<IReadOnlyList<string>>
+            : JsonConverter<HashSet<string>>
         {
-            public override void Write(Utf8JsonWriter writer, IReadOnlyList<string> value, JsonSerializerOptions options)
+            public override void Write(Utf8JsonWriter writer, HashSet<string> value, JsonSerializerOptions options)
             {
                 throw new NotSupportedException("Not writable");
             }
 
-            public override IReadOnlyList<string> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            public override HashSet<string> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
                 if (reader.TokenType != JsonTokenType.StartArray)
                 {
                     throw new JsonException("Expected start of array");
                 }
 
-                List<string>? identifiers = null;
+                HashSet<string> identifiers = new();
                 while (true)
                 {
                     if (!reader.Read())
@@ -210,12 +226,11 @@ internal sealed partial class NprClient
                     var roleIdentifier = ReadTjenesteomraade(ref reader, options);
                     if (roleIdentifier is not null)
                     {
-                        identifiers ??= [];
                         identifiers.Add(roleIdentifier);
                     }
                 }
 
-                return ((IReadOnlyList<string>?)identifiers) ?? [];
+                return identifiers;
             }
 
             private string? ReadTjenesteomraade(ref Utf8JsonReader reader, JsonSerializerOptions options)
