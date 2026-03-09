@@ -349,6 +349,11 @@ public static partial class GuardianshipRoleMapperTests
                 NprArea = "laanekassen",
                 NprTask = "laanOgStipend",
             },
+            new ExpiredGuardianshipMetadata
+            {
+                NprArea = "laanekassen",
+                NprTask = "tilbakebetalingAvUtdanningslaan",
+            },
         ]);
     }
 }

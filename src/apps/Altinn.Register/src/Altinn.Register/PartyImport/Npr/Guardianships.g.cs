@@ -1734,7 +1734,18 @@ internal static partial class GuardianshipRoleMapper
         out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
+        if (s.Length is < 13 or > 31)
+        {
+            goto end;
+        }
+
         if (s.SequenceEqual("laanOgStipend"))
+        {
+            role = null;
+            return true;
+        }
+
+        if (s.SequenceEqual("tilbakebetalingAvUtdanningslaan"))
         {
             role = null;
             return true;
@@ -1750,7 +1761,18 @@ internal static partial class GuardianshipRoleMapper
         out ExternalRoleReference? role)
     {
         var s = vergeTjenesteoppgave;
+        if (s.Length is < 13 or > 31)
+        {
+            goto end;
+        }
+
         if (s.SequenceEqual("laanOgStipend"u8))
+        {
+            role = null;
+            return true;
+        }
+
+        if (s.SequenceEqual("tilbakebetalingAvUtdanningslaan"u8))
         {
             role = null;
             return true;

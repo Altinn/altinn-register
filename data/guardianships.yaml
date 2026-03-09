@@ -778,3 +778,12 @@ mapping:
   npr:
     virksomhet: laanekassen
     oppgave: laanOgStipend
+
+---
+area: Lånekassen
+task: Tilbakebetaling av utdanningslån
+expired: true
+mapping:
+  npr:
+    virksomhet: laanekassen
+    oppgave: tilbakebetalingAvUtdanningslaan
