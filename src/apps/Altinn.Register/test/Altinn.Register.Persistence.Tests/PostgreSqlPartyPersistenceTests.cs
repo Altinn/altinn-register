@@ -501,6 +501,21 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task LookupParties_ByUsername_MinimalReturn()
+    {
+        var userId = (await UoW.GetNewUserIds(count: 1))[0];
+        var person = await UoW.CreatePerson(user: new PartyUserRecord(userId, "some-user-name"));
+
+        var result = await Persistence.LookupParties(
+            usernames: ["some-user-name"],
+            include: PartyFieldIncludes.Username)
+            .Cast<PersonRecord>()
+            .ToListAsync();
+
+        result.Should().HaveCount(1);
+    }
+
+    [Fact]
     public async Task GetRolesFromNonExistingParty_ReturnsEmpty()
     {
         var partyUuid = Guid.Empty;

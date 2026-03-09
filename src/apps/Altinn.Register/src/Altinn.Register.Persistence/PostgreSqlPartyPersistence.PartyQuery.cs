@@ -598,7 +598,11 @@ internal partial class PostgreSqlPartyPersistence
                 }
                 else
                 {
-                    var userIds = userIdsBuilder.DrainToImmutableValueArray();
+                    FieldValue<ImmutableValueArray<uint>> userIds
+                        = userId.IsUnset
+                        ? FieldValue.Unset
+                        : userIdsBuilder.DrainToImmutableValueArray();
+
                     user = new PartyUserRecord(
                         userId: userId,
                         username: username,
