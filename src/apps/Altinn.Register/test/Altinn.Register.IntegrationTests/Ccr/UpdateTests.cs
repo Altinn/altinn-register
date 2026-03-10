@@ -41,7 +41,7 @@ public class UpdateTests
                 return HttpStatusCode.OK;
             });
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, "register/api/v1/ccr/update")
+        using var request = new HttpRequestMessage(HttpMethod.Post, "enhets-registeret/api/v1/update.svc")
         {
             Content = new StringContent(requestBody, Encoding.UTF8, "text/xml"),
         };
@@ -52,7 +52,7 @@ public class UpdateTests
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var row = await WaitForSingleLogRow();
-        row.RequestUrl.ShouldEndWith("/register/api/v1/ccr/update");
+        row.RequestUrl.ShouldEndWith("/enhets-registeret/api/v1/update.svc");
         row.RequestHeaders.ShouldContainKeyAndValue("X-Test-Header", "test-value");
         row.RequestBody.ShouldBe(requestBody);
         row.ResponseStatusCode.ShouldBe(HttpStatusCode.OK);
@@ -82,7 +82,7 @@ public class UpdateTests
                 };
             });
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, "register/api/v1/ccr/update")
+        using var request = new HttpRequestMessage(HttpMethod.Post, "enhets-registeret/api/v1/update.svc")
         {
             Content = new StringContent(requestBody, Encoding.UTF8, "text/xml"),
         };
@@ -99,7 +99,7 @@ public class UpdateTests
         body.ShouldBe(responseBody);
 
         var row = await WaitForSingleLogRow();
-        row.RequestUrl.ShouldEndWith("/register/api/v1/ccr/update");
+        row.RequestUrl.ShouldEndWith("/enhets-registeret/api/v1/update.svc");
         row.RequestBody.ShouldBe(requestBody);
         row.ResponseStatusCode.ShouldBe(HttpStatusCode.OK);
         row.ResponseHeaders.ShouldContainKeyAndValue("X-Upstream-Header", "upstream-value");
