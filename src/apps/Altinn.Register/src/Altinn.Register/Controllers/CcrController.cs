@@ -21,7 +21,7 @@ namespace Altinn.Register.Controllers;
 /// </summary>
 [ApiController]
 [ApiVersion(1.0)]
-[Route("register/api/v{version:apiVersion}/ccr")]
+[Route("enhets-registeret/api/v{version:apiVersion}")]
 public class CcrController
     : ControllerBase
 {
@@ -51,7 +51,7 @@ public class CcrController
     /// <remarks>
     /// Enhetsregisteret hurtig-oppdattering.
     /// </remarks>
-    [HttpPost("update")]
+    [HttpPost("update.svc")]
     [ApiExplorerSettings(IgnoreApi = true)]
     [ConfigurationCondition("Altinn:register:Ccr:Update:Enabled")]
     [RequestSizeLimit(50_000_000 /* 50 MB */)]
