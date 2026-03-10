@@ -22,13 +22,14 @@ namespace Altinn.Register.Controllers;
 [ApiController]
 [ApiVersion(1.0)]
 [Route("enhets-registeret/api/v{version:apiVersion}")]
-public class CcrController
+public partial class CcrController
     : ControllerBase
 {
     private readonly TimeProvider _timeProvider;
     private readonly IConfiguration _configuration;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly ILogger<CcrController> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CcrController"/> class.
@@ -37,12 +38,14 @@ public class CcrController
         TimeProvider timeProvider,
         IConfiguration configuration,
         IHttpClientFactory httpClientFactory,
-        IServiceScopeFactory serviceScopeFactory)
+        IServiceScopeFactory serviceScopeFactory,
+        ILogger<CcrController> logger)
     {
         _timeProvider = timeProvider;
         _configuration = configuration;
         _httpClientFactory = httpClientFactory;
         _serviceScopeFactory = serviceScopeFactory;
+        _logger = logger;
     }
 
     /// <summary>
@@ -78,7 +81,12 @@ public class CcrController
 
         if (_configuration.GetValue("Altinn:register:Ccr:Update:Record", defaultValue: false))
         {
+            Log.EnqueueRecordingCcrUpdate(_logger);
             EnqueueRecord(state);
+        }
+        else
+        {
+            Log.NotRecordingCcrUpdate(_logger);
         }
     }
 
@@ -91,8 +99,21 @@ public class CcrController
             await using var scope = _serviceScopeFactory.CreateAsyncScope();
             var recorder = scope.ServiceProvider.GetRequiredService<ICcrLogWriter>();
             var cancellationToken = scope.ServiceProvider.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping;
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<CcrController>>();
 
-            await state.Record(recorder, cancellationToken);
+            try
+            {
+                Log.RecordingCcrUpdate(logger);
+                await state.Record(recorder, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // Application is shutting down - not an error
+            }
+            catch (Exception ex)
+            {
+                Log.ErrorRecordingCcrUpdate(logger, ex);
+            }
         });
     }
 
@@ -416,5 +437,20 @@ public class CcrController
 
             return new([.. source]);
         }
+    }
+
+    private static partial class Log
+    {
+        [LoggerMessage(0, LogLevel.Information, "Enqueueing recording of CCR update")]
+        public static partial void EnqueueRecordingCcrUpdate(ILogger logger);
+
+        [LoggerMessage(1, LogLevel.Information, "Recording CCR update")]
+        public static partial void RecordingCcrUpdate(ILogger logger);
+
+        [LoggerMessage(2, LogLevel.Error, "Error recording CCR update")]
+        public static partial void ErrorRecordingCcrUpdate(ILogger logger, Exception ex);
+
+        [LoggerMessage(3, LogLevel.Information, "Not recording CCR update")]
+        public static partial void NotRecordingCcrUpdate(ILogger logger);
     }
 }
