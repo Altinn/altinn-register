@@ -217,7 +217,7 @@ public class DebugController
             await response.Content.CopyToAsync(context.HttpContext.Response.Body, context.HttpContext.RequestAborted);
         }
 
-        private void CopyHeaders(HttpHeaders headers, HttpResponse response)
+        public static void CopyHeaders(HttpHeaders headers, HttpResponse response)
         {
             foreach (var (name, values) in headers)
             {
@@ -264,14 +264,28 @@ public class DebugController
             }
         }
 
+        private static readonly SearchValues<string> UnproxiedHeaders
+            = SearchValues.Create(
+                [
+                    "connection",
+                    "keep-alive",
+                    "proxy-authenticate",
+                    "proxy-authorization",
+                    "te",
+                    "trailer",
+                    "transfer-encoding",
+                    "upgrade",
+                    "host", // re-calculated by HttpClient
+                    "content-length", // re-calculated by HttpClient
+                    "x-forwarded-for",
+                    "x-forwarded-host",
+                    "x-forwarded-proto",
+                    "platformaccesstoken",
+                    "authorization",
+                ],
+                StringComparison.OrdinalIgnoreCase);
+
         private static bool IsIgnoredHeader(string name)
-        {
-            return name switch
-            {
-                "PlatformAccessToken" => true,
-                "Authorization" => true,
-                _ => false,
-            };
-        }
+            => UnproxiedHeaders.Contains(name);
     }
 }
