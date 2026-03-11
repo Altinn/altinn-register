@@ -58,7 +58,9 @@ public partial class CcrController
     [ApiExplorerSettings(IgnoreApi = true)]
     [ConfigurationCondition("Altinn:register:Ccr:Update:Enabled")]
     [RequestSizeLimit(50_000_000 /* 50 MB */)]
-    public async Task Update(CancellationToken cancellationToken = default)
+    public async Task Update(
+        [FromQuery(Name = "record")] bool record = true,
+        CancellationToken cancellationToken = default)
     {
         using RecordOperationState state = new(_timeProvider.GetUtcNow(), Request.GetDisplayUrl());
 
@@ -79,7 +81,7 @@ public partial class CcrController
         await state.WriteResponse(Response, cancellationToken);
         await Response.CompleteAsync();
 
-        if (_configuration.GetValue("Altinn:register:Ccr:Update:Record", defaultValue: false))
+        if (record && _configuration.GetValue("Altinn:register:Ccr:Update:Record", defaultValue: false))
         {
             Log.EnqueueRecordingCcrUpdate(_logger);
             EnqueueRecord(state);
