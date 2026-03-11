@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
 using Altinn.Authorization.ModelUtils;
-using Altinn.Authorization.ServiceDefaults.MassTransit.Commands;
 using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.ExternalRoles;
@@ -14,7 +13,6 @@ using Altinn.Register.PartyImport.A2;
 using Altinn.Register.PartyImport.Npr;
 using Altinn.Register.TestUtils.MassTransit;
 using Altinn.Register.TestUtils.TestData;
-using Microsoft.Extensions.DependencyInjection;
 using Xunit.Sdk;
 using V1Models = Altinn.Register.Contracts.V1;
 
@@ -23,9 +21,6 @@ namespace Altinn.Register.IntegrationTests.PartyImport;
 public class A2PartyImportConsumerTests
     : IntegrationTestBase
 {
-    private ICommandQueueResolver CommandQueueResolver
-        => GetRequiredService<ICommandQueueResolver>();
-
     [Fact]
     public async Task ImportA2PartyCommand_FetchesParty_AndUpsertsParty()
     {
