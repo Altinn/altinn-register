@@ -6,6 +6,8 @@ using System.IO.Pipelines;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using Altinn.Authorization.ModelUtils.EnumUtils;
 using Altinn.Register.Conventions;
 using Altinn.Register.Core.CcrLog;
 using Asp.Versioning;
@@ -25,6 +27,9 @@ namespace Altinn.Register.Controllers;
 public partial class CcrController
     : ControllerBase
 {
+    private static FlagsEnumModel<SkipRecordReasons> SkipRecordReasonModel { get; }
+        = FlagsEnumModel.Create<SkipRecordReasons>();
+
     private readonly TimeProvider _timeProvider;
     private readonly IConfiguration _configuration;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -81,14 +86,25 @@ public partial class CcrController
         await state.WriteResponse(Response, cancellationToken);
         await Response.CompleteAsync();
 
-        if (record && _configuration.GetValue("Altinn:register:Ccr:Update:Record", defaultValue: false))
+        SkipRecordReasons skipReasons = SkipRecordReasons.None;
+        if (!record)
+        {
+            skipReasons |= SkipRecordReasons.DisabledByQueryParameter;
+        }
+
+        if (!_configuration.GetValue("Altinn:register:Ccr:Update:Record", defaultValue: false))
+        {
+            skipReasons |= SkipRecordReasons.DisabledByConfiguration;
+        }
+
+        if (skipReasons == SkipRecordReasons.None)
         {
             Log.EnqueueRecordingCcrUpdate(_logger);
             EnqueueRecord(state);
         }
         else
         {
-            Log.NotRecordingCcrUpdate(_logger);
+            Log.NotRecordingCcrUpdate(_logger, skipReasons);
         }
     }
 
@@ -117,6 +133,20 @@ public partial class CcrController
                 Log.ErrorRecordingCcrUpdate(logger, ex);
             }
         });
+    }
+
+    [Flags]
+    private enum SkipRecordReasons
+        : byte
+    {
+        [JsonStringEnumMemberName("none")]
+        None = default,
+
+        [JsonStringEnumMemberName("query-param")]
+        DisabledByQueryParameter = 1 << 0,
+
+        [JsonStringEnumMemberName("config")]
+        DisabledByConfiguration = 1 << 1,
     }
 
     private sealed class RecordOperationState(DateTimeOffset now, string url)
@@ -452,7 +482,10 @@ public partial class CcrController
         [LoggerMessage(2, LogLevel.Error, "Error recording CCR update")]
         public static partial void ErrorRecordingCcrUpdate(ILogger logger, Exception ex);
 
-        [LoggerMessage(3, LogLevel.Information, "Not recording CCR update")]
-        public static partial void NotRecordingCcrUpdate(ILogger logger);
+        [LoggerMessage(3, LogLevel.Information, "Not recording CCR update due to {Reasons}")]
+        private static partial void NotRecordingCcrUpdate(ILogger logger, string reasons);
+
+        public static void NotRecordingCcrUpdate(ILogger logger, SkipRecordReasons reasons)
+            => NotRecordingCcrUpdate(logger, SkipRecordReasonModel.Format(reasons));
     }
 }
