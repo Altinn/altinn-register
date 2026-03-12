@@ -125,8 +125,6 @@ internal static partial class RegisterHost
         services.AddTransient<IPersonLookup, PersonLookupService>();
         services.Decorate<IPersonLookup, PersonLookupCacheDecorator>();
 
-        services.AddSingleton<IOrgContactPoint, OrgContactPointService>();
-
         services.ConfigureOpenTelemetryTracerProvider((builder) => builder.AddSource(RegisterTelemetry.Name));
         services.ConfigureOpenTelemetryMeterProvider((builder) => builder.AddMeter(RegisterTelemetry.Name));
 

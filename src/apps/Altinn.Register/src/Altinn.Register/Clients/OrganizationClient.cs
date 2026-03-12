@@ -1,10 +1,6 @@
-using System.Text;
-using System.Text.Json;
 using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Configuration;
 using Altinn.Register.Contracts.V1;
-using Altinn.Register.Exceptions;
-using Altinn.Register.Models;
 using Microsoft.Extensions.Options;
 
 namespace Altinn.Register.Clients
@@ -54,43 +50,6 @@ namespace Altinn.Register.Clients
             }
 
             return null;
-        }
-
-        /// <inheritdoc/>
-        public async Task<OrgContactPointsList> GetContactPoints(OrgContactPointLookup lookup, CancellationToken cancellationToken = default)
-        {
-            Uri endpointUrl = new($"{_generalSettings.BridgeApiEndpoint}organizations/contactpoints");
-
-            BridgeOrgContactPointLookup bridgeLookup = new()
-            {
-                OrganisationNumbers = lookup.OrganizationNumbers
-            };
-
-            StringContent requestBody = new(JsonSerializer.Serialize(bridgeLookup), Encoding.UTF8, "application/json");
-
-            HttpResponseMessage response = await _client.PostAsync(endpointUrl, requestBody, cancellationToken);
-
-            if (response.StatusCode == System.Net.HttpStatusCode.OK)
-            {
-                var sblContactPointList = await response.Content.ReadFromJsonAsync<BridgeOrgContactPointsList>(cancellationToken: cancellationToken);
-                return new OrgContactPointsList
-                {
-                    ContactPointsList = sblContactPointList.ContactPointsList
-                        .Select(s =>
-                            new OrgContactPoints()
-                            {
-                                OrganizationNumber = s.OrganisationNumber,
-                                EmailList = s.EmailList,
-                                MobileNumberList = s.MobileNumberList
-                            })
-                        .ToList()
-                };
-            }
-            else
-            {
-                _logger.LogError("Getting contact points for orgs failed with statuscode {StatusCode}", response.StatusCode);
-                throw await PlatformHttpException.CreateAsync(response);
-            }
         }
     }
 }
