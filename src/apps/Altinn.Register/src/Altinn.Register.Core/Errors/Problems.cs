@@ -34,4 +34,8 @@ public static class Problems
     /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
     public static ProblemDescriptor PartyAuthorizeFailed { get; }
         = _factory.Create(5, HttpStatusCode.InternalServerError, "Failed to authorize party");
+
+    /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
+    public static ProblemDescriptor OrganizationNotFound { get; }
+        = _factory.Create(6, HttpStatusCode.NotFound, "Organization not found");
 }

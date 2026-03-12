@@ -7,6 +7,7 @@ using Altinn.Common.AccessTokenClient.Services;
 using Altinn.Register.Clients;
 using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Configuration;
+using Altinn.Register.Core.A2;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Tests.Mocks;

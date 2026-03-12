@@ -33,4 +33,8 @@ public static class ValidationErrors
     /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
     public static ValidationErrorDescriptor NotNull { get; }
         = _factory.Create(5, "Value must be null");
+
+    /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
+    public static ValidationErrorDescriptor InvalidOrganizationNumber { get; }
+        = _factory.Create(6, "Invalid organization number");
 }
