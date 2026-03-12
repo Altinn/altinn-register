@@ -45,8 +45,8 @@ public static class RegisterCoreServiceCollectionExtensions
 
         private void AddRegisterOperations()
         {
-            services.TryAddSingleton<GetOrganizationFromA2RequestHandler>();
-            services.TryAddSingleton<GetOrganizationFromDBRequestHandler>();
+            services.TryAddScoped<GetOrganizationFromA2RequestHandler>();
+            services.TryAddScoped<GetOrganizationFromDBRequestHandler>();
         }
     }
 }

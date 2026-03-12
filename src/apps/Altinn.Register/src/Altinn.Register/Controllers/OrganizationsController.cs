@@ -27,8 +27,9 @@ public class OrganizationsController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The information about a given organization.</returns>
     [HttpGet("{orgNr}")]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(200)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [Produces("application/json")]
     public async Task<ActionResult<Contracts.V1.Organization>> Get(
         [FromServices] IRequestSender<GetV1OrganizationRequest, Contracts.V1.Organization> sender,

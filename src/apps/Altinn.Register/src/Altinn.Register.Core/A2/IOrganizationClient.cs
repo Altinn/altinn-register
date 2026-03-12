@@ -13,5 +13,5 @@ public interface IOrganizationClient
     /// <param name="orgNr">The organization number</param>
     /// <param name="cancellationToken">The cancellation token</param>
     /// <returns></returns>
-    Task<Contracts.V1.Organization> GetOrganization(OrganizationIdentifier orgNr, CancellationToken cancellationToken = default);
+    Task<Contracts.V1.Organization?> GetOrganization(OrganizationIdentifier orgNr, CancellationToken cancellationToken = default);
 }

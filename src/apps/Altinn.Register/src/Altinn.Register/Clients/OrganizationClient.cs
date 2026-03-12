@@ -1,3 +1,5 @@
+#nullable enable
+
 using Altinn.Register.Configuration;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.A2;
@@ -29,21 +31,24 @@ public class OrganizationClient
     }
 
     /// <inheritdoc />
-    public async Task<Contracts.V1.Organization> GetOrganization(OrganizationIdentifier orgNr, CancellationToken cancellationToken = default)
+    public async Task<Contracts.V1.Organization?> GetOrganization(OrganizationIdentifier orgNr, CancellationToken cancellationToken = default)
     {
         Uri endpointUrl = new($"{_generalSettings.BridgeApiEndpoint}organizations/{orgNr}");
 
         HttpResponseMessage response = await _client.GetAsync(endpointUrl, cancellationToken);
 
-        if (response.StatusCode == System.Net.HttpStatusCode.OK)
+        if (response.IsSuccessStatusCode)
         {
             return await response.Content.ReadFromJsonAsync<Contracts.V1.Organization>(cancellationToken: cancellationToken);
         }
-        else
+
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
-            _logger.LogError("Getting org with org nr '{OrgNr}' failed with statuscode {StatusCode}", orgNr, response.StatusCode);
+            return null;
         }
 
+        _logger.LogError("Getting org with org nr '{OrgNr}' failed with statuscode {StatusCode}", orgNr, response.StatusCode);
+        response.EnsureSuccessStatusCode(); // should throw
         return null;
     }
 }
