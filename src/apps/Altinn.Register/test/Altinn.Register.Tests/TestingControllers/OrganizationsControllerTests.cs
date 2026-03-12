@@ -48,7 +48,7 @@ public class OrganizationsControllerTests
     public async Task GetOrganization_ValidTokenRequestForExistingOrganization_ReturnsOrganization()
     {
         string token = PrincipalUtil.GetToken(1);
-        string orgNo = "836281763";
+        string orgNo = "987654325";
 
         // Arrange
         Mock<IOrganizationClient> organizationsService = new Mock<IOrganizationClient>();
@@ -77,7 +77,7 @@ public class OrganizationsControllerTests
     public async Task GetOrganization_ValidTokenRequestForNonExistingOrganization_ReturnsStatusNotFound()
     {
         string token = PrincipalUtil.GetToken(1);
-        string orgNo = "836281763";
+        string orgNo = "987654325";
 
         // Arrange
         Mock<IOrganizationClient> organizationsService = new Mock<IOrganizationClient>();
@@ -102,7 +102,7 @@ public class OrganizationsControllerTests
     public async Task GetOrganization_MissingPlatformAccessToken_ReturnsForbiden()
     {
         string token = PrincipalUtil.GetToken(1);
-        string orgNo = "836281763";
+        string orgNo = "987654325";
 
         // Arrange
         Mock<IOrganizationClient> organizationsService = new Mock<IOrganizationClient>();
