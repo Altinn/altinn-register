@@ -1,4 +1,5 @@
 using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Contracts;
 using Altinn.Register.Controllers.V2;
 using Altinn.Register.Mapping;

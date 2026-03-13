@@ -177,13 +177,13 @@ public sealed partial class RegisterTestDataGenerator
             Source = identifier.Value.ToString().StartsWith('0') ? OrganizationSource.BusinessAssessedPartnerships : OrganizationSource.CentralCoordinatingRegister,
             UnitStatus = unitStatus.HasValue ? unitStatus.Value : "N",
             UnitType = unitType.HasValue ? unitType.Value : "AS",
-            TelephoneNumber = telephoneNumber.HasValue ? telephoneNumber.Value : null,
-            MobileNumber = mobileNumber.HasValue ? mobileNumber.Value : null,
-            FaxNumber = faxNumber.HasValue ? faxNumber.Value : null,
-            EmailAddress = emailAddress.HasValue ? emailAddress.Value : null,
-            InternetAddress = internetAddress.HasValue ? internetAddress.Value : null,
-            MailingAddress = mailingAddress.HasValue ? mailingAddress.Value : null,
-            BusinessAddress = businessAddress.HasValue ? businessAddress.Value : null,
+            TelephoneNumber = telephoneNumber.IsSet ? telephoneNumber.Value : "99999999",
+            MobileNumber = mobileNumber.IsSet ? mobileNumber.Value : "98888888",
+            FaxNumber = faxNumber.IsSet ? faxNumber.Value : "97777777",
+            EmailAddress = emailAddress.IsSet ? emailAddress.Value : $"{identifier.Value}@example.com",
+            InternetAddress = internetAddress.IsSet ? internetAddress.Value : $"{identifier.Value}.example.com",
+            MailingAddress = mailingAddress.IsSet ? mailingAddress.Value : new MailingAddressRecord { Address = identifier.Value.ToString(), City = "Mailing", PostalCode = "0000" },
+            BusinessAddress = businessAddress.IsSet ? businessAddress.Value : new MailingAddressRecord { Address = identifier.Value.ToString(), City = "Business", PostalCode = "0000" },
         };
     }
 

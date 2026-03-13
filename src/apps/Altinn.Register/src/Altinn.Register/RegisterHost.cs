@@ -15,6 +15,7 @@ using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Configuration;
 using Altinn.Register.Conventions;
 using Altinn.Register.Core;
+using Altinn.Register.Core.A2;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.PartyImport.A2;
@@ -163,6 +164,7 @@ internal static partial class RegisterHost
                 policy.Requirements.Add(new ScopeAccessRequirement("altinn:register/debug.internal"));
             });
 
+        services.AddRegisterCoreServices();
         services.AddHttpClient<IOrganizationClient, OrganizationClient>();
         services.AddHttpClient<IPersonClient, PersonClient>();
         services.AddHttpClient<IV1PartyService, PartiesClient>();

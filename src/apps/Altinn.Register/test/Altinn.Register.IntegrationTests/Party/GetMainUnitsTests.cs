@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Contracts;
 using Altinn.Register.Models;
 using Altinn.Register.TestUtils.TestData;
