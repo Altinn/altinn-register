@@ -21,7 +21,7 @@ public static class PartyImportHelper
     /// <exception cref="ProblemInstanceException">Thrown if the party is not valid.</exception>
     public static void ValidatePartyForUpsert(PartyRecord party)
     {
-        ValidationErrorBuilder builder = default;
+        ValidationProblemBuilder builder = default;
 
         CheckRequired(ref builder, party.PartyUuid.HasValue, "/partyUuid");
         CheckRequired(ref builder, party.PartyType.HasValue, "/partyType");
@@ -85,7 +85,7 @@ public static class PartyImportHelper
             throw new ProblemInstanceException(messageBuilder.ToString(), error);
         }
 
-        static void Check(ref ValidationErrorBuilder builder, bool condition, ValidationErrorDescriptor descriptor, string path)
+        static void Check(ref ValidationProblemBuilder builder, bool condition, ValidationErrorDescriptor descriptor, string path)
         {
             if (!condition)
             {
@@ -93,12 +93,12 @@ public static class PartyImportHelper
             }
         }
 
-        static void CheckRequired(ref ValidationErrorBuilder builder, bool condition, string path)
+        static void CheckRequired(ref ValidationProblemBuilder builder, bool condition, string path)
         {
             Check(ref builder, condition, StdValidationErrors.Required, path);
         }
 
-        static void CheckUser(ref ValidationErrorBuilder builder, PartyUserRecord user)
+        static void CheckUser(ref ValidationProblemBuilder builder, PartyUserRecord user)
         {
             Check(ref builder, !user.UserIds.IsNull, ValidationErrors.Null, "/user/userIds");
             if (user.UserIds.HasValue)
@@ -107,7 +107,7 @@ public static class PartyImportHelper
             }
         }
 
-        static void CheckPerson(ref ValidationErrorBuilder builder, PersonRecord person)
+        static void CheckPerson(ref ValidationProblemBuilder builder, PersonRecord person)
         {
             Check(ref builder, !person.Source.IsNull, ValidationErrors.Null, "/source");
             CheckRequired(ref builder, person.FirstName.HasValue, "/firstName");
@@ -120,7 +120,7 @@ public static class PartyImportHelper
             CheckRequired(ref builder, person.DateOfDeath.IsSet, "/dateOfDeath");
         }
 
-        static void CheckOrganization(ref ValidationErrorBuilder builder, OrganizationRecord org)
+        static void CheckOrganization(ref ValidationProblemBuilder builder, OrganizationRecord org)
         {
             Check(ref builder, !org.Source.IsNull, ValidationErrors.Null, "/source");
             CheckRequired(ref builder, org.UnitStatus.HasValue, "/unitStatus");
@@ -134,7 +134,7 @@ public static class PartyImportHelper
             CheckRequired(ref builder, org.BusinessAddress.IsSet, "/businessAddress");
         }
 
-        static void CheckSelfIdentified(ref ValidationErrorBuilder builder, SelfIdentifiedUserRecord si)
+        static void CheckSelfIdentified(ref ValidationProblemBuilder builder, SelfIdentifiedUserRecord si)
         {
             CheckRequired(ref builder, si.SelfIdentifiedUserType.IsSet, "/selfIdentifiedUserType");
 
@@ -159,13 +159,13 @@ public static class PartyImportHelper
             }
         }
 
-        static void CheckSystemUser(ref ValidationErrorBuilder builder, SystemUserRecord sys)
+        static void CheckSystemUser(ref ValidationProblemBuilder builder, SystemUserRecord sys)
         {
             CheckRequired(ref builder, sys.OwnerUuid.HasValue, "/owner");
             CheckRequired(ref builder, sys.SystemUserType.HasValue, "/systemUserType");
         }
 
-        static void CheckEnterpriseUser(ref ValidationErrorBuilder builder, EnterpriseUserRecord user)
+        static void CheckEnterpriseUser(ref ValidationProblemBuilder builder, EnterpriseUserRecord user)
         {
             CheckRequired(ref builder, user.OwnerUuid.HasValue, "/owner");
         }

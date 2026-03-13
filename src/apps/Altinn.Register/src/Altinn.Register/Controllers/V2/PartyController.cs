@@ -91,7 +91,7 @@ public class PartyController
         var pageSize = _settings.PartyStreamPageSize;
         IReadOnlySet<PartyRecordType>? partyTypes = partyTypesInput.Value == PartyTypes.None ? null : new PartyTypesSet(partyTypesInput.Value);
 
-        ValidationErrorBuilder errors = default;
+        ValidationProblemBuilder errors = default;
         if (fields.HasFlag(PartyFieldIncludes.SubUnits))
         {
             errors.Add(ValidationErrors.PartyFields_SubUnits_Forbidden, "/$QUERY/fields");
@@ -356,7 +356,7 @@ public class PartyController
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         CancellationToken cancellationToken = default)
     {
-        ValidationErrorBuilder errors = default;
+        ValidationProblemBuilder errors = default;
         if (fields.HasFlag(PartyFieldIncludes.SubUnits))
         {
             errors.Add(ValidationErrors.PartyFields_SubUnits_Forbidden, "/$QUERY/fields");
@@ -408,7 +408,7 @@ public class PartyController
     {
         const int MAX_ITEMS = PARTY_QUERY_MAX_ITEMS;
 
-        ValidationErrorBuilder errors = default;
+        ValidationProblemBuilder errors = default;
         if (fields.HasFlag(PartyFieldIncludes.SubUnits))
         {
             errors.Add(ValidationErrors.PartyFields_SubUnits_Forbidden, "/$QUERY/fields");
@@ -543,7 +543,7 @@ public class PartyController
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         CancellationToken cancellationToken = default)
     {
-        ValidationErrorBuilder errors = default;
+        ValidationProblemBuilder errors = default;
         if (fields.HasFlag(PartyFieldIncludes.SubUnits))
         {
             errors.Add(ValidationErrors.PartyFields_SubUnits_Forbidden, "/$QUERY/fields");
