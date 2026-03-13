@@ -46,6 +46,8 @@ public class OrganizationControllerTests
 
         actual.ShouldNotBeNull();
         actual.OrgNumber.ShouldBe(orgNo.ToString());
+
+        SetSource(ApiSource.A2);
     }
 
     [Theory]
@@ -101,7 +103,9 @@ public class OrganizationControllerTests
             _ => throw new ArgumentOutOfRangeException(nameof(source), source, null),
         };
 
-        GetRequiredService<IConfiguration>()["Altinn:register:ApiSource:Default"] = sourceString;
+        Configuration.AddInMemoryCollection([
+            new("Altinn:register:ApiSource:Default", sourceString),
+        ]);
     }
 }
 

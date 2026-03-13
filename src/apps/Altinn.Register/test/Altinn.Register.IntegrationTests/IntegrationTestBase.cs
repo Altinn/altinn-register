@@ -5,6 +5,7 @@ using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.IntegrationTests.Fixtures;
 using Altinn.Register.TestUtils;
 using MassTransit.Testing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 
@@ -49,6 +50,9 @@ public abstract class IntegrationTestBase
 
     protected ITestHarness TestHarness
         => _testHarness!;
+
+    protected IConfigurationManager Configuration
+        => (IConfigurationManager)GetRequiredService<IConfiguration>();
 
     protected T GetRequiredService<T>()
         where T : notnull
