@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Contracts;
 using Altinn.Register.Controllers.V2;
 using Altinn.Register.Core.Parties.Records;

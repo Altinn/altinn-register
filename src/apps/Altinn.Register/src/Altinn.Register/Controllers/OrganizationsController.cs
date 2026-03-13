@@ -14,7 +14,7 @@ namespace Altinn.Register.Controllers;
 /// </summary>
 [ApiController]
 [ApiVersion(1.0)]
-[Authorize(Policy = "PlatformAccess")]
+[Authorize(Policy = "InternalOrPlatformAccess")]
 [Route("register/api/v{version:apiVersion}/organizations")]
 public class OrganizationsController
     : ControllerBase

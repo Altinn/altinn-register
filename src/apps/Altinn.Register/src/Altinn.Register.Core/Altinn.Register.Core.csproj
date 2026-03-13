@@ -23,6 +23,7 @@
 
   <ItemGroup>
 		<InternalsVisibleTo Include="Altinn.Register.Tests" />
+		<InternalsVisibleTo Include="Altinn.Register.IntegrationTests" />
 		<InternalsVisibleTo Include="Altinn.Register.Persistence.Tests" />
   </ItemGroup>
 

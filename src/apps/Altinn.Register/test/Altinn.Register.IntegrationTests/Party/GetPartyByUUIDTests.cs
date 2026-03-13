@@ -1,5 +1,6 @@
 using System.Net;
 using Altinn.Authorization.ProblemDetails;
+using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.TestUtils.TestData;

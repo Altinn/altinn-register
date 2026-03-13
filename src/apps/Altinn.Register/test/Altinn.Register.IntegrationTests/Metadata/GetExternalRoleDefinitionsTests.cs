@@ -1,4 +1,5 @@
 using System.Net;
+using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Models;

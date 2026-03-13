@@ -64,7 +64,12 @@ internal sealed class GetOrganizationFromDBRequestHandler(IUnitOfWorkManager man
         return MapOrganization(org);
     }
 
-    private static Contracts.V1.Organization MapOrganization(OrganizationRecord org)
+    /// <summary>
+    /// Maps a <see cref="OrganizationRecord"/> to a <see cref="Contracts.V1.Organization"/>.
+    /// </summary>
+    /// <param name="org">The organization to map.</param>
+    /// <returns>The mapped organization.</returns>
+    internal static Contracts.V1.Organization MapOrganization(OrganizationRecord org)
     {
         var ret = new Contracts.V1.Organization
         {
