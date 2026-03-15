@@ -2,6 +2,7 @@
 
 using System.Buffers;
 using System.Diagnostics;
+using System.IO.Compression;
 using System.IO.Pipelines;
 using System.Net;
 using System.Net.Http.Headers;
@@ -80,7 +81,7 @@ public partial class CcrController
         using var response = await client.SendAsync(request, cancellationToken);
         state.ResponseStatusCode = response.StatusCode;
         state.ReadResponseHeaders(response.Headers, response.Content.Headers);
-        await state.ReadResponseBody(response.Content, cancellationToken);
+        await state.ReadResponseBody(_logger, response.Content, cancellationToken);
         state.Duration = _timeProvider.GetElapsedTime(start);
 
         await state.WriteResponse(Response, cancellationToken);
@@ -165,6 +166,7 @@ public partial class CcrController
                     "upgrade",
                     "host", // re-calculated by HttpClient
                     "content-length", // re-calculated by HttpClient
+                    "content-encoding", // handled by HttpClient
                     "x-forwarded-for",
                     "x-forwarded-host",
                     "x-forwarded-proto",
@@ -304,20 +306,61 @@ public partial class CcrController
             while (!result.IsCompleted);
         }
 
-        public async ValueTask ReadResponseBody(HttpContent content, CancellationToken cancellationToken)
+        public async ValueTask ReadResponseBody(ILogger logger, HttpContent content, CancellationToken cancellationToken)
         {
             Debug.Assert(_responseBody is null);
             _responseBody = new Sequence<byte>(ArrayPool<byte>.Shared);
 
             using var stream = await content.ReadAsStreamAsync(cancellationToken);
-            int read;
-            do
+
+            ReadOnlyMemory<string> encodings = content.Headers.ContentEncoding.ToArray();
+            await CopyResponse(logger, stream, _responseBody, encodings, cancellationToken);
+
+            static async Task CopyResponse(ILogger logger, Stream source, Sequence<byte> destination, ReadOnlyMemory<string> encodings, CancellationToken cancellationToken)
             {
-                Memory<byte> buffer = _responseBody.GetMemory(1024 * 32 /* 32 KiB */);
-                read = await stream.ReadBlockAsync(buffer, cancellationToken);
-                _responseBody.Advance(read);
+                if (encodings.IsEmpty)
+                {
+                    await CopyToSequenceAsync(source, destination, cancellationToken);
+                    return;
+                }
+
+                var encoding = encodings.Span[^1];
+                var remainingEncodings = encodings[..^1];
+
+                if (string.Equals(encoding, "gzip", StringComparison.OrdinalIgnoreCase))
+                {
+                    using var gzipStream = new GZipStream(source, CompressionMode.Decompress);
+                    await CopyResponse(logger, gzipStream, destination, remainingEncodings, cancellationToken);
+                }
+                else if (string.Equals(encoding, "deflate", StringComparison.OrdinalIgnoreCase))
+                {
+                    using var deflateStream = new DeflateStream(source, CompressionMode.Decompress);
+                    await CopyResponse(logger, deflateStream, destination, remainingEncodings, cancellationToken);
+                }
+                else if (string.Equals(encoding, "br", StringComparison.OrdinalIgnoreCase))
+                {
+                    using var brotliStream = new BrotliStream(source, CompressionMode.Decompress);
+                    await CopyResponse(logger, brotliStream, destination, remainingEncodings, cancellationToken);
+                }
+                else
+                {
+                    // Unsupported encoding - log and copy as is
+                    Log.UnsupportedContentEncoding(logger, encoding);
+                    await CopyToSequenceAsync(source, destination, cancellationToken);
+                }
             }
-            while (read != 0);
+
+            static async Task CopyToSequenceAsync(Stream source, Sequence<byte> destination, CancellationToken cancellationToken)
+            {
+                int read;
+                do
+                {
+                    Memory<byte> buffer = destination.GetMemory(1024 * 32 /* 32 KiB */);
+                    read = await source.ReadAsync(buffer, cancellationToken);
+                    destination.Advance(read);
+                }
+                while (read != 0);
+            }
         }
 
         public ValueTask WriteResponse(HttpResponse response, CancellationToken cancellationToken)
@@ -354,7 +397,18 @@ public partial class CcrController
             Debug.Assert(response is not null);
             Debug.Assert(headers is not null);
 
-            WriteHeaders(headers, response, static (response, name, values) => response.Headers.Append(name, values));
+            WriteHeaders(headers, response, static (response, name, values) =>
+            {
+                if (ShouldIgnoreHeader(name))
+                {
+                    return;
+                }
+
+                response.Headers.Append(name, values);
+            });
+
+            static bool ShouldIgnoreHeader(string name)
+                => UnproxiedHeaders.Contains(name);
         }
 
         private static void WriteRequestHeaders(HttpRequestMessage request, Sequence<byte> headers)
@@ -487,5 +541,8 @@ public partial class CcrController
 
         public static void NotRecordingCcrUpdate(ILogger logger, SkipRecordReasons reasons)
             => NotRecordingCcrUpdate(logger, SkipRecordReasonModel.Format(reasons));
+
+        [LoggerMessage(4, LogLevel.Information, "Unsupported content-encoding: {Encoding}")]
+        public static partial void UnsupportedContentEncoding(ILogger logger, string encoding);
     }
 }
