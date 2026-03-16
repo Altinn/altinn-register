@@ -184,7 +184,7 @@ public class PartiesControllerTests
             CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
-        await AssertValidationError(response, ValidationErrors.MutuallyExclusive.ErrorCode);
+        await AssertValidationError(response, StdValidationErrors.Required.ErrorCode);
     }
 
     [Theory]
@@ -206,7 +206,7 @@ public class PartiesControllerTests
             CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
-        await AssertValidationError(response, StdValidationErrors.Required.ErrorCode);
+        await AssertValidationError(response, ValidationErrors.MutuallyExclusive.ErrorCode);
     }
 
     [Fact]

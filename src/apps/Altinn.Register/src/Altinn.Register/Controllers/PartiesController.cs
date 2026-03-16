@@ -144,14 +144,14 @@ public partial class PartiesController
         switch (partyLookup.Ssn, partyLookup.OrgNo)
         {
             case (null, null):
-                return ValidationErrors.MutuallyExclusive
-                    .Create(["/ssn", "/orgNo"], detail: "Only one of ssn and orgNo is allowed.")
+                return StdValidationErrors.Required
+                    .Create(["/ssn", "/orgNo"], detail: "Either ssn or orgNo is required.")
                     .ToProblemInstance()
                     .ToActionResult();
 
             case (not null, not null):
-                return StdValidationErrors.Required
-                    .Create(["/ssn", "/orgNo"], detail: "Either ssn or orgNo is required.")
+                return ValidationErrors.MutuallyExclusive
+                    .Create(["/ssn", "/orgNo"], detail: "Only one of ssn and orgNo is allowed.")
                     .ToProblemInstance()
                     .ToActionResult();
 
