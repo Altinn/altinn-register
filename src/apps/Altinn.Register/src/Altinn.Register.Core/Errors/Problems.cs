@@ -24,7 +24,8 @@ public static class Problems
         = _factory.Create(2, HttpStatusCode.Gone, "Party is gone");
 
     /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
-    public static ProblemDescriptor PartyNotFound { get; }
+    /// <remarks>This is for when a party that is *referenced* is not found.</remarks>
+    public static ProblemDescriptor ReferencedPartyNotFound { get; }
         = _factory.Create(3, HttpStatusCode.BadRequest, "Party not found");
 
     /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
@@ -38,4 +39,8 @@ public static class Problems
     /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
     public static ProblemDescriptor OrganizationNotFound { get; }
         = _factory.Create(6, HttpStatusCode.NotFound, "Organization not found");
+
+    /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
+    public static ProblemDescriptor PartyNotFound { get; }
+        = _factory.Create(7, HttpStatusCode.NotFound, "Party not found");
 }

@@ -37,4 +37,12 @@ public static class ValidationErrors
     /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
     public static ValidationErrorDescriptor InvalidOrganizationNumber { get; }
         = _factory.Create(6, "Invalid organization number");
+
+    /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
+    public static ValidationErrorDescriptor InvalidPersonNumber { get; }
+        = _factory.Create(7, "Invalid person number");
+
+    /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
+    public static ValidationErrorDescriptor MutuallyExclusive { get; }
+        = _factory.Create(8, "Values are mutually exclusive");
 }

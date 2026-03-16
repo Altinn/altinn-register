@@ -375,7 +375,7 @@ public class PartyController
 
         if (party is null)
         {
-            return Problems.PartyNotFound.Create([new("partyUuid", uuid.ToString())])
+            return Problems.ReferencedPartyNotFound.Create([new("partyUuid", uuid.ToString())])
                 .ToActionResult();
         }
 

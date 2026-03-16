@@ -3,7 +3,6 @@ using Altinn.Register.Contracts;
 using Altinn.Register.Core.A2;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Mediator;
-using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
 
 namespace Altinn.Register.Core.Operations;
@@ -61,45 +60,6 @@ internal sealed class GetOrganizationFromDBRequestHandler(IUnitOfWorkManager man
             ]);
         }
 
-        return MapOrganization(org);
-    }
-
-    /// <summary>
-    /// Maps a <see cref="OrganizationRecord"/> to a <see cref="Contracts.V1.Organization"/>.
-    /// </summary>
-    /// <param name="org">The organization to map.</param>
-    /// <returns>The mapped organization.</returns>
-    internal static Contracts.V1.Organization MapOrganization(OrganizationRecord org)
-    {
-        var ret = new Contracts.V1.Organization
-        {
-            OrgNumber = org.OrganizationIdentifier.Value!.ToString(),
-            Name = org.DisplayName.Value,
-            UnitType = org.UnitType.Value,
-            TelephoneNumber = org.TelephoneNumber.Value,
-            MobileNumber = org.MobileNumber.Value,
-            FaxNumber = org.FaxNumber.Value,
-            EMailAddress = org.EmailAddress.Value,
-            InternetAddress = org.InternetAddress.Value,
-            UnitStatus = org.UnitStatus.Value,
-        };
-
-        if (org.MailingAddress.HasValue)
-        {
-            var mailingAddress = org.MailingAddress.Value;
-            ret.MailingAddress = mailingAddress.Address;
-            ret.MailingPostalCode = mailingAddress.PostalCode;
-            ret.MailingPostalCity = mailingAddress.City;
-        }
-
-        if (org.BusinessAddress.HasValue)
-        {
-            var businessAddress = org.BusinessAddress.Value;
-            ret.BusinessAddress = businessAddress.Address;
-            ret.BusinessPostalCode = businessAddress.PostalCode;
-            ret.BusinessPostalCity = businessAddress.City;
-        }
-
-        return ret;
+        return V1PartyMapper.ToV1Organization(org);
     }
 }

@@ -32,7 +32,7 @@ public class OrganizationControllerTests
                 .WithRouteValue("orgNumber", orgNo.ToString())
                 .Respond(() =>
                 {
-                    var converted = GetOrganizationFromDBRequestHandler.MapOrganization(org);
+                    var converted = V1PartyMapper.ToV1Organization(org);
                     return JsonContent.Create(converted, options: JsonSerializerOptions.Web);
                 });
         }
@@ -46,8 +46,6 @@ public class OrganizationControllerTests
 
         actual.ShouldNotBeNull();
         actual.OrgNumber.ShouldBe(orgNo.ToString());
-
-        SetSource(ApiSource.A2);
     }
 
     [Theory]

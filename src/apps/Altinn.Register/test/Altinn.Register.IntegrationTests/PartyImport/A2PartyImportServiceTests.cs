@@ -67,7 +67,7 @@ public class A2PartyImportServiceTests
             var result = await GetUserParty(service, partyUuid);
 
             result.IsProblem.ShouldBeTrue();
-            result.Problem.ErrorCode.ShouldBe(Problems.PartyNotFound.ErrorCode);
+            result.Problem.ErrorCode.ShouldBe(Problems.ReferencedPartyNotFound.ErrorCode);
         }
 
         [Theory]

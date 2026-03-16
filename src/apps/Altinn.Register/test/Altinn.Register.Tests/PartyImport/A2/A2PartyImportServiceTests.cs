@@ -154,7 +154,7 @@ public class A2PartyImportServiceTests
         => new()
         {
             { HttpStatusCode.Gone, Problems.PartyGone.ErrorCode.ToString()! },
-            { HttpStatusCode.NotFound, Problems.PartyNotFound.ErrorCode.ToString()! },
+            { HttpStatusCode.NotFound, Problems.ReferencedPartyNotFound.ErrorCode.ToString()! },
             { HttpStatusCode.BadRequest, Problems.PartyFetchFailed.ErrorCode.ToString()! },
             { HttpStatusCode.InternalServerError, Problems.PartyFetchFailed.ErrorCode.ToString()! },
         };

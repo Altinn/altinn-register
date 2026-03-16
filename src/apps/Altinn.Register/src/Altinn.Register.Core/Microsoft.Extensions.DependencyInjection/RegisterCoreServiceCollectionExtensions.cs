@@ -47,6 +47,8 @@ public static class RegisterCoreServiceCollectionExtensions
         {
             services.TryAddScoped<GetOrganizationFromA2RequestHandler>();
             services.TryAddScoped<GetOrganizationFromDBRequestHandler>();
+            services.TryAddScoped<LookupV1PartyFromA2RequestHandler>();
+            services.TryAddScoped<LookupV1PartyFromDBRequestHandler>();
         }
     }
 }
