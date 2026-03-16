@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -78,7 +79,7 @@ public class UpdateTests
                     {
                         { "X-Upstream-Header", "upstream-value" },
                     },
-                    Content = new StringContent(responseBody, Encoding.UTF8, "text/xml"),
+                    Content = CreateMultiEncodedContent(responseBody),
                 };
             });
 
@@ -105,6 +106,40 @@ public class UpdateTests
         row.ResponseHeaders.ShouldContainKeyAndValue("X-Upstream-Header", "upstream-value");
         row.ResponseBody.ShouldBe(responseBody);
         row.Duration.ShouldBe(TimeSpan.FromSeconds(0.5));
+
+        static HttpContent CreateMultiEncodedContent(string text)
+        {
+            string[] encodings = ["gzip", "deflate", "br", "gzip", "deflate", "br", "gzip", "deflate", "br", "gzip"];
+            var input = Encoding.UTF8.GetBytes(text);
+
+            foreach (var encoding in encodings)
+            {
+                using var ms = new MemoryStream();
+                Stream compressor = encoding switch
+                {
+                    "gzip" => new GZipStream(ms, CompressionLevel.Optimal, leaveOpen: true),
+                    "deflate" => new DeflateStream(ms, CompressionLevel.Optimal, leaveOpen: true),
+                    "br" => new BrotliStream(ms, CompressionLevel.Optimal, leaveOpen: true),
+                    _ => throw new InvalidOperationException($"Unsupported test encoding: {encoding}"),
+                };
+
+                using (compressor)
+                {
+                    compressor.Write(input, 0, input.Length);
+                }
+
+                input = ms.ToArray();
+            }
+
+            var content = new ByteArrayContent(input);
+            content.Headers.ContentType = new("text/xml", "utf-8");
+            foreach (var encoding in encodings)
+            {
+                content.Headers.ContentEncoding.Add(encoding);
+            }
+
+            return content;
+        }
     }
 
     private async Task<CcrSoapLogRow> WaitForSingleLogRow()
