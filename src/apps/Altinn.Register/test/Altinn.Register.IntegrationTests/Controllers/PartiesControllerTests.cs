@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
+using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.TestUtils.Http;
+using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Mediator;
 using Altinn.Register.Core.Operations;
 using Altinn.Register.Core.Parties;
@@ -134,6 +136,79 @@ public class PartiesControllerTests
         await response.ShouldHaveStatusCode(HttpStatusCode.Unauthorized);
     }
 
+    [Theory]
+    [ApiSourceData]
+    internal async Task PostPartyLookup_InvalidOrgNo_ReturnsValidationProblem(ApiSource source)
+    {
+        var validOrgNo = (await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct))).OrganizationIdentifier.Value!.ToString();
+        var invalidOrgNo = ChangeLastDigit(validOrgNo);
+
+        SetSource(source);
+
+        var response = await HttpClient.PostAsJsonAsync(
+            "register/api/v1/parties/lookup",
+            new Contracts.V1.PartyLookup { OrgNo = invalidOrgNo },
+            CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
+        await AssertValidationError(response, ValidationErrors.InvalidOrganizationNumber.ErrorCode);
+    }
+
+    [Theory]
+    [ApiSourceData]
+    internal async Task PostPartyLookup_InvalidSsn_ReturnsValidationProblem(ApiSource source)
+    {
+        var validSsn = (await Setup((uow, ct) => uow.CreatePerson(cancellationToken: ct))).PersonIdentifier.Value!.ToString();
+        var invalidSsn = ChangeLastDigit(validSsn);
+
+        SetSource(source);
+
+        var response = await HttpClient.PostAsJsonAsync(
+            "register/api/v1/parties/lookup",
+            new Contracts.V1.PartyLookup { Ssn = invalidSsn },
+            CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
+        await AssertValidationError(response, ValidationErrors.InvalidPersonNumber.ErrorCode);
+    }
+
+    [Theory]
+    [ApiSourceData]
+    internal async Task PostPartyLookup_MissingIdentifiers_ReturnsValidationProblem(ApiSource source)
+    {
+        SetSource(source);
+
+        var response = await HttpClient.PostAsJsonAsync(
+            "register/api/v1/parties/lookup",
+            new Contracts.V1.PartyLookup(),
+            CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
+        await AssertValidationError(response, ValidationErrors.MutuallyExclusive.ErrorCode);
+    }
+
+    [Theory]
+    [ApiSourceData]
+    internal async Task PostPartyLookup_BothIdentifiersProvided_ReturnsValidationProblem(ApiSource source)
+    {
+        var person = await Setup((uow, ct) => uow.CreatePerson(cancellationToken: ct));
+        var org = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
+
+        SetSource(source);
+
+        var response = await HttpClient.PostAsJsonAsync(
+            "register/api/v1/parties/lookup",
+            new Contracts.V1.PartyLookup
+            {
+                Ssn = person.PersonIdentifier.Value!.ToString(),
+                OrgNo = org.OrganizationIdentifier.Value!.ToString(),
+            },
+            CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
+        await AssertValidationError(response, StdValidationErrors.Required.ErrorCode);
+    }
+
     [Fact]
     internal async Task PostPartyLookup_EndpointSourceOverride_UsesEndpointSource()
     {
@@ -183,5 +258,21 @@ public class PartiesControllerTests
         Configuration.AddInMemoryCollection([
             new($"Altinn:register:ApiSource:Endpoints:{endpointName}", sourceString),
         ]);
+    }
+
+    private static string ChangeLastDigit(string value)
+    {
+        value.ShouldNotBeNullOrWhiteSpace();
+
+        var last = value[^1];
+        var replacement = last == '0' ? '1' : '0';
+        return $"{value[..^1]}{replacement}";
+    }
+
+    private static async Task AssertValidationError(HttpResponseMessage response, ErrorCode expectedErrorCode)
+    {
+        var actual = await response.ShouldHaveJsonContent<AltinnValidationProblemDetails>();
+        actual.ErrorCode.ShouldBe(StdProblemDescriptors.ErrorCodes.ValidationError);
+        actual.Errors.ShouldContain(e => e.ErrorCode == expectedErrorCode);
     }
 }
