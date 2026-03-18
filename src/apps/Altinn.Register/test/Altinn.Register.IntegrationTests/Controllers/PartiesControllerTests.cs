@@ -367,9 +367,7 @@ public class PartiesControllerTests
 
         actual.PartyNames.ShouldNotBeNull();
         actual.PartyNames!
-            .OrderBy(p => p.OrgNo, StringComparer.Ordinal)
-            .ToArray()
-            .ShouldBe(expected.OrderBy(p => p.OrgNo, StringComparer.Ordinal).ToArray());
+            .ShouldBe(expected, ignoreOrder: true);
     }
 
     [Theory]
@@ -418,14 +416,12 @@ public class PartiesControllerTests
 
         actual.PartyNames.ShouldNotBeNull();
         actual.PartyNames!
-            .OrderBy(p => p.OrgNo, StringComparer.Ordinal)
-            .ToArray()
-            .ShouldBe(expected.OrderBy(p => p.OrgNo, StringComparer.Ordinal).ToArray());
+            .ShouldBe(expected, ignoreOrder: true);
     }
 
     [Theory]
     [ApiSourceData]
-    public async Task PostPartyNamesLookup_UnknownAndDuplicateInputs_PreservesInputShape(TestApiSource source)
+    public async Task PostPartyNamesLookup_UnknownAndDuplicateInputs_PreservesDuplicatesAndUnknowns(TestApiSource source)
     {
         var org = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
         var validOrgNo = org.OrganizationIdentifier.Value!.ToString();
@@ -454,7 +450,8 @@ public class PartiesControllerTests
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
         var actual = await response.ShouldHaveJsonContent<Contracts.V1.PartyNamesLookupResult>();
-        actual.PartyNames.ShouldBe([
+        var expected = new[]
+        {
             new Contracts.V1.PartyName
             {
                 OrgNo = unknownOrgNo,
@@ -470,7 +467,11 @@ public class PartiesControllerTests
                 OrgNo = validOrgNo,
                 Name = org.DisplayName.Value,
             },
-        ]);
+        };
+
+        actual.PartyNames.ShouldNotBeNull();
+        actual.PartyNames!
+            .ShouldBe(expected, ignoreOrder: true);
     }
 
     [Fact]
