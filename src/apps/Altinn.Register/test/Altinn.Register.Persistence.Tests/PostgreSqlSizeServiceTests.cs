@@ -20,21 +20,21 @@ public class PostgreSqlSizeServiceTests
     [Fact]
     public async Task DatabaseHasSize()
     {
-        var isEmpty = await Service.IsDatabaseSmallerThan(ByteSize.Byte);
-        isEmpty.Should().BeFalse();
+        var isEmpty = await Service.IsDatabaseSmallerThan(ByteSize.Byte, CancellationToken);
+        isEmpty.ShouldBeFalse();
     }
 
     [Fact]
     public async Task DatabaseIsNotHuge()
     {
-        var smallerThan = await Service.IsDatabaseSmallerThan(ByteSize.FromGibibytes(1));
-        smallerThan.Should().BeTrue();
+        var smallerThan = await Service.IsDatabaseSmallerThan(ByteSize.FromGibibytes(1), CancellationToken);
+        smallerThan.ShouldBeTrue();
     }
 
     [Fact]
     public async Task DoesNotThrowOnNonExistingTable()
     {
-        var isZero = await Service.IsTableSmallerThan("fake_schema", "no_table", ByteSize.Byte);
-        isZero.Should().BeTrue();
+        var isZero = await Service.IsTableSmallerThan("fake_schema", "no_table", ByteSize.Byte, CancellationToken);
+        isZero.ShouldBeTrue();
     }
 }

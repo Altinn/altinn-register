@@ -15,6 +15,9 @@ public abstract class TestBase
         _collector = new ActivityCollector();
     }
 
+    protected CancellationToken CancellationToken
+        => TestContext.Current.CancellationToken;
+
     protected virtual ValueTask InitializeAsync()
         => ValueTask.CompletedTask;
 

@@ -1,7 +1,6 @@
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.TestUtils;
-using Xunit.Abstractions;
 
 namespace Altinn.Register.Persistence.Tests;
 
@@ -29,13 +28,13 @@ public class PostgreSqlExternalRoleDefinitionPersistenceTests(ITestOutputHelper 
     public async Task GetsRoleDefinition(ExternalRoleSource source, string identifier)
     {
         // cold
-        var def = await Persistence.TryGetRoleDefinition(source, identifier);
+        var def = await Persistence.TryGetRoleDefinition(source, identifier, CancellationToken);
         Assert.NotNull(def);
         Assert.Equal(source, def.Source);
         Assert.Equal(identifier, def.Identifier);
 
         // from cache
-        def = await Persistence.TryGetRoleDefinition(source, identifier);
+        def = await Persistence.TryGetRoleDefinition(source, identifier, CancellationToken);
         Assert.NotNull(def);
         Assert.Equal(source, def.Source);
         Assert.Equal(identifier, def.Identifier);
@@ -47,13 +46,13 @@ public class PostgreSqlExternalRoleDefinitionPersistenceTests(ITestOutputHelper 
     public async Task GetsRoleDefinition_ByRoleCode(string roleCode, ExternalRoleSource source, string identifier)
     {
         // cold
-        var def = await Persistence.TryGetRoleDefinitionByRoleCode(roleCode);
+        var def = await Persistence.TryGetRoleDefinitionByRoleCode(roleCode, CancellationToken);
         Assert.NotNull(def);
         Assert.Equal(source, def.Source);
         Assert.Equal(identifier, def.Identifier);
 
         // from cache
-        def = await Persistence.TryGetRoleDefinitionByRoleCode(roleCode);
+        def = await Persistence.TryGetRoleDefinitionByRoleCode(roleCode, CancellationToken);
         Assert.NotNull(def);
         Assert.Equal(source, def.Source);
         Assert.Equal(identifier, def.Identifier);

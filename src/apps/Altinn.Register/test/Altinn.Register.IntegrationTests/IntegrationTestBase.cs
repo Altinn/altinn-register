@@ -24,9 +24,6 @@ public abstract class IntegrationTestBase
     private ITestHarness? _testHarness;
     private ICommandSender? _commandSender;
 
-    protected CancellationToken CancellationToken
-        => TestContext.Current.CancellationToken;
-
     protected JsonSerializerOptions JsonOptions
         => _jsonOptions;
 

@@ -20,7 +20,7 @@ public class PostgresImportJobStatePersistenceTests
         await base.InitializeAsync();
 
         _manager = GetRequiredService<IUnitOfWorkManager>();
-        _uow = await _manager.CreateAsync(activityName: "test");
+        _uow = await _manager.CreateAsync(activityName: "test", cancellationToken: CancellationToken);
         _persistence = _uow.GetRequiredService<IImportJobStatePersistence>();
     }
 
@@ -46,11 +46,10 @@ public class PostgresImportJobStatePersistenceTests
         var jobId = "test";
 
         var state = new StringState { Value = "test" };
-        await Persistence.SetState(jobId, state);
+        await Persistence.SetState(jobId, state, cancellationToken: CancellationToken);
 
-        var result = await Persistence.GetState<StringState>(jobId);
-        result.Should().HaveValue()
-            .Which.Value.Should().Be(state.Value);
+        var result = await Persistence.GetState<StringState>(jobId, cancellationToken: CancellationToken);
+        result.ShouldHaveValue().Value.ShouldBe(state.Value);
     }
 
     [Fact]
@@ -59,19 +58,18 @@ public class PostgresImportJobStatePersistenceTests
         var jobId = "test";
 
         var state = new IntState { Value = 42 };
-        await Persistence.SetState(jobId, state);
+        await Persistence.SetState(jobId, state, cancellationToken: CancellationToken);
 
-        var result = await Persistence.GetState<IntState>(jobId);
-        result.Should().HaveValue()
-            .Which.Value.Should().Be(state.Value);
+        var result = await Persistence.GetState<IntState>(jobId, cancellationToken: CancellationToken);
+        result.ShouldHaveValue().Value.ShouldBe(state.Value);
     }
 
     [Fact]
     public async Task JobState_GetState_ReturnsUnset_WhenMissing()
     {
-        var result = await Persistence.GetState<StringState>("test");
+        var result = await Persistence.GetState<StringState>("test", cancellationToken: CancellationToken);
 
-        result.Should().BeUnset();
+        result.ShouldBeUnset();
     }
 
     [Fact]
@@ -80,10 +78,10 @@ public class PostgresImportJobStatePersistenceTests
         var jobId = "test";
 
         var state = new StringState { Value = "test" };
-        await Persistence.SetState(jobId, state);
+        await Persistence.SetState(jobId, state, cancellationToken: CancellationToken);
 
-        var result = await Persistence.GetState<IntState>(jobId);
-        result.Should().BeNull();
+        var result = await Persistence.GetState<IntState>(jobId, cancellationToken: CancellationToken);
+        result.ShouldBeNull();
     }
 
     [Fact]
@@ -92,88 +90,86 @@ public class PostgresImportJobStatePersistenceTests
         var jobId = "test";
 
         var state = new StringState { Value = "test" };
-        await Persistence.SetState(jobId, state);
-        var result = await Persistence.GetState<StringState>(jobId);
-        result.Should().NotBeNull();
+        await Persistence.SetState(jobId, state, cancellationToken: CancellationToken);
+        var result = await Persistence.GetState<StringState>(jobId, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
-        await Persistence.ClearState(jobId);
+        await Persistence.ClearState(jobId, cancellationToken: CancellationToken);
 
-        result = await Persistence.GetState<StringState>(jobId);
-        result.Should().BeUnset();
+        result = await Persistence.GetState<StringState>(jobId, cancellationToken: CancellationToken);
+        result.ShouldBeUnset();
     }
 
     [Fact]
     public async Task PartyState_CanRoundTrip_StringState()
     {
-        var party = await UoW.CreateOrg();
+        var party = await UoW.CreateOrg(cancellationToken: CancellationToken);
         var jobId = "test";
 
         var partyUuid = party.PartyUuid.Value;
 
         var state = new StringState { Value = "test" };
-        await Persistence.SetPartyState(jobId, partyUuid, state);
+        await Persistence.SetPartyState(jobId, partyUuid, state, cancellationToken: CancellationToken);
 
-        var result = await Persistence.GetPartyState<StringState>(jobId, partyUuid);
-        result.Should().HaveValue()
-            .Which.Value.Should().Be(state.Value);
+        var result = await Persistence.GetPartyState<StringState>(jobId, partyUuid, cancellationToken: CancellationToken);
+        result.ShouldHaveValue().Value.ShouldBe(state.Value);
     }
 
     [Fact]
     public async Task PartyState_CanRoundTrip_IntState()
     {
-        var party = await UoW.CreateOrg();
+        var party = await UoW.CreateOrg(cancellationToken: CancellationToken);
         var jobId = "test";
 
         var partyUuid = party.PartyUuid.Value;
 
         var state = new IntState { Value = 42 };
-        await Persistence.SetPartyState(jobId, partyUuid, state);
+        await Persistence.SetPartyState(jobId, partyUuid, state, cancellationToken: CancellationToken);
 
-        var result = await Persistence.GetPartyState<IntState>(jobId, partyUuid);
-        result.Should().HaveValue()
-            .Which.Value.Should().Be(state.Value);
+        var result = await Persistence.GetPartyState<IntState>(jobId, partyUuid, cancellationToken: CancellationToken);
+        result.ShouldHaveValue().Value.ShouldBe(state.Value);
     }
 
     [Fact]
     public async Task PartyState_GetPartyState_ReturnsUnset_WhenMissing()
     {
-        var result = await Persistence.GetPartyState<StringState>("test", Guid.NewGuid());
+        var result = await Persistence.GetPartyState<StringState>("test", Guid.NewGuid(), cancellationToken: CancellationToken);
 
-        result.Should().BeUnset();
+        result.ShouldBeUnset();
     }
 
     [Fact]
     public async Task PartyState_GetPartyState_ReturnsNull_WhenWrongStateType()
     {
-        var party = await UoW.CreateOrg();
+        var party = await UoW.CreateOrg(cancellationToken: CancellationToken);
         var jobId = "test";
 
         var partyUuid = party.PartyUuid.Value;
 
         var state = new StringState { Value = "test" };
-        await Persistence.SetPartyState(jobId, partyUuid, state);
+        await Persistence.SetPartyState(jobId, partyUuid, state, cancellationToken: CancellationToken);
 
-        var result = await Persistence.GetPartyState<IntState>(jobId, partyUuid);
-        result.Should().BeNull();
+        var result = await Persistence.GetPartyState<IntState>(jobId, partyUuid, cancellationToken: CancellationToken);
+        result.ShouldBeNull();
     }
 
     [Fact]
     public async Task PartyState_ClearState_ClearsState()
     {
-        var party = await UoW.CreateOrg();
+        var party = await UoW.CreateOrg(cancellationToken: CancellationToken);
         var jobId = "test";
 
         var partyUuid = party.PartyUuid.Value;
 
         var state = new StringState { Value = "test" };
-        await Persistence.SetPartyState(jobId, partyUuid, state);
-        var result = await Persistence.GetPartyState<StringState>(jobId, partyUuid);
-        result.Should().NotBeNull();
+        await Persistence.SetPartyState(jobId, partyUuid, state, cancellationToken: CancellationToken);
+        var result = await Persistence.GetPartyState<StringState>(jobId, partyUuid, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
-        await Persistence.ClearPartyState(jobId, partyUuid);
+        await Persistence.ClearPartyState(jobId, partyUuid, cancellationToken: CancellationToken);
 
-        result = await Persistence.GetPartyState<StringState>(jobId, partyUuid);
-        result.Should().BeUnset();
+        result = await Persistence.GetPartyState<StringState>(jobId, partyUuid, cancellationToken: CancellationToken);
+        result.ShouldBeUnset();
     }
 
     private sealed class StringState
