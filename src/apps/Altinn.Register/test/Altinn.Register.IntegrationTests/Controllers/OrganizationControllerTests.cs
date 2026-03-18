@@ -15,7 +15,7 @@ public class OrganizationControllerTests
     : IntegrationTestBase
 {
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task GetOrganization_ValidTokenRequestForExistingOrganization_ReturnsOrganization(TestApiSource source)
     {
         // Setup
@@ -47,7 +47,7 @@ public class OrganizationControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task GetOrganization_ValidTokenRequestForNonExistingOrganization_ReturnsStatusNotFound(TestApiSource source)
     {
         // Setup
@@ -74,7 +74,7 @@ public class OrganizationControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task GetOrganization_InvalidToken_ReturnsUnauthorized(TestApiSource source)
     {
         // Setup

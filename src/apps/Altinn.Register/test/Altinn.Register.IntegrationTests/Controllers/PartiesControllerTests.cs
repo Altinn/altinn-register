@@ -14,7 +14,7 @@ public class PartiesControllerTests
     : IntegrationTestBase
 {
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyLookup_ValidTokenRequestForExistingOrganization_ReturnsParty(TestApiSource source)
     {
         var org = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
@@ -54,7 +54,7 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyLookup_ValidTokenRequestForExistingPerson_ReturnsParty(TestApiSource source)
     {
         var person = await Setup((uow, ct) => uow.CreatePerson(cancellationToken: ct));
@@ -96,7 +96,7 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyLookup_ValidTokenRequestForNonExistingOrganization_ReturnsNotFound(TestApiSource source)
     {
         var orgNo = await GetRequiredService<RegisterTestDataGenerator>().GetNewOrgNumber(CancellationToken);
@@ -118,7 +118,7 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyLookup_InvalidToken_ReturnsUnauthorized(TestApiSource source)
     {
         var orgNo = await GetRequiredService<RegisterTestDataGenerator>().GetNewOrgNumber(CancellationToken);
@@ -136,7 +136,7 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyLookup_InvalidOrgNo_ReturnsValidationProblem(TestApiSource source)
     {
         var validOrgNo = (await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct))).OrganizationIdentifier.Value!.ToString();
@@ -154,7 +154,7 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyLookup_InvalidSsn_ReturnsValidationProblem(TestApiSource source)
     {
         var validSsn = (await Setup((uow, ct) => uow.CreatePerson(cancellationToken: ct))).PersonIdentifier.Value!.ToString();
@@ -172,7 +172,7 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyLookup_MissingIdentifiers_ReturnsValidationProblem(TestApiSource source)
     {
         SetSource(source);
@@ -187,7 +187,7 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyLookup_BothIdentifiersProvided_ReturnsValidationProblem(TestApiSource source)
     {
         var (person, org) = await Setup(async (uow, ct) =>
@@ -237,7 +237,7 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyNamesLookup_ValidTokenRequestForExistingOrganization_ReturnsPartyName(TestApiSource source)
     {
         var org = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
@@ -271,11 +271,11 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [MemberData(nameof(GetPartyNamesLookupQueryParameterHandlingData))]
+    [CombinatorialData]
     public async Task PostPartyNamesLookup_QueryParameterHandling_ReturnsExpectedPersonName(
         TestApiSource source,
-        string queryString,
-        bool includePersonName)
+        [CombinatorialMemberData(nameof(PartyNamesLookupQueryParameterHandlingData))]
+        PartyNamesLookupQueryParameterHandling queryParameters)
     {
         var person = await Setup((uow, ct) => uow.CreatePerson(cancellationToken: ct));
         var ssn = person.PersonIdentifier.Value!.ToString();
@@ -289,7 +289,7 @@ public class PartiesControllerTests
         }
 
         var response = await HttpClient.PostAsJsonAsync(
-            $"register/api/v1/parties/nameslookup{queryString}",
+            $"register/api/v1/parties/nameslookup{queryParameters.QueryString}",
             new Contracts.V1.PartyNamesLookup
             {
                 Parties = [new() { Ssn = ssn }],
@@ -303,7 +303,7 @@ public class PartiesControllerTests
             {
                 Ssn = ssn,
                 Name = person.ShortName.Value,
-                PersonName = includePersonName
+                PersonName = queryParameters.IncludePersonName
                     ? new Contracts.V1.PersonNameComponents
                     {
                         FirstName = person.FirstName.Value,
@@ -316,7 +316,7 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyNamesLookup_ValidTokenRequestForExistingOrganizations_ReturnsPartyNames(TestApiSource source)
     {
         var (org1, org2) = await Setup(async (uow, ct) =>
@@ -371,7 +371,7 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyNamesLookup_PartialUnknownInput_ReturnsNullNameForUnknownParty(TestApiSource source)
     {
         var org = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
@@ -420,7 +420,7 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyNamesLookup_UnknownAndDuplicateInputs_PreservesDuplicatesAndUnknowns(TestApiSource source)
     {
         var org = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
@@ -503,8 +503,10 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [MemberData(nameof(GetPartyNamesLookupInvalidQueryParameterData))]
-    public async Task PostPartyNamesLookup_InvalidQueryParameter_ReturnsBadRequest(TestApiSource source, string queryString)
+    [CombinatorialData]
+    public async Task PostPartyNamesLookup_InvalidQueryParameter_ReturnsBadRequest(
+        TestApiSource source,
+        [CombinatorialMemberData(nameof(PartyNamesLookupInvalidQueryParameters))] string queryString)
     {
         var person = await Setup((uow, ct) => uow.CreatePerson(cancellationToken: ct));
         var ssn = person.PersonIdentifier.Value!.ToString();
@@ -523,7 +525,7 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyNamesLookup_MissingIdentifiers_ReturnsValidationProblem(TestApiSource source)
     {
         SetSource(source);
@@ -541,7 +543,7 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyNamesLookup_BothIdentifiersProvided_ReturnsValidationProblem(TestApiSource source)
     {
         var (person, org) = await Setup(async (uow, ct) =>
@@ -574,7 +576,7 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyNamesLookup_InvalidOrgNo_ReturnsValidationProblem(TestApiSource source)
     {
         var validOrgNo = (await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct))).OrganizationIdentifier.Value!.ToString();
@@ -595,7 +597,7 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyNamesLookup_InvalidSsn_ReturnsValidationProblem(TestApiSource source)
     {
         var validSsn = (await Setup((uow, ct) => uow.CreatePerson(cancellationToken: ct))).PersonIdentifier.Value!.ToString();
@@ -616,7 +618,7 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyNamesLookup_InvalidSecondItem_ReturnsValidationProblem(TestApiSource source)
     {
         var org = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
@@ -642,7 +644,7 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyNamesLookup_InvalidFirstItem_ReturnsValidationProblem(TestApiSource source)
     {
         var org = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
@@ -668,7 +670,7 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyNamesLookup_MultipleInvalidItems_ReturnsAllValidationErrors(TestApiSource source)
     {
         SetSource(source);
@@ -697,7 +699,7 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyNamesLookup_NullItem_ReturnsValidationProblem(TestApiSource source)
     {
         SetSource(source);
@@ -721,7 +723,7 @@ public class PartiesControllerTests
     }
 
     [Theory]
-    [ApiSourceData]
+    [CombinatorialData]
     public async Task PostPartyNamesLookup_TooManyItems_ReturnsValidationProblem(TestApiSource source)
     {
         SetSource(source);
@@ -773,28 +775,17 @@ public class PartiesControllerTests
         ]);
     }
 
-    public static TheoryData<TestApiSource, string, bool> GetPartyNamesLookupQueryParameterHandlingData()
+    public static IEnumerable<PartyNamesLookupQueryParameterHandling> PartyNamesLookupQueryParameterHandlingData()
     {
-        return new TheoryData<TestApiSource, string, bool>
-        {
-            { TestApiSource.A2, string.Empty, false },
-            { TestApiSource.A2, "?partyComponentOption=", false },
-            { TestApiSource.A2, "?partyComponentOption=person-name", true },
-            { TestApiSource.DB, string.Empty, false },
-            { TestApiSource.DB, "?partyComponentOption=", false },
-            { TestApiSource.DB, "?partyComponentOption=person-name", true },
-        };
+        yield return new(string.Empty, false);
+        yield return new("?partyComponentOption=", false);
+        yield return new("?partyComponentOption=person-name", true);
     }
 
-    public static TheoryData<TestApiSource, string> GetPartyNamesLookupInvalidQueryParameterData()
+    public static IEnumerable<string> PartyNamesLookupInvalidQueryParameters()
     {
-        return new TheoryData<TestApiSource, string>
-        {
-            { TestApiSource.A2, "?partyComponentOption=none" },
-            { TestApiSource.A2, "?partyComponentOption=non-existent" },
-            { TestApiSource.DB, "?partyComponentOption=none" },
-            { TestApiSource.DB, "?partyComponentOption=non-existent" },
-        };
+        yield return "?partyComponentOption=none";
+        yield return "?partyComponentOption=non-existent";
     }
 
     private void ConfigureA2PartyLookupResponses(IEnumerable<Contracts.V1.Party> parties)
@@ -848,4 +839,8 @@ public class PartiesControllerTests
         actual.ErrorCode.ShouldBe(StdProblemDescriptors.ErrorCodes.ValidationError);
         actual.Errors.ShouldContain(e => e.ErrorCode == expectedErrorCode);
     }
+
+    public readonly record struct PartyNamesLookupQueryParameterHandling(
+        string QueryString,
+        bool IncludePersonName);
 }
