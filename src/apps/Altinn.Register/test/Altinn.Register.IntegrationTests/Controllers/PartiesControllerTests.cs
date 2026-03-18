@@ -232,6 +232,248 @@ public class PartiesControllerTests
         ]);
     }
 
+    [Theory]
+    [ApiSourceData]
+    internal async Task PostPartyNamesLookup_ValidTokenRequestForExistingOrganization_ReturnsPartyName(ApiSource source)
+    {
+        var org = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
+        var orgNo = org.OrganizationIdentifier.Value!.ToString();
+
+        SetSource(source);
+        if (source == ApiSource.A2)
+        {
+            FakeHttpHandlers.For<IV1PartyService>()
+                .Expect(HttpMethod.Post, "/parties/lookupObject")
+                .Respond(() => JsonContent.Create(V1PartyMapper.ToV1Party(org)));
+        }
+
+        var response = await HttpClient.PostAsJsonAsync(
+            "register/api/v1/parties/nameslookup",
+            new Contracts.V1.PartyNamesLookup
+            {
+                Parties = [new() { OrgNo = orgNo }],
+            },
+            CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
+        var actual = await response.ShouldHaveJsonContent<Contracts.V1.PartyNamesLookupResult>();
+        actual.PartyNames.ShouldBe([
+            new Contracts.V1.PartyName
+            {
+                OrgNo = orgNo,
+                Name = org.DisplayName.Value,
+            }
+        ]);
+    }
+
+    [Theory]
+    [ApiSourceData]
+    internal async Task PostPartyNamesLookup_ValidTokenRequestForExistingPerson_WithNameComponents_ReturnsPartyName(ApiSource source)
+    {
+        var person = await Setup((uow, ct) => uow.CreatePerson(cancellationToken: ct));
+        var ssn = person.PersonIdentifier.Value!.ToString();
+
+        SetSource(source);
+        if (source == ApiSource.A2)
+        {
+            FakeHttpHandlers.For<IV1PartyService>()
+                .Expect(HttpMethod.Post, "/parties/lookupObject")
+                .Respond(() => JsonContent.Create(V1PartyMapper.ToV1Party(person)));
+        }
+
+        var response = await HttpClient.PostAsJsonAsync(
+            "register/api/v1/parties/nameslookup?partyComponentOption=person-name",
+            new Contracts.V1.PartyNamesLookup
+            {
+                Parties = [new() { Ssn = ssn }],
+            },
+            CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
+        var actual = await response.ShouldHaveJsonContent<Contracts.V1.PartyNamesLookupResult>();
+        actual.PartyNames.ShouldBe([
+            new Contracts.V1.PartyName
+            {
+                Ssn = ssn,
+                Name = person.ShortName.Value,
+                PersonName = new Contracts.V1.PersonNameComponents
+                {
+                    FirstName = person.FirstName.Value,
+                    MiddleName = person.MiddleName.Value,
+                    LastName = person.LastName.Value,
+                },
+            }
+        ]);
+    }
+
+    [Fact]
+    internal async Task PostPartyNamesLookup_EndpointSourceOverride_UsesEndpointSource()
+    {
+        var org = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
+        var orgNo = org.OrganizationIdentifier.Value!.ToString();
+
+        SetSource(ApiSource.A2);
+        SetSourceForEndpoint("parties/nameslookup", ApiSource.DB);
+
+        var response = await HttpClient.PostAsJsonAsync(
+            "register/api/v1/parties/nameslookup",
+            new Contracts.V1.PartyNamesLookup
+            {
+                Parties = [new() { OrgNo = orgNo }],
+            },
+            CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
+        var actual = await response.ShouldHaveJsonContent<Contracts.V1.PartyNamesLookupResult>();
+        actual.PartyNames.ShouldBe([
+            new Contracts.V1.PartyName
+            {
+                OrgNo = orgNo,
+                Name = org.DisplayName.Value,
+            }
+        ]);
+    }
+
+    [Theory]
+    [ApiSourceData]
+    internal async Task PostPartyNamesLookup_MissingIdentifiers_ReturnsValidationProblem(ApiSource source)
+    {
+        SetSource(source);
+
+        var response = await HttpClient.PostAsJsonAsync(
+            "register/api/v1/parties/nameslookup",
+            new Contracts.V1.PartyNamesLookup
+            {
+                Parties = [new Contracts.V1.PartyLookup()],
+            },
+            CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
+        await AssertValidationError(response, StdValidationErrors.Required.ErrorCode);
+    }
+
+    [Theory]
+    [ApiSourceData]
+    internal async Task PostPartyNamesLookup_BothIdentifiersProvided_ReturnsValidationProblem(ApiSource source)
+    {
+        var person = await Setup((uow, ct) => uow.CreatePerson(cancellationToken: ct));
+        var org = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
+
+        SetSource(source);
+
+        var response = await HttpClient.PostAsJsonAsync(
+            "register/api/v1/parties/nameslookup",
+            new Contracts.V1.PartyNamesLookup
+            {
+                Parties =
+                [
+                    new Contracts.V1.PartyLookup
+                    {
+                        Ssn = person.PersonIdentifier.Value!.ToString(),
+                        OrgNo = org.OrganizationIdentifier.Value!.ToString(),
+                    }
+                ],
+            },
+            CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
+        await AssertValidationError(response, ValidationErrors.MutuallyExclusive.ErrorCode);
+    }
+
+    [Theory]
+    [ApiSourceData]
+    internal async Task PostPartyNamesLookup_InvalidOrgNo_ReturnsValidationProblem(ApiSource source)
+    {
+        var validOrgNo = (await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct))).OrganizationIdentifier.Value!.ToString();
+        var invalidOrgNo = ChangeLastDigit(validOrgNo);
+
+        SetSource(source);
+
+        var response = await HttpClient.PostAsJsonAsync(
+            "register/api/v1/parties/nameslookup",
+            new Contracts.V1.PartyNamesLookup
+            {
+                Parties = [new Contracts.V1.PartyLookup { OrgNo = invalidOrgNo }],
+            },
+            CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
+        await AssertValidationError(response, ValidationErrors.InvalidOrganizationNumber.ErrorCode);
+    }
+
+    [Theory]
+    [ApiSourceData]
+    internal async Task PostPartyNamesLookup_InvalidSsn_ReturnsValidationProblem(ApiSource source)
+    {
+        var validSsn = (await Setup((uow, ct) => uow.CreatePerson(cancellationToken: ct))).PersonIdentifier.Value!.ToString();
+        var invalidSsn = ChangeLastDigit(validSsn);
+
+        SetSource(source);
+
+        var response = await HttpClient.PostAsJsonAsync(
+            "register/api/v1/parties/nameslookup",
+            new Contracts.V1.PartyNamesLookup
+            {
+                Parties = [new Contracts.V1.PartyLookup { Ssn = invalidSsn }],
+            },
+            CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
+        await AssertValidationError(response, ValidationErrors.InvalidPersonNumber.ErrorCode);
+    }
+
+    [Theory]
+    [ApiSourceData]
+    internal async Task PostPartyNamesLookup_InvalidSecondItem_ReturnsValidationProblem(ApiSource source)
+    {
+        var org = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
+        var validOrgNo = org.OrganizationIdentifier.Value!.ToString();
+        var invalidOrgNo = ChangeLastDigit(validOrgNo);
+
+        SetSource(source);
+
+        var response = await HttpClient.PostAsJsonAsync(
+            "register/api/v1/parties/nameslookup",
+            new Contracts.V1.PartyNamesLookup
+            {
+                Parties =
+                [
+                    new Contracts.V1.PartyLookup { OrgNo = validOrgNo },
+                    new Contracts.V1.PartyLookup { OrgNo = invalidOrgNo },
+                ],
+            },
+            CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
+        await AssertValidationError(response, ValidationErrors.InvalidOrganizationNumber.ErrorCode);
+    }
+
+    [Theory]
+    [ApiSourceData]
+    internal async Task PostPartyNamesLookup_InvalidFirstItem_ReturnsValidationProblem(ApiSource source)
+    {
+        var org = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
+        var validOrgNo = org.OrganizationIdentifier.Value!.ToString();
+        var invalidOrgNo = ChangeLastDigit(validOrgNo);
+
+        SetSource(source);
+
+        var response = await HttpClient.PostAsJsonAsync(
+            "register/api/v1/parties/nameslookup",
+            new Contracts.V1.PartyNamesLookup
+            {
+                Parties =
+                [
+                    new Contracts.V1.PartyLookup { OrgNo = invalidOrgNo },
+                    new Contracts.V1.PartyLookup { OrgNo = validOrgNo },
+                ],
+            },
+            CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
+        await AssertValidationError(response, ValidationErrors.InvalidOrganizationNumber.ErrorCode);
+    }
+
     private void SetSource(ApiSource source)
     {
         var sourceString = source switch

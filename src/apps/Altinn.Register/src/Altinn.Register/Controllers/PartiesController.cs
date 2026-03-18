@@ -192,6 +192,7 @@ public partial class PartiesController
     /// <summary>
     /// Perform a name lookup for the list of parties for the provided ids.
     /// </summary>
+    /// <param name="sender">The request sender.</param>
     /// <param name="partyNamesLookup">A list of lookup criteria. For each criteria, one and only one of the properties must be a valid value.</param>
     /// <param name="partyComponentOption">Specifies the components that should be included when retrieving party's information.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
@@ -203,6 +204,7 @@ public partial class PartiesController
     [ProducesResponseType(200)]
     [Produces("application/json")]
     public async Task<ActionResult<PartyNamesLookupResult>> PostPartyNamesLookup(
+        [FromServices] IRequestSender<LookupV1PartyNamesRequest, PartyNamesLookupResult> sender,
         [FromBody] PartyNamesLookup partyNamesLookup,
         [FromQuery] PartyComponentOptions partyComponentOption = PartyComponentOptions.None,
         CancellationToken cancellationToken = default)
@@ -215,13 +217,69 @@ public partial class PartiesController
             });
         }
 
-        List<PartyName> items = await _partyClient.LookupPartyNames(partyNamesLookup.Parties, partyComponentOption, cancellationToken).ToListAsync(cancellationToken);
-        var partyNamesLookupResult = new PartyNamesLookupResult
+        if (ValidatePartyNamesLookup(partyNamesLookup.Parties) is { } validationResult)
         {
-            PartyNames = items
-        };
+            return validationResult;
+        }
 
-        return Ok(partyNamesLookupResult);
+        var request = new LookupV1PartyNamesRequest(partyNamesLookup.Parties, partyComponentOption);
+        var result = await sender.Send(request, cancellationToken);
+        if (result.IsProblem)
+        {
+            return result.Problem.ToActionResult();
+        }
+
+        return Ok(result.Value);
+    }
+
+    [NonAction]
+    private static ActionResult? ValidatePartyNamesLookup(IReadOnlyList<PartyLookup> parties)
+    {
+        for (var i = 0; i < parties.Count; i++)
+        {
+            var party = parties[i];
+            var ssnPath = $"/parties/{i}/ssn";
+            var orgNoPath = $"/parties/{i}/orgNo";
+
+            switch (party.Ssn, party.OrgNo)
+            {
+                case (null, null):
+                    return StdValidationErrors.Required
+                        .Create([ssnPath, orgNoPath], detail: "Either ssn or orgNo is required.")
+                        .ToProblemInstance()
+                        .ToActionResult();
+
+                case (not null, not null):
+                    return ValidationErrors.MutuallyExclusive
+                        .Create([ssnPath, orgNoPath], detail: "Only one of ssn and orgNo is allowed.")
+                        .ToProblemInstance()
+                        .ToActionResult();
+
+                case (string ssn, null):
+                    if (!PersonIdentifier.TryParse(ssn, provider: null, out _))
+                    {
+                        return ValidationErrors.InvalidPersonNumber
+                            .Create(ssnPath)
+                            .ToProblemInstance()
+                            .ToActionResult();
+                    }
+
+                    break;
+
+                case (null, string orgNo):
+                    if (!OrganizationIdentifier.TryParse(orgNo, provider: null, out _))
+                    {
+                        return ValidationErrors.InvalidOrganizationNumber
+                            .Create(orgNoPath)
+                            .ToProblemInstance()
+                            .ToActionResult();
+                    }
+
+                    break;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
