@@ -16,7 +16,7 @@ public class OrganizationControllerTests
 {
     [Theory]
     [ApiSourceData]
-    internal async Task GetOrganization_ValidTokenRequestForExistingOrganization_ReturnsOrganization(TestApiSource source)
+    public async Task GetOrganization_ValidTokenRequestForExistingOrganization_ReturnsOrganization(TestApiSource source)
     {
         // Setup
         var org = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
@@ -48,7 +48,7 @@ public class OrganizationControllerTests
 
     [Theory]
     [ApiSourceData]
-    internal async Task GetOrganization_ValidTokenRequestForNonExistingOrganization_ReturnsStatusNotFound(TestApiSource source)
+    public async Task GetOrganization_ValidTokenRequestForNonExistingOrganization_ReturnsStatusNotFound(TestApiSource source)
     {
         // Setup
         var orgNo = await GetRequiredService<RegisterTestDataGenerator>().GetNewOrgNumber(TestContext.Current.CancellationToken);
@@ -75,7 +75,7 @@ public class OrganizationControllerTests
 
     [Theory]
     [ApiSourceData]
-    internal async Task GetOrganization_InvalidToken_ReturnsUnauthorized(TestApiSource source)
+    public async Task GetOrganization_InvalidToken_ReturnsUnauthorized(TestApiSource source)
     {
         // Setup
         var orgNo = await GetRequiredService<RegisterTestDataGenerator>().GetNewOrgNumber(TestContext.Current.CancellationToken);

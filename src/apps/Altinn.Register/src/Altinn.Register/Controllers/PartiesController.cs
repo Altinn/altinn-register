@@ -2,7 +2,6 @@
 
 using System.Security.Claims;
 using Altinn.Authorization.ProblemDetails;
-using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.V1;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Mediator;
@@ -13,6 +12,7 @@ using Altinn.Register.Models;
 using Altinn.Register.Services.Interfaces;
 using AltinnCore.Authentication.Constants;
 using Asp.Versioning;
+using CommunityToolkit.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using V1Models = Altinn.Register.Contracts.V1;
@@ -29,6 +29,8 @@ namespace Altinn.Register.Controllers;
 public partial class PartiesController
     : ControllerBase
 {
+    private const int MaxPartyNamesLookupItems = 1000;
+
     private readonly IV1PartyService _partyClient;
     private readonly IAuthorizationClient _authorization;
     private readonly ILogger<PartiesController> _logger;
@@ -140,44 +142,15 @@ public partial class PartiesController
         [FromBody] PartyLookup partyLookup,
         CancellationToken cancellationToken = default)
     {
-        LookupV1PartyRequest request;
-        switch (partyLookup.Ssn, partyLookup.OrgNo)
+        ValidationProblemBuilder errors = default;
+        if (!LookupV1PartyRequest.TryCreate(partyLookup, ref errors, pathPrefix: string.Empty, out var request))
         {
-            case (null, null):
-                return StdValidationErrors.Required
-                    .Create(["/ssn", "/orgNo"], detail: "Either ssn or orgNo is required.")
-                    .ToProblemInstance()
-                    .ToActionResult();
+            if (errors.TryBuild(out var problem))
+            {
+                return problem.ToActionResult();
+            }
 
-            case (not null, not null):
-                return ValidationErrors.MutuallyExclusive
-                    .Create(["/ssn", "/orgNo"], detail: "Only one of ssn and orgNo is allowed.")
-                    .ToProblemInstance()
-                    .ToActionResult();
-
-            case (string ssn, null):
-                if (!PersonIdentifier.TryParse(ssn, provider: null, out var personIdentifier))
-                {
-                    return ValidationErrors.InvalidPersonNumber
-                        .Create("/ssn")
-                        .ToProblemInstance()
-                        .ToActionResult();
-                }
-
-                request = new LookupV1PartyRequest(personIdentifier);
-                break;
-
-            case (null, string orgNo):
-                if (!OrganizationIdentifier.TryParse(orgNo, provider: null, out var organizationIdentifier))
-                {
-                    return ValidationErrors.InvalidOrganizationNumber
-                        .Create("/orgNo")
-                        .ToProblemInstance()
-                        .ToActionResult();
-                }
-
-                request = new LookupV1PartyRequest(organizationIdentifier);
-                break;
+            return ThrowHelper.ThrowInvalidOperationException<ActionResult<V1Models.Party>>("Validation failed without producing a problem instance.");
         }
 
         var result = await sender.Send(request, cancellationToken);
@@ -217,12 +190,34 @@ public partial class PartiesController
             });
         }
 
-        if (ValidatePartyNamesLookup(partyNamesLookup.Parties) is { } validationResult)
+        ValidationProblemBuilder errors = default;
+        if (partyNamesLookup.Parties.Count > MaxPartyNamesLookupItems)
         {
-            return validationResult;
+            errors.Add(ValidationErrors.TooManyItems, "/parties");
         }
 
-        var request = new LookupV1PartyNamesRequest(partyNamesLookup.Parties, partyComponentOption);
+        List<LookupV1PartyRequest> requests = new(partyNamesLookup.Parties.Count);
+        for (var i = 0; i < partyNamesLookup.Parties.Count; i++)
+        {
+            var partyLookup = partyNamesLookup.Parties[i];
+            if (partyLookup is null)
+            {
+                errors.Add(StdValidationErrors.Required, $"/parties/{i}");
+                continue;
+            }
+
+            if (LookupV1PartyRequest.TryCreate(partyLookup, ref errors, $"/parties/{i}", out var lookupRequest))
+            {
+                requests.Add(lookupRequest);
+            }
+        }
+
+        if (errors.TryBuild(out var validationProblem))
+        {
+            return validationProblem.ToActionResult();
+        }
+
+        var request = new LookupV1PartyNamesRequest(requests, partyComponentOption);
         var result = await sender.Send(request, cancellationToken);
         if (result.IsProblem)
         {
@@ -230,56 +225,6 @@ public partial class PartiesController
         }
 
         return Ok(result.Value);
-    }
-
-    [NonAction]
-    private static ActionResult? ValidatePartyNamesLookup(IReadOnlyList<PartyLookup> parties)
-    {
-        for (var i = 0; i < parties.Count; i++)
-        {
-            var party = parties[i];
-            var ssnPath = $"/parties/{i}/ssn";
-            var orgNoPath = $"/parties/{i}/orgNo";
-
-            switch (party.Ssn, party.OrgNo)
-            {
-                case (null, null):
-                    return StdValidationErrors.Required
-                        .Create([ssnPath, orgNoPath], detail: "Either ssn or orgNo is required.")
-                        .ToProblemInstance()
-                        .ToActionResult();
-
-                case (not null, not null):
-                    return ValidationErrors.MutuallyExclusive
-                        .Create([ssnPath, orgNoPath], detail: "Only one of ssn and orgNo is allowed.")
-                        .ToProblemInstance()
-                        .ToActionResult();
-
-                case (string ssn, null):
-                    if (!PersonIdentifier.TryParse(ssn, provider: null, out _))
-                    {
-                        return ValidationErrors.InvalidPersonNumber
-                            .Create(ssnPath)
-                            .ToProblemInstance()
-                            .ToActionResult();
-                    }
-
-                    break;
-
-                case (null, string orgNo):
-                    if (!OrganizationIdentifier.TryParse(orgNo, provider: null, out _))
-                    {
-                        return ValidationErrors.InvalidOrganizationNumber
-                            .Create(orgNoPath)
-                            .ToProblemInstance()
-                            .ToActionResult();
-                    }
-
-                    break;
-            }
-        }
-
-        return null;
     }
 
     /// <summary>

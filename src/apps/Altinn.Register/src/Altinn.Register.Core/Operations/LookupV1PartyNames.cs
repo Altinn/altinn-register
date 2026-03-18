@@ -5,6 +5,7 @@ using Altinn.Register.Core.Mediator;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
+using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.Core.Operations;
 
@@ -13,10 +14,10 @@ namespace Altinn.Register.Core.Operations;
 /// <summary>
 /// Request to lookup v1 party names based on a set of identifiers.
 /// </summary>
-/// <param name="Parties">The party lookup criteria.</param>
+/// <param name="Parties">The parsed party lookup criteria.</param>
 /// <param name="PartyComponentOption">The party component options.</param>
 public readonly record struct LookupV1PartyNamesRequest(
-    IReadOnlyList<PartyLookup> Parties,
+    IReadOnlyList<LookupV1PartyRequest> Parties,
     PartyComponentOptions PartyComponentOption)
     : IRequest<PartyNamesLookupResult>;
 
@@ -29,7 +30,12 @@ internal sealed class LookupV1PartyNamesFromA2RequestHandler(IV1PartyService par
     /// <inheritdoc/>
     public async ValueTask<Result<PartyNamesLookupResult>> Handle(LookupV1PartyNamesRequest request, CancellationToken cancellationToken)
     {
-        List<PartyName> items = await partyService.LookupPartyNames(request.Parties, request.PartyComponentOption, cancellationToken).ToListAsync(cancellationToken);
+        List<PartyName> items = await partyService.LookupPartyNames(
+            request.Parties.Select(static lookup => lookup.ToPartyLookup()),
+            request.PartyComponentOption,
+            cancellationToken)
+            .ToListAsync(cancellationToken);
+
         return new PartyNamesLookupResult
         {
             PartyNames = items,
@@ -54,13 +60,13 @@ internal sealed class LookupV1PartyNamesFromDBRequestHandler(IUnitOfWorkManager 
 
         foreach (var lookup in request.Parties)
         {
-            if (!string.IsNullOrEmpty(lookup.Ssn) && PersonIdentifier.TryParse(lookup.Ssn, provider: null, out var personIdentifier))
+            if (lookup.TryGetValue(out PersonIdentifier personIdentifier))
             {
                 personIdentifiers.Add(personIdentifier);
                 continue;
             }
 
-            if (!string.IsNullOrEmpty(lookup.OrgNo) && OrganizationIdentifier.TryParse(lookup.OrgNo, provider: null, out var organizationIdentifier))
+            if (lookup.TryGetValue(out OrganizationIdentifier organizationIdentifier))
             {
                 organizationIdentifiers.Add(organizationIdentifier);
             }
@@ -112,43 +118,51 @@ internal sealed class LookupV1PartyNamesFromDBRequestHandler(IUnitOfWorkManager 
     }
 
     private static PartyName CreateResult(
-        PartyLookup lookup,
+        LookupV1PartyRequest lookup,
         IReadOnlyDictionary<PersonIdentifier, PersonRecord>? persons,
         IReadOnlyDictionary<OrganizationIdentifier, OrganizationRecord>? organizations,
         bool includePersonName)
     {
-        var result = new PartyName
+        if (lookup.TryGetValue(out PersonIdentifier personIdentifier))
         {
-            Ssn = lookup.Ssn,
-            OrgNo = lookup.OrgNo,
-        };
-
-        if (!string.IsNullOrEmpty(lookup.Ssn)
-            && PersonIdentifier.TryParse(lookup.Ssn, provider: null, out var personIdentifier)
-            && persons?.TryGetValue(personIdentifier, out var person) == true)
-        {
-            result.Name = person.ShortName.HasValue ? person.ShortName.Value : person.DisplayName.Value;
-
-            if (includePersonName)
+            var result = new PartyName
             {
-                result.PersonName = new PersonNameComponents
+                Ssn = personIdentifier.ToString(),
+            };
+
+            if (persons?.TryGetValue(personIdentifier, out var person) == true)
+            {
+                result.Name = person.ShortName.HasValue ? person.ShortName.Value : person.DisplayName.Value;
+
+                if (includePersonName)
                 {
-                    FirstName = person.FirstName.Value,
-                    MiddleName = person.MiddleName.Value,
-                    LastName = person.LastName.Value,
-                };
+                    result.PersonName = new PersonNameComponents
+                    {
+                        FirstName = person.FirstName.Value,
+                        MiddleName = person.MiddleName.Value,
+                        LastName = person.LastName.Value,
+                    };
+                }
             }
 
             return result;
         }
 
-        if (!string.IsNullOrEmpty(lookup.OrgNo)
-            && OrganizationIdentifier.TryParse(lookup.OrgNo, provider: null, out var organizationIdentifier)
-            && organizations?.TryGetValue(organizationIdentifier, out var organization) == true)
+        if (lookup.TryGetValue(out OrganizationIdentifier organizationIdentifier))
         {
-            result.Name = organization.DisplayName.Value;
+            var result = new PartyName
+            {
+                OrgNo = organizationIdentifier.ToString(),
+            };
+
+            if (organizations?.TryGetValue(organizationIdentifier, out var organization) == true)
+            {
+                result.Name = organization.DisplayName.Value;
+            }
+
+            return result;
         }
 
-        return result;
+        return ThrowHelper.ThrowArgumentException<PartyName>(nameof(lookup), "Request must contain either an organization identifier or a person identifier.");
     }
 }
