@@ -190,8 +190,13 @@ public class PartiesControllerTests
     [ApiSourceData]
     public async Task PostPartyLookup_BothIdentifiersProvided_ReturnsValidationProblem(TestApiSource source)
     {
-        var person = await Setup((uow, ct) => uow.CreatePerson(cancellationToken: ct));
-        var org = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
+        var (person, org) = await Setup(async (uow, ct) =>
+        {
+            var createdPerson = await uow.CreatePerson(cancellationToken: ct);
+            var createdOrg = await uow.CreateOrg(cancellationToken: ct);
+
+            return (createdPerson, createdOrg);
+        });
 
         SetSource(source);
 
@@ -314,8 +319,13 @@ public class PartiesControllerTests
     [ApiSourceData]
     public async Task PostPartyNamesLookup_ValidTokenRequestForExistingOrganizations_ReturnsPartyNames(TestApiSource source)
     {
-        var org1 = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
-        var org2 = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
+        var (org1, org2) = await Setup(async (uow, ct) =>
+        {
+            var createdOrg1 = await uow.CreateOrg(cancellationToken: ct);
+            var createdOrg2 = await uow.CreateOrg(cancellationToken: ct);
+
+            return (createdOrg1, createdOrg2);
+        });
         var orgNumbers = new[] { org1.OrganizationIdentifier.Value!.ToString(), org2.OrganizationIdentifier.Value!.ToString() };
 
         SetSource(source);
@@ -533,8 +543,13 @@ public class PartiesControllerTests
     [ApiSourceData]
     public async Task PostPartyNamesLookup_BothIdentifiersProvided_ReturnsValidationProblem(TestApiSource source)
     {
-        var person = await Setup((uow, ct) => uow.CreatePerson(cancellationToken: ct));
-        var org = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
+        var (person, org) = await Setup(async (uow, ct) =>
+        {
+            var createdPerson = await uow.CreatePerson(cancellationToken: ct);
+            var createdOrg = await uow.CreateOrg(cancellationToken: ct);
+
+            return (createdPerson, createdOrg);
+        });
 
         SetSource(source);
 
@@ -708,16 +723,13 @@ public class PartiesControllerTests
     [ApiSourceData]
     public async Task PostPartyNamesLookup_TooManyItems_ReturnsValidationProblem(TestApiSource source)
     {
-        var org = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
-        var orgNo = org.OrganizationIdentifier.Value!.ToString();
-
         SetSource(source);
 
         var response = await HttpClient.PostAsJsonAsync(
             "register/api/v1/parties/nameslookup",
             new Contracts.V1.PartyNamesLookup
             {
-                Parties = Enumerable.Repeat(new Contracts.V1.PartyLookup { OrgNo = orgNo }, 1001).ToArray(),
+                Parties = Enumerable.Repeat(new Contracts.V1.PartyLookup(), 1001).ToArray(),
             },
             CancellationToken);
 
@@ -726,6 +738,7 @@ public class PartiesControllerTests
         actual.ErrorCode.ShouldBe(StdProblemDescriptors.ErrorCodes.ValidationError);
         actual.Errors.ShouldContain(e => e.ErrorCode == ValidationErrors.TooManyItems.ErrorCode);
         actual.Errors.ShouldContain(e => e.Paths.Contains("/parties"));
+        actual.Errors.ShouldNotContain(e => e.ErrorCode == StdValidationErrors.Required.ErrorCode);
     }
 
     private void SetSource(TestApiSource source)

@@ -190,12 +190,15 @@ public partial class PartiesController
             });
         }
 
-        ValidationProblemBuilder errors = default;
         if (partyNamesLookup.Parties.Count > MaxPartyNamesLookupItems)
         {
-            errors.Add(ValidationErrors.TooManyItems, "/parties");
+            return ValidationErrors.TooManyItems
+                .Create("/parties")
+                .ToProblemInstance()
+                .ToActionResult();
         }
 
+        ValidationProblemBuilder errors = default;
         List<LookupV1PartyRequest> requests = new(partyNamesLookup.Parties.Count);
         for (var i = 0; i < partyNamesLookup.Parties.Count; i++)
         {
