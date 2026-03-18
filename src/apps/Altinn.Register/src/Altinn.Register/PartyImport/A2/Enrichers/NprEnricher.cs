@@ -44,7 +44,7 @@ internal sealed class NprEnricher
         Debug.Assert(context.Party is { PersonIdentifier.HasValue: true });
 
         var result = await _nprClient.GetGuardianshipsForPerson(context.Party.PersonIdentifier.Value, cancellationToken);
-        if (result.IsProblem && result.Problem.ErrorCode == Problems.PartyNotFound.ErrorCode)
+        if (result.IsProblem && result.Problem.ErrorCode == Problems.ReferencedPartyNotFound.ErrorCode)
         {
             // All environments contains persons that are not in NPR. These can be skipped.
             return;

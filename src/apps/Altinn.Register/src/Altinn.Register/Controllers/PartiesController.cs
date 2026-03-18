@@ -1,9 +1,12 @@
 #nullable enable
 
-using System.Diagnostics;
 using System.Security.Claims;
 using Altinn.Authorization.ProblemDetails;
+using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.V1;
+using Altinn.Register.Core.Errors;
+using Altinn.Register.Core.Mediator;
+using Altinn.Register.Core.Operations;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Extensions;
 using Altinn.Register.Models;
@@ -122,6 +125,7 @@ public partial class PartiesController
     /// <summary>
     /// Perform a lookup/search for a specific party by using one of the provided ids.
     /// </summary>
+    /// <param name="sender">The request sender.</param>
     /// <param name="partyLookup">The lookup criteria. One and only one of the properties must be a valid value.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The identified party.</returns>
@@ -131,20 +135,58 @@ public partial class PartiesController
     [ProducesResponseType(404)]
     [ProducesResponseType(200)]
     [Produces("application/json")]
-    public async Task<ActionResult<V1Models.Party>> PostPartyLookup([FromBody] PartyLookup partyLookup, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<V1Models.Party>> PostPartyLookup(
+        [FromServices] IRequestSender<LookupV1PartyRequest, V1Models.Party> sender,
+        [FromBody] PartyLookup partyLookup,
+        CancellationToken cancellationToken = default)
     {
-        Debug.Assert(!string.IsNullOrEmpty(partyLookup.Ssn) || !string.IsNullOrEmpty(partyLookup.OrgNo));
-
-        string lookupValue = partyLookup.OrgNo ?? partyLookup.Ssn!;
-
-        V1Models.Party? party = await _partyClient.LookupPartyBySSNOrOrgNo(lookupValue, cancellationToken);
-
-        if (party == null)
+        LookupV1PartyRequest request;
+        switch (partyLookup.Ssn, partyLookup.OrgNo)
         {
-            return NotFound();
+            case (null, null):
+                return StdValidationErrors.Required
+                    .Create(["/ssn", "/orgNo"], detail: "Either ssn or orgNo is required.")
+                    .ToProblemInstance()
+                    .ToActionResult();
+
+            case (not null, not null):
+                return ValidationErrors.MutuallyExclusive
+                    .Create(["/ssn", "/orgNo"], detail: "Only one of ssn and orgNo is allowed.")
+                    .ToProblemInstance()
+                    .ToActionResult();
+
+            case (string ssn, null):
+                if (!PersonIdentifier.TryParse(ssn, provider: null, out var personIdentifier))
+                {
+                    return ValidationErrors.InvalidPersonNumber
+                        .Create("/ssn")
+                        .ToProblemInstance()
+                        .ToActionResult();
+                }
+
+                request = new LookupV1PartyRequest(personIdentifier);
+                break;
+
+            case (null, string orgNo):
+                if (!OrganizationIdentifier.TryParse(orgNo, provider: null, out var organizationIdentifier))
+                {
+                    return ValidationErrors.InvalidOrganizationNumber
+                        .Create("/orgNo")
+                        .ToProblemInstance()
+                        .ToActionResult();
+                }
+
+                request = new LookupV1PartyRequest(organizationIdentifier);
+                break;
         }
 
-        return Ok(party);
+        var result = await sender.Send(request, cancellationToken);
+        if (result.IsProblem)
+        {
+            return result.Problem.ToActionResult();
+        }
+
+        return Ok(result.Value);
     }
 
     /// <summary>

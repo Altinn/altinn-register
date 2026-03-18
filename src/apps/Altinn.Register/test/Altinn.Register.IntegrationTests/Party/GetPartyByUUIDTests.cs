@@ -18,7 +18,7 @@ public class GetPartyByUUIDTests
         await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
         var content = await response.ShouldHaveJsonContent<AltinnProblemDetails>();
 
-        content.ErrorCode.ShouldBe(Problems.PartyNotFound.ErrorCode);
+        content.ErrorCode.ShouldBe(Problems.ReferencedPartyNotFound.ErrorCode);
     }
 
     [Fact]

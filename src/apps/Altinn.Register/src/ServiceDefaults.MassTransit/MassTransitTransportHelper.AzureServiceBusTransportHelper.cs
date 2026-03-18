@@ -48,7 +48,7 @@ internal abstract partial class MassTransitTransportHelper
                         if (Settings.Credentials.ManagedIdentity)
                         {
                             logger.LogInformation("adding managed identity credentials to asb token");
-                            credentialList.Add(new ManagedIdentityCredential());
+                            credentialList.Add(new ManagedIdentityCredential(new ManagedIdentityCredentialOptions()));
                         }
 
                         if (credentialList.Count == 0)

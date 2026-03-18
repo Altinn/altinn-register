@@ -106,7 +106,7 @@ internal sealed partial class A2PartyImportService
 
         if (responseMessage.StatusCode == HttpStatusCode.NotFound)
         {
-            return Problems.PartyNotFound.Create([
+            return Problems.ReferencedPartyNotFound.Create([
                 new("partyUuid", partyUuid.ToString()),
                 new("source", "a2-party"),
             ]);
@@ -201,7 +201,7 @@ internal sealed partial class A2PartyImportService
 
         if (responseMessage.StatusCode == HttpStatusCode.NotFound)
         {
-            return Problems.PartyNotFound.Create(diagnostics);
+            return Problems.ReferencedPartyNotFound.Create(diagnostics);
         }
 
         if (!responseMessage.IsSuccessStatusCode)
