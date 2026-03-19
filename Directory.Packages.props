@@ -33,7 +33,7 @@
     <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="13.1.2" />
     <PackageVersion Include="Azure.Identity" Version="1.19.0" />
     <PackageVersion Include="CommunityToolkit.Diagnostics" Version="8.4.0" />
-    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="coverlet.collector" Version="8.0.0" />
     <PackageVersion Include="FluentAssertions.Analyzers" Version="0.34.1" />
     <PackageVersion Include="FluentAssertions" Version="7.2.1" />
     <PackageVersion Include="JWTCookieAuthentication" Version="4.0.4" />
