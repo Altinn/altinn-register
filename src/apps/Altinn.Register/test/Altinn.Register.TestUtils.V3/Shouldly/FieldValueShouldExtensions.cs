@@ -26,10 +26,11 @@ public static class FieldValueShouldExtensions
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ShouldHaveValue<T>(this FieldValue<T> actual, string? customMessage = null)
+    public static T ShouldHaveValue<T>(this FieldValue<T> actual, string? customMessage = null)
         where T : notnull
     {
         actual.AssertAwesomely(static v => v.HasValue, actual, FieldValue<T>.Unset, customMessage);
+        return actual.Value!;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

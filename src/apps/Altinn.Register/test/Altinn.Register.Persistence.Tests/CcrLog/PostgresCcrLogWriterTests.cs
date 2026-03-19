@@ -60,35 +60,36 @@ public class PostgresCcrLogWriterTests
             responseStatusCode,
             responseHeaders,
             responseBody,
-            duration);
+            duration,
+            CancellationToken);
 
         // Assert
-        await using var conn = await Database.DataSource.OpenConnectionAsync();
+        await using var conn = await Database.DataSource.OpenConnectionAsync(CancellationToken);
         await using var cmd = conn.CreateCommand(/*strpsql*/"SELECT * FROM register.ccr_soap_log l WHERE l.id = @id");
         cmd.Parameters.Add<Guid>("id", NpgsqlTypes.NpgsqlDbType.Uuid).TypedValue = id;
 
-        await using var reader = await cmd.ExecuteReaderAsync();
-        (await reader.ReadAsync()).Should().BeTrue();
+        await using var reader = await cmd.ExecuteReaderAsync(CancellationToken);
+        (await reader.ReadAsync(CancellationToken)).ShouldBeTrue();
 
-        reader.GetFieldValue<Guid>("id").Should().Be(id);
-        reader.GetFieldValue<DateTimeOffset>("request_start").Should().Be(requestStart);
-        reader.GetFieldValue<string>("request_url").Should().Be(requestUrl);
+        reader.GetFieldValue<Guid>("id").ShouldBe(id);
+        reader.GetFieldValue<DateTimeOffset>("request_start").ShouldBe(requestStart);
+        reader.GetFieldValue<string>("request_url").ShouldBe(requestUrl);
         reader.GetJsonFieldValue<Dictionary<string, StringValues>>("request_headers", Options)
-            .Should().BeEquivalentTo(new Dictionary<string, StringValues>()
+            .ShouldBeEquivalentTo(new Dictionary<string, StringValues>()
             {
                 { "Content-Type", "application/soap+xml; charset=utf-8; action=https://test.example.com/test" },
                 { "X-Custom-Multi", new(["foo", "bar"]) },
             });
-        reader.GetFieldValue<string>("request_body").Should().Be("<soap:Envelope>...</soap:Envelope>");
+        reader.GetFieldValue<string>("request_body").ShouldBe("<soap:Envelope>...</soap:Envelope>");
 
-        reader.GetFieldValue<int>("response_http_status").Should().Be((int)responseStatusCode);
+        reader.GetFieldValue<int>("response_http_status").ShouldBe((int)responseStatusCode);
         reader.GetJsonFieldValue<Dictionary<string, StringValues>>("response_headers", Options)
-            .Should().BeEquivalentTo(new Dictionary<string, StringValues>()
+            .ShouldBeEquivalentTo(new Dictionary<string, StringValues>()
             {
                 { "Content-Type", "application/soap+xml; charset=utf-8" },
             });
-        reader.GetFieldValue<string>("response_body").Should().Be("<soap:Envelope>...</soap:Envelope>");
-        reader.GetFieldValue<TimeSpan>("duration").Should().Be(duration);
+        reader.GetFieldValue<string>("response_body").ShouldBe("<soap:Envelope>...</soap:Envelope>");
+        reader.GetFieldValue<TimeSpan>("duration").ShouldBe(duration);
     }
 
     private static ReadOnlySequence<byte> EncodeHeaders(IEnumerable<KeyValuePair<string, StringValues>> headers)

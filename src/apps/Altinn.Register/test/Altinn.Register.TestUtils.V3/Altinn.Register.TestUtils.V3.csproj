@@ -11,6 +11,8 @@
   <ItemGroup>
     <PackageReference Include="Altinn.Authorization.TestUtils.Http" />
     <PackageReference Include="CommunityToolkit.Diagnostics" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <PackageReference Include="Nerdbank.Streams" />
     <PackageReference Include="Npgsql" />
     <PackageReference Include="System.Linq.AsyncEnumerable" />
@@ -18,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Altinn.Register\Altinn.Register.csproj" />
   </ItemGroup>
 

@@ -5,7 +5,6 @@ using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Persistence.Leases;
 using Altinn.Register.TestUtils;
-using FluentAssertions.Execution;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using NpgsqlTypes;
@@ -36,18 +35,16 @@ public class PostgresqlLeaseProviderTests
         var now = TimeProvider.GetUtcNow();
         var duration = TimeSpan.FromMinutes(1);
 
-        var result = await Provider.TryAcquireLease(id, duration);
-
-        using (new AssertionScope())
+        var result = await Provider.TryAcquireLease(id, duration, cancellationToken: CancellationToken);
         {
-            result.IsLeaseAcquired.Should().BeTrue();
-            result.Lease.Should().NotBeNull();
-            result.Lease.LeaseId.Should().Be(id);
-            result.Lease.Expires.Should().Be(now + duration);
-            result.Lease.Token.Should().NotBeEmpty();
-            result.Expires.Should().Be(now + duration);
-            result.LastAcquiredAt.Should().Be(now);
-            result.LastReleasedAt.Should().BeNull();
+            result.IsLeaseAcquired.ShouldBeTrue();
+            result.Lease.ShouldNotBeNull();
+            result.Lease.LeaseId.ShouldBe(id);
+            result.Lease.Expires.ShouldBe(now + duration);
+            result.Lease.Token.ShouldNotBe(Guid.Empty);
+            result.Expires.ShouldBe(now + duration);
+            result.LastAcquiredAt.ShouldBe(now);
+            result.LastReleasedAt.ShouldBeNull();
         }
 
         await CheckDatabase(
@@ -66,18 +63,16 @@ public class PostgresqlLeaseProviderTests
         var duration = TimeSpan.FromMinutes(1);
         var ifNotAcquiredFor = TimeSpan.FromMinutes(5);
 
-        var result = await Provider.TryAcquireLease(id, duration, ifNotAcquiredFor);
-
-        using (new AssertionScope())
+        var result = await Provider.TryAcquireLease(id, duration, ifNotAcquiredFor, cancellationToken: CancellationToken);
         {
-            result.IsLeaseAcquired.Should().BeTrue();
-            result.Lease.Should().NotBeNull();
-            result.Lease.LeaseId.Should().Be(id);
-            result.Lease.Expires.Should().Be(now + duration);
-            result.Lease.Token.Should().NotBeEmpty();
-            result.Expires.Should().Be(now + duration);
-            result.LastAcquiredAt.Should().Be(now);
-            result.LastReleasedAt.Should().BeNull();
+            result.IsLeaseAcquired.ShouldBeTrue();
+            result.Lease.ShouldNotBeNull();
+            result.Lease.LeaseId.ShouldBe(id);
+            result.Lease.Expires.ShouldBe(now + duration);
+            result.Lease.Token.ShouldNotBe(Guid.Empty);
+            result.Expires.ShouldBe(now + duration);
+            result.LastAcquiredAt.ShouldBe(now);
+            result.LastReleasedAt.ShouldBeNull();
         }
 
         await CheckDatabase(
@@ -97,18 +92,16 @@ public class PostgresqlLeaseProviderTests
 
         await WriteLease(id);
 
-        var result = await Provider.TryAcquireLease(id, duration);
-
-        using (new AssertionScope())
+        var result = await Provider.TryAcquireLease(id, duration, cancellationToken: CancellationToken);
         {
-            result.IsLeaseAcquired.Should().BeTrue();
-            result.Lease.Should().NotBeNull();
-            result.Lease.LeaseId.Should().Be(id);
-            result.Lease.Expires.Should().Be(now + duration);
-            result.Lease.Token.Should().NotBeEmpty();
-            result.Expires.Should().Be(now + duration);
-            result.LastAcquiredAt.Should().Be(now);
-            result.LastReleasedAt.Should().BeNull();
+            result.IsLeaseAcquired.ShouldBeTrue();
+            result.Lease.ShouldNotBeNull();
+            result.Lease.LeaseId.ShouldBe(id);
+            result.Lease.Expires.ShouldBe(now + duration);
+            result.Lease.Token.ShouldNotBe(Guid.Empty);
+            result.Expires.ShouldBe(now + duration);
+            result.LastAcquiredAt.ShouldBe(now);
+            result.LastReleasedAt.ShouldBeNull();
         }
 
         await CheckDatabase(
@@ -130,15 +123,13 @@ public class PostgresqlLeaseProviderTests
         var oldToken = Guid.NewGuid();
         await WriteLease(id, token: oldToken, acquired: now, released: now);
 
-        var result = await Provider.TryAcquireLease(id, duration, ifNotAcquiredFor);
-
-        using (new AssertionScope())
+        var result = await Provider.TryAcquireLease(id, duration, ifNotAcquiredFor, cancellationToken: CancellationToken);
         {
-            result.IsLeaseAcquired.Should().BeFalse();
-            result.Lease.Should().BeNull();
-            result.Expires.Should().Be(DateTimeOffset.MinValue);
-            result.LastAcquiredAt.Should().Be(now);
-            result.LastReleasedAt.Should().Be(now);
+            result.IsLeaseAcquired.ShouldBeFalse();
+            result.Lease.ShouldBeNull();
+            result.Expires.ShouldBe(DateTimeOffset.MinValue);
+            result.LastAcquiredAt.ShouldBe(now);
+            result.LastReleasedAt.ShouldBe(now);
         }
 
         await CheckDatabase(
@@ -160,18 +151,16 @@ public class PostgresqlLeaseProviderTests
 
         await WriteLease(id, acquired: then, released: then);
 
-        var result = await Provider.TryAcquireLease(id, duration, ifNotAcquiredFor);
-
-        using (new AssertionScope())
+        var result = await Provider.TryAcquireLease(id, duration, ifNotAcquiredFor, cancellationToken: CancellationToken);
         {
-            result.IsLeaseAcquired.Should().BeTrue();
-            result.Lease.Should().NotBeNull();
-            result.Lease.LeaseId.Should().Be(id);
-            result.Lease.Expires.Should().Be(now + duration);
-            result.Lease.Token.Should().NotBeEmpty();
-            result.Expires.Should().Be(now + duration);
-            result.LastAcquiredAt.Should().Be(now);
-            result.LastReleasedAt.Should().BeNull();
+            result.IsLeaseAcquired.ShouldBeTrue();
+            result.Lease.ShouldNotBeNull();
+            result.Lease.LeaseId.ShouldBe(id);
+            result.Lease.Expires.ShouldBe(now + duration);
+            result.Lease.Token.ShouldNotBe(Guid.Empty);
+            result.Expires.ShouldBe(now + duration);
+            result.LastAcquiredAt.ShouldBe(now);
+            result.LastReleasedAt.ShouldBeNull();
         }
 
         await CheckDatabase(
@@ -192,15 +181,13 @@ public class PostgresqlLeaseProviderTests
         var oldToken = Guid.NewGuid();
         await WriteLease(id, token: oldToken, expires: now + TimeSpan.FromMinutes(5), acquired: now, released: FieldValue.Null);
 
-        var result = await Provider.TryAcquireLease(id, duration);
-
-        using (new AssertionScope())
+        var result = await Provider.TryAcquireLease(id, duration, cancellationToken: CancellationToken);
         {
-            result.IsLeaseAcquired.Should().BeFalse();
-            result.Lease.Should().BeNull();
-            result.Expires.Should().Be(now + TimeSpan.FromMinutes(5));
-            result.LastAcquiredAt.Should().Be(now);
-            result.LastReleasedAt.Should().BeNull();
+            result.IsLeaseAcquired.ShouldBeFalse();
+            result.Lease.ShouldBeNull();
+            result.Expires.ShouldBe(now + TimeSpan.FromMinutes(5));
+            result.LastAcquiredAt.ShouldBe(now);
+            result.LastReleasedAt.ShouldBeNull();
         }
 
         await CheckDatabase(
@@ -218,18 +205,16 @@ public class PostgresqlLeaseProviderTests
         var duration = TimeSpan.FromMinutes(1);
         var ticket = new LeaseTicket(id, Guid.NewGuid(), TimeProvider.GetUtcNow() + duration);
 
-        var result = await Provider.TryRenewLease(ticket, duration);
-
-        using (new AssertionScope())
+        var result = await Provider.TryRenewLease(ticket, duration, cancellationToken: CancellationToken);
         {
-            result.IsLeaseAcquired.Should().BeFalse();
-            result.Expires.Should().Be(DateTimeOffset.MinValue);
-            result.LastAcquiredAt.Should().BeNull();
-            result.LastReleasedAt.Should().BeNull();
+            result.IsLeaseAcquired.ShouldBeFalse();
+            result.Expires.ShouldBe(DateTimeOffset.MinValue);
+            result.LastAcquiredAt.ShouldBeNull();
+            result.LastReleasedAt.ShouldBeNull();
         }
 
         // check that db is stil empty
-        await using var uow = await GetRequiredService<IUnitOfWorkManager>().CreateAsync();
+        await using var uow = await GetRequiredService<IUnitOfWorkManager>().CreateAsync(CancellationToken);
         var conn = uow.GetRequiredService<NpgsqlConnection>();
         await using var cmd = conn.CreateCommand(
             /*strpsql*/"""
@@ -239,10 +224,10 @@ public class PostgresqlLeaseProviderTests
             """);
 
         cmd.Parameters.Add<string>("id", NpgsqlDbType.Text).TypedValue = id;
-        await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow | CommandBehavior.SingleResult);
-        var read = await reader.ReadAsync();
+        await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow | CommandBehavior.SingleResult, CancellationToken);
+        var read = await reader.ReadAsync(CancellationToken);
 
-        read.Should().BeFalse();
+        read.ShouldBeFalse();
     }
 
     [Fact]
@@ -256,14 +241,12 @@ public class PostgresqlLeaseProviderTests
         var oldToken = Guid.NewGuid();
         await WriteLease(id, token: oldToken, expires: now + duration, acquired: now, released: FieldValue.Null);
 
-        var result = await Provider.TryRenewLease(ticket, duration);
-
-        using (new AssertionScope())
+        var result = await Provider.TryRenewLease(ticket, duration, cancellationToken: CancellationToken);
         {
-            result.IsLeaseAcquired.Should().BeFalse();
-            result.Expires.Should().Be(now + duration);
-            result.LastAcquiredAt.Should().Be(now);
-            result.LastReleasedAt.Should().BeNull();
+            result.IsLeaseAcquired.ShouldBeFalse();
+            result.Expires.ShouldBe(now + duration);
+            result.LastAcquiredAt.ShouldBe(now);
+            result.LastReleasedAt.ShouldBeNull();
         }
 
         await CheckDatabase(
@@ -284,14 +267,12 @@ public class PostgresqlLeaseProviderTests
 
         await WriteLease(id, token: ticket.Token, expires: now - duration, acquired: now - (duration * 2), released: FieldValue.Null);
 
-        var result = await Provider.TryRenewLease(ticket, duration);
-
-        using (new AssertionScope())
+        var result = await Provider.TryRenewLease(ticket, duration, cancellationToken: CancellationToken);
         {
-            result.IsLeaseAcquired.Should().BeFalse();
-            result.Expires.Should().Be(now - duration);
-            result.LastAcquiredAt.Should().Be(now - (duration * 2));
-            result.LastReleasedAt.Should().BeNull();
+            result.IsLeaseAcquired.ShouldBeFalse();
+            result.Expires.ShouldBe(now - duration);
+            result.LastAcquiredAt.ShouldBe(now - (duration * 2));
+            result.LastReleasedAt.ShouldBeNull();
         }
 
         await CheckDatabase(
@@ -313,14 +294,12 @@ public class PostgresqlLeaseProviderTests
         var oldToken = Guid.NewGuid();
         await WriteLease(id, token: oldToken, expires: DateTimeOffset.MinValue, acquired: now, released: now);
 
-        var result = await Provider.TryRenewLease(ticket, duration);
-
-        using (new AssertionScope())
+        var result = await Provider.TryRenewLease(ticket, duration, cancellationToken: CancellationToken);
         {
-            result.IsLeaseAcquired.Should().BeFalse();
-            result.Expires.Should().Be(DateTimeOffset.MinValue);
-            result.LastAcquiredAt.Should().Be(now);
-            result.LastReleasedAt.Should().BeNull();
+            result.IsLeaseAcquired.ShouldBeFalse();
+            result.Expires.ShouldBe(DateTimeOffset.MinValue);
+            result.LastAcquiredAt.ShouldBe(now);
+            result.LastReleasedAt.ShouldBeNull();
         }
 
         await CheckDatabase(
@@ -341,18 +320,16 @@ public class PostgresqlLeaseProviderTests
 
         await WriteLease(id, token: ticket.Token, expires: ticket.Expires, acquired: now, released: FieldValue.Null);
 
-        var result = await Provider.TryRenewLease(ticket, duration * 2);
-
-        using (new AssertionScope())
+        var result = await Provider.TryRenewLease(ticket, duration * 2, cancellationToken: CancellationToken);
         {
-            result.IsLeaseAcquired.Should().BeTrue();
-            result.Lease.Should().NotBeNull();
-            result.Lease.LeaseId.Should().Be(id);
-            result.Lease.Expires.Should().Be(now + (duration * 2));
-            result.Lease.Token.Should().NotBeEmpty();
-            result.Expires.Should().Be(now + (duration * 2));
-            result.LastAcquiredAt.Should().Be(now);
-            result.LastReleasedAt.Should().BeNull();
+            result.IsLeaseAcquired.ShouldBeTrue();
+            result.Lease.ShouldNotBeNull();
+            result.Lease.LeaseId.ShouldBe(id);
+            result.Lease.Expires.ShouldBe(now + (duration * 2));
+            result.Lease.Token.ShouldNotBe(Guid.Empty);
+            result.Expires.ShouldBe(now + (duration * 2));
+            result.LastAcquiredAt.ShouldBe(now);
+            result.LastReleasedAt.ShouldBeNull();
         }
 
         await CheckDatabase(
@@ -370,18 +347,16 @@ public class PostgresqlLeaseProviderTests
         var duration = TimeSpan.FromMinutes(1);
         var ticket = new LeaseTicket(id, Guid.NewGuid(), TimeProvider.GetUtcNow() + duration);
 
-        var result = await Provider.ReleaseLease(ticket);
-
-        using (new AssertionScope())
+        var result = await Provider.ReleaseLease(ticket, cancellationToken: CancellationToken);
         {
-            result.IsReleased.Should().BeFalse();
-            result.Expires.Should().Be(DateTimeOffset.MinValue);
-            result.LastAcquiredAt.Should().BeNull();
-            result.LastReleasedAt.Should().BeNull();
+            result.IsReleased.ShouldBeFalse();
+            result.Expires.ShouldBe(DateTimeOffset.MinValue);
+            result.LastAcquiredAt.ShouldBeNull();
+            result.LastReleasedAt.ShouldBeNull();
         }
 
         // check that db is stil empty
-        await using var uow = await GetRequiredService<IUnitOfWorkManager>().CreateAsync();
+        await using var uow = await GetRequiredService<IUnitOfWorkManager>().CreateAsync(CancellationToken);
         var conn = uow.GetRequiredService<NpgsqlConnection>();
         await using var cmd = conn.CreateCommand(
             /*strpsql*/"""
@@ -391,10 +366,10 @@ public class PostgresqlLeaseProviderTests
             """);
 
         cmd.Parameters.Add<string>("id", NpgsqlDbType.Text).TypedValue = id;
-        await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow | CommandBehavior.SingleResult);
-        var read = await reader.ReadAsync();
+        await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow | CommandBehavior.SingleResult, CancellationToken);
+        var read = await reader.ReadAsync(CancellationToken);
 
-        read.Should().BeFalse();
+        read.ShouldBeFalse();
     }
 
     [Fact]
@@ -408,14 +383,12 @@ public class PostgresqlLeaseProviderTests
         var oldToken = Guid.NewGuid();
         await WriteLease(id, token: oldToken, expires: now + duration, acquired: now, released: FieldValue.Null);
 
-        var result = await Provider.ReleaseLease(ticket);
-
-        using (new AssertionScope())
+        var result = await Provider.ReleaseLease(ticket, cancellationToken: CancellationToken);
         {
-            result.IsReleased.Should().BeFalse();
-            result.Expires.Should().Be(now + duration);
-            result.LastAcquiredAt.Should().Be(now);
-            result.LastReleasedAt.Should().BeNull();
+            result.IsReleased.ShouldBeFalse();
+            result.Expires.ShouldBe(now + duration);
+            result.LastAcquiredAt.ShouldBe(now);
+            result.LastReleasedAt.ShouldBeNull();
         }
 
         await CheckDatabase(
@@ -436,14 +409,12 @@ public class PostgresqlLeaseProviderTests
 
         await WriteLease(id, token: ticket.Token, expires: now - duration, acquired: now - (duration * 2), released: FieldValue.Null);
 
-        var result = await Provider.ReleaseLease(ticket);
-
-        using (new AssertionScope())
+        var result = await Provider.ReleaseLease(ticket, cancellationToken: CancellationToken);
         {
-            result.IsReleased.Should().BeFalse();
-            result.Expires.Should().Be(now - duration);
-            result.LastAcquiredAt.Should().Be(now - (duration * 2));
-            result.LastReleasedAt.Should().BeNull();
+            result.IsReleased.ShouldBeFalse();
+            result.Expires.ShouldBe(now - duration);
+            result.LastAcquiredAt.ShouldBe(now - (duration * 2));
+            result.LastReleasedAt.ShouldBeNull();
         }
 
         await CheckDatabase(
@@ -465,14 +436,12 @@ public class PostgresqlLeaseProviderTests
         var oldToken = Guid.NewGuid();
         await WriteLease(id, token: oldToken, expires: DateTimeOffset.MinValue, acquired: now, released: now);
 
-        var result = await Provider.ReleaseLease(ticket);
-
-        using (new AssertionScope())
+        var result = await Provider.ReleaseLease(ticket, cancellationToken: CancellationToken);
         {
-            result.IsReleased.Should().BeFalse();
-            result.Expires.Should().Be(DateTimeOffset.MinValue);
-            result.LastAcquiredAt.Should().Be(now);
-            result.LastReleasedAt.Should().BeNull();
+            result.IsReleased.ShouldBeFalse();
+            result.Expires.ShouldBe(DateTimeOffset.MinValue);
+            result.LastAcquiredAt.ShouldBe(now);
+            result.LastReleasedAt.ShouldBeNull();
         }
 
         await CheckDatabase(
@@ -493,14 +462,12 @@ public class PostgresqlLeaseProviderTests
 
         await WriteLease(id, token: ticket.Token, expires: ticket.Expires, acquired: now, released: FieldValue.Null);
 
-        var result = await Provider.ReleaseLease(ticket);
-
-        using (new AssertionScope())
+        var result = await Provider.ReleaseLease(ticket, cancellationToken: CancellationToken);
         {
-            result.IsReleased.Should().BeTrue();
-            result.Expires.Should().Be(DateTimeOffset.MinValue);
-            result.LastAcquiredAt.Should().Be(now);
-            result.LastReleasedAt.Should().Be(now);
+            result.IsReleased.ShouldBeTrue();
+            result.Expires.ShouldBe(DateTimeOffset.MinValue);
+            result.LastAcquiredAt.ShouldBe(now);
+            result.LastReleasedAt.ShouldBe(now);
         }
 
         await CheckDatabase(
@@ -518,7 +485,7 @@ public class PostgresqlLeaseProviderTests
         FieldValue<DateTimeOffset> acquired = default,
         FieldValue<DateTimeOffset> released = default)
     {
-        await using var uow = await GetRequiredService<IUnitOfWorkManager>().CreateAsync();
+        await using var uow = await GetRequiredService<IUnitOfWorkManager>().CreateAsync(CancellationToken);
         var conn = uow.GetRequiredService<NpgsqlConnection>();
         await using var cmd = conn.CreateCommand(
             /*strpsql*/"""
@@ -538,9 +505,9 @@ public class PostgresqlLeaseProviderTests
         cmd.Parameters.Add<DateTimeOffset?>("acquired", NpgsqlDbType.TimestampTz).TypedValue = acquired switch { { HasValue: true, Value: var value } => value, { IsNull: true } => null, _ => now };
         cmd.Parameters.Add<DateTimeOffset?>("released", NpgsqlDbType.TimestampTz).TypedValue = released switch { { HasValue: true, Value: var value } => value, { IsNull: true } => null, _ => now };
 
-        await cmd.PrepareAsync();
-        await cmd.ExecuteNonQueryAsync();
-        await uow.CommitAsync();
+        await cmd.PrepareAsync(CancellationToken);
+        await cmd.ExecuteNonQueryAsync(CancellationToken);
+        await uow.CommitAsync(CancellationToken);
     }
 
     private async Task CheckDatabase(
@@ -550,7 +517,7 @@ public class PostgresqlLeaseProviderTests
         DateTimeOffset? expectedAcquired,
         DateTimeOffset? expectedReleased)
     {
-        await using var uow = await GetRequiredService<IUnitOfWorkManager>().CreateAsync();
+        await using var uow = await GetRequiredService<IUnitOfWorkManager>().CreateAsync(CancellationToken);
         var conn = uow.GetRequiredService<NpgsqlConnection>();
         await using var cmd = conn.CreateCommand(
             /*strpsql*/"""
@@ -560,20 +527,18 @@ public class PostgresqlLeaseProviderTests
             """);
 
         cmd.Parameters.Add<string>("id", NpgsqlDbType.Text).TypedValue = id;
-        await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow | CommandBehavior.SingleResult);
-        var read = await reader.ReadAsync();
+        await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow | CommandBehavior.SingleResult, CancellationToken);
+        var read = await reader.ReadAsync(CancellationToken);
+        read.ShouldBeTrue();
 
-        using var scope = new AssertionScope();
-        read.Should().BeTrue();
-
-        (await reader.GetFieldValueAsync<string>("id")).Should().Be(id);
-        (await reader.GetFieldValueAsync<DateTimeOffset>("expires")).Should().Be(expectedExpires);
-        (await reader.GetFieldValueAsync<DateTimeOffset?>("acquired")).Should().Be(expectedAcquired);
-        (await reader.GetFieldValueAsync<DateTimeOffset?>("released")).Should().Be(expectedReleased);
+        (await reader.GetFieldValueAsync<string>("id", CancellationToken)).ShouldBe(id);
+        (await reader.GetFieldValueAsync<DateTimeOffset>("expires", CancellationToken)).ShouldBe(expectedExpires);
+        (await reader.GetFieldValueAsync<DateTimeOffset?>("acquired", CancellationToken)).ShouldBe(expectedAcquired);
+        (await reader.GetFieldValueAsync<DateTimeOffset?>("released", CancellationToken)).ShouldBe(expectedReleased);
 
         if (expectedToken.HasValue)
         {
-            (await reader.GetFieldValueAsync<Guid>("token")).Should().Be(expectedToken.Value);
+            (await reader.GetFieldValueAsync<Guid>("token", CancellationToken)).ShouldBe(expectedToken.Value);
         }
     }
 }

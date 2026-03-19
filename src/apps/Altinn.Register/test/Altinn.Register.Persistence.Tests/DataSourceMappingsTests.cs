@@ -5,7 +5,7 @@ using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Persistence.Tests.Utils;
 using Altinn.Register.TestUtils;
 using Npgsql;
-using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Altinn.Register.Persistence.Tests;
 
@@ -17,20 +17,20 @@ public class DataSourceMappingsTests
     public async Task MapsPartyType(PartyRecordType partyType)
     {
         var source = GetRequiredService<NpgsqlDataSource>();
-        await using var conn = await source.OpenConnectionAsync();
+        await using var conn = await source.OpenConnectionAsync(CancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = /*strpsql*/"SELECT @p::register.party_type";
 
         var param = cmd.Parameters.Add<PartyRecordType>("p");
         param.TypedValue = partyType;
 
-        await cmd.PrepareAsync();
+        await cmd.PrepareAsync(CancellationToken);
 
-        await using var reader = await cmd.ExecuteReaderAsync();
-        (await reader.ReadAsync()).Should().BeTrue();
+        await using var reader = await cmd.ExecuteReaderAsync(CancellationToken);
+        (await reader.ReadAsync(CancellationToken)).ShouldBeTrue();
 
-        var result = await reader.GetFieldValueAsync<PartyRecordType>(0);
-        result.Should().Be(partyType);
+        var result = await reader.GetFieldValueAsync<PartyRecordType>(0, CancellationToken);
+        result.ShouldBe(partyType);
     }
 
     [Theory]
@@ -38,20 +38,20 @@ public class DataSourceMappingsTests
     public async Task MapsPartySource(PartySource partySource)
     {
         var source = GetRequiredService<NpgsqlDataSource>();
-        await using var conn = await source.OpenConnectionAsync();
+        await using var conn = await source.OpenConnectionAsync(CancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = /*strpsql*/"SELECT @p::register.party_source";
 
         var param = cmd.Parameters.Add<PartySource>("p");
         param.TypedValue = partySource;
 
-        await cmd.PrepareAsync();
+        await cmd.PrepareAsync(CancellationToken);
 
-        await using var reader = await cmd.ExecuteReaderAsync();
-        (await reader.ReadAsync()).Should().BeTrue();
+        await using var reader = await cmd.ExecuteReaderAsync(CancellationToken);
+        (await reader.ReadAsync(CancellationToken)).ShouldBeTrue();
 
-        var result = await reader.GetFieldValueAsync<PartySource>(0);
-        result.Should().Be(partySource);
+        var result = await reader.GetFieldValueAsync<PartySource>(0, CancellationToken);
+        result.ShouldBe(partySource);
     }
 
     [Theory]
@@ -59,20 +59,20 @@ public class DataSourceMappingsTests
     public async Task MapsOrganizationSource(OrganizationSource partySource)
     {
         var source = GetRequiredService<NpgsqlDataSource>();
-        await using var conn = await source.OpenConnectionAsync();
+        await using var conn = await source.OpenConnectionAsync(CancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = /*strpsql*/"SELECT @p::register.organization_source";
 
         var param = cmd.Parameters.Add<OrganizationSource>("p");
         param.TypedValue = partySource;
 
-        await cmd.PrepareAsync();
+        await cmd.PrepareAsync(CancellationToken);
 
-        await using var reader = await cmd.ExecuteReaderAsync();
-        (await reader.ReadAsync()).Should().BeTrue();
+        await using var reader = await cmd.ExecuteReaderAsync(CancellationToken);
+        (await reader.ReadAsync(CancellationToken)).ShouldBeTrue();
 
-        var result = await reader.GetFieldValueAsync<OrganizationSource>(0);
-        result.Should().Be(partySource);
+        var result = await reader.GetFieldValueAsync<OrganizationSource>(0, CancellationToken);
+        result.ShouldBe(partySource);
     }
 
     [Theory]
@@ -80,20 +80,20 @@ public class DataSourceMappingsTests
     public async Task MapsPersonSource(PersonSource partySource)
     {
         var source = GetRequiredService<NpgsqlDataSource>();
-        await using var conn = await source.OpenConnectionAsync();
+        await using var conn = await source.OpenConnectionAsync(CancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = /*strpsql*/"SELECT @p::register.person_source";
 
         var param = cmd.Parameters.Add<PersonSource>("p");
         param.TypedValue = partySource;
 
-        await cmd.PrepareAsync();
+        await cmd.PrepareAsync(CancellationToken);
 
-        await using var reader = await cmd.ExecuteReaderAsync();
-        (await reader.ReadAsync()).Should().BeTrue();
+        await using var reader = await cmd.ExecuteReaderAsync(CancellationToken);
+        (await reader.ReadAsync(CancellationToken)).ShouldBeTrue();
 
-        var result = await reader.GetFieldValueAsync<PersonSource>(0);
-        result.Should().Be(partySource);
+        var result = await reader.GetFieldValueAsync<PersonSource>(0, CancellationToken);
+        result.ShouldBe(partySource);
     }
 
     [Theory]
@@ -101,20 +101,20 @@ public class DataSourceMappingsTests
     public async Task MapsExternalRoleSource(ExternalRoleSource roleSource)
     {
         var source = GetRequiredService<NpgsqlDataSource>();
-        await using var conn = await source.OpenConnectionAsync();
+        await using var conn = await source.OpenConnectionAsync(CancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = /*strpsql*/"SELECT @p::register.external_role_source";
 
         var param = cmd.Parameters.Add<ExternalRoleSource>("p");
         param.TypedValue = roleSource;
 
-        await cmd.PrepareAsync();
+        await cmd.PrepareAsync(CancellationToken);
 
-        await using var reader = await cmd.ExecuteReaderAsync();
-        (await reader.ReadAsync()).Should().BeTrue();
+        await using var reader = await cmd.ExecuteReaderAsync(CancellationToken);
+        (await reader.ReadAsync(CancellationToken)).ShouldBeTrue();
 
-        var result = await reader.GetFieldValueAsync<ExternalRoleSource>(0);
-        result.Should().Be(roleSource);
+        var result = await reader.GetFieldValueAsync<ExternalRoleSource>(0, CancellationToken);
+        result.ShouldBe(roleSource);
     }
 
     [Theory]
@@ -122,20 +122,20 @@ public class DataSourceMappingsTests
     public async Task MapsSagaStatus(SagaStatus sagaStatus)
     {
         var source = GetRequiredService<NpgsqlDataSource>();
-        await using var conn = await source.OpenConnectionAsync();
+        await using var conn = await source.OpenConnectionAsync(CancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = /*strpsql*/"SELECT @p::register.saga_status";
 
         var param = cmd.Parameters.Add<SagaStatus>("p");
         param.TypedValue = sagaStatus;
 
-        await cmd.PrepareAsync();
+        await cmd.PrepareAsync(CancellationToken);
 
-        await using var reader = await cmd.ExecuteReaderAsync();
-        (await reader.ReadAsync()).Should().BeTrue();
+        await using var reader = await cmd.ExecuteReaderAsync(CancellationToken);
+        (await reader.ReadAsync(CancellationToken)).ShouldBeTrue();
 
-        var result = await reader.GetFieldValueAsync<SagaStatus>(0);
-        result.Should().Be(sagaStatus);
+        var result = await reader.GetFieldValueAsync<SagaStatus>(0, CancellationToken);
+        result.ShouldBe(sagaStatus);
     }
 
     [Theory]
@@ -143,20 +143,20 @@ public class DataSourceMappingsTests
     public async Task MapsSIUserType(SelfIdentifiedUserType siType)
     {
         var source = GetRequiredService<NpgsqlDataSource>();
-        await using var conn = await source.OpenConnectionAsync();
+        await using var conn = await source.OpenConnectionAsync(CancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = /*strpsql*/"SELECT @p::register.self_identified_user_type";
 
         var param = cmd.Parameters.Add<SelfIdentifiedUserType>("p");
         param.TypedValue = siType;
 
-        await cmd.PrepareAsync();
+        await cmd.PrepareAsync(CancellationToken);
 
-        await using var reader = await cmd.ExecuteReaderAsync();
-        (await reader.ReadAsync()).Should().BeTrue();
+        await using var reader = await cmd.ExecuteReaderAsync(CancellationToken);
+        (await reader.ReadAsync(CancellationToken)).ShouldBeTrue();
 
-        var result = await reader.GetFieldValueAsync<SelfIdentifiedUserType>(0);
-        result.Should().Be(siType);
+        var result = await reader.GetFieldValueAsync<SelfIdentifiedUserType>(0, CancellationToken);
+        result.ShouldBe(siType);
     }
 
     [Theory]
@@ -166,25 +166,25 @@ public class DataSourceMappingsTests
         var value = address?.ToMailingAddress();
 
         var source = GetRequiredService<NpgsqlDataSource>();
-        await using var conn = await source.OpenConnectionAsync();
+        await using var conn = await source.OpenConnectionAsync(CancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = /*strpsql*/"SELECT @p::register.mailing_address";
 
         var param = cmd.Parameters.Add<MailingAddressRecord?>("p");
         param.TypedValue = value;
 
-        await cmd.PrepareAsync();
+        await cmd.PrepareAsync(CancellationToken);
 
-        await using var reader = await cmd.ExecuteReaderAsync();
-        (await reader.ReadAsync()).Should().BeTrue();
+        await using var reader = await cmd.ExecuteReaderAsync(CancellationToken);
+        (await reader.ReadAsync(CancellationToken)).ShouldBeTrue();
 
-        var result = await reader.GetFieldValueOrDefaultAsync<MailingAddressRecord>(0);
-        result.Should().Be(value);
+        var result = await reader.GetFieldValueOrDefaultAsync<MailingAddressRecord>(0, CancellationToken);
+        result.ShouldBe(value);
     }
 
     public static TheoryData<SerializableMailingAddress?> MailingAddresses => new()
     {
-        null,
+        (SerializableMailingAddress?)null,
         new MailingAddressRecord { Address = null, City = null, PostalCode = null },
         new MailingAddressRecord { Address = "address", City = "city", PostalCode = "postal_code" },
         new MailingAddressRecord { Address = "address", City = null, PostalCode = null },
@@ -199,24 +199,23 @@ public class DataSourceMappingsTests
         var value = address?.ToStreetAddress();
 
         var source = GetRequiredService<NpgsqlDataSource>();
-        await using var conn = await source.OpenConnectionAsync();
+        await using var conn = await source.OpenConnectionAsync(CancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = /*strpsql*/"SELECT @p::register.street_address";
 
         var param = cmd.Parameters.Add<StreetAddressRecord?>("p");
         param.TypedValue = value;
 
-        await cmd.PrepareAsync();
+        await cmd.PrepareAsync(CancellationToken);
 
-        await using var reader = await cmd.ExecuteReaderAsync();
-        (await reader.ReadAsync()).Should().BeTrue();
+        await using var reader = await cmd.ExecuteReaderAsync(CancellationToken);
+        (await reader.ReadAsync(CancellationToken)).ShouldBeTrue();
 
-        var result = await reader.GetFieldValueOrDefaultAsync<StreetAddressRecord>(0);
-        result.Should().Be(value);
+        var result = await reader.GetFieldValueOrDefaultAsync<StreetAddressRecord>(0, CancellationToken);
+        result.ShouldBe(value);
     }
 
-    public static TheoryData<SerializableStreetAddress?> StreetAddresses => new()
-    {
+    public static TheoryData<SerializableStreetAddress?> StreetAddresses => new([
         null,
         new StreetAddressRecord
         {
@@ -235,7 +234,7 @@ public class DataSourceMappingsTests
         new StreetAddressRecord { HouseLetter = "house_letter" },
         new StreetAddressRecord { PostalCode = "postal_code" },
         new StreetAddressRecord { City = "city" },
-    };
+    ]);
 
     public sealed class SerializableMailingAddress
         : IXunitSerializable

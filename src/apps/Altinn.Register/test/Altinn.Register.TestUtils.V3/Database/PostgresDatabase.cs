@@ -1,3 +1,5 @@
+using Npgsql;
+
 namespace Altinn.Register.TestUtils.Database;
 
 public sealed class PostgresDatabase
@@ -16,27 +18,61 @@ public sealed class PostgresDatabase
     }
 
     private readonly PostgresServerFixture.DatabaseHandle _handle;
+    private NpgsqlDataSource? _ownerDataSource;
+    private NpgsqlDataSource? _migratorDataSource;
+    private NpgsqlDataSource? _seederDataSource;
+    private NpgsqlDataSource? _dataSource;
 
     internal PostgresDatabase(PostgresServerFixture.DatabaseHandle handle)
     {
         _handle = handle;
     }
 
-    public string ConnectionString(PostgresUserType type)
+    public string ConnectionStringFor(PostgresUserType type)
         => _handle.ConnectionString(type);
 
     public string OwnerConnectionString
-        => ConnectionString(PostgresUserType.Owner);
+        => ConnectionStringFor(PostgresUserType.Owner);
 
     public string MigratorConnectionString
-        => ConnectionString(PostgresUserType.Migrator);
+        => ConnectionStringFor(PostgresUserType.Migrator);
 
     public string SeederConnectionString
-        => ConnectionString(PostgresUserType.Seeder);
+        => ConnectionStringFor(PostgresUserType.Seeder);
+
+    public string ConnectionString
+        => AppConnectionString;
 
     public string AppConnectionString
-        => ConnectionString(PostgresUserType.App);
+        => ConnectionStringFor(PostgresUserType.App);
 
-    ValueTask IAsyncDisposable.DisposeAsync()
-        => _handle.DisposeAsync();
+    public string UserName
+        => new NpgsqlConnectionStringBuilder(AppConnectionString).Username!;
+
+    public NpgsqlDataSource OwnerDataSource
+        => GetDataSource(ref _ownerDataSource, OwnerConnectionString);
+
+    public NpgsqlDataSource MigratorDataSource
+        => GetDataSource(ref _migratorDataSource, MigratorConnectionString);
+
+    public NpgsqlDataSource SeederDataSource
+        => GetDataSource(ref _seederDataSource, SeederConnectionString);
+
+    public NpgsqlDataSource DataSource
+        => GetDataSource(ref _dataSource, AppConnectionString);
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        await DisposeDataSource(_ownerDataSource);
+        await DisposeDataSource(_migratorDataSource);
+        await DisposeDataSource(_seederDataSource);
+        await DisposeDataSource(_dataSource);
+        await _handle.DisposeAsync();
+
+        static ValueTask DisposeDataSource(NpgsqlDataSource? dataSource)
+            => dataSource?.DisposeAsync() ?? ValueTask.CompletedTask;
+    }
+
+    private static NpgsqlDataSource GetDataSource(ref NpgsqlDataSource? dataSource, string connectionString)
+        => dataSource ??= NpgsqlDataSource.Create(connectionString);
 }

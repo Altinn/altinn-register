@@ -38,16 +38,16 @@ public class LeaseManagerTests
     [Fact]
     public async Task Returns_Null_When_Lease_Not_Acquired()
     {
-        await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1));
+        await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), cancellationToken: CancellationToken);
 
-        await using var lease = await Manager.AcquireLease("test");
+        await using var lease = await Manager.AcquireLease("test", CancellationToken);
         Assert.False(lease.Acquired);
     }
 
     [Fact]
     public async Task Returns_Lease_When_Acquired()
     {
-        await using var lease = await Manager.AcquireLease("test");
+        await using var lease = await Manager.AcquireLease("test", CancellationToken);
         Assert.True(lease.Acquired);
     }
 
@@ -55,12 +55,12 @@ public class LeaseManagerTests
     public async Task Releases_Lease_When_Disposed()
     {
         {
-            await using var lease = await Manager.AcquireLease("test");
+            await using var lease = await Manager.AcquireLease("test", CancellationToken);
             Assert.True(lease.Acquired);
         }
 
         {
-            await using var lease2 = await Manager.AcquireLease("test");
+            await using var lease2 = await Manager.AcquireLease("test", CancellationToken);
             Assert.True(lease2.Acquired);
         }
     }
@@ -68,7 +68,7 @@ public class LeaseManagerTests
     [Fact]
     public async Task Lease_AutoRenews()
     {
-        await using var lease = await Manager.AcquireLease("test");
+        await using var lease = await Manager.AcquireLease("test", CancellationToken);
         Assert.True(lease.Acquired);
 
         for (var i = 0; i < 10; i++)
@@ -81,7 +81,7 @@ public class LeaseManagerTests
             // wait for tick task
             await lease.Inner.TickTask;
 
-            lease.Inner.LeaseToken.Should().NotBe(token);
+            lease.Inner.LeaseToken.ShouldNotBe(token);
         }
     }
 
@@ -89,21 +89,23 @@ public class LeaseManagerTests
     public async Task Lease_Token_Is_Linked()
     {
         using var tcs = new CancellationTokenSource();
-        await using var lease = await Manager.AcquireLease("test", tcs.Token);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, tcs.Token);
+        await using var lease = await Manager.AcquireLease("test", linked.Token);
         Assert.True(lease.Acquired);
 
-        lease.Token.IsCancellationRequested.Should().BeFalse();
+        lease.Token.IsCancellationRequested.ShouldBeFalse();
 
         await tcs.CancelAsync();
 
-        lease.Token.IsCancellationRequested.Should().BeTrue();
+        lease.Token.IsCancellationRequested.ShouldBeTrue();
     }
 
     [Fact]
     public async Task Cancelling_Token_Stops_Renewal()
     {
         using var tcs = new CancellationTokenSource();
-        await using var lease = await Manager.AcquireLease("test", tcs.Token);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, tcs.Token);
+        await using var lease = await Manager.AcquireLease("test", linked.Token);
         Assert.True(lease.Acquired);
 
         await tcs.CancelAsync();
@@ -116,20 +118,20 @@ public class LeaseManagerTests
         // wait for tick task
         await lease.Inner.TickTask;
 
-        lease.Inner.LeaseToken.Should().Be(token);
+        lease.Inner.LeaseToken.ShouldBe(token);
 
         // forward time
         TimeProvider.Advance(OwnedLease.LeaseRenewalInterval - TimeSpan.FromSeconds(1));
 
         // check that the lease did expire
-        var result = await Provider.TryAcquireLease(lease.LeaseId, TimeSpan.FromMinutes(1));
-        result.IsLeaseAcquired.Should().BeTrue();
+        var result = await Provider.TryAcquireLease(lease.LeaseId, TimeSpan.FromMinutes(1), cancellationToken: CancellationToken);
+        result.IsLeaseAcquired.ShouldBeTrue();
     }
 
     [Fact]
     public async Task Loosing_The_Lease_Triggers_The_Token()
     {
-        await using var lease = await Manager.AcquireLease("test");
+        await using var lease = await Manager.AcquireLease("test", CancellationToken);
         Assert.True(lease.Acquired);
 
         // forcefully acquire the lease
@@ -144,7 +146,7 @@ public class LeaseManagerTests
         cmd.Parameters.Add<Guid>("token", NpgsqlDbType.Uuid).TypedValue = Guid.NewGuid();
         cmd.Parameters.Add<DateTimeOffset>("expires", NpgsqlDbType.TimestampTz).TypedValue = TimeProvider.GetUtcNow() + TimeSpan.FromHours(1);
         cmd.Parameters.Add<string>("id", NpgsqlDbType.Text).TypedValue = lease.LeaseId;
-        await cmd.ExecuteNonQueryAsync();
+        await cmd.ExecuteNonQueryAsync(CancellationToken);
 
         // forward time
         TimeProvider.SetUtcNow(lease.Inner.CurrentExpiry - TimeSpan.FromSeconds(1));
@@ -152,7 +154,7 @@ public class LeaseManagerTests
         // wait for tick task
         await lease.Inner.TickTask;
 
-        lease.Token.IsCancellationRequested.Should().BeTrue();
+        lease.Token.IsCancellationRequested.ShouldBeTrue();
     }
 
     [Fact]
@@ -162,24 +164,24 @@ public class LeaseManagerTests
         {
             // lease does not initially exist, so it should be acquired
             await using var lease = await GetLease();
-            lease.Acquired.Should().BeTrue();
-            lease.LastReleasedAt.Should().BeNull();
+            lease.Acquired.ShouldBeTrue();
+            lease.LastReleasedAt.ShouldBeNull();
         }
 
         TimeProvider.Advance(TimeSpan.FromMinutes(1));
         {
             // lease was just released, so it should not be acquired
             await using var lease = await GetLease();
-            lease.Acquired.Should().BeFalse();
-            lease.LastReleasedAt.Should().Be(dt1);
+            lease.Acquired.ShouldBeFalse();
+            lease.LastReleasedAt.ShouldBe(dt1);
         }
 
         TimeProvider.Advance(TimeSpan.FromMinutes(1));
         {
             // lease was just released, so it should not be acquired
             await using var lease = await GetLease();
-            lease.Acquired.Should().BeFalse();
-            lease.LastReleasedAt.Should().Be(dt1);
+            lease.Acquired.ShouldBeFalse();
+            lease.LastReleasedAt.ShouldBe(dt1);
         }
 
         TimeProvider.Advance(TimeSpan.FromMinutes(15));
@@ -187,30 +189,30 @@ public class LeaseManagerTests
         {
             // lease was released more than 15 minutes ago, so it should be acquired
             await using var lease = await GetLease();
-            lease.Acquired.Should().BeTrue();
-            lease.LastReleasedAt.Should().BeNull();
+            lease.Acquired.ShouldBeTrue();
+            lease.LastReleasedAt.ShouldBeNull();
         }
 
         TimeProvider.Advance(TimeSpan.FromMinutes(1));
         {
             // lease was just released, so it should not be acquired
             await using var lease = await GetLease();
-            lease.Acquired.Should().BeFalse();
-            lease.LastReleasedAt.Should().Be(dt2);
+            lease.Acquired.ShouldBeFalse();
+            lease.LastReleasedAt.ShouldBe(dt2);
         }
 
         TimeProvider.Advance(TimeSpan.FromMinutes(1));
         {
             // lease was just released, so it should not be acquired
             await using var lease = await GetLease();
-            lease.Acquired.Should().BeFalse();
-            lease.LastReleasedAt.Should().Be(dt2);
+            lease.Acquired.ShouldBeFalse();
+            lease.LastReleasedAt.ShouldBe(dt2);
         }
 
         async Task<Lease> GetLease()
         {
             var now = TimeProvider.GetUtcNow();
-            return await Manager.AcquireLease("test", ifUnacquiredFor: TimeSpan.FromMinutes(15));
+            return await Manager.AcquireLease("test", ifUnacquiredFor: TimeSpan.FromMinutes(15), cancellationToken: CancellationToken);
         }
     }
 }

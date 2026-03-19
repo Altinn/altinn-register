@@ -1,6 +1,5 @@
 using System.Data;
 using System.Diagnostics;
-using System.Linq.Expressions;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
@@ -11,10 +10,8 @@ using Altinn.Register.Persistence.Tests.Utils;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.TestData;
 using Altinn.Urn;
-using FluentAssertions.Execution;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
-using Xunit.Abstractions;
 
 namespace Altinn.Register.Persistence.Tests;
 
@@ -52,7 +49,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     }
 
     private ValueTask CommitAsync()
-        => _unitOfWork!.CommitAsync();
+        => _unitOfWork!.CommitAsync(CancellationToken);
 
     private NpgsqlConnection Connection
         => _connection!;
@@ -69,14 +66,14 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             if (commit)
             {
-                await uow.CommitAsync();
+                await uow.CommitAsync(CancellationToken);
             }
 
             await uow.DisposeAsync();
         }
 
         var uowManager = GetRequiredService<IUnitOfWorkManager>();
-        _unitOfWork = await uowManager.CreateAsync(activityName: "test");
+        _unitOfWork = await uowManager.CreateAsync(activityName: "test", cancellationToken: CancellationToken);
         _connection = _unitOfWork.GetRequiredService<NpgsqlConnection>();
         _persistence = _unitOfWork.GetRequiredService<PostgreSqlPartyPersistence>();
     }
@@ -85,229 +82,225 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     public void CanGet_IPartyPersistence()
     {
         var persistence = _unitOfWork!.GetPartyPersistence();
-        persistence.Should().BeSameAs(Persistence);
+        persistence.ShouldBeSameAs(Persistence);
     }
 
     [Fact]
     public void CanGet_IPartyRolePersistence()
     {
         var persistence = _unitOfWork!.GetPartyExternalRolePersistence();
-        persistence.Should().BeSameAs(Persistence);
+        persistence.ShouldBeSameAs(Persistence);
     }
 
     [Fact]
     public async Task GetPartyById_NoneExistingUuid_ReturnsEmpty()
     {
         var partyUuid = Guid.Parse("F0000000-0000-0000-0000-000000000000");
-        var result = await Persistence.GetPartyById(partyUuid).ToListAsync();
+        var result = await Persistence
+            .GetPartyById(partyUuid, cancellationToken: CancellationToken)
+            .ToListAsync(CancellationToken);
 
-        result.Should().BeEmpty();
+        result.ShouldBeEmpty();
     }
 
     [Fact]
     public async Task GetPartyById_NoneExistingId_ReturnsEmpty()
     {
         var partyId = 0U;
-        var result = await Persistence.GetPartyById(partyId).ToListAsync();
+        var result = await Persistence
+            .GetPartyById(partyId, cancellationToken: CancellationToken)
+            .ToListAsync(CancellationToken);
 
-        result.Should().BeEmpty();
+        result.ShouldBeEmpty();
     }
 
     [Fact]
     public async Task GetPartyById_Returns_SingleParty()
     {
-        var result = await Persistence.GetPartyById(OrganizationWithChildrenUuid).ToListAsync();
+        var result = await Persistence
+            .GetPartyById(OrganizationWithChildrenUuid, cancellationToken: CancellationToken)
+            .ToListAsync(CancellationToken);
 
-        var party = result.Should().ContainSingle().Which.Should().BeOfType<OrganizationRecord>().Which;
+        var party = result.ShouldHaveSingleItem().ShouldBeOfType<OrganizationRecord>();
+        party.ParentOrganizationUuid.ShouldBeUnset();
 
-        using var scope = new AssertionScope();
-        party.ParentOrganizationUuid.Should().BeUnset();
+        party.PartyUuid.ShouldBe(OrganizationWithChildrenUuid);
+        party.PartyId.ShouldBe(OrganizationWithChildrenId);
+        party.PartyType.ShouldBe(PartyRecordType.Organization);
+        party.DisplayName.ShouldBe("MOEN OG BJØRNEVATN");
+        party.PersonIdentifier.ShouldBeNull();
+        party.OrganizationIdentifier.ShouldBe(OrganizationWithChildrenIdentifier);
 
-        party.PartyUuid.Should().Be(OrganizationWithChildrenUuid);
-        party.PartyId.Should().Be(OrganizationWithChildrenId);
-        party.PartyType.Should().Be(PartyRecordType.Organization);
-        party.DisplayName.Should().Be("MOEN OG BJØRNEVATN");
-        party.PersonIdentifier.Should().BeNull();
-        party.OrganizationIdentifier.Should().Be(OrganizationWithChildrenIdentifier);
-
-        party.UnitStatus.Should().BeUnset();
-        party.UnitType.Should().BeUnset();
-        party.TelephoneNumber.Should().BeUnset();
-        party.MobileNumber.Should().BeUnset();
-        party.FaxNumber.Should().BeUnset();
-        party.EmailAddress.Should().BeUnset();
-        party.InternetAddress.Should().BeUnset();
-        party.MailingAddress.Should().BeUnset();
-        party.BusinessAddress.Should().BeUnset();
+        party.UnitStatus.ShouldBeUnset();
+        party.UnitType.ShouldBeUnset();
+        party.TelephoneNumber.ShouldBeUnset();
+        party.MobileNumber.ShouldBeUnset();
+        party.FaxNumber.ShouldBeUnset();
+        party.EmailAddress.ShouldBeUnset();
+        party.InternetAddress.ShouldBeUnset();
+        party.MailingAddress.ShouldBeUnset();
+        party.BusinessAddress.ShouldBeUnset();
     }
 
     [Fact]
     public async Task GetPartyById_CanGet_OrganizationData()
     {
-        var result = await Persistence.GetPartyById(OrganizationWithChildrenUuid, include: PartyFieldIncludes.Party | PartyFieldIncludes.Organization).ToListAsync();
+        var result = await Persistence
+            .GetPartyById(OrganizationWithChildrenUuid, include: PartyFieldIncludes.Party | PartyFieldIncludes.Organization, cancellationToken: CancellationToken)
+            .ToListAsync(CancellationToken);
 
-        var party = result.Should().ContainSingle().Which.Should().BeOfType<OrganizationRecord>().Which;
+        var party = result.ShouldHaveSingleItem().ShouldBeOfType<OrganizationRecord>();
+        party.ParentOrganizationUuid.ShouldBeUnset();
 
-        using var scope = new AssertionScope();
-        party.ParentOrganizationUuid.Should().BeUnset();
+        party.PartyUuid.ShouldBe(OrganizationWithChildrenUuid);
+        party.PartyId.ShouldBe(OrganizationWithChildrenId);
+        party.PartyType.ShouldBe(PartyRecordType.Organization);
+        party.DisplayName.ShouldBe("MOEN OG BJØRNEVATN");
+        party.PersonIdentifier.ShouldBeNull();
+        party.OrganizationIdentifier.ShouldBe(OrganizationWithChildrenIdentifier);
 
-        party.PartyUuid.Should().Be(OrganizationWithChildrenUuid);
-        party.PartyId.Should().Be(OrganizationWithChildrenId);
-        party.PartyType.Should().Be(PartyRecordType.Organization);
-        party.DisplayName.Should().Be("MOEN OG BJØRNEVATN");
-        party.PersonIdentifier.Should().BeNull();
-        party.OrganizationIdentifier.Should().Be(OrganizationWithChildrenIdentifier);
-
-        party.UnitStatus.Should().Be("N");
-        party.UnitType.Should().Be("FLI");
-        party.TelephoneNumber.Should().BeNull();
-        party.MobileNumber.Should().BeNull();
-        party.FaxNumber.Should().BeNull();
-        party.EmailAddress.Should().Be("test@test.test");
-        party.InternetAddress.Should().BeNull();
-        party.MailingAddress.Should().BeNull();
-        party.BusinessAddress.Should().BeNull();
+        party.UnitStatus.ShouldBe("N");
+        party.UnitType.ShouldBe("FLI");
+        party.TelephoneNumber.ShouldBeNull();
+        party.MobileNumber.ShouldBeNull();
+        party.FaxNumber.ShouldBeNull();
+        party.EmailAddress.ShouldBe("test@test.test");
+        party.InternetAddress.ShouldBeNull();
+        party.MailingAddress.ShouldBeNull();
+        party.BusinessAddress.ShouldBeNull();
     }
 
     [Fact]
     public async Task GetPartyByUserId_Returns_SingleParty()
     {
-        var person = await UoW.CreatePerson();
-        var personUserId = person.User.SelectFieldValue(static u => u.UserId).Should().HaveValue().Which;
+        var person = await UoW.CreatePerson(cancellationToken: CancellationToken);
+        var personUserId = person.User.SelectFieldValue(static u => u.UserId).ShouldHaveValue();
 
-        var result = await Persistence.GetPartyByUserId(personUserId, include: PartyFieldIncludes.Party).ToListAsync();
+        var result = await Persistence
+            .GetPartyByUserId(personUserId, include: PartyFieldIncludes.Party, cancellationToken: CancellationToken)
+            .ToListAsync(CancellationToken);
 
-        var party = result.Should().ContainSingle().Which.Should().BeOfType<PersonRecord>().Which;
+        var party = result.ShouldHaveSingleItem().ShouldBeOfType<PersonRecord>();
 
-        using var scope = new AssertionScope();
-
-        party.PartyUuid.Should().Be(person.PartyUuid);
-        party.PartyId.Should().Be(person.PartyId);
-        party.PartyType.Should().Be(person.PartyType);
-        party.DisplayName.Should().Be(person.DisplayName);
-        party.PersonIdentifier.Should().Be(person.PersonIdentifier);
-        party.OrganizationIdentifier.Should().Be(person.OrganizationIdentifier);
-        party.User.Should().Be(new PartyUserRecord(userId: personUserId, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(personUserId)));
+        party.PartyUuid.ShouldBe(person.PartyUuid);
+        party.PartyId.ShouldBe(person.PartyId);
+        party.PartyType.ShouldBe(person.PartyType);
+        party.DisplayName.ShouldBe(person.DisplayName);
+        party.PersonIdentifier.ShouldBe(person.PersonIdentifier);
+        party.OrganizationIdentifier.ShouldBe(person.OrganizationIdentifier);
+        party.User.ShouldBe(new PartyUserRecord(userId: personUserId, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(personUserId)));
     }
 
     [Fact]
     public async Task GetPartyByUserId_HistoricalId_Returns_SingleParty_WithMultipleUserIds()
     {
-        var person = await UoW.CreatePerson();
-        var personUserIds = person.User.SelectFieldValue(static u => u.UserIds).Should().HaveValue().Which;
-        personUserIds.Should().HaveCountGreaterThanOrEqualTo(3);
+        var person = await UoW.CreatePerson(cancellationToken: CancellationToken);
+        var personUserIds = person.User.SelectFieldValue(static u => u.UserIds).ShouldHaveValue();
+        personUserIds.Count().ShouldBeGreaterThanOrEqualTo(3);
 
         var personUserId = personUserIds[0];
         var historicalUserId1 = personUserIds[1];
         var historicalUserId2 = personUserIds[2];
 
         {
-            var result = await Persistence.GetPartyByUserId(historicalUserId1, include: PartyFieldIncludes.Party).ToListAsync();
+            var result = await Persistence
+                .GetPartyByUserId(historicalUserId1, include: PartyFieldIncludes.Party, cancellationToken: CancellationToken)
+                .ToListAsync(CancellationToken);
 
-            var party = result.Should().ContainSingle().Which.Should().BeOfType<PersonRecord>().Which;
+            var party = result.ShouldHaveSingleItem().ShouldBeOfType<PersonRecord>();
 
-            using var scope = new AssertionScope();
-
-            party.PartyUuid.Should().Be(person.PartyUuid);
-            party.PartyId.Should().Be(person.PartyId);
-            party.PartyType.Should().Be(person.PartyType);
-            party.DisplayName.Should().Be(person.DisplayName);
-            party.PersonIdentifier.Should().Be(person.PersonIdentifier);
-            party.OrganizationIdentifier.Should().Be(person.OrganizationIdentifier);
-            party.User.Should().Be(new PartyUserRecord(userId: personUserId, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(personUserId, historicalUserId1)));
+            party.PartyUuid.ShouldBe(person.PartyUuid);
+            party.PartyId.ShouldBe(person.PartyId);
+            party.PartyType.ShouldBe(person.PartyType);
+            party.DisplayName.ShouldBe(person.DisplayName);
+            party.PersonIdentifier.ShouldBe(person.PersonIdentifier);
+            party.OrganizationIdentifier.ShouldBe(person.OrganizationIdentifier);
+            party.User.ShouldBe(new PartyUserRecord(userId: personUserId, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(personUserId, historicalUserId1)));
         }
 
         {
-            var result = await Persistence.GetPartyByUserId(historicalUserId2, include: PartyFieldIncludes.Party).ToListAsync();
+            var result = await Persistence.GetPartyByUserId(historicalUserId2, include: PartyFieldIncludes.Party, cancellationToken: CancellationToken).ToListAsync(CancellationToken);
 
-            var party = result.Should().ContainSingle().Which.Should().BeOfType<PersonRecord>().Which;
+            var party = result.ShouldHaveSingleItem().ShouldBeOfType<PersonRecord>();
 
-            using var scope = new AssertionScope();
-
-            party.PartyUuid.Should().Be(person.PartyUuid);
-            party.PartyId.Should().Be(person.PartyId);
-            party.PartyType.Should().Be(person.PartyType);
-            party.DisplayName.Should().Be(person.DisplayName);
-            party.PersonIdentifier.Should().Be(person.PersonIdentifier);
-            party.OrganizationIdentifier.Should().Be(person.OrganizationIdentifier);
-            party.User.Should().Be(new PartyUserRecord(userId: personUserId, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(personUserId, historicalUserId2)));
+            party.PartyUuid.ShouldBe(person.PartyUuid);
+            party.PartyId.ShouldBe(person.PartyId);
+            party.PartyType.ShouldBe(person.PartyType);
+            party.DisplayName.ShouldBe(person.DisplayName);
+            party.PersonIdentifier.ShouldBe(person.PersonIdentifier);
+            party.OrganizationIdentifier.ShouldBe(person.OrganizationIdentifier);
+            party.User.ShouldBe(new PartyUserRecord(userId: personUserId, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(personUserId, historicalUserId2)));
         }
     }
 
     [Fact]
     public async Task GetPartyByOrganizationIdentifier_CanGet_OrganizationData()
     {
-        var result = await Persistence.GetOrganizationByIdentifier(OrganizationWithChildrenIdentifier, include: PartyFieldIncludes.Party | PartyFieldIncludes.Organization).ToListAsync();
+        var result = await Persistence.GetOrganizationByIdentifier(OrganizationWithChildrenIdentifier, include: PartyFieldIncludes.Party | PartyFieldIncludes.Organization, cancellationToken: CancellationToken).ToListAsync(CancellationToken);
 
-        var party = result.Should().ContainSingle().Which.Should().BeOfType<OrganizationRecord>().Which;
+        var party = result.ShouldHaveSingleItem().ShouldBeOfType<OrganizationRecord>();
+        party.ParentOrganizationUuid.ShouldBeUnset();
 
-        using var scope = new AssertionScope();
-        party.ParentOrganizationUuid.Should().BeUnset();
+        party.PartyUuid.ShouldBe(OrganizationWithChildrenUuid);
+        party.PartyId.ShouldBe(OrganizationWithChildrenId);
+        party.PartyType.ShouldBe(PartyRecordType.Organization);
+        party.DisplayName.ShouldBe("MOEN OG BJØRNEVATN");
+        party.PersonIdentifier.ShouldBeNull();
+        party.OrganizationIdentifier.ShouldBe(OrganizationWithChildrenIdentifier);
 
-        party.PartyUuid.Should().Be(OrganizationWithChildrenUuid);
-        party.PartyId.Should().Be(OrganizationWithChildrenId);
-        party.PartyType.Should().Be(PartyRecordType.Organization);
-        party.DisplayName.Should().Be("MOEN OG BJØRNEVATN");
-        party.PersonIdentifier.Should().BeNull();
-        party.OrganizationIdentifier.Should().Be(OrganizationWithChildrenIdentifier);
-
-        party.UnitStatus.Should().Be("N");
-        party.UnitType.Should().Be("FLI");
-        party.TelephoneNumber.Should().BeNull();
-        party.MobileNumber.Should().BeNull();
-        party.FaxNumber.Should().BeNull();
-        party.EmailAddress.Should().Be("test@test.test");
-        party.InternetAddress.Should().BeNull();
-        party.MailingAddress.Should().BeNull();
-        party.BusinessAddress.Should().BeNull();
+        party.UnitStatus.ShouldBe("N");
+        party.UnitType.ShouldBe("FLI");
+        party.TelephoneNumber.ShouldBeNull();
+        party.MobileNumber.ShouldBeNull();
+        party.FaxNumber.ShouldBeNull();
+        party.EmailAddress.ShouldBe("test@test.test");
+        party.InternetAddress.ShouldBeNull();
+        party.MailingAddress.ShouldBeNull();
+        party.BusinessAddress.ShouldBeNull();
     }
 
     [Fact]
     public async Task GetPartyById_CanGet_PersonData()
     {
-        var result = await Persistence.GetPartyById(PersonUuid, include: PartyFieldIncludes.Party | PartyFieldIncludes.Person).ToListAsync();
+        var result = await Persistence.GetPartyById(PersonUuid, include: PartyFieldIncludes.Party | PartyFieldIncludes.Person, cancellationToken: CancellationToken).ToListAsync(CancellationToken);
 
-        var party = result.Should().ContainSingle().Which.Should().BeOfType<PersonRecord>().Which;
+        var party = result.ShouldHaveSingleItem().ShouldBeOfType<PersonRecord>();
+        party.PartyUuid.ShouldBe(PersonUuid);
+        party.PartyId.ShouldBe(50002129);
+        party.PartyType.ShouldBe(PartyRecordType.Person);
+        party.DisplayName.ShouldBe("SANNE BJØRKUM");
+        party.PersonIdentifier.ShouldBe(PersonIdentifier);
+        party.OrganizationIdentifier.ShouldBeNull();
 
-        using var scope = new AssertionScope();
-        party.PartyUuid.Should().Be(PersonUuid);
-        party.PartyId.Should().Be(50002129);
-        party.PartyType.Should().Be(PartyRecordType.Person);
-        party.DisplayName.Should().Be("SANNE BJØRKUM");
-        party.PersonIdentifier.Should().Be(PersonIdentifier);
-        party.OrganizationIdentifier.Should().BeNull();
-
-        party.FirstName.Should().Be("SANNE");
-        party.MiddleName.Should().BeNull();
-        party.LastName.Should().Be("BJØRKUM");
-        party.Address.Should().Be(new StreetAddressRecord { PostalCode = "3230", City = "SANDEFJORD" });
-        party.MailingAddress.Should().Be(new MailingAddressRecord { Address = "Granholmveien 19", PostalCode = "3230", City = "SANDEFJORD" });
-        party.DateOfBirth.Should().Be(new DateOnly(1862, 05, 01));
-        party.DateOfDeath.Should().BeNull();
+        party.FirstName.ShouldBe("SANNE");
+        party.MiddleName.ShouldBeNull();
+        party.LastName.ShouldBe("BJØRKUM");
+        party.Address.ShouldBe(new StreetAddressRecord { PostalCode = "3230", City = "SANDEFJORD" });
+        party.MailingAddress.ShouldBe(new MailingAddressRecord { Address = "Granholmveien 19", PostalCode = "3230", City = "SANDEFJORD" });
+        party.DateOfBirth.ShouldBe(new DateOnly(1862, 05, 01));
+        party.DateOfDeath.ShouldBeNull();
     }
 
     [Fact]
     public async Task GetPartyByPersonIdentifier_CanGet_PersonData()
     {
-        var result = await Persistence.GetPersonByIdentifier(PersonIdentifier, include: PartyFieldIncludes.Party | PartyFieldIncludes.Person).ToListAsync();
+        var result = await Persistence.GetPersonByIdentifier(PersonIdentifier, include: PartyFieldIncludes.Party | PartyFieldIncludes.Person, cancellationToken: CancellationToken).ToListAsync(CancellationToken);
 
-        var party = result.Should().ContainSingle().Which.Should().BeOfType<PersonRecord>().Which;
+        var party = result.ShouldHaveSingleItem().ShouldBeOfType<PersonRecord>();
+        party.PartyUuid.ShouldBe(PersonUuid);
+        party.PartyId.ShouldBe(50002129);
+        party.PartyType.ShouldBe(PartyRecordType.Person);
+        party.DisplayName.ShouldBe("SANNE BJØRKUM");
+        party.PersonIdentifier.ShouldBe(PersonIdentifier);
+        party.OrganizationIdentifier.ShouldBeNull();
 
-        using var scope = new AssertionScope();
-        party.PartyUuid.Should().Be(PersonUuid);
-        party.PartyId.Should().Be(50002129);
-        party.PartyType.Should().Be(PartyRecordType.Person);
-        party.DisplayName.Should().Be("SANNE BJØRKUM");
-        party.PersonIdentifier.Should().Be(PersonIdentifier);
-        party.OrganizationIdentifier.Should().BeNull();
-
-        party.FirstName.Should().Be("SANNE");
-        party.MiddleName.Should().BeNull();
-        party.LastName.Should().Be("BJØRKUM");
-        party.Address.Should().Be(new StreetAddressRecord { PostalCode = "3230", City = "SANDEFJORD" });
-        party.MailingAddress.Should().Be(new MailingAddressRecord { Address = "Granholmveien 19", PostalCode = "3230", City = "SANDEFJORD" });
-        party.DateOfBirth.Should().Be(new DateOnly(1862, 05, 01));
-        party.DateOfDeath.Should().BeNull();
+        party.FirstName.ShouldBe("SANNE");
+        party.MiddleName.ShouldBeNull();
+        party.LastName.ShouldBe("BJØRKUM");
+        party.Address.ShouldBe(new StreetAddressRecord { PostalCode = "3230", City = "SANDEFJORD" });
+        party.MailingAddress.ShouldBe(new MailingAddressRecord { Address = "Granholmveien 19", PostalCode = "3230", City = "SANDEFJORD" });
+        party.DateOfBirth.ShouldBe(new DateOnly(1862, 05, 01));
+        party.DateOfDeath.ShouldBeNull();
     }
 
     [Fact]
@@ -315,56 +308,55 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var result = await Persistence.GetPartyById(
             OrganizationWithChildrenUuid,
-            include: PartyFieldIncludes.Party | PartyFieldIncludes.Organization | PartyFieldIncludes.SubUnits)
-            .ToListAsync();
+            include: PartyFieldIncludes.Party | PartyFieldIncludes.Organization | PartyFieldIncludes.SubUnits,
+            cancellationToken: CancellationToken)
+            .ToListAsync(CancellationToken);
 
-        result.Should().HaveCount(2);
+        result.Count.ShouldBe(2);
 
-        var parent = result[0].Should().BeOfType<OrganizationRecord>().Which;
-        var child = result[1].Should().BeOfType<OrganizationRecord>().Which;
+        var parent = result[0].ShouldBeOfType<OrganizationRecord>();
+        var child = result[1].ShouldBeOfType<OrganizationRecord>();
 
         {
-            using var scope = new AssertionScope();
-            parent.PartyUuid.Should().Be(OrganizationWithChildrenUuid);
-            parent.PartyId.Should().Be(OrganizationWithChildrenId);
-            parent.PartyType.Should().Be(PartyRecordType.Organization);
-            parent.DisplayName.Should().Be("MOEN OG BJØRNEVATN");
-            parent.PersonIdentifier.Should().BeNull();
-            parent.OrganizationIdentifier.Should().Be(OrganizationWithChildrenIdentifier);
+            parent.PartyUuid.ShouldBe(OrganizationWithChildrenUuid);
+            parent.PartyId.ShouldBe(OrganizationWithChildrenId);
+            parent.PartyType.ShouldBe(PartyRecordType.Organization);
+            parent.DisplayName.ShouldBe("MOEN OG BJØRNEVATN");
+            parent.PersonIdentifier.ShouldBeNull();
+            parent.OrganizationIdentifier.ShouldBe(OrganizationWithChildrenIdentifier);
 
-            parent.UnitStatus.Should().Be("N");
-            parent.UnitType.Should().Be("FLI");
-            parent.TelephoneNumber.Should().BeNull();
-            parent.MobileNumber.Should().BeNull();
-            parent.FaxNumber.Should().BeNull();
-            parent.EmailAddress.Should().Be("test@test.test");
-            parent.InternetAddress.Should().BeNull();
-            parent.MailingAddress.Should().BeNull();
-            parent.BusinessAddress.Should().BeNull();
+            parent.UnitStatus.ShouldBe("N");
+            parent.UnitType.ShouldBe("FLI");
+            parent.TelephoneNumber.ShouldBeNull();
+            parent.MobileNumber.ShouldBeNull();
+            parent.FaxNumber.ShouldBeNull();
+            parent.EmailAddress.ShouldBe("test@test.test");
+            parent.InternetAddress.ShouldBeNull();
+            parent.MailingAddress.ShouldBeNull();
+            parent.BusinessAddress.ShouldBeNull();
 
-            parent.ParentOrganizationUuid.Should().BeUnset();
+            parent.ParentOrganizationUuid.ShouldBeUnset();
         }
 
         {
-            using var scope = new AssertionScope();
-            child.PartyUuid.Should().Be(ChildOrganizationUuid);
-            child.PartyId.Should().Be(50056655);
-            child.PartyType.Should().Be(PartyRecordType.Organization);
-            child.DisplayName.Should().Be("NERLANDSØY OG DYRANUT");
-            child.PersonIdentifier.Should().BeNull();
-            child.OrganizationIdentifier.Should().HaveValue().Which.Should().Be("910056077");
+            child.PartyUuid.ShouldBe(ChildOrganizationUuid);
+            child.PartyId.ShouldBe(50056655);
+            child.PartyType.ShouldBe(PartyRecordType.Organization);
+            child.DisplayName.ShouldBe("NERLANDSØY OG DYRANUT");
+            child.PersonIdentifier.ShouldBeNull();
+            child.OrganizationIdentifier.ShouldHaveValue().ShouldBe(OrganizationIdentifier.Parse("910056077"));
 
-            child.UnitStatus.Should().Be("N");
-            child.UnitType.Should().Be("BEDR");
-            child.TelephoneNumber.Should().BeNull();
-            child.MobileNumber.Should().BeNull();
-            child.FaxNumber.Should().BeNull();
-            child.EmailAddress.Should().Be("test@test.test");
-            child.InternetAddress.Should().BeNull();
-            child.MailingAddress.Should().BeNull();
-            child.BusinessAddress.Should().BeNull();
+            child.UnitStatus.ShouldBe("N");
+            child.UnitType.ShouldBe("BEDR");
+            child.TelephoneNumber.ShouldBeNull();
+            child.MobileNumber.ShouldBeNull();
+            child.FaxNumber.ShouldBeNull();
+            child.EmailAddress.ShouldBe("test@test.test");
+            child.InternetAddress.ShouldBeNull();
+            child.MailingAddress.ShouldBeNull();
+            child.BusinessAddress.ShouldBeNull();
 
-            child.ParentOrganizationUuid.Should().Be(OrganizationWithChildrenUuid);
+            child.ParentOrganizationUuid.ShouldBe(OrganizationWithChildrenUuid);
         }
     }
 
@@ -374,63 +366,63 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var result = await Persistence.LookupParties(
             partyUuids: [OrganizationWithChildrenUuid],
             partyIds: [OrganizationWithChildrenId],
-            organizationIdentifiers: [OrganizationWithChildrenIdentifier])
-            .ToListAsync();
+            organizationIdentifiers: [OrganizationWithChildrenIdentifier],
+            cancellationToken: CancellationToken)
+            .ToListAsync(CancellationToken);
 
-        var party = result.Should().ContainSingle().Which.Should().BeOfType<OrganizationRecord>().Which;
+        var party = result.ShouldHaveSingleItem().ShouldBeOfType<OrganizationRecord>();
+        party.ParentOrganizationUuid.ShouldBeUnset();
 
-        using var scope = new AssertionScope();
-        party.ParentOrganizationUuid.Should().BeUnset();
+        party.PartyUuid.ShouldBe(OrganizationWithChildrenUuid);
+        party.PartyId.ShouldBe(OrganizationWithChildrenId);
+        party.PartyType.ShouldBe(PartyRecordType.Organization);
+        party.DisplayName.ShouldBe("MOEN OG BJØRNEVATN");
+        party.PersonIdentifier.ShouldBeNull();
+        party.OrganizationIdentifier.ShouldBe(OrganizationWithChildrenIdentifier);
 
-        party.PartyUuid.Should().Be(OrganizationWithChildrenUuid);
-        party.PartyId.Should().Be(OrganizationWithChildrenId);
-        party.PartyType.Should().Be(PartyRecordType.Organization);
-        party.DisplayName.Should().Be("MOEN OG BJØRNEVATN");
-        party.PersonIdentifier.Should().BeNull();
-        party.OrganizationIdentifier.Should().Be(OrganizationWithChildrenIdentifier);
-
-        party.UnitStatus.Should().BeUnset();
-        party.UnitType.Should().BeUnset();
-        party.TelephoneNumber.Should().BeUnset();
-        party.MobileNumber.Should().BeUnset();
-        party.FaxNumber.Should().BeUnset();
-        party.EmailAddress.Should().BeUnset();
-        party.InternetAddress.Should().BeUnset();
-        party.MailingAddress.Should().BeUnset();
-        party.BusinessAddress.Should().BeUnset();
+        party.UnitStatus.ShouldBeUnset();
+        party.UnitType.ShouldBeUnset();
+        party.TelephoneNumber.ShouldBeUnset();
+        party.MobileNumber.ShouldBeUnset();
+        party.FaxNumber.ShouldBeUnset();
+        party.EmailAddress.ShouldBeUnset();
+        party.InternetAddress.ShouldBeUnset();
+        party.MailingAddress.ShouldBeUnset();
+        party.BusinessAddress.ShouldBeUnset();
     }
 
     [Fact]
     public async Task LookupParties_CanReturn_MultipleParties()
     {
-        var person1 = await UoW.CreatePerson();
-        var person2 = await UoW.CreatePerson();
-        var si = await UoW.CreateSelfIdentifiedUser(type: SelfIdentifiedUserType.IdPortenEmail);
-        var sysUser = await UoW.CreateSystemUser(OrganizationWithChildrenUuid);
+        var person1 = await UoW.CreatePerson(cancellationToken: CancellationToken);
+        var person2 = await UoW.CreatePerson(cancellationToken: CancellationToken);
+        var si = await UoW.CreateSelfIdentifiedUser(type: SelfIdentifiedUserType.IdPortenEmail, cancellationToken: CancellationToken);
+        var sysUser = await UoW.CreateSystemUser(OrganizationWithChildrenUuid, cancellationToken: CancellationToken);
 
-        var person1UserId = person1.User.SelectFieldValue(static u => u.UserId).Should().HaveValue().Which;
-        var person2UserId = person2.User.SelectFieldValue(static u => u.UserId).Should().HaveValue().Which;
-        var person2HistoricalUserId = person2.User.SelectFieldValue(static u => u.UserIds).Should().HaveValue().Which[1];
+        var person1UserId = person1.User.SelectFieldValue(static u => u.UserId).ShouldHaveValue();
+        var person2UserId = person2.User.SelectFieldValue(static u => u.UserId).ShouldHaveValue();
+        var person2HistoricalUserId = person2.User.SelectFieldValue(static u => u.UserIds).ShouldHaveValue()[1];
 
         var result = await Persistence.LookupParties(
             organizationIdentifiers: [OrganizationWithChildrenIdentifier],
             personIdentifiers: [PersonIdentifier],
             userIds: [person1UserId, person2HistoricalUserId],
             selfIdentifiedEmails: [si.Email.Value!],
-            externalUrns: [sysUser.ExternalUrn.Value!])
-            .ToListAsync();
+            externalUrns: [sysUser.ExternalUrn.Value!],
+            cancellationToken: CancellationToken)
+            .ToListAsync(CancellationToken);
 
-        result.Should().HaveCount(6);
+        result.Count.ShouldBe(6);
 
-        var testDataPers = result.Should().ContainSingle(static p => p.PartyUuid == PersonUuid).Which.Should().BeOfType<PersonRecord>().Which;
-        var testDataOrg = result.Should().ContainSingle(static p => p.PartyUuid == OrganizationWithChildrenUuid).Which.Should().BeOfType<OrganizationRecord>().Which;
-        var person1Result = result.Should().ContainSingle(p => p.PartyUuid == person1.PartyUuid).Which.Should().BeOfType<PersonRecord>().Which;
-        var person2Result = result.Should().ContainSingle(p => p.PartyUuid == person2.PartyUuid).Which.Should().BeOfType<PersonRecord>().Which;
-        var siResult = result.Should().ContainSingle(p => p.PartyUuid == si.PartyUuid).Which.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
-        var sysUserResult = result.Should().ContainSingle(p => p.PartyUuid == sysUser.PartyUuid).Which.Should().BeOfType<SystemUserRecord>().Which;
+        var testDataPers = result.Where(static p => p.PartyUuid == PersonUuid).ShouldHaveSingleItem().ShouldBeOfType<PersonRecord>();
+        var testDataOrg = result.Where(static p => p.PartyUuid == OrganizationWithChildrenUuid).ShouldHaveSingleItem().ShouldBeOfType<OrganizationRecord>();
+        var person1Result = result.Where(p => p.PartyUuid == person1.PartyUuid).ShouldHaveSingleItem().ShouldBeOfType<PersonRecord>();
+        var person2Result = result.Where(p => p.PartyUuid == person2.PartyUuid).ShouldHaveSingleItem().ShouldBeOfType<PersonRecord>();
+        var siResult = result.Where(p => p.PartyUuid == si.PartyUuid).ShouldHaveSingleItem().ShouldBeOfType<SelfIdentifiedUserRecord>();
+        var sysUserResult = result.Where(p => p.PartyUuid == sysUser.PartyUuid).ShouldHaveSingleItem().ShouldBeOfType<SystemUserRecord>();
 
-        person1Result.User.Should().HaveValue().Which.UserIds.Should().Be(ImmutableValueArray.Create(person1UserId));
-        person2Result.User.Should().HaveValue().Which.UserIds.Should().Be(ImmutableValueArray.Create(person2UserId, person2HistoricalUserId));
+        person1Result.User.ShouldHaveValue().UserIds.ShouldBe(ImmutableValueArray.Create(person1UserId));
+        person2Result.User.ShouldHaveValue().UserIds.ShouldBe(ImmutableValueArray.Create(person2UserId, person2HistoricalUserId));
     }
 
     [Fact]
@@ -441,78 +433,81 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
                 Guid.Parse("b6368d0a-bce4-4798-8460-f4f86fc354c2"),
                 Guid.Parse("e2081abd-a16f-4302-93b0-05aaa42023e8"),
             ],
-            include: PartyFieldIncludes.Party | PartyFieldIncludes.SubUnits)
+            include: PartyFieldIncludes.Party | PartyFieldIncludes.SubUnits,
+            cancellationToken: CancellationToken)
             .Cast<OrganizationRecord>()
-            .ToListAsync();
+            .ToListAsync(CancellationToken);
 
-        result.Should().HaveCount(6);
+        result.Count.ShouldBe(6);
 
-        result[0].PartyUuid.Should().HaveValue().Which.Should().Be("e2081abd-a16f-4302-93b0-05aaa42023e8");
-        result[0].ParentOrganizationUuid.Should().BeUnset();
+        result[0].PartyUuid.ShouldHaveValue().ShouldBe(Guid.Parse("e2081abd-a16f-4302-93b0-05aaa42023e8"));
+        result[0].ParentOrganizationUuid.ShouldBeUnset();
 
-        result[1].PartyUuid.Should().HaveValue().Which.Should().Be("4b28742a-5cd0-400e-a096-bd9817d12dca");
-        result[1].ParentOrganizationUuid.Should().HaveValue().Which.Should().Be("e2081abd-a16f-4302-93b0-05aaa42023e8");
+        result[1].PartyUuid.ShouldHaveValue().ShouldBe(Guid.Parse("4b28742a-5cd0-400e-a096-bd9817d12dca"));
+        result[1].ParentOrganizationUuid.ShouldHaveValue().ShouldBe(Guid.Parse("e2081abd-a16f-4302-93b0-05aaa42023e8"));
 
-        result[2].PartyUuid.Should().HaveValue().Which.Should().Be("ad18578d-94cb-4774-8f37-5b24801c219b");
-        result[2].ParentOrganizationUuid.Should().HaveValue().Which.Should().Be("e2081abd-a16f-4302-93b0-05aaa42023e8");
+        result[2].PartyUuid.ShouldHaveValue().ShouldBe(Guid.Parse("ad18578d-94cb-4774-8f37-5b24801c219b"));
+        result[2].ParentOrganizationUuid.ShouldHaveValue().ShouldBe(Guid.Parse("e2081abd-a16f-4302-93b0-05aaa42023e8"));
 
-        result[3].PartyUuid.Should().HaveValue().Which.Should().Be("ec09feda-5dba-4b84-ad0b-f7886e6082cd");
-        result[3].ParentOrganizationUuid.Should().HaveValue().Which.Should().Be("e2081abd-a16f-4302-93b0-05aaa42023e8");
+        result[3].PartyUuid.ShouldHaveValue().ShouldBe(Guid.Parse("ec09feda-5dba-4b84-ad0b-f7886e6082cd"));
+        result[3].ParentOrganizationUuid.ShouldHaveValue().ShouldBe(Guid.Parse("e2081abd-a16f-4302-93b0-05aaa42023e8"));
 
-        result[4].PartyUuid.Should().HaveValue().Which.Should().Be("b6368d0a-bce4-4798-8460-f4f86fc354c2");
-        result[4].ParentOrganizationUuid.Should().BeUnset();
+        result[4].PartyUuid.ShouldHaveValue().ShouldBe(Guid.Parse("b6368d0a-bce4-4798-8460-f4f86fc354c2"));
+        result[4].ParentOrganizationUuid.ShouldBeUnset();
 
-        result[5].PartyUuid.Should().HaveValue().Which.Should().Be("08cb91ff-75a4-45a4-b141-3c6be1bf8728");
-        result[5].ParentOrganizationUuid.Should().HaveValue().Which.Should().Be("b6368d0a-bce4-4798-8460-f4f86fc354c2");
+        result[5].PartyUuid.ShouldHaveValue().ShouldBe(Guid.Parse("08cb91ff-75a4-45a4-b141-3c6be1bf8728"));
+        result[5].ParentOrganizationUuid.ShouldHaveValue().ShouldBe(Guid.Parse("b6368d0a-bce4-4798-8460-f4f86fc354c2"));
     }
 
     [Fact]
     public async Task LookupParties_Shared_SubUnit()
     {
-        var child = await UoW.CreateOrg(unitType: "BEDR");
-        var parent1 = await UoW.CreateOrg(unitType: "AS");
-        var parent2 = await UoW.CreateOrg(unitType: "AS");
+        var child = await UoW.CreateOrg(unitType: "BEDR", cancellationToken: CancellationToken);
+        var parent1 = await UoW.CreateOrg(unitType: "AS", cancellationToken: CancellationToken);
+        var parent2 = await UoW.CreateOrg(unitType: "AS", cancellationToken: CancellationToken);
 
-        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet", from: child.PartyUuid.Value, to: parent1.PartyUuid.Value);
-        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet", from: child.PartyUuid.Value, to: parent2.PartyUuid.Value);
+        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet", from: child.PartyUuid.Value, to: parent1.PartyUuid.Value, cancellationToken: CancellationToken);
+        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet", from: child.PartyUuid.Value, to: parent2.PartyUuid.Value, cancellationToken: CancellationToken);
 
         var result = await Persistence.LookupParties(
             partyUuids: [parent1.PartyUuid.Value, parent2.PartyUuid.Value],
-            include: PartyFieldIncludes.Party | PartyFieldIncludes.Organization | PartyFieldIncludes.SubUnits)
+            include: PartyFieldIncludes.Party | PartyFieldIncludes.Organization | PartyFieldIncludes.SubUnits,
+            cancellationToken: CancellationToken)
             .Cast<OrganizationRecord>()
-            .ToListAsync();
+            .ToListAsync(CancellationToken);
 
-        result.Should().HaveCount(4);
+        result.Count.ShouldBe(4);
 
         List<OrganizationRecord> parents = [result[0], result[2]];
         parents.Sort(static (a, b) => a.VersionId.Value.CompareTo(b.VersionId.Value));
 
-        result[0].PartyUuid.Should().Be(parents[0].PartyUuid);
-        result[0].ParentOrganizationUuid.Should().BeUnset();
+        result[0].PartyUuid.ShouldBe(parents[0].PartyUuid);
+        result[0].ParentOrganizationUuid.ShouldBeUnset();
 
-        result[1].PartyUuid.Should().Be(child.PartyUuid);
-        result[1].ParentOrganizationUuid.Should().Be(parents[0].PartyUuid);
+        result[1].PartyUuid.ShouldBe(child.PartyUuid);
+        result[1].ParentOrganizationUuid.ShouldBe(parents[0].PartyUuid);
 
-        result[2].PartyUuid.Should().Be(parents[1].PartyUuid);
-        result[2].ParentOrganizationUuid.Should().BeUnset();
+        result[2].PartyUuid.ShouldBe(parents[1].PartyUuid);
+        result[2].ParentOrganizationUuid.ShouldBeUnset();
 
-        result[3].PartyUuid.Should().Be(child.PartyUuid);
-        result[3].ParentOrganizationUuid.Should().Be(parents[1].PartyUuid);
+        result[3].PartyUuid.ShouldBe(child.PartyUuid);
+        result[3].ParentOrganizationUuid.ShouldBe(parents[1].PartyUuid);
     }
 
     [Fact]
     public async Task LookupParties_ByUsername_MinimalReturn()
     {
-        var userId = (await UoW.GetNewUserIds(count: 1))[0];
-        var person = await UoW.CreatePerson(user: new PartyUserRecord(userId, "some-user-name"));
+        var userId = (await UoW.GetNewUserIds(count: 1, cancellationToken: CancellationToken))[0];
+        var person = await UoW.CreatePerson(user: new PartyUserRecord(userId, "some-user-name"), cancellationToken: CancellationToken);
 
         var result = await Persistence.LookupParties(
             usernames: ["some-user-name"],
-            include: PartyFieldIncludes.Username)
+            include: PartyFieldIncludes.Username,
+            cancellationToken: CancellationToken)
             .Cast<PersonRecord>()
-            .ToListAsync();
+            .ToListAsync(CancellationToken);
 
-        result.Should().HaveCount(1);
+        result.Count.ShouldBe(1);
     }
 
     [Fact]
@@ -520,9 +515,9 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var partyUuid = Guid.Empty;
 
-        var roles = await Persistence.GetExternalRoleAssignmentsFromParty(partyUuid).ToListAsync();
+        var roles = await Persistence.GetExternalRoleAssignmentsFromParty(partyUuid, cancellationToken: CancellationToken).ToListAsync(CancellationToken);
 
-        roles.Should().BeEmpty();
+        roles.ShouldBeEmpty();
     }
 
     [Fact]
@@ -530,84 +525,79 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     {
         var partyUuid = Guid.Empty;
 
-        var roles = await Persistence.GetExternalRoleAssignmentsToParty(partyUuid).ToListAsync();
+        var roles = await Persistence.GetExternalRoleAssignmentsToParty(partyUuid, cancellationToken: CancellationToken).ToListAsync(CancellationToken);
 
-        roles.Should().BeEmpty();
+        roles.ShouldBeEmpty();
     }
 
     [Fact]
     public async Task GetRolesFromParty_ReturnsRoles()
     {
-        var roles = await Persistence.GetExternalRoleAssignmentsFromParty(ChildOrganizationUuid).ToListAsync();
+        var roles = await Persistence.GetExternalRoleAssignmentsFromParty(ChildOrganizationUuid, cancellationToken: CancellationToken).ToListAsync(CancellationToken);
 
-        var role = roles.Should().ContainSingle().Which;
+        var role = roles.ShouldHaveSingleItem();
+        role.Source.ShouldBe(ExternalRoleSource.CentralCoordinatingRegister);
+        role.Identifier.ShouldBe("hovedenhet");
+        role.FromParty.ShouldBe(ChildOrganizationUuid);
+        role.ToParty.ShouldBe(OrganizationWithChildrenUuid);
 
-        using var scope = new AssertionScope();
-        role.Source.Should().Be(ExternalRoleSource.CentralCoordinatingRegister);
-        role.Identifier.Should().Be("hovedenhet");
-        role.FromParty.Should().Be(ChildOrganizationUuid);
-        role.ToParty.Should().Be(OrganizationWithChildrenUuid);
-
-        role.Name.Should().BeUnset();
-        role.Description.Should().BeUnset();
+        role.Name.ShouldBeUnset();
+        role.Description.ShouldBeUnset();
     }
 
     [Fact]
     public async Task GetRoles_CanInclude_RoleDefinitions()
     {
-        var roles = await Persistence.GetExternalRoleAssignmentsFromParty(ChildOrganizationUuid, include: PartyExternalRoleAssignmentFieldIncludes.RoleAssignment | PartyExternalRoleAssignmentFieldIncludes.RoleDefinition).ToListAsync();
+        var roles = await Persistence.GetExternalRoleAssignmentsFromParty(ChildOrganizationUuid, include: PartyExternalRoleAssignmentFieldIncludes.RoleAssignment | PartyExternalRoleAssignmentFieldIncludes.RoleDefinition, cancellationToken: CancellationToken).ToListAsync(CancellationToken);
 
-        var role = roles.Should().ContainSingle().Which;
+        var role = roles.ShouldHaveSingleItem();
+        role.Source.ShouldBe(ExternalRoleSource.CentralCoordinatingRegister);
+        role.Identifier.ShouldBe("hovedenhet");
+        role.FromParty.ShouldBe(ChildOrganizationUuid);
+        role.ToParty.ShouldBe(OrganizationWithChildrenUuid);
 
-        using var scope = new AssertionScope();
-        role.Source.Should().Be(ExternalRoleSource.CentralCoordinatingRegister);
-        role.Identifier.Should().Be("hovedenhet");
-        role.FromParty.Should().Be(ChildOrganizationUuid);
-        role.ToParty.Should().Be(OrganizationWithChildrenUuid);
+        IReadOnlyDictionary<LangCode, string> name = role.Name.ShouldHaveValue();
+        IReadOnlyDictionary<LangCode, string> description = role.Description.ShouldHaveValue();
 
-        IReadOnlyDictionary<LangCode, string> name = role.Name.Should().HaveValue().Which;
-        IReadOnlyDictionary<LangCode, string> description = role.Description.Should().HaveValue().Which;
+        name[LangCode.En].ShouldBe("Has as the registration entity");
+        name[LangCode.Nb].ShouldBe("Har som registreringsenhet");
+        name[LangCode.Nn].ShouldBe("Har som registreringseininga");
 
-        name.Should().ContainKey(LangCode.En).WhoseValue.Should().Be("Has as the registration entity");
-        name.Should().ContainKey(LangCode.Nb).WhoseValue.Should().Be("Har som registreringsenhet");
-        name.Should().ContainKey(LangCode.Nn).WhoseValue.Should().Be("Har som registreringseininga");
-
-        description.Should().ContainKey(LangCode.En).WhoseValue.Should().Be("Has as the registration entity");
-        description.Should().ContainKey(LangCode.Nb).WhoseValue.Should().Be("Har som registreringsenhet");
-        description.Should().ContainKey(LangCode.Nn).WhoseValue.Should().Be("Har som registreringseininga");
+        description[LangCode.En].ShouldBe("Has as the registration entity");
+        description[LangCode.Nb].ShouldBe("Har som registreringsenhet");
+        description[LangCode.Nn].ShouldBe("Har som registreringseininga");
     }
 
     [Fact]
     public async Task GetRolesToParty_ReturnsRoles()
     {
         var party = Guid.Parse("e2081abd-a16f-4302-93b0-05aaa42023e8");
-        var roles = await Persistence.GetExternalRoleAssignmentsToParty(party).ToListAsync();
+        var roles = await Persistence.GetExternalRoleAssignmentsToParty(party, cancellationToken: CancellationToken).ToListAsync(CancellationToken);
 
-        roles.Should().HaveCount(3);
+        roles.Count.ShouldBe(3);
 
-        roles.Should().AllSatisfy(role =>
+        foreach (var role in roles)
         {
-            using var scope = new AssertionScope();
-            role.Source.Should().Be(ExternalRoleSource.CentralCoordinatingRegister);
-            role.Identifier.Should().Be("hovedenhet");
-            role.FromParty.Should().HaveValue();
-            role.ToParty.Should().Be(party);
+            role.Source.ShouldBe(ExternalRoleSource.CentralCoordinatingRegister);
+            role.Identifier.ShouldBe("hovedenhet");
+            role.FromParty.ShouldHaveValue();
+            role.ToParty.ShouldBe(party);
 
-            role.Name.Should().BeUnset();
-            role.Description.Should().BeUnset();
-        });
+            role.Name.ShouldBeUnset();
+            role.Description.ShouldBeUnset();
+        }
     }
 
     [Fact]
     public async Task GetRolesToParty_FilterByRole()
     {
-        var role1 = await UoW.CreateFakeRoleDefinition(ExternalRoleSource.CentralCoordinatingRegister, "fake");
-        var role2 = await UoW.CreateFakeRoleDefinition(ExternalRoleSource.CentralCoordinatingRegister, "fake-other");
+        var role1 = await UoW.CreateFakeRoleDefinition(ExternalRoleSource.CentralCoordinatingRegister, "fake", CancellationToken);
+        var role2 = await UoW.CreateFakeRoleDefinition(ExternalRoleSource.CentralCoordinatingRegister, "fake-other", CancellationToken);
 
-        var org1 = await UoW.CreateOrg();
-        var org2 = await UoW.CreateOrg();
-        var org3 = await UoW.CreateOrg();
-        var org4 = await UoW.CreateOrg();
+        var org1 = await UoW.CreateOrg(cancellationToken: CancellationToken);
+        var org2 = await UoW.CreateOrg(cancellationToken: CancellationToken);
+        var org3 = await UoW.CreateOrg(cancellationToken: CancellationToken);
+        var org4 = await UoW.CreateOrg(cancellationToken: CancellationToken);
 
         await Persistence.UpsertExternalRolesFromPartyBySource(
             commandId: Guid.CreateVersion7(),
@@ -616,7 +606,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             assignments: [
                 new(role1.Identifier, org1.PartyUuid.Value),
                 new(role2.Identifier, org1.PartyUuid.Value),
-            ]);
+            ],
+            cancellationToken: CancellationToken);
 
         await Persistence.UpsertExternalRolesFromPartyBySource(
             commandId: Guid.CreateVersion7(),
@@ -624,7 +615,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             roleSource: ExternalRoleSource.CentralCoordinatingRegister,
             assignments: [
                 new(role1.Identifier, org1.PartyUuid.Value),
-            ]);
+            ],
+            cancellationToken: CancellationToken);
 
         await Persistence.UpsertExternalRolesFromPartyBySource(
             commandId: Guid.CreateVersion7(),
@@ -632,17 +624,22 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             roleSource: ExternalRoleSource.CentralCoordinatingRegister,
             assignments: [
                 new(role2.Identifier, org1.PartyUuid.Value),
-            ]);
+            ],
+            cancellationToken: CancellationToken);
 
         var roles = await Persistence.GetExternalRoleAssignmentsToParty(
             partyUuid: org1.PartyUuid.Value,
-            role: new(role1.Source, role1.Identifier))
-            .ToListAsync();
+            role: new(role1.Source, role1.Identifier),
+            cancellationToken: CancellationToken)
+            .ToListAsync(CancellationToken);
 
-        roles.Should().HaveCount(2);
-        roles.Should().ContainSingle(r => r.FromParty.Value == org2.PartyUuid.Value);
-        roles.Should().ContainSingle(r => r.FromParty.Value == org3.PartyUuid.Value);
-        roles.Should().AllSatisfy(r => r.ToParty.Should().Be(org1.PartyUuid.Value));
+        roles.Count.ShouldBe(2);
+        roles.Where(r => r.FromParty.Value == org2.PartyUuid.Value).ShouldHaveSingleItem();
+        roles.Where(r => r.FromParty.Value == org3.PartyUuid.Value).ShouldHaveSingleItem();
+        foreach (var roleAssignment in roles)
+        {
+            roleAssignment.ToParty.ShouldBe(org1.PartyUuid.Value);
+        }
     }
 
     [Theory]
@@ -651,9 +648,9 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [InlineData(PartyFieldIncludes.Party | PartyFieldIncludes.Organization | PartyFieldIncludes.Person)]
     public async Task GetPartyStream(PartyFieldIncludes includes)
     {
-        var items = await Persistence.GetPartyStream(0, 100, includes).ToListAsync();
+        var items = await Persistence.GetPartyStream(0, 100, includes, cancellationToken: CancellationToken).ToListAsync(CancellationToken);
 
-        items.Should().HaveCount(100);
+        items.Count.ShouldBe(100);
     }
 
     #region Upsert Org
@@ -661,8 +658,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [Fact]
     public async Task UpsertParty_Org_Inserts_New_Org()
     {
-        var id = await UoW.GetNextPartyId();
-        var orgNo = await UoW.GetNewOrgNumber();
+        var id = await UoW.GetNextPartyId(CancellationToken);
+        var orgNo = await UoW.GetNewOrgNumber(CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new OrganizationRecord
@@ -692,19 +689,19 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             BusinessAddress = null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        var inserted = result.Should().HaveValue().Which.Should().BeOfType<OrganizationRecord>().Which;
-        inserted.Should().BeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        var inserted = result.ShouldHaveValue().ShouldBeOfType<OrganizationRecord>();
+        inserted.ShouldBeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization).SingleAsync();
-        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
     public async Task UpsertParty_Org_Updates_Name_And_Updated_And_OrgProps()
     {
-        var id = await UoW.GetNextPartyId();
-        var orgNo = await UoW.GetNewOrgNumber();
+        var id = await UoW.GetNextPartyId(CancellationToken);
+        var orgNo = await UoW.GetNewOrgNumber(CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new OrganizationRecord
@@ -734,8 +731,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             BusinessAddress = null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         TimeProvider.Advance(TimeSpan.FromDays(30));
 
@@ -755,26 +752,26 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             BusinessAddress = new MailingAddressRecord { Address = "business", City = "business city", PostalCode = "0123" },
         };
 
-        result = await Persistence.UpsertParty(toUpdate);
-        result.Should().HaveValue();
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         var expected = toUpdate with
         {
             CreatedAt = toInsert.CreatedAt, // created at should not change
         };
 
-        var updated = result.Value.Should().BeOfType<OrganizationRecord>().Which;
-        updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
+        var updated = result.Value.ShouldBeOfType<OrganizationRecord>();
+        updated.ShouldBeEquivalentTo(expected with { VersionId = updated.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization).SingleAsync();
-        fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(expected with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
     public async Task UpsertParty_Org_Cannot_Update_Id()
     {
-        var id = await UoW.GetNextPartyId();
-        var orgNo = await UoW.GetNewOrgNumber();
+        var id = await UoW.GetNextPartyId(CancellationToken);
+        var orgNo = await UoW.GetNewOrgNumber(CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new OrganizationRecord
@@ -804,8 +801,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             BusinessAddress = null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         TimeProvider.Advance(TimeSpan.FromDays(30));
 
@@ -815,19 +812,19 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         };
 
         await NewTransaction();
-        result = await Persistence.UpsertParty(toUpdate);
-        result.Should().BeProblem(Problems.InvalidPartyUpdate.ErrorCode);
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        result.ShouldBeProblem(Problems.InvalidPartyUpdate.ErrorCode);
 
         await NewTransaction(commit: false);
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization).SingleAsync();
-        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
     public async Task UpsertParty_Org_Cannot_Update_OrgNr()
     {
-        var id = await UoW.GetNextPartyId();
-        var orgNo = await UoW.GetNewOrgNumber();
+        var id = await UoW.GetNextPartyId(CancellationToken);
+        var orgNo = await UoW.GetNewOrgNumber(CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new OrganizationRecord
@@ -857,30 +854,30 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             BusinessAddress = null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         TimeProvider.Advance(TimeSpan.FromDays(30));
 
         var toUpdate = toInsert with
         {
-            OrganizationIdentifier = await UoW.GetNewOrgNumber(),
+            OrganizationIdentifier = await UoW.GetNewOrgNumber(CancellationToken),
         };
 
         await NewTransaction();
-        result = await Persistence.UpsertParty(toUpdate);
-        result.Should().BeProblem(Problems.InvalidPartyUpdate.ErrorCode);
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        result.ShouldBeProblem(Problems.InvalidPartyUpdate.ErrorCode);
 
         await NewTransaction(commit: false);
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization).SingleAsync();
-        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
     public async Task UpsertParty_Org_CannotInsert_WithSamePartyId()
     {
-        var id = await UoW.GetNextPartyId();
-        var orgNo = await UoW.GetNewOrgNumber();
+        var id = await UoW.GetNextPartyId(CancellationToken);
+        var orgNo = await UoW.GetNewOrgNumber(CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new OrganizationRecord
@@ -910,13 +907,13 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             BusinessAddress = null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         TimeProvider.Advance(TimeSpan.FromDays(30));
 
         var uuid2 = Guid.NewGuid();
-        var orgNo2 = await UoW.GetNewOrgNumber();
+        var orgNo2 = await UoW.GetNewOrgNumber(CancellationToken);
         var toInsert2 = new OrganizationRecord
         {
             PartyUuid = uuid2,
@@ -945,12 +942,12 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         };
 
         await NewTransaction();
-        result = await Persistence.UpsertParty(toInsert2);
-        result.Should().BeProblem(Problems.PartyConflict.ErrorCode);
+        result = await Persistence.UpsertParty(toInsert2, cancellationToken: CancellationToken);
+        result.ShouldBeProblem(Problems.PartyConflict.ErrorCode);
 
         await NewTransaction(commit: false);
-        var fromDb = await Persistence.GetPartyById(uuid2, PartyFieldIncludes.Party | PartyFieldIncludes.Organization).ToListAsync();
-        fromDb.Should().BeEmpty();
+        var fromDb = await Persistence.GetPartyById(uuid2, PartyFieldIncludes.Party | PartyFieldIncludes.Organization, cancellationToken: CancellationToken).ToListAsync(CancellationToken);
+        fromDb.ShouldBeEmpty();
     }
 
     #endregion
@@ -960,10 +957,10 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [Fact]
     public async Task UpsertParty_Person_Inserts_New_Person()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var birthDate = UoW.GetRandomBirthDate();
         var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber, CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new PersonRecord
@@ -992,21 +989,21 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             DateOfDeath = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        var inserted = result.Should().HaveValue().Which.Should().BeOfType<PersonRecord>().Which;
-        inserted.Should().BeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        var inserted = result.ShouldHaveValue().ShouldBeOfType<PersonRecord>();
+        inserted.ShouldBeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person).SingleAsync();
-        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
     public async Task UpsertParty_Person_Updates_Name_And_Updated_And_PersonProps()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var birthDate = UoW.GetRandomBirthDate();
         var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber, CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new PersonRecord
@@ -1035,8 +1032,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             DateOfDeath = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         TimeProvider.Advance(TimeSpan.FromDays(30));
 
@@ -1064,28 +1061,28 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             DateOfDeath = birthDate.AddDays(30),
         };
 
-        result = await Persistence.UpsertParty(toUpdate);
-        result.Should().HaveValue();
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         var expected = toUpdate with
         {
             CreatedAt = toInsert.CreatedAt, // created at should not change
         };
 
-        var updated = result.Value.Should().BeOfType<PersonRecord>().Which;
-        updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
+        var updated = result.Value.ShouldBeOfType<PersonRecord>();
+        updated.ShouldBeEquivalentTo(expected with { VersionId = updated.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person).SingleAsync();
-        fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(expected with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
     public async Task UpsertParty_Person_Cannot_Update_Id()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var birthDate = UoW.GetRandomBirthDate();
         var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber, CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new PersonRecord
@@ -1114,8 +1111,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             DateOfDeath = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         TimeProvider.Advance(TimeSpan.FromDays(30));
 
@@ -1125,21 +1122,21 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         };
 
         await NewTransaction();
-        result = await Persistence.UpsertParty(toUpdate);
-        result.Should().BeProblem(Problems.InvalidPartyUpdate.ErrorCode);
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        result.ShouldBeProblem(Problems.InvalidPartyUpdate.ErrorCode);
 
         await NewTransaction(commit: false);
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person).SingleAsync();
-        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
     public async Task UpsertParty_Person_Cannot_Update_PersonIdentifier()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var birthDate = UoW.GetRandomBirthDate();
         var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber, CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new PersonRecord
@@ -1168,32 +1165,32 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             DateOfDeath = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         TimeProvider.Advance(TimeSpan.FromDays(30));
 
         var toUpdate = toInsert with
         {
-            PersonIdentifier = await UoW.GetNewPersonIdentifier(birthDate, isDNumber),
+            PersonIdentifier = await UoW.GetNewPersonIdentifier(birthDate, isDNumber, CancellationToken),
         };
 
         await NewTransaction();
-        result = await Persistence.UpsertParty(toUpdate);
-        result.Should().BeProblem(Problems.InvalidPartyUpdate.ErrorCode);
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        result.ShouldBeProblem(Problems.InvalidPartyUpdate.ErrorCode);
 
         await NewTransaction(commit: false);
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person).SingleAsync();
-        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
     public async Task UpsertParty_Person_CannotInsert_WithSamePartyId()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var birthDate = UoW.GetRandomBirthDate();
         var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber, CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new PersonRecord
@@ -1222,8 +1219,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             DateOfDeath = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         TimeProvider.Advance(TimeSpan.FromDays(30));
 
@@ -1255,12 +1252,12 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         };
 
         await NewTransaction();
-        result = await Persistence.UpsertParty(toInsert2);
-        result.Should().BeProblem(Problems.PartyConflict.ErrorCode);
+        result = await Persistence.UpsertParty(toInsert2, cancellationToken: CancellationToken);
+        result.ShouldBeProblem(Problems.PartyConflict.ErrorCode);
 
         await NewTransaction(commit: false);
-        var fromDb = await Persistence.GetPartyById(uuid2, PartyFieldIncludes.Party | PartyFieldIncludes.Person).ToListAsync();
-        fromDb.Should().BeEmpty();
+        var fromDb = await Persistence.GetPartyById(uuid2, PartyFieldIncludes.Party | PartyFieldIncludes.Person, cancellationToken: CancellationToken).ToListAsync(CancellationToken);
+        fromDb.ShouldBeEmpty();
     }
 
     #endregion
@@ -1270,7 +1267,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [Fact]
     public async Task UpsertParty_SelfIdentifiedUser_Inserts_New_SelfIdentifiedUser_NoType()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new SelfIdentifiedUserRecord
@@ -1292,18 +1289,18 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             Email = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        var inserted = result.Should().HaveValue().Which.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
-        inserted.Should().BeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        var inserted = result.ShouldHaveValue().ShouldBeOfType<SelfIdentifiedUserRecord>();
+        inserted.ShouldBeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser).SingleAsync();
-        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
     public async Task UpsertParty_SelfIdentifiedUser_Inserts_New_SelfIdentifiedUser_Legacy()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new SelfIdentifiedUserRecord
@@ -1325,18 +1322,18 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             Email = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        var inserted = result.Should().HaveValue().Which.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
-        inserted.Should().BeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        var inserted = result.ShouldHaveValue().ShouldBeOfType<SelfIdentifiedUserRecord>();
+        inserted.ShouldBeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser).SingleAsync();
-        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
     public async Task UpsertParty_SelfIdentifiedUser_Inserts_New_SelfIdentifiedUser_Edu()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new SelfIdentifiedUserRecord
@@ -1358,18 +1355,18 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             Email = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        var inserted = result.Should().HaveValue().Which.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
-        inserted.Should().BeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        var inserted = result.ShouldHaveValue().ShouldBeOfType<SelfIdentifiedUserRecord>();
+        inserted.ShouldBeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser).SingleAsync();
-        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
     public async Task UpsertParty_SelfIdentifiedUser_Inserts_New_SelfIdentifiedUser_IdPortenEmail()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new SelfIdentifiedUserRecord
@@ -1391,19 +1388,19 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             Email = "test-si-user@example.com",
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        var inserted = result.Should().HaveValue().Which.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
-        inserted.Should().BeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        var inserted = result.ShouldHaveValue().ShouldBeOfType<SelfIdentifiedUserRecord>();
+        inserted.ShouldBeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser).SingleAsync();
-        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
     [Theory]
     [EnumMembersData<SelfIdentifiedUserType>]
     public async Task UpsertParty_SelfIdentified_Can_Update_SelfIdentifiedType_FromNull(SelfIdentifiedUserType type)
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new SelfIdentifiedUserRecord
@@ -1425,8 +1422,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             Email = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         TimeProvider.Advance(TimeSpan.FromDays(30));
 
@@ -1453,25 +1450,25 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             _ => throw new UnreachableException($"Invalid {nameof(SelfIdentifiedUserType)}: {type}"),
         };
 
-        result = await Persistence.UpsertParty(toUpdate);
-        result.Should().HaveValue();
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         var expected = toUpdate with
         {
             CreatedAt = toInsert.CreatedAt, // created at should not change
         };
 
-        var updated = result.Value.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
-        updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
+        var updated = result.Value.ShouldBeOfType<SelfIdentifiedUserRecord>();
+        updated.ShouldBeEquivalentTo(expected with { VersionId = updated.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser).SingleAsync();
-        fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(expected with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
     public async Task UpsertParty_SelfIdentified_Cannot_Update_SelfIdentifiedType_FromNonNull()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new SelfIdentifiedUserRecord
@@ -1493,8 +1490,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             Email = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         TimeProvider.Advance(TimeSpan.FromDays(30));
 
@@ -1505,18 +1502,18 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         };
 
         await NewTransaction();
-        result = await Persistence.UpsertParty(toUpdate);
-        result.Should().BeProblem(Problems.InvalidPartyUpdate.ErrorCode);
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        result.ShouldBeProblem(Problems.InvalidPartyUpdate.ErrorCode);
 
         await NewTransaction(commit: false);
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser).SingleAsync();
-        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
     public async Task UpsertParty_SelfIdentifiedUser_Updates_Name_And_Updated()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var birthDate = UoW.GetRandomBirthDate();
         var uuid = Guid.NewGuid();
 
@@ -1539,8 +1536,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             Email = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         TimeProvider.Advance(TimeSpan.FromDays(30));
 
@@ -1551,19 +1548,19 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
         };
 
-        result = await Persistence.UpsertParty(toUpdate);
-        result.Should().HaveValue();
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         var expected = toUpdate with
         {
             CreatedAt = toInsert.CreatedAt, // created at should not change
         };
 
-        var updated = result.Value.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
-        updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
+        var updated = result.Value.ShouldBeOfType<SelfIdentifiedUserRecord>();
+        updated.ShouldBeEquivalentTo(expected with { VersionId = updated.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser).SingleAsync();
-        fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(expected with { VersionId = fromDb.VersionId });
     }
 
     [Theory]
@@ -1571,7 +1568,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [InlineData(false)]
     public async Task UpsertParty_SelfIdentifiedUser_Can_Retain_IsDeleted(bool isDeleted)
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var birthDate = UoW.GetRandomBirthDate();
         var uuid = Guid.NewGuid();
 
@@ -1594,8 +1591,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             Email = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         TimeProvider.Advance(TimeSpan.FromDays(30));
 
@@ -1605,8 +1602,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             DeletedAt = FieldValue.Unset,
         };
 
-        result = await Persistence.UpsertParty(toUpdate);
-        result.Should().HaveValue();
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         var expected = toUpdate with
         {
@@ -1615,17 +1612,17 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             CreatedAt = toInsert.CreatedAt, // created at should not change
         };
 
-        var updated = result.Value.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
-        updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
+        var updated = result.Value.ShouldBeOfType<SelfIdentifiedUserRecord>();
+        updated.ShouldBeEquivalentTo(expected with { VersionId = updated.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser).SingleAsync();
-        fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(expected with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
     public async Task UpsertParty_SelfIdentifiedUser_IsDeleted_DefaultsFalse()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var birthDate = UoW.GetRandomBirthDate();
         var uuid = Guid.NewGuid();
 
@@ -1648,8 +1645,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             Email = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         var expected = toInsert with
         {
@@ -1657,11 +1654,11 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             DeletedAt = FieldValue.Null,
         };
 
-        var updated = result.Value.Should().BeOfType<SelfIdentifiedUserRecord>().Which;
-        updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
+        var updated = result.Value.ShouldBeOfType<SelfIdentifiedUserRecord>();
+        updated.ShouldBeEquivalentTo(expected with { VersionId = updated.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser).SingleAsync();
-        fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(expected with { VersionId = fromDb.VersionId });
     }
 
     #endregion
@@ -1673,7 +1670,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [InlineData(SystemUserRecordType.Agent)]
     public async Task UpsertParty_SystemUser_Inserts_New_SystemUser(SystemUserRecordType type)
     {
-        var org = await UoW.CreateOrg();
+        var org = await UoW.CreateOrg(cancellationToken: CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new SystemUserRecord
@@ -1694,18 +1691,18 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             SystemUserType = type,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        var inserted = result.Should().HaveValue().Which.Should().BeOfType<SystemUserRecord>().Which;
-        inserted.Should().BeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        var inserted = result.ShouldHaveValue().ShouldBeOfType<SystemUserRecord>();
+        inserted.ShouldBeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SystemUser).SingleAsync();
-        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SystemUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
     public async Task UpsertParty_SystemUser_Updates_Name_And_Updated()
     {
-        var org = await UoW.CreateOrg();
+        var org = await UoW.CreateOrg(cancellationToken: CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new SystemUserRecord
@@ -1726,8 +1723,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             SystemUserType = SystemUserRecordType.Standard,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         TimeProvider.Advance(TimeSpan.FromDays(30));
 
@@ -1738,25 +1735,25 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
         };
 
-        result = await Persistence.UpsertParty(toUpdate);
-        result.Should().HaveValue();
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         var expected = toUpdate with
         {
             CreatedAt = toInsert.CreatedAt, // created at should not change
         };
 
-        var updated = result.Value.Should().BeOfType<SystemUserRecord>().Which;
-        updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
+        var updated = result.Value.ShouldBeOfType<SystemUserRecord>();
+        updated.ShouldBeEquivalentTo(expected with { VersionId = updated.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SystemUser).SingleAsync();
-        fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SystemUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(expected with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
     public async Task UpsertParty_SystemUser_CanKeepOwner()
     {
-        var org = await UoW.CreateOrg();
+        var org = await UoW.CreateOrg(cancellationToken: CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new SystemUserRecord
@@ -1777,8 +1774,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             SystemUserType = SystemUserRecordType.Standard,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         TimeProvider.Advance(TimeSpan.FromDays(30));
 
@@ -1790,8 +1787,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
         };
 
-        result = await Persistence.UpsertParty(toUpdate);
-        result.Should().HaveValue();
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         var expected = toUpdate with
         {
@@ -1799,18 +1796,18 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             CreatedAt = toInsert.CreatedAt, // created at should not change
         };
 
-        var updated = result.Value.Should().BeOfType<SystemUserRecord>().Which;
-        updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
+        var updated = result.Value.ShouldBeOfType<SystemUserRecord>();
+        updated.ShouldBeEquivalentTo(expected with { VersionId = updated.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SystemUser).SingleAsync();
-        fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SystemUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(expected with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
     public async Task UpsertParty_SystemUser_Cannot_Update_Owner()
     {
-        var org1 = await UoW.CreateOrg();
-        var org2 = await UoW.CreateOrg();
+        var org1 = await UoW.CreateOrg(cancellationToken: CancellationToken);
+        var org2 = await UoW.CreateOrg(cancellationToken: CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new SystemUserRecord
@@ -1831,8 +1828,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             SystemUserType = SystemUserRecordType.Agent,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         TimeProvider.Advance(TimeSpan.FromDays(30));
 
@@ -1844,10 +1841,9 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
         };
 
-        result = await Persistence.UpsertParty(toUpdate);
-        var error = result.Should().BeProblem(Problems.InvalidPartyUpdate.ErrorCode).Which;
-        error.Extensions.Should().ContainKey("column")
-            .WhoseValue.Should().Be("owner");
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        var error = result.ShouldBeProblem(Problems.InvalidPartyUpdate.ErrorCode);
+        error.Extensions["column"].Single().ShouldBe("owner");
     }
 
     #endregion
@@ -1857,7 +1853,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [Fact]
     public async Task UpsertParty_EnterpriseUser_Inserts_New_EnterpriseUser()
     {
-        var org = await UoW.CreateOrg();
+        var org = await UoW.CreateOrg(cancellationToken: CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new EnterpriseUserRecord
@@ -1877,18 +1873,18 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             OwnerUuid = org.PartyUuid,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        var inserted = result.Should().HaveValue().Which.Should().BeOfType<EnterpriseUserRecord>().Which;
-        inserted.Should().BeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        var inserted = result.ShouldHaveValue().ShouldBeOfType<EnterpriseUserRecord>();
+        inserted.ShouldBeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party).SingleAsync();
-        fromDb.Should().BeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
     }
 
     [Fact]
     public async Task UpsertParty_EnterpriseUser_Updates_Name_And_Updated()
     {
-        var org = await UoW.CreateOrg();
+        var org = await UoW.CreateOrg(cancellationToken: CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new EnterpriseUserRecord
@@ -1908,8 +1904,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             OwnerUuid = org.PartyUuid,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         TimeProvider.Advance(TimeSpan.FromDays(30));
 
@@ -1920,19 +1916,19 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
         };
 
-        result = await Persistence.UpsertParty(toUpdate);
-        result.Should().HaveValue();
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         var expected = toUpdate with
         {
             CreatedAt = toInsert.CreatedAt, // created at should not change
         };
 
-        var updated = result.Value.Should().BeOfType<EnterpriseUserRecord>().Which;
-        updated.Should().BeEquivalentTo(expected with { VersionId = updated.VersionId });
+        var updated = result.Value.ShouldBeOfType<EnterpriseUserRecord>();
+        updated.ShouldBeEquivalentTo(expected with { VersionId = updated.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party).SingleAsync();
-        fromDb.Should().BeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(expected with { VersionId = fromDb.VersionId });
     }
 
     #endregion
@@ -1946,12 +1942,12 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var removed = ExternalRoleAssignmentEvent.EventType.Removed;
         var source = ExternalRoleSource.CentralCoordinatingRegister;
 
-        await UoW.CreateFakeRoleDefinitions();
+        await UoW.CreateFakeRoleDefinitions(CancellationToken);
 
-        var party1 = (await UoW.CreateOrg(uuid: Guid.Parse("00000000-0000-0000-0000-000000000001"))).PartyUuid.Value;
-        var party2 = (await UoW.CreateOrg(uuid: Guid.Parse("00000000-0000-0000-0000-000000000002"))).PartyUuid.Value;
-        var party3 = (await UoW.CreateOrg(uuid: Guid.Parse("00000000-0000-0000-0000-000000000003"))).PartyUuid.Value;
-        var party4 = (await UoW.CreateOrg(uuid: Guid.Parse("00000000-0000-0000-0000-000000000004"))).PartyUuid.Value;
+        var party1 = (await UoW.CreateOrg(uuid: Guid.Parse("00000000-0000-0000-0000-000000000001"), cancellationToken: CancellationToken)).PartyUuid.Value;
+        var party2 = (await UoW.CreateOrg(uuid: Guid.Parse("00000000-0000-0000-0000-000000000002"), cancellationToken: CancellationToken)).PartyUuid.Value;
+        var party3 = (await UoW.CreateOrg(uuid: Guid.Parse("00000000-0000-0000-0000-000000000003"), cancellationToken: CancellationToken)).PartyUuid.Value;
+        var party4 = (await UoW.CreateOrg(uuid: Guid.Parse("00000000-0000-0000-0000-000000000004"), cancellationToken: CancellationToken)).PartyUuid.Value;
 
         // assign empty to already empty
         await CheckUpsertExternalRolesFromPartyBySource(
@@ -2112,20 +2108,20 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ]);
 
         // check final roles
-        var roles = await Persistence.GetExternalRoleAssignmentsFromParty(party1).ToListAsync();
-        roles.Should().HaveCount(8);
+        var roles = await Persistence.GetExternalRoleAssignmentsFromParty(party1, cancellationToken: CancellationToken).ToListAsync(CancellationToken);
+        roles.Count.ShouldBe(8);
 
-        roles.Should().ContainSingle(Matches(ExternalRoleSource.NationalPopulationRegister, "fake-03", party2));
-        roles.Should().ContainSingle(Matches(ExternalRoleSource.NationalPopulationRegister, "fake-04", party2));
-        roles.Should().ContainSingle(Matches(ExternalRoleSource.NationalPopulationRegister, "fake-05", party2));
-        roles.Should().ContainSingle(Matches(ExternalRoleSource.NationalPopulationRegister, "fake-06", party2));
+        roles.Where(Matches(ExternalRoleSource.NationalPopulationRegister, "fake-03", party2)).ShouldHaveSingleItem();
+        roles.Where(Matches(ExternalRoleSource.NationalPopulationRegister, "fake-04", party2)).ShouldHaveSingleItem();
+        roles.Where(Matches(ExternalRoleSource.NationalPopulationRegister, "fake-05", party2)).ShouldHaveSingleItem();
+        roles.Where(Matches(ExternalRoleSource.NationalPopulationRegister, "fake-06", party2)).ShouldHaveSingleItem();
 
-        roles.Should().ContainSingle(Matches(ExternalRoleSource.CentralCoordinatingRegister, "fake-01", party3));
-        roles.Should().ContainSingle(Matches(ExternalRoleSource.CentralCoordinatingRegister, "fake-01", party4));
-        roles.Should().ContainSingle(Matches(ExternalRoleSource.CentralCoordinatingRegister, "fake-02", party3));
-        roles.Should().ContainSingle(Matches(ExternalRoleSource.CentralCoordinatingRegister, "fake-02", party4));
+        roles.Where(Matches(ExternalRoleSource.CentralCoordinatingRegister, "fake-01", party3)).ShouldHaveSingleItem();
+        roles.Where(Matches(ExternalRoleSource.CentralCoordinatingRegister, "fake-01", party4)).ShouldHaveSingleItem();
+        roles.Where(Matches(ExternalRoleSource.CentralCoordinatingRegister, "fake-02", party3)).ShouldHaveSingleItem();
+        roles.Where(Matches(ExternalRoleSource.CentralCoordinatingRegister, "fake-02", party4)).ShouldHaveSingleItem();
 
-        static Expression<Func<PartyExternalRoleAssignmentRecord, bool>> Matches(ExternalRoleSource source, string identifier, Guid toParty)
+        static Func<PartyExternalRoleAssignmentRecord, bool> Matches(ExternalRoleSource source, string identifier, Guid toParty)
             => r => r.Source == source && r.Identifier == identifier && r.ToParty == toParty;
     }
 
@@ -2141,14 +2137,15 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
                 cmdId,
                 fromParty,
                 source,
-                assignments)
+                assignments,
+                cancellationToken: CancellationToken)
             .Select(static e => new CheckUpsertExternalRolesFromPartyBySourceExpectedEvent(e.Type, e.RoleIdentifier, e.ToParty))
-            .ToListAsync();
+            .ToListAsync(CancellationToken);
 
-        firstTryEvents.Should().HaveCount(expectedEvents.Count);
+        firstTryEvents.Count.ShouldBe(expectedEvents.Count);
         foreach (var expected in expectedEvents)
         {
-            firstTryEvents.Should().Contain(expected);
+            firstTryEvents.ShouldContain(expected);
         }
 
         // idempotency check
@@ -2157,22 +2154,23 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
                 cmdId,
                 fromParty,
                 source,
-                assignments)
+                assignments,
+                cancellationToken: CancellationToken)
             .Select(static e => new CheckUpsertExternalRolesFromPartyBySourceExpectedEvent(e.Type, e.RoleIdentifier, e.ToParty))
-            .ToListAsync();
+            .ToListAsync(CancellationToken);
 
-        secondTryEvents.Should().HaveCount(expectedEvents.Count);
+        secondTryEvents.Count.ShouldBe(expectedEvents.Count);
         foreach (var expected in expectedEvents)
         {
-            secondTryEvents.Should().Contain(expected);
+            secondTryEvents.ShouldContain(expected);
         }
 
         // check that the roles are actually assigned
-        var roles = await Persistence.GetExternalRoleAssignmentsFromParty(fromParty).Where(r => r.Source == source).ToListAsync();
-        roles.Should().HaveCount(assignments.Count);
+        var roles = await Persistence.GetExternalRoleAssignmentsFromParty(fromParty, cancellationToken: CancellationToken).Where(r => r.Source == source).ToListAsync(CancellationToken);
+        roles.Count.ShouldBe(assignments.Count);
         foreach (var assignment in assignments)
         {
-            roles.Should().ContainSingle(r => r.Identifier == assignment.RoleIdentifier && r.ToParty == assignment.ToParty);
+            roles.Where(r => r.Identifier == assignment.RoleIdentifier && r.ToParty == assignment.ToParty).ShouldHaveSingleItem();
         }
     }
 
@@ -2186,13 +2184,13 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     public async Task Sequence_Transaction_Handling()
     {
         var dataSource = GetRequiredService<NpgsqlDataSource>();
-        await using var noTxConn = await dataSource.OpenConnectionAsync();
+        await using var noTxConn = await dataSource.OpenConnectionAsync(CancellationToken);
         await using var maxSafeCmd = noTxConn.CreateCommand();
         maxSafeCmd.CommandText = /*strpsql*/"SELECT register.tx_max_safeval('register.party_version_id_seq')";
-        await maxSafeCmd.PrepareAsync();
+        await maxSafeCmd.PrepareAsync(CancellationToken);
 
-        await using var uow1 = await GetRequiredService<IUnitOfWorkManager>().CreateAsync(activityName: "uow1");
-        await using var uow2 = await GetRequiredService<IUnitOfWorkManager>().CreateAsync(activityName: "uow2");
+        await using var uow1 = await GetRequiredService<IUnitOfWorkManager>().CreateAsync(activityName: "uow1", cancellationToken: CancellationToken);
+        await using var uow2 = await GetRequiredService<IUnitOfWorkManager>().CreateAsync(activityName: "uow2", cancellationToken: CancellationToken);
 
         var tx1Conn = uow1.GetRequiredService<NpgsqlConnection>();
         var tx2Conn = uow2.GetRequiredService<NpgsqlConnection>();
@@ -2201,22 +2199,22 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         var val1 = await NextVal(tx1Conn);
         var val2 = await NextVal(tx2Conn);
-        val1.Should().BeLessThan(val2);
+        val1.ShouldBeLessThan(val2);
 
-        (await GetVisible()).Should().Be(val1 - 1);
+        (await GetVisible()).ShouldBe(val1 - 1);
 
-        await uow2.CommitAsync();
-        (await GetVisible()).Should().Be(val1 - 1);
+        await uow2.CommitAsync(CancellationToken);
+        (await GetVisible()).ShouldBe(val1 - 1);
 
-        await uow1.CommitAsync();
+        await uow1.CommitAsync(CancellationToken);
         Assert.Equal(9223372036854775807UL, await GetVisible());
 
         async Task<ulong> GetVisible()
         {
-            await using var reader = await maxSafeCmd.ExecuteReaderAsync(CommandBehavior.SingleResult | CommandBehavior.SingleRow);
-            Assert.True(await reader.ReadAsync());
+            await using var reader = await maxSafeCmd.ExecuteReaderAsync(CommandBehavior.SingleResult | CommandBehavior.SingleRow, CancellationToken);
+            Assert.True(await reader.ReadAsync(CancellationToken));
 
-            var result = await reader.GetFieldValueAsync<long>(0);
+            var result = await reader.GetFieldValueAsync<long>(0, CancellationToken);
             return (ulong)result;
         }
 
@@ -2224,12 +2222,12 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = /*strpsql*/"SELECT register.tx_nextval('register.party_version_id_seq')";
-            await cmd.PrepareAsync();
+            await cmd.PrepareAsync(CancellationToken);
 
-            await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleResult | CommandBehavior.SingleRow);
-            Assert.True(await reader.ReadAsync());
+            await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleResult | CommandBehavior.SingleRow, CancellationToken);
+            Assert.True(await reader.ReadAsync(CancellationToken));
 
-            var result = await reader.GetFieldValueAsync<long>(0);
+            var result = await reader.GetFieldValueAsync<long>(0, CancellationToken);
             return (ulong)result;
         }
     }
@@ -2241,10 +2239,10 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [Fact]
     public async Task Person_CanBeUpdated_WithActiveUserId()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var birthDate = UoW.GetRandomBirthDate();
         var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber, CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new PersonRecord
@@ -2273,31 +2271,28 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             DateOfDeath = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue().Which.User.Should().BeUnset();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue().User.ShouldBeUnset();
 
         await NewTransaction();
-        var userIds = await TestDataGenerator.GetNextUserIds();
+        var userIds = await TestDataGenerator.GetNextUserIds(cancellationToken: CancellationToken);
         var toUpdate = toInsert with
         {
             User = new PartyUserRecord(userId: userIds[0], username: FieldValue.Unset, userIds: userIds.ToImmutableValueArray()),
         };
 
-        result = await Persistence.UpsertParty(toUpdate);
-        result.Should().HaveValue()
-            .Which.User.Should().HaveValue()
-            .Which.UserIds.Should().HaveValue()
-            .Which.Should().ContainSingle()
-            .Which.Should().Be(userIds[0]);
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        var updatedUser = result.ShouldHaveValue().User.ShouldHaveValue();
+        updatedUser.UserIds.ShouldHaveValue().Single().ShouldBe(userIds[0]);
     }
 
     [Fact]
     public async Task Person_CanBeUpdated_WithActiveUserId_And_Username()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var birthDate = UoW.GetRandomBirthDate();
         var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber, CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new PersonRecord
@@ -2326,35 +2321,32 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             DateOfDeath = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue().Which.User.Should().BeUnset();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue().User.ShouldBeUnset();
 
         await NewTransaction();
-        var userIds = await TestDataGenerator.GetNextUserIds();
+        var userIds = await TestDataGenerator.GetNextUserIds(cancellationToken: CancellationToken);
         var username = $"user_{userIds[0]}";
         var toUpdate = toInsert with
         {
             User = new PartyUserRecord(userId: userIds[0], username: username, userIds: userIds.ToImmutableValueArray()),
         };
 
-        result = await Persistence.UpsertParty(toUpdate);
-        var user = result.Should().HaveValue()
-            .Which.User.Should().HaveValue().Which;
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        var user = result.ShouldHaveValue().User.ShouldHaveValue();
 
-        user.UserId.Should().Be(userIds[0]);
-        user.UserIds.Should().HaveValue()
-            .Which.Should().ContainSingle()
-            .Which.Should().Be(userIds[0]);
-        user.Username.Should().Be(username);
+        user.UserId.ShouldBe(userIds[0]);
+        user.UserIds.ShouldHaveValue().Single().ShouldBe(userIds[0]);
+        user.Username.ShouldBe(username);
     }
 
     [Fact]
     public async Task Person_CanBeUpdated_WithHistoricalUserIds()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var birthDate = UoW.GetRandomBirthDate();
         var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber, CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new PersonRecord
@@ -2383,8 +2375,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             DateOfDeath = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue().Which.User.Should().BeUnset();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue().User.ShouldBeUnset();
 
         await NewTransaction();
         var toUpdate = toInsert with
@@ -2392,25 +2384,22 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             User = new PartyUserRecord(userId: 10U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
         };
 
-        result = await Persistence.UpsertParty(toUpdate);
-        var userIds = result.Should().HaveValue()
-            .Which.User.Should().HaveValue()
-            .Which.UserIds.Should().HaveValue()
-            .Which;
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        var userIds = result.ShouldHaveValue().User.ShouldHaveValue().UserIds.ShouldHaveValue();
 
-        userIds.Should().HaveCount(3);
-        userIds.Should().HaveElementAt(0, 10);
-        userIds.Should().HaveElementAt(1, 5);
-        userIds.Should().HaveElementAt(2, 2);
+        userIds.Count().ShouldBe(3);
+        userIds[0].ShouldBe(10U);
+        userIds[1].ShouldBe(5U);
+        userIds[2].ShouldBe(2U);
     }
 
     [Fact]
     public async Task Person_CanBeUpdated_WithHistoricalUserIds_Only()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var birthDate = UoW.GetRandomBirthDate();
         var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber, CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new PersonRecord
@@ -2439,30 +2428,28 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             DateOfDeath = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue().Which.User.Should().BeUnset();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue().User.ShouldBeUnset();
 
         await NewTransaction();
         var user = new PartyUserRecord(userId: 10U, username: FieldValue.Null, userIds: ImmutableValueArray.Create(10U, 2U, 5U));
 
-        var userResult = await Persistence.UpsertPartyUser(uuid, user);
-        var userIds = userResult.Should().HaveValue()
-            .Which.UserIds.Should().HaveValue()
-            .Which;
+        var userResult = await Persistence.UpsertPartyUser(uuid, user, cancellationToken: CancellationToken);
+        var userIds = userResult.ShouldHaveValue().UserIds.ShouldHaveValue();
 
-        userIds.Should().HaveCount(3);
-        userIds.Should().HaveElementAt(0, 10);
-        userIds.Should().HaveElementAt(1, 5);
-        userIds.Should().HaveElementAt(2, 2);
+        userIds.Count().ShouldBe(3);
+        userIds[0].ShouldBe(10U);
+        userIds[1].ShouldBe(5U);
+        userIds[2].ShouldBe(2U);
     }
 
     [Fact]
     public async Task Person_CanBeInserted_WithHistoricalUserIds()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var birthDate = UoW.GetRandomBirthDate();
         var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber, CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new PersonRecord
@@ -2491,25 +2478,22 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             DateOfDeath = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        var userIds = result.Should().HaveValue()
-            .Which.User.Should().HaveValue()
-            .Which.UserIds.Should().HaveValue()
-            .Which;
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        var userIds = result.ShouldHaveValue().User.ShouldHaveValue().UserIds.ShouldHaveValue();
 
-        userIds.Should().HaveCount(3);
-        userIds.Should().HaveElementAt(0, 10);
-        userIds.Should().HaveElementAt(1, 5);
-        userIds.Should().HaveElementAt(2, 2);
+        userIds.Count().ShouldBe(3);
+        userIds[0].ShouldBe(10U);
+        userIds[1].ShouldBe(5U);
+        userIds[2].ShouldBe(2U);
     }
 
     [Fact]
     public async Task Person_CanBeUpdated_WithoutTouchingUserIds()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var birthDate = UoW.GetRandomBirthDate();
         var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber, CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new PersonRecord
@@ -2538,8 +2522,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             DateOfDeath = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         await NewTransaction();
         var toUpdate = toInsert with
@@ -2548,10 +2532,10 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             DisplayName = "updated"
         };
 
-        result = await Persistence.UpsertParty(toUpdate);
-        var person = result.Should().HaveValue().Which.Should().BeOfType<PersonRecord>().Which;
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        var person = result.ShouldHaveValue().ShouldBeOfType<PersonRecord>();
 
-        person.User.Should().BeUnset();
+        person.User.ShouldBeUnset();
 
         await NewTransaction();
         await using var cmd = Connection.CreateCommand();
@@ -2559,30 +2543,30 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         cmd.Parameters.Add<Guid>("partyId", NpgsqlTypes.NpgsqlDbType.Uuid).TypedValue = uuid;
 
-        await using var reader = await cmd.ExecuteReaderAsync();
+        await using var reader = await cmd.ExecuteReaderAsync(CancellationToken);
 
-        (await reader.ReadAsync()).Should().BeTrue();
-        reader.GetInt64("user_id").Should().Be(10);
-        reader.GetBoolean("is_active").Should().BeTrue();
+        (await reader.ReadAsync(CancellationToken)).ShouldBeTrue();
+        reader.GetInt64("user_id").ShouldBe(10);
+        reader.GetBoolean("is_active").ShouldBeTrue();
 
-        (await reader.ReadAsync()).Should().BeTrue();
-        reader.GetInt64("user_id").Should().Be(5);
-        reader.GetBoolean("is_active").Should().BeFalse();
+        (await reader.ReadAsync(CancellationToken)).ShouldBeTrue();
+        reader.GetInt64("user_id").ShouldBe(5);
+        reader.GetBoolean("is_active").ShouldBeFalse();
 
-        (await reader.ReadAsync()).Should().BeTrue();
-        reader.GetInt64("user_id").Should().Be(2);
-        reader.GetBoolean("is_active").Should().BeFalse();
+        (await reader.ReadAsync(CancellationToken)).ShouldBeTrue();
+        reader.GetInt64("user_id").ShouldBe(2);
+        reader.GetBoolean("is_active").ShouldBeFalse();
 
-        (await reader.ReadAsync()).Should().BeFalse();
+        (await reader.ReadAsync(CancellationToken)).ShouldBeFalse();
     }
 
     [Fact]
     public async Task Person_Cannot_UpdateActiveUserId()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var birthDate = UoW.GetRandomBirthDate();
         var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber, CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new PersonRecord
@@ -2611,8 +2595,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             DateOfDeath = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         await NewTransaction();
 
@@ -2621,19 +2605,19 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             User = new PartyUserRecord(userId: 12U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(12U, 10U, 2U, 5U)),
         };
 
-        result = await Persistence.UpsertParty(toUpdate);
-        var problem = result.Should().BeProblem().Which;
-        problem.ErrorCode.Should().Be(Problems.InvalidPartyUpdate.ErrorCode);
-        problem.Extensions.Should().ContainKey("column").WhoseValue.Should().Be("user_id");
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        var problem = result.ShouldBeProblem();
+        problem.ErrorCode.ShouldBe(Problems.InvalidPartyUpdate.ErrorCode);
+        problem.Extensions["column"].Single().ShouldBe("user_id");
     }
 
     [Fact]
     public async Task Person_Can_UpdateActiveUsername()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var birthDate = UoW.GetRandomBirthDate();
         var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber, CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new PersonRecord
@@ -2662,8 +2646,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             DateOfDeath = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         await NewTransaction();
 
@@ -2672,19 +2656,19 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             User = new PartyUserRecord(userId: 10U, username: "user2", userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
         };
 
-        result = await Persistence.UpsertParty(toUpdate);
-        var user = result.Should().HaveValue().Which.User.Should().HaveValue().Which;
-        user.UserId.Should().Be(10U);
-        user.Username.Should().Be("user2");
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        var user = result.ShouldHaveValue().User.ShouldHaveValue();
+        user.UserId.ShouldBe(10U);
+        user.Username.ShouldBe("user2");
     }
 
     [Fact]
     public async Task Person_Can_UnsetActiveUsername()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var birthDate = UoW.GetRandomBirthDate();
         var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber, CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new PersonRecord
@@ -2713,8 +2697,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             DateOfDeath = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         await NewTransaction();
 
@@ -2723,19 +2707,19 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             User = new PartyUserRecord(userId: 10U, username: FieldValue.Null, userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
         };
 
-        result = await Persistence.UpsertParty(toUpdate);
-        var user = result.Should().HaveValue().Which.User.Should().HaveValue().Which;
-        user.UserId.Should().Be(10U);
-        user.Username.Should().BeNull();
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        var user = result.ShouldHaveValue().User.ShouldHaveValue();
+        user.UserId.ShouldBe(10U);
+        user.Username.ShouldBeNull();
     }
 
     [Fact]
     public async Task Person_Can_RetainActiveUsername()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var birthDate = UoW.GetRandomBirthDate();
         var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber, CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new PersonRecord
@@ -2764,8 +2748,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             DateOfDeath = FieldValue.Null,
         };
 
-        var result = await Persistence.UpsertParty(toInsert);
-        result.Should().HaveValue();
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
 
         await NewTransaction();
 
@@ -2774,80 +2758,80 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             User = new PartyUserRecord(userId: 10U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
         };
 
-        result = await Persistence.UpsertParty(toUpdate);
-        var user = result.Should().HaveValue().Which.User.Should().HaveValue().Which;
-        user.UserId.Should().Be(10U);
-        user.Username.Should().Be("user1");
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        var user = result.ShouldHaveValue().User.ShouldHaveValue();
+        user.UserId.ShouldBe(10U);
+        user.Username.ShouldBe("user1");
     }
 
     [Fact]
     public async Task UpsertUserRecord_CanCreate_New_UserRecord()
     {
-        var person = await UoW.CreatePerson(user: FieldValue.Null);
+        var person = await UoW.CreatePerson(user: FieldValue.Null, cancellationToken: CancellationToken);
 
-        var userIds = await TestDataGenerator.GetNextUserIds();
-        await Persistence.UpsertUserRecord(person.PartyUuid.Value, userIds[0], "test-user", isActive: true);
+        var userIds = await TestDataGenerator.GetNextUserIds(cancellationToken: CancellationToken);
+        await Persistence.UpsertUserRecord(person.PartyUuid.Value, userIds[0], "test-user", isActive: true, cancellationToken: CancellationToken);
 
-        var updated = await Persistence.GetPartyById(person.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User).FirstOrDefaultAsync();
-        updated.Should().NotBeNull();
-        updated.User.Should().HaveValue();
-        updated.User.Value!.UserId.Should().Be(userIds[0]);
-        updated.User.Value!.Username.Should().Be("test-user");
+        var updated = await Persistence.GetPartyById(person.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User, cancellationToken: CancellationToken).FirstOrDefaultAsync(CancellationToken);
+        updated.ShouldNotBeNull();
+        updated.User.ShouldHaveValue();
+        updated.User.Value!.UserId.ShouldBe(userIds[0]);
+        updated.User.Value!.Username.ShouldBe("test-user");
     }
 
     [Fact]
     public async Task UpsertUserRecord_CanUpdate_ExistingRecord()
     {
-        var ids = await TestDataGenerator.GetNextUserIds();
-        var person = await UoW.CreatePerson(user: new PartyUserRecord(ids[0], "test-user-name", ImmutableValueArray.ToImmutableValueArray(ids)));
+        var ids = await TestDataGenerator.GetNextUserIds(cancellationToken: CancellationToken);
+        var person = await UoW.CreatePerson(user: new PartyUserRecord(ids[0], "test-user-name", ImmutableValueArray.ToImmutableValueArray(ids)), cancellationToken: CancellationToken);
 
-        await Persistence.UpsertUserRecord(person.PartyUuid.Value, ids[0], "updated-user-name", isActive: true);
+        await Persistence.UpsertUserRecord(person.PartyUuid.Value, ids[0], "updated-user-name", isActive: true, cancellationToken: CancellationToken);
 
-        var updated = await Persistence.GetPartyById(person.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User).FirstOrDefaultAsync();
-        updated.Should().NotBeNull();
-        updated.User.Should().HaveValue();
-        updated.User.Value!.UserId.Should().Be(ids[0]);
-        updated.User.Value!.Username.Should().Be("updated-user-name");
+        var updated = await Persistence.GetPartyById(person.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User, cancellationToken: CancellationToken).FirstOrDefaultAsync(CancellationToken);
+        updated.ShouldNotBeNull();
+        updated.User.ShouldHaveValue();
+        updated.User.Value!.UserId.ShouldBe(ids[0]);
+        updated.User.Value!.Username.ShouldBe("updated-user-name");
     }
 
     [Fact]
     public async Task UpsertUserRecord_CanDeactivate_User()
     {
-        var ids = await TestDataGenerator.GetNextUserIds();
-        var person = await UoW.CreatePerson(user: new PartyUserRecord(ids[0], "test-user-name", ImmutableValueArray.ToImmutableValueArray(ids)));
+        var ids = await TestDataGenerator.GetNextUserIds(cancellationToken: CancellationToken);
+        var person = await UoW.CreatePerson(user: new PartyUserRecord(ids[0], "test-user-name", ImmutableValueArray.ToImmutableValueArray(ids)), cancellationToken: CancellationToken);
 
-        await Persistence.UpsertUserRecord(person.PartyUuid.Value, ids[0], FieldValue.Unset, isActive: false);
+        await Persistence.UpsertUserRecord(person.PartyUuid.Value, ids[0], FieldValue.Unset, isActive: false, cancellationToken: CancellationToken);
 
-        var updated = await Persistence.GetPartyById(person.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User).FirstOrDefaultAsync();
-        updated.Should().NotBeNull();
-        updated.User.Should().BeNull();
-        updated.VersionId.Should().HaveValue().Which.Should().BeGreaterThan(person.VersionId.Value);
+        var updated = await Persistence.GetPartyById(person.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User, cancellationToken: CancellationToken).FirstOrDefaultAsync(CancellationToken);
+        updated.ShouldNotBeNull();
+        updated.User.ShouldBeNull();
+        updated.VersionId.ShouldHaveValue().ShouldBeGreaterThan(person.VersionId.Value);
     }
 
     [Fact]
     public async Task UpsertUserRecord_Inactive_DoesNotUpdatePartyVersionId()
     {
-        var ids = await TestDataGenerator.GetNextUserIds(count: 2);
-        var person = await UoW.CreatePerson(user: new PartyUserRecord(ids[1], "test-user-name", ImmutableValueArray.Create(ids[1])));
+        var ids = await TestDataGenerator.GetNextUserIds(count: 2, cancellationToken: CancellationToken);
+        var person = await UoW.CreatePerson(user: new PartyUserRecord(ids[1], "test-user-name", ImmutableValueArray.Create(ids[1])), cancellationToken: CancellationToken);
 
-        await Persistence.UpsertUserRecord(person.PartyUuid.Value, ids[0], "old-user-name", isActive: false);
+        await Persistence.UpsertUserRecord(person.PartyUuid.Value, ids[0], "old-user-name", isActive: false, cancellationToken: CancellationToken);
 
-        var updated = await Persistence.GetPartyById(person.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User).FirstOrDefaultAsync();
-        updated.Should().NotBeNull();
-        updated.VersionId.Should().HaveValue().Which.Should().Be(person.VersionId.Value);
+        var updated = await Persistence.GetPartyById(person.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User, cancellationToken: CancellationToken).FirstOrDefaultAsync(CancellationToken);
+        updated.ShouldNotBeNull();
+        updated.VersionId.ShouldHaveValue().ShouldBe(person.VersionId.Value);
     }
 
     [Fact]
     public async Task UpsertUserRecord_Active_UpdatesPartyVersionId()
     {
-        var ids = await TestDataGenerator.GetNextUserIds(count: 2);
-        var person = await UoW.CreatePerson(user: new PartyUserRecord(ids[1], "test-user-name", ImmutableValueArray.Create(ids[1])));
+        var ids = await TestDataGenerator.GetNextUserIds(count: 2, cancellationToken: CancellationToken);
+        var person = await UoW.CreatePerson(user: new PartyUserRecord(ids[1], "test-user-name", ImmutableValueArray.Create(ids[1])), cancellationToken: CancellationToken);
 
-        await Persistence.UpsertUserRecord(person.PartyUuid.Value, ids[1], "old-user-name", isActive: true);
+        await Persistence.UpsertUserRecord(person.PartyUuid.Value, ids[1], "old-user-name", isActive: true, cancellationToken: CancellationToken);
 
-        var updated = await Persistence.GetPartyById(person.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User).FirstOrDefaultAsync();
-        updated.Should().NotBeNull();
-        updated.VersionId.Should().HaveValue().Which.Should().BeGreaterThan(person.VersionId.Value);
+        var updated = await Persistence.GetPartyById(person.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User, cancellationToken: CancellationToken).FirstOrDefaultAsync(CancellationToken);
+        updated.ShouldNotBeNull();
+        updated.VersionId.ShouldHaveValue().ShouldBeGreaterThan(person.VersionId.Value);
     }
 
     #endregion
@@ -2857,10 +2841,10 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [Fact]
     public async Task AsyncSingleton_YieldSingleParty()
     {
-        var id = await UoW.GetNextPartyId();
+        var id = await UoW.GetNextPartyId(CancellationToken);
         var birthDate = UoW.GetRandomBirthDate();
         var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber);
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber, CancellationToken);
         var uuid = Guid.NewGuid();
 
         var party = new PersonRecord
@@ -2890,10 +2874,11 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         };
 
         var singleton = new PostgreSqlPartyPersistence.UpsertPartyQuery.AsyncSingleton(party);
-        var list = await singleton.ToListAsync();
+        var list = await singleton.ToListAsync(CancellationToken);
 
-        list.Should().ContainSingle().Which.Should().BeSameAs(party);
+        list.ShouldHaveSingleItem().ShouldBeSameAs(party);
     }
 
     #endregion
+
 }

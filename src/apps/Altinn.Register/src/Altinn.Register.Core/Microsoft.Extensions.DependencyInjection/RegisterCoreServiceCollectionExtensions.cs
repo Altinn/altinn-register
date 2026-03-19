@@ -1,3 +1,5 @@
+#pragma warning disable CS1734 // The compiler associates XML docs on the extension block with the lowered static method, even though the documented 'services' receiver parameter is valid.
+
 using Altinn.Register.Core.Mediator;
 using Altinn.Register.Core.Operations;
 using Microsoft.Extensions.DependencyInjection.Extensions;

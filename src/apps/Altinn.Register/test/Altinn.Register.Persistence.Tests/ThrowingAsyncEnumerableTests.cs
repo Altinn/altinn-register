@@ -7,24 +7,26 @@ public class ThrowingAsyncEnumerableTests
     [Fact]
     public async Task ThrowsExceptionWithOriginalDetails()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var expected = CreateException();
         var expectedStackTrace = expected.StackTrace;
 
         var throwing = new ThrowingAsyncEnumerable<string>(expected);
         try
         {
-            var list = await throwing.ToListAsync();
+            var list = await throwing.ToListAsync(cancellationToken);
             Assert.Fail("Expected exception was not thrown");
         }
         catch (ExpectedException e)
         {
-            e.StackTrace.Should().StartWith(expectedStackTrace);
+            e.StackTrace.ShouldStartWith(expectedStackTrace!);
         }
     }
 
     [Fact]
     public async Task DisposesOwnedResources()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var expected = CreateException();
         var resource1 = new TestDisposable();
         var resource2 = new TestDisposable();
@@ -34,15 +36,15 @@ public class ThrowingAsyncEnumerableTests
 
         try
         {
-            var list = await throwing.ToListAsync();
+            var list = await throwing.ToListAsync(cancellationToken);
             Assert.Fail("Expected exception was not thrown");
         }
         catch (ExpectedException)
         {
         }
 
-        resource1.IsDisposed.Should().BeTrue();
-        resource2.IsDisposed.Should().BeTrue();
+        resource1.IsDisposed.ShouldBeTrue();
+        resource2.IsDisposed.ShouldBeTrue();
     }
 
     private static ExpectedException CreateException()

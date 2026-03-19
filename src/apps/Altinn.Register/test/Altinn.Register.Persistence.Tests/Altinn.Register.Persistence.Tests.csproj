@@ -5,15 +5,16 @@
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <XUnitVersion>v3</XUnitVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
-    <ProjectReference Include="..\Altinn.Register.TestUtils.V2\Altinn.Register.TestUtils.V2.csproj" />
+    <ProjectReference Include="..\Altinn.Register.TestUtils.V3\Altinn.Register.TestUtils.V3.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Verify.Xunit" />
+    <PackageReference Include="Verify.XunitV3" />
   </ItemGroup>
 
 </Project>

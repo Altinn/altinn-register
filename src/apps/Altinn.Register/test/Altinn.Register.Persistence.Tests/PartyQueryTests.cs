@@ -1,6 +1,6 @@
 using Altinn.Authorization.ModelUtils.EnumUtils;
 using Altinn.Register.Core.Parties;
-using Xunit.Abstractions;
+using Xunit.Sdk;
 using static Altinn.Register.Persistence.PartyQueryFilters;
 using static Altinn.Register.Persistence.PostgreSqlPartyPersistence;
 
@@ -44,7 +44,7 @@ public class PartyQueryTests
         var q1 = PartyQuery.Get(includes, filter);
         var q2 = PartyQuery.Get(includes, filter);
 
-        q1.Should().BeSameAs(q2);
+        q1.ShouldBeSameAs(q2);
     }
 
     [Fact]
@@ -52,23 +52,23 @@ public class PartyQueryTests
     {
         var queries = new List<PartyQuery>();
 
-        foreach (var variant in QueryVariants)
+        foreach (TheoryDataRow<PartyFieldIncludes, Filters> variant in QueryVariants)
         {
-            PartyFieldIncludes includes = (PartyFieldIncludes)variant[0];
-            PartyQueryFilters filter = (Filters)variant[1];
+            var (includes, filterBy) = variant.Data;
+            PartyQueryFilters filter = filterBy;
             var newQuery = PartyQuery.Get(includes, filter);
-            queries.Should().NotContain(newQuery);
+            queries.ShouldNotContain(newQuery);
             queries.Add(newQuery);
         }
 
         var index = 0;
-        foreach (var variant in QueryVariants)
+        foreach (TheoryDataRow<PartyFieldIncludes, Filters> variant in QueryVariants)
         {
-            PartyFieldIncludes includes = (PartyFieldIncludes)variant[0];
-            PartyQueryFilters filter = (Filters)variant[1];
+            var (includes, filterBy) = variant.Data;
+            PartyQueryFilters filter = filterBy;
             var existing = queries[index++];
             var current = PartyQuery.Get(includes, filter);
-            current.Should().BeSameAs(existing);
+            current.ShouldBeSameAs(existing);
         }
     }
 

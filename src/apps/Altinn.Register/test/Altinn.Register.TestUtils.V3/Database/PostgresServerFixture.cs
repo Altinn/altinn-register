@@ -224,10 +224,10 @@ public class PostgresServerFixture
     {
         using var rootActivity = TestUtilsActivities.Source.StartActivity(ActivityKind.Internal, name: $"delete database {databaseName}");
 
-        await using var conn = await _dataSource!.OpenConnectionAsync();
+        await using var conn = await _dataSource!.OpenConnectionAsync(TestContext.Current.CancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = /*strpsql*/$"DROP DATABASE IF EXISTS \"{databaseName}\"";
-        await cmd.ExecuteNonQueryAsync();
+        await cmd.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
     }
 
     private static string UserTypeString(PostgresUserType type)

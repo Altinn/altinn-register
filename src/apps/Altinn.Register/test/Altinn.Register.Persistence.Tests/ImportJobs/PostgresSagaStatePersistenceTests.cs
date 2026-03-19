@@ -30,10 +30,10 @@ public class PostgresSagaStatePersistenceTests
         await Unit(async persistence =>
         {
             var state = await persistence.GetState<PersonState>(sagaId);
-            state.SagaId.Should().Be(sagaId);
-            state.Status.Should().Be(SagaStatus.InProgress);
-            state.Messages.Should().BeEmpty();
-            state.Data.Should().BeNull();
+            state.SagaId.ShouldBe(sagaId);
+            state.Status.ShouldBe(SagaStatus.InProgress);
+            state.Messages.ShouldBeEmpty();
+            state.Data.ShouldBeNull();
         });
     }
 
@@ -59,12 +59,13 @@ public class PostgresSagaStatePersistenceTests
         {
             var state = await persistence.GetState<PersonState>(sagaId);
 
-            state.SagaId.Should().Be(sagaId);
-            state.Status.Should().Be(SagaStatus.InProgress);
-            state.Messages.Should().ContainSingle().Which.Should().Be(sagaId);
-            state.Data.Should().NotBeNull();
-            state.Data.Name.Should().Be("Alice");
-            state.Data.Age.Should().Be(30);
+            state.SagaId.ShouldBe(sagaId);
+            state.Status.ShouldBe(SagaStatus.InProgress);
+            state.Messages.Count.ShouldBe(1);
+            state.Messages.Single().ShouldBe(sagaId);
+            state.Data.ShouldNotBeNull();
+            state.Data.Name.ShouldBe("Alice");
+            state.Data.Age.ShouldBe(30U);
         });
     }
 
@@ -101,13 +102,14 @@ public class PostgresSagaStatePersistenceTests
         {
             var state = await persistence.GetState<PersonState>(sagaId);
 
-            state.SagaId.Should().Be(sagaId);
-            state.Status.Should().Be(SagaStatus.Completed);
-            state.Messages.Should().HaveCount(2);
-            state.Messages.Should().Contain([sagaId, messageId]);
-            state.Data.Should().NotBeNull();
-            state.Data.Name.Should().Be("Alice");
-            state.Data.Age.Should().Be(31);
+            state.SagaId.ShouldBe(sagaId);
+            state.Status.ShouldBe(SagaStatus.Completed);
+            state.Messages.Count.ShouldBe(2);
+            state.Messages.ShouldContain(sagaId);
+            state.Messages.ShouldContain(messageId);
+            state.Data.ShouldNotBeNull();
+            state.Data.Name.ShouldBe("Alice");
+            state.Data.Age.ShouldBe(31U);
         });
     }
 
@@ -136,10 +138,10 @@ public class PostgresSagaStatePersistenceTests
         await Unit(async persistence =>
         {
             var state = await persistence.GetState<PersonState>(sagaId);
-            state.SagaId.Should().Be(sagaId);
-            state.Status.Should().Be(SagaStatus.InProgress);
-            state.Messages.Should().BeEmpty();
-            state.Data.Should().BeNull();
+            state.SagaId.ShouldBe(sagaId);
+            state.Status.ShouldBe(SagaStatus.InProgress);
+            state.Messages.ShouldBeEmpty();
+            state.Data.ShouldBeNull();
         });
     }
 
@@ -206,7 +208,7 @@ public class PostgresSagaStatePersistenceTests
                     faultedBefore: faultedCutoff,
                     inProgressBefore: inProgressCutoff);
 
-                deleted.Should().Be(expectedDeleted);
+                deleted.ShouldBe(expectedDeleted);
             });
         }
 
@@ -215,10 +217,10 @@ public class PostgresSagaStatePersistenceTests
             await Unit(async persistence =>
             {
                 var state = await persistence.GetState<PersonState>(sagaId);
-                state.SagaId.Should().Be(sagaId);
-                state.Status.Should().Be(SagaStatus.InProgress);
-                state.Messages.Should().BeEmpty();
-                state.Data.Should().BeNull();
+                state.SagaId.ShouldBe(sagaId);
+                state.Status.ShouldBe(SagaStatus.InProgress);
+                state.Messages.ShouldBeEmpty();
+                state.Data.ShouldBeNull();
             });
         }
 
@@ -229,9 +231,10 @@ public class PostgresSagaStatePersistenceTests
                 foreach (var sagaId in sagaIds)
                 {
                     var state = await persistence.GetState<PersonState>(sagaId);
-                    state.SagaId.Should().Be(sagaId);
-                    state.Messages.Should().ContainSingle().Which.Should().Be(sagaId);
-                    state.Data.Should().NotBeNull();
+                    state.SagaId.ShouldBe(sagaId);
+                    state.Messages.Count.ShouldBe(1);
+                    state.Messages.Single().ShouldBe(sagaId);
+                    state.Data.ShouldNotBeNull();
                 }
             });
         }

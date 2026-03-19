@@ -2,7 +2,6 @@ using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.TestUtils;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
-using Xunit.Abstractions;
 
 namespace Altinn.Register.Persistence.Tests;
 
@@ -19,7 +18,7 @@ public class PostgreSqlFunctionsTests(ITestOutputHelper output)
     public async Task Function_tx_max_safeval_Returns_Max_When_No_Concurrent_Transactions()
     {
         var value = await TxMaxSafeval();
-        value.Should().Be(long.MaxValue);
+        value.ShouldBe(long.MaxValue);
     }
 
     [Fact]
@@ -28,11 +27,11 @@ public class PostgreSqlFunctionsTests(ITestOutputHelper output)
         List<long> values = new();
 
         {
-            await using var uow1 = await UnitOfWorkManager.CreateAsync();
-            await using var uow2 = await UnitOfWorkManager.CreateAsync();
-            await using var uow3 = await UnitOfWorkManager.CreateAsync();
-            await using var uow4 = await UnitOfWorkManager.CreateAsync();
-            await using var uow5 = await UnitOfWorkManager.CreateAsync();
+            await using var uow1 = await UnitOfWorkManager.CreateAsync(CancellationToken);
+            await using var uow2 = await UnitOfWorkManager.CreateAsync(CancellationToken);
+            await using var uow3 = await UnitOfWorkManager.CreateAsync(CancellationToken);
+            await using var uow4 = await UnitOfWorkManager.CreateAsync(CancellationToken);
+            await using var uow5 = await UnitOfWorkManager.CreateAsync(CancellationToken);
 
             values.AddRange(await Task.WhenAll([
                 TxNextval(uow1),
@@ -59,17 +58,17 @@ public class PostgreSqlFunctionsTests(ITestOutputHelper output)
             ]));
         }
 
-        values.Should().OnlyHaveUniqueItems();
+        values.Distinct().Count().ShouldBe(values.Count);
     }
 
     [Fact]
     public async Task Function_tx_max_safeval_Returns_Number_Before_Concurrent_Transactions()
     {
-        await using var uow1 = await UnitOfWorkManager.CreateAsync();
-        await using var uow2 = await UnitOfWorkManager.CreateAsync();
-        await using var uow3 = await UnitOfWorkManager.CreateAsync();
-        await using var uow4 = await UnitOfWorkManager.CreateAsync();
-        await using var uow5 = await UnitOfWorkManager.CreateAsync();
+        await using var uow1 = await UnitOfWorkManager.CreateAsync(CancellationToken);
+        await using var uow2 = await UnitOfWorkManager.CreateAsync(CancellationToken);
+        await using var uow3 = await UnitOfWorkManager.CreateAsync(CancellationToken);
+        await using var uow4 = await UnitOfWorkManager.CreateAsync(CancellationToken);
+        await using var uow5 = await UnitOfWorkManager.CreateAsync(CancellationToken);
 
         var nv1 = await TxNextval(uow1);
         var nv2 = await TxNextval(uow2);
@@ -77,55 +76,55 @@ public class PostgreSqlFunctionsTests(ITestOutputHelper output)
         var nv4 = await TxNextval(uow4);
         var nv5 = await TxNextval(uow5);
 
-        nv1.Should().BeLessThan(nv2);
-        nv2.Should().BeLessThan(nv3);
-        nv3.Should().BeLessThan(nv4);
-        nv4.Should().BeLessThan(nv5);
+        nv1.ShouldBeLessThan(nv2);
+        nv2.ShouldBeLessThan(nv3);
+        nv3.ShouldBeLessThan(nv4);
+        nv4.ShouldBeLessThan(nv5);
 
         var maxSafeval = await TxMaxSafeval();
-        maxSafeval.Should().Be(nv1 - 1);
+        maxSafeval.ShouldBe(nv1 - 1);
 
-        await uow2.CommitAsync();
-
-        maxSafeval = await TxMaxSafeval();
-        maxSafeval.Should().Be(nv1 - 1);
-
-        await uow1.CommitAsync();
+        await uow2.CommitAsync(CancellationToken);
 
         maxSafeval = await TxMaxSafeval();
-        maxSafeval.Should().Be(nv3 - 1);
+        maxSafeval.ShouldBe(nv1 - 1);
 
-        await uow5.CommitAsync();
-        await uow4.CommitAsync();
-        await uow3.CommitAsync();
+        await uow1.CommitAsync(CancellationToken);
 
         maxSafeval = await TxMaxSafeval();
-        maxSafeval.Should().Be(long.MaxValue);
+        maxSafeval.ShouldBe(nv3 - 1);
+
+        await uow5.CommitAsync(CancellationToken);
+        await uow4.CommitAsync(CancellationToken);
+        await uow3.CommitAsync(CancellationToken);
+
+        maxSafeval = await TxMaxSafeval();
+        maxSafeval.ShouldBe(long.MaxValue);
     }
 
     private async Task<long> TxMaxSafeval()
     {
-        await using var uow = await UnitOfWorkManager.CreateAsync();
+        await using var uow = await UnitOfWorkManager.CreateAsync(CancellationToken);
 
         return await GetSingleValue(uow, /*strpsql*/$"""SELECT register.tx_max_safeval('{SequenceName}') AS max_safeval""");
     }
 
-    private static Task<long> TxNextval(IUnitOfWork uow)
+    private Task<long> TxNextval(IUnitOfWork uow)
         => GetSingleValue(uow, /*strpsql*/$"""SELECT register.tx_nextval('{SequenceName}') AS nextval""");
 
-    private static async Task<long> GetSingleValue(IUnitOfWork uow, string query)
+    private async Task<long> GetSingleValue(IUnitOfWork uow, string query)
     {
         var conn = uow.GetRequiredService<NpgsqlConnection>();
 
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = query;
 
-        await cmd.PrepareAsync();
-        await using var reader = await cmd.ExecuteReaderAsync();
+        await cmd.PrepareAsync(CancellationToken);
+        await using var reader = await cmd.ExecuteReaderAsync(CancellationToken);
 
-        (await reader.ReadAsync()).Should().BeTrue();
-        var value = await reader.GetFieldValueAsync<long>(0);
-        (await reader.ReadAsync()).Should().BeFalse();
+        (await reader.ReadAsync(CancellationToken)).ShouldBeTrue();
+        var value = await reader.GetFieldValueAsync<long>(0, CancellationToken);
+        (await reader.ReadAsync(CancellationToken)).ShouldBeFalse();
 
         return value;
     }
