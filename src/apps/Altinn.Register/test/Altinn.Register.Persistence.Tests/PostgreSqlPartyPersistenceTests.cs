@@ -1,6 +1,5 @@
 using System.Data;
 using System.Diagnostics;
-using System.Linq.Expressions;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
@@ -2112,17 +2111,17 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var roles = await Persistence.GetExternalRoleAssignmentsFromParty(party1, cancellationToken: CancellationToken).ToListAsync(CancellationToken);
         roles.Count.ShouldBe(8);
 
-        roles.Where(Matches(ExternalRoleSource.NationalPopulationRegister, "fake-03", party2).Compile()).ShouldHaveSingleItem();
-        roles.Where(Matches(ExternalRoleSource.NationalPopulationRegister, "fake-04", party2).Compile()).ShouldHaveSingleItem();
-        roles.Where(Matches(ExternalRoleSource.NationalPopulationRegister, "fake-05", party2).Compile()).ShouldHaveSingleItem();
-        roles.Where(Matches(ExternalRoleSource.NationalPopulationRegister, "fake-06", party2).Compile()).ShouldHaveSingleItem();
+        roles.Where(Matches(ExternalRoleSource.NationalPopulationRegister, "fake-03", party2)).ShouldHaveSingleItem();
+        roles.Where(Matches(ExternalRoleSource.NationalPopulationRegister, "fake-04", party2)).ShouldHaveSingleItem();
+        roles.Where(Matches(ExternalRoleSource.NationalPopulationRegister, "fake-05", party2)).ShouldHaveSingleItem();
+        roles.Where(Matches(ExternalRoleSource.NationalPopulationRegister, "fake-06", party2)).ShouldHaveSingleItem();
 
-        roles.Where(Matches(ExternalRoleSource.CentralCoordinatingRegister, "fake-01", party3).Compile()).ShouldHaveSingleItem();
-        roles.Where(Matches(ExternalRoleSource.CentralCoordinatingRegister, "fake-01", party4).Compile()).ShouldHaveSingleItem();
-        roles.Where(Matches(ExternalRoleSource.CentralCoordinatingRegister, "fake-02", party3).Compile()).ShouldHaveSingleItem();
-        roles.Where(Matches(ExternalRoleSource.CentralCoordinatingRegister, "fake-02", party4).Compile()).ShouldHaveSingleItem();
+        roles.Where(Matches(ExternalRoleSource.CentralCoordinatingRegister, "fake-01", party3)).ShouldHaveSingleItem();
+        roles.Where(Matches(ExternalRoleSource.CentralCoordinatingRegister, "fake-01", party4)).ShouldHaveSingleItem();
+        roles.Where(Matches(ExternalRoleSource.CentralCoordinatingRegister, "fake-02", party3)).ShouldHaveSingleItem();
+        roles.Where(Matches(ExternalRoleSource.CentralCoordinatingRegister, "fake-02", party4)).ShouldHaveSingleItem();
 
-        static Expression<Func<PartyExternalRoleAssignmentRecord, bool>> Matches(ExternalRoleSource source, string identifier, Guid toParty)
+        static Func<PartyExternalRoleAssignmentRecord, bool> Matches(ExternalRoleSource source, string identifier, Guid toParty)
             => r => r.Source == source && r.Identifier == identifier && r.ToParty == toParty;
     }
 

@@ -135,8 +135,10 @@ public abstract class HostTestBase
             {
                 await asyncDisposable.DisposeAsync();
             }
-
-            host.Dispose();
+            else
+            {
+                host.Dispose();
+            }
         }
 
         await base.DisposeAsync();
