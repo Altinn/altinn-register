@@ -81,6 +81,80 @@ public readonly record struct LookupV1PartyRequest
         value = default!;
         return false;
     }
+
+    /// <summary>
+    /// Creates a lookup request from v1 lookup criteria, adding validation errors to <paramref name="errors"/> when invalid.
+    /// </summary>
+    /// <param name="partyLookup">The lookup criteria.</param>
+    /// <param name="errors">The validation errors.</param>
+    /// <param name="pathPrefix">The path prefix for validation errors.</param>
+    /// <param name="request">The parsed request.</param>
+    /// <returns><see langword="true"/> if the request was created; otherwise <see langword="false"/>.</returns>
+    public static bool TryCreate(V1Models.PartyLookup partyLookup, ref ValidationProblemBuilder errors, string pathPrefix, out LookupV1PartyRequest request)
+    {
+        var ssnPath = $"{pathPrefix}/ssn";
+        var orgNoPath = $"{pathPrefix}/orgNo";
+
+        switch (partyLookup.Ssn, partyLookup.OrgNo)
+        {
+            case (null, null):
+                errors.Add(StdValidationErrors.Required, [ssnPath, orgNoPath], "Either ssn or orgNo is required.");
+                request = default;
+                return false;
+
+            case (not null, not null):
+                errors.Add(ValidationErrors.MutuallyExclusive, [ssnPath, orgNoPath], "Only one of ssn and orgNo is allowed.");
+                request = default;
+                return false;
+
+            case (string ssn, null):
+                if (!PersonIdentifier.TryParse(ssn, provider: null, out var personIdentifier))
+                {
+                    errors.Add(ValidationErrors.InvalidPersonNumber, ssnPath);
+                    request = default;
+                    return false;
+                }
+
+                request = new LookupV1PartyRequest(personIdentifier);
+                return true;
+
+            case (null, string orgNo):
+                if (!OrganizationIdentifier.TryParse(orgNo, provider: null, out var organizationIdentifier))
+                {
+                    errors.Add(ValidationErrors.InvalidOrganizationNumber, orgNoPath);
+                    request = default;
+                    return false;
+                }
+
+                request = new LookupV1PartyRequest(organizationIdentifier);
+                return true;
+        }
+    }
+
+    /// <summary>
+    /// Converts this request to v1 lookup criteria.
+    /// </summary>
+    /// <returns>The v1 lookup criteria.</returns>
+    public V1Models.PartyLookup ToPartyLookup()
+    {
+        if (TryGetValue(out PersonIdentifier personIdentifier))
+        {
+            return new V1Models.PartyLookup
+            {
+                Ssn = personIdentifier.ToString(),
+            };
+        }
+
+        if (TryGetValue(out OrganizationIdentifier organizationIdentifier))
+        {
+            return new V1Models.PartyLookup
+            {
+                OrgNo = organizationIdentifier.ToString(),
+            };
+        }
+
+        return ThrowHelper.ThrowArgumentException<V1Models.PartyLookup>(nameof(Value), "Request must contain either an organization identifier or a person identifier.");
+    }
 }
 
 /// <summary>
