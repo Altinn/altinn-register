@@ -8,6 +8,34 @@ namespace Altinn.Register.Tests.UnitTests;
 public class RegisterCoreServiceCollectionExtensionsTests
 {
     [Fact]
+    public void AddRateLimitPolicy_NullName_ThrowsArgumentNullException()
+    {
+        var services = new ServiceCollection();
+
+#pragma warning disable CS8625 // Intentionally validating null argument behavior.
+        var act = () => services.AddRateLimitPolicy(null);
+#pragma warning restore CS8625
+
+        var exn = Assert.Throws<ArgumentNullException>(act);
+        exn.ParamName.Should().Be("name");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("\t")]
+    public void AddRateLimitPolicy_WhitespaceName_ThrowsArgumentException(string name)
+    {
+        var services = new ServiceCollection();
+
+        var act = () => services.AddRateLimitPolicy(name);
+
+        var exn = Assert.Throws<ArgumentException>(act);
+        exn.ParamName.Should().Be("name");
+        exn.Message.Should().Contain("must not be null or whitespace");
+    }
+
+    [Fact]
     public void AddRateLimitPolicy_BindsNamedConfiguration()
     {
         var configuration = new ConfigurationBuilder()

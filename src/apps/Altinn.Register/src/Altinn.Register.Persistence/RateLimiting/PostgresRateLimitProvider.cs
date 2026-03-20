@@ -22,8 +22,7 @@ internal sealed partial class PostgresRateLimitProvider
     private readonly NpgsqlDataSource _dataSource;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<PostgresRateLimitProvider> _logger;
-    private readonly ResiliencePipeline<RateLimitStatus> _getStatusPipeline;
-    private readonly ResiliencePipeline<RateLimitStatus> _recordPipeline;
+    private readonly ResiliencePipeline<RateLimitStatus> _pipeline;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PostgresRateLimitProvider"/> class.
@@ -37,8 +36,7 @@ internal sealed partial class PostgresRateLimitProvider
         _timeProvider = timeProvider;
         _logger = logger;
 
-        _getStatusPipeline = CreateRetryPipeline("get-status", timeProvider, logger);
-        _recordPipeline = CreateRetryPipeline("record", timeProvider, logger);
+        _pipeline = CreateRetryPipeline(timeProvider, logger);
     }
 
     /// <inheritdoc/>
@@ -63,7 +61,7 @@ internal sealed partial class PostgresRateLimitProvider
         var now = _timeProvider.GetUtcNow();
 
         await using var conn = await _dataSource.OpenConnectionAsync(cancellationToken);
-        return await _getStatusPipeline.ExecuteAsync(
+        return await _pipeline.ExecuteAsync(
             callback: static async (s, cancellationToken) =>
             {
                 var (conn, policyName, resource, subject, blockedRequestBehavior, blockDuration, now) = s;
@@ -89,7 +87,7 @@ internal sealed partial class PostgresRateLimitProvider
                 }
 
                 await tx.CommitAsync(cancellationToken);
-                return ToRateLimitStatus(result, successOutcome: 1, allowNotFound: true);
+                return ToRateLimitStatus(result, Operation.GetStatus);
             },
             state: (conn, policyName, resource, subject, blockedRequestBehavior, blockDuration, now),
             cancellationToken: cancellationToken);
@@ -135,7 +133,7 @@ internal sealed partial class PostgresRateLimitProvider
         };
 
         await using var conn = await _dataSource.OpenConnectionAsync(cancellationToken);
-        return await _recordPipeline.ExecuteAsync(
+        return await _pipeline.ExecuteAsync(
             callback: static async (s, cancellationToken) =>
             {
                 var (conn, query, policyName, resource, subject, now, cost, limit, windowDuration, blockDuration) = s;
@@ -163,13 +161,13 @@ internal sealed partial class PostgresRateLimitProvider
                 }
 
                 await tx.CommitAsync(cancellationToken);
-                return ToRateLimitStatus(result, successOutcome: 0, allowNotFound: false);
+                return ToRateLimitStatus(result, Operation.Record);
             },
             state: (conn, query, policyName, resource, subject, now, cost, limit, windowDuration, blockDuration),
             cancellationToken: cancellationToken);
     }
 
-    private static ResiliencePipeline<RateLimitStatus> CreateRetryPipeline(string actionName, TimeProvider timeProvider, ILogger logger)
+    private static ResiliencePipeline<RateLimitStatus> CreateRetryPipeline(TimeProvider timeProvider, ILogger logger)
     {
         var pipelineBuilder = new ResiliencePipelineBuilder<RateLimitStatus>();
         pipelineBuilder.TimeProvider = timeProvider;
@@ -183,7 +181,7 @@ internal sealed partial class PostgresRateLimitProvider
             Delay = TimeSpan.FromMilliseconds(10),
             OnRetry = args =>
             {
-                Log.RateLimitOperationSerializationFailure(logger, actionName, args.AttemptNumber);
+                Log.RateLimitOperationSerializationFailure(logger, args.AttemptNumber);
                 return ValueTask.CompletedTask;
             },
         });
@@ -191,16 +189,19 @@ internal sealed partial class PostgresRateLimitProvider
         return pipelineBuilder.Build();
     }
 
-    private static RateLimitStatus ToRateLimitStatus(DbStatus result, short successOutcome, bool allowNotFound)
+    private static RateLimitStatus ToRateLimitStatus(DbStatus result, Operation operation)
     {
-        if (allowNotFound && result.Outcome == 0)
+        switch (operation)
         {
-            return RateLimitStatus.NotFound;
-        }
+            case Operation.GetStatus when result.Outcome == 0:
+                return RateLimitStatus.NotFound;
 
-        if (result.Outcome != successOutcome)
-        {
-            return UnreachableOutcome<RateLimitStatus>(nameof(DbStatus), result.Outcome);
+            case Operation.GetStatus when result.Outcome == 1:
+            case Operation.Record when result.Outcome == 0:
+                break; // Success cases, handled below.
+
+            default:
+                return UnreachableOutcome<RateLimitStatus>(operation.ToString(), result.Outcome);
         }
 
         Debug.Assert(result.Count.HasValue);
@@ -239,9 +240,15 @@ internal sealed partial class PostgresRateLimitProvider
         }
     }
 
+    private enum Operation
+    {
+        GetStatus = 1,
+        Record,
+    }
+
     private static partial class Log
     {
-        [LoggerMessage(0, LogLevel.Information, "Rate-limit operation {ActionName} failed due to a serialization error. Retrying attempt {AttemptNumber}.")]
-        public static partial void RateLimitOperationSerializationFailure(ILogger logger, string actionName, int attemptNumber);
+        [LoggerMessage(0, LogLevel.Information, "Rate-limit operation failed due to a serialization error. Retrying attempt {AttemptNumber}.")]
+        public static partial void RateLimitOperationSerializationFailure(ILogger logger, int attemptNumber);
     }
 }
