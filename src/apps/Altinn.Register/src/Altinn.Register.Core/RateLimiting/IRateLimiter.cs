@@ -11,8 +11,13 @@ public interface IRateLimiter
     public const string DefaultResource = "";
 
     /// <summary>
-    /// Gets the current status for a rate-limited subject.
+    /// Gets the current <see cref="RateLimitStatus"/> for a rate-limited subject.
     /// </summary>
+    /// <remarks>
+    /// This operation is not guaranteed to be a pure read: depending on policy configuration,
+    /// calling it for an already-blocked subject may extend or otherwise modify the block state.
+    /// Callers should not poll this method or assume it is side-effect free.
+    /// </remarks>
     /// <param name="policyName">The rate-limit policy name.</param>
     /// <param name="resource">The resource identifier within the policy. Use <see cref="DefaultResource"/> when the policy has only one resource.</param>
     /// <param name="subject">The subject identifier within the policy.</param>
@@ -25,8 +30,13 @@ public interface IRateLimiter
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets the current status for a rate-limited subject using <see cref="DefaultResource"/>.
+    /// Gets the current <see cref="RateLimitStatus"/> for a rate-limited subject using <see cref="DefaultResource"/>.
     /// </summary>
+    /// <remarks>
+    /// This operation is not guaranteed to be a pure read: depending on policy configuration,
+    /// calling it for an already-blocked subject may extend or otherwise modify the block state.
+    /// Callers should not poll this method or assume it is side-effect free.
+    /// </remarks>
     /// <param name="policyName">The rate-limit policy name.</param>
     /// <param name="subject">The subject identifier within the policy.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>

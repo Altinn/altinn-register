@@ -1,7 +1,6 @@
 using Altinn.Register.Core.RateLimiting;
 using Altinn.Register.Persistence.RateLimiting;
 using Altinn.Register.TestUtils;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Register.Persistence.Tests.RateLimiting;
 
