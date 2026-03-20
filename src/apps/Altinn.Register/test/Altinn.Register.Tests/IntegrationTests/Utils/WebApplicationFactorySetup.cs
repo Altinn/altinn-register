@@ -10,6 +10,7 @@ using Altinn.Register.Configuration;
 using Altinn.Register.Core.A2;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.Parties;
+using Altinn.Register.Core.RateLimiting;
 using Altinn.Register.Tests.Mocks;
 using Altinn.Register.Tests.Mocks.Authentication;
 using AltinnCore.Authentication.JwtCookie;
@@ -68,6 +69,7 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
                     services.AddSingleton<IMemoryCache>(MemoryCache);
                     services.AddSingleton<IAccessTokenGenerator, TestAccessTokenGenerator>();
                     services.AddSingleton<IExternalRoleDefinitionPersistence, MockExternalRoleDefinitionPersistence>();
+                    services.AddSingleton<IRateLimitProvider, MockRateLimitProvider>();
 
                     // Using the real/actual implementation of IParties and IPersons, but with a mocked message handler.
                     // Haven't found any other ways of injecting a mocked message handler to simulate SBL Bridge.
