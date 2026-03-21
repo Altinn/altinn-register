@@ -2,6 +2,7 @@ using System.Net;
 using Altinn.Authorization.ServiceDefaults;
 using Altinn.Common.AccessTokenClient.Services;
 using Altinn.Register.Core.ExternalRoles;
+using Altinn.Register.Core.RateLimiting;
 using Altinn.Register.Tests.IntegrationTests.Utils;
 using Altinn.Register.Tests.Mocks;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -24,6 +25,7 @@ namespace Altinn.Register.Tests.IntegrationTests
                 {
                     services.AddSingleton<IAccessTokenGenerator, TestAccessTokenGenerator>();
                     services.AddSingleton<IExternalRoleDefinitionPersistence, MockExternalRoleDefinitionPersistence>();
+                    services.AddSingleton<IRateLimitProvider, MockRateLimitProvider>();
                 });
             });
         }

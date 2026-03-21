@@ -11,12 +11,14 @@ using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
+using Altinn.Register.Core.RateLimiting;
 using Altinn.Register.Core.Utils;
 using Altinn.Register.Persistence;
 using Altinn.Register.Persistence.CcrLog;
 using Altinn.Register.Persistence.DbArgTypes;
 using Altinn.Register.Persistence.ImportJobs;
 using Altinn.Register.Persistence.Leases;
+using Altinn.Register.Persistence.RateLimiting;
 using Altinn.Register.Persistence.UnitOfWork;
 using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -41,6 +43,7 @@ public static class RegisterPersistenceExtensions
     {
         builder.AddPartyPersistence();
         builder.AddPostgresLeaseProvider();
+        builder.AddPostgresRateLimiter();
         builder.AddPostgresImportTracker();
 
         return builder;
@@ -118,6 +121,21 @@ public static class RegisterPersistenceExtensions
 
         builder.Services.TryAddSingleton<PostgresqlLeaseProvider>();
         builder.Services.TryAddSingleton<ILeaseProvider>(s => s.GetRequiredService<PostgresqlLeaseProvider>());
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a postgresql backed rate limiter.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder"/>.</param>
+    /// <returns><paramref name="builder"/>.</returns>
+    public static IHostApplicationBuilder AddPostgresRateLimiter(this IHostApplicationBuilder builder)
+    {
+        AddDatabase(builder);
+
+        builder.Services.TryAddSingleton<PostgresRateLimitProvider>();
+        builder.Services.TryAddSingleton<IRateLimitProvider>(s => s.GetRequiredService<PostgresRateLimitProvider>());
 
         return builder;
     }
@@ -233,6 +251,13 @@ public static class RegisterPersistenceExtensions
             SelfIdentifiedUserType.Legacy => "legacy",
             SelfIdentifiedUserType.Educational => "edu",
             SelfIdentifiedUserType.IdPortenEmail => "idporten-email",
+            _ => null,
+        }));
+
+        builder.MapEnum<BlockedRequestBehavior>("register.blocked_request_behavior", new EnumNameTranslator<BlockedRequestBehavior>(static value => value switch
+        {
+            BlockedRequestBehavior.Ignore => "ignore",
+            BlockedRequestBehavior.Renew => "renew",
             _ => null,
         }));
 
