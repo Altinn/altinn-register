@@ -46,7 +46,6 @@ public class A2PartyExternalRoleAssignmentTests
         };
         left.Equals(right).ShouldBeFalse();
         right.Equals(left).ShouldBeFalse();
-        left.GetHashCode().ShouldNotBe(right.GetHashCode());
     }
 
     [Fact]
@@ -65,6 +64,5 @@ public class A2PartyExternalRoleAssignmentTests
         };
         left.Equals(right).ShouldBeFalse();
         right.Equals(left).ShouldBeFalse();
-        left.GetHashCode().ShouldNotBe(right.GetHashCode());
     }
 }
