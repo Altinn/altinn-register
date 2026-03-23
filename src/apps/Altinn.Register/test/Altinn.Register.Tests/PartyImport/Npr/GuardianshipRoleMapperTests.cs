@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Text;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.PartyImport.Npr;
-using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Altinn.Register.Tests.PartyImport.Npr;
 
@@ -13,8 +13,8 @@ public partial class GuardianshipRoleMapperTests
     [MemberData(nameof(Guardianships))]
     public static void MatchesNprAreaAndTask(GuardianshipMetadata meta)
     {
-        GuardianshipRoleMapper.TryFindRoleByNprValues(meta.NprArea, meta.NprTask, out var role).Should().BeTrue();
-        role.Should().Be(meta.Role);
+        GuardianshipRoleMapper.TryFindRoleByNprValues(meta.NprArea, meta.NprTask, out var role).ShouldBeTrue();
+        role.ShouldBe(meta.Role);
     }
 
     [Theory]
@@ -23,16 +23,16 @@ public partial class GuardianshipRoleMapperTests
     {
         var area = Encoding.UTF8.GetBytes(meta.NprArea);
         var task = Encoding.UTF8.GetBytes(meta.NprTask);
-        GuardianshipRoleMapper.TryFindRoleByNprValues(area, task, out var role).Should().BeTrue();
-        role.Should().Be(meta.Role);
+        GuardianshipRoleMapper.TryFindRoleByNprValues(area, task, out var role).ShouldBeTrue();
+        role.ShouldBe(meta.Role);
     }
 
     [Theory]
     [MemberData(nameof(ExpiredGuardianships))]
     public static void MatchesNprAreaTask_Expired(ExpiredGuardianshipMetadata meta)
     {
-        GuardianshipRoleMapper.TryFindRoleByNprValues(meta.NprArea, meta.NprTask, out var role).Should().BeTrue();
-        role.Should().BeNull();
+        GuardianshipRoleMapper.TryFindRoleByNprValues(meta.NprArea, meta.NprTask, out var role).ShouldBeTrue();
+        role.ShouldBeNull();
     }
 
     [Theory]
@@ -41,20 +41,20 @@ public partial class GuardianshipRoleMapperTests
     {
         var area = Encoding.UTF8.GetBytes(meta.NprArea);
         var task = Encoding.UTF8.GetBytes(meta.NprTask);
-        GuardianshipRoleMapper.TryFindRoleByNprValues(area, task, out var role).Should().BeTrue();
-        role.Should().BeNull();
+        GuardianshipRoleMapper.TryFindRoleByNprValues(area, task, out var role).ShouldBeTrue();
+        role.ShouldBeNull();
     }
 
     [Fact]
     public static void DoesNotMatchInvalidNprAreaAndTask()
     {
-        GuardianshipRoleMapper.TryFindRoleByNprValues("notExisting", "noTask", out _).Should().BeFalse();
+        GuardianshipRoleMapper.TryFindRoleByNprValues("notExisting", "noTask", out _).ShouldBeFalse();
     }
 
     [Fact]
     public static void DoesNotMatchInvalidNprAreaAndTaskUtf8()
     {
-        GuardianshipRoleMapper.TryFindRoleByNprValues("notExisting"u8, "noTask"u8, out _).Should().BeFalse();
+        GuardianshipRoleMapper.TryFindRoleByNprValues("notExisting"u8, "noTask"u8, out _).ShouldBeFalse();
     }
 
     public static TheoryData<GuardianshipMetadata> Guardianships

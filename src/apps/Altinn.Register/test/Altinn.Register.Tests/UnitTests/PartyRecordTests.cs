@@ -2,6 +2,7 @@
 
 using System.Text.Json;
 using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.TestUtils.Shouldly;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
@@ -14,6 +15,81 @@ public class PartyRecordTests
 {
     private static readonly JsonSerializerOptions _options
         = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+
+    private static PersonRecord ToExpectedPersonRecord(PartyRecord record)
+        => new()
+        {
+            PartyUuid = record.PartyUuid,
+            PartyId = record.PartyId,
+            ExternalUrn = record.ExternalUrn,
+            DisplayName = record.DisplayName,
+            PersonIdentifier = record.PersonIdentifier,
+            OrganizationIdentifier = record.OrganizationIdentifier,
+            CreatedAt = record.CreatedAt,
+            ModifiedAt = record.ModifiedAt,
+            IsDeleted = record.IsDeleted,
+            DeletedAt = record.DeletedAt,
+            User = record.User,
+            VersionId = record.VersionId,
+            OwnerUuid = record.OwnerUuid,
+            Source = FieldValue.Unset,
+            FirstName = FieldValue.Unset,
+            MiddleName = FieldValue.Unset,
+            LastName = FieldValue.Unset,
+            ShortName = FieldValue.Unset,
+            Address = FieldValue.Unset,
+            MailingAddress = FieldValue.Unset,
+            DateOfBirth = FieldValue.Unset,
+            DateOfDeath = FieldValue.Unset,
+        };
+
+    private static OrganizationRecord ToExpectedOrganizationRecord(PartyRecord record)
+        => new()
+        {
+            PartyUuid = record.PartyUuid,
+            PartyId = record.PartyId,
+            ExternalUrn = record.ExternalUrn,
+            DisplayName = record.DisplayName,
+            PersonIdentifier = record.PersonIdentifier,
+            OrganizationIdentifier = record.OrganizationIdentifier,
+            CreatedAt = record.CreatedAt,
+            ModifiedAt = record.ModifiedAt,
+            IsDeleted = record.IsDeleted,
+            DeletedAt = record.DeletedAt,
+            User = record.User,
+            VersionId = record.VersionId,
+            OwnerUuid = record.OwnerUuid,
+            Source = FieldValue.Unset,
+            UnitStatus = FieldValue.Unset,
+            UnitType = FieldValue.Unset,
+            TelephoneNumber = FieldValue.Unset,
+            MobileNumber = FieldValue.Unset,
+            FaxNumber = FieldValue.Unset,
+            EmailAddress = FieldValue.Unset,
+            InternetAddress = FieldValue.Unset,
+            MailingAddress = FieldValue.Unset,
+            BusinessAddress = FieldValue.Unset,
+        };
+
+    private static SelfIdentifiedUserRecord ToExpectedSelfIdentifiedUserRecord(PartyRecord record)
+        => new()
+        {
+            PartyUuid = record.PartyUuid,
+            PartyId = record.PartyId,
+            ExternalUrn = record.ExternalUrn,
+            DisplayName = record.DisplayName,
+            PersonIdentifier = record.PersonIdentifier,
+            OrganizationIdentifier = record.OrganizationIdentifier,
+            CreatedAt = record.CreatedAt,
+            ModifiedAt = record.ModifiedAt,
+            IsDeleted = record.IsDeleted,
+            DeletedAt = record.DeletedAt,
+            User = record.User,
+            VersionId = record.VersionId,
+            OwnerUuid = record.OwnerUuid,
+            SelfIdentifiedUserType = FieldValue.Unset,
+            Email = FieldValue.Unset,
+        };
 
     [Fact]
     public void Serialize_PartyRecord_AllUnset()
@@ -36,11 +112,11 @@ public class PartyRecordTests
         };
 
         var json = JsonSerializer.Serialize(record, _options);
-        json.Should().Be("""{}""");
+        json.ShouldBe("""{}""");
 
         var deserialized = JsonSerializer.Deserialize<PartyRecord>(json, _options);
-        deserialized.Should().BeOfType<PartyRecord>();
-        deserialized.Should().BeEquivalentTo(record);
+        deserialized.ShouldBeOfType<PartyRecord>();
+        deserialized.ShouldBeEquivalentTo(record);
     }
 
     [Fact]
@@ -64,7 +140,7 @@ public class PartyRecordTests
         };
 
         var json = JsonSerializer.SerializeToElement(record, _options);
-        json.Should().BeEquivalentTo(
+        json.ShouldBeStructurallyEquivalentTo(
             """
             {
                 "partyUuid": "00000000-0000-0000-0000-000000000001",
@@ -84,8 +160,8 @@ public class PartyRecordTests
             """);
 
         var deserialized = JsonSerializer.Deserialize<PartyRecord>(json, _options);
-        deserialized.Should().BeOfType<PartyRecord>();
-        deserialized.Should().BeEquivalentTo(record);
+        deserialized.ShouldBeOfType<PartyRecord>();
+        deserialized.ShouldBeEquivalentTo(record);
     }
 
     [Fact]
@@ -109,7 +185,7 @@ public class PartyRecordTests
         };
 
         var json = JsonSerializer.SerializeToElement(record, _options);
-        json.Should().BeEquivalentTo(
+        json.ShouldBeStructurallyEquivalentTo(
             """
             {
                 "partyType": "person",
@@ -129,8 +205,8 @@ public class PartyRecordTests
             """);
 
         var deserialized = JsonSerializer.Deserialize<PartyRecord>(json, _options);
-        deserialized.Should().BeOfType<PersonRecord>();
-        deserialized.Should().BeEquivalentTo(record);
+        var person = deserialized.ShouldBeOfType<PersonRecord>();
+        person.ShouldBeEquivalentTo(ToExpectedPersonRecord(record));
     }
 
     [Fact]
@@ -154,7 +230,7 @@ public class PartyRecordTests
         };
 
         var json = JsonSerializer.SerializeToElement(record, _options);
-        json.Should().BeEquivalentTo(
+        json.ShouldBeStructurallyEquivalentTo(
             """
             {
                 "partyType": "organization",
@@ -174,8 +250,8 @@ public class PartyRecordTests
             """);
 
         var deserialized = JsonSerializer.Deserialize<PartyRecord>(json, _options);
-        deserialized.Should().BeOfType<OrganizationRecord>();
-        deserialized.Should().BeEquivalentTo(record);
+        var organization = deserialized.ShouldBeOfType<OrganizationRecord>();
+        organization.ShouldBeEquivalentTo(ToExpectedOrganizationRecord(record));
     }
 
     [Fact]
@@ -199,7 +275,7 @@ public class PartyRecordTests
         };
 
         var json = JsonSerializer.SerializeToElement(record, _options);
-        json.Should().BeEquivalentTo(
+        json.ShouldBeStructurallyEquivalentTo(
             """
             {
                 "partyType": "self-identified-user",
@@ -222,8 +298,8 @@ public class PartyRecordTests
             """);
 
         var deserialized = JsonSerializer.Deserialize<PartyRecord>(json, _options);
-        deserialized.Should().BeOfType<SelfIdentifiedUserRecord>();
-        deserialized.Should().BeEquivalentTo(record);
+        var selfIdentified = deserialized.ShouldBeOfType<SelfIdentifiedUserRecord>();
+        selfIdentified.ShouldBeEquivalentTo(ToExpectedSelfIdentifiedUserRecord(record));
     }
 
     [Fact]
@@ -257,7 +333,7 @@ public class PartyRecordTests
         };
 
         var json = JsonSerializer.SerializeToElement(record, _options);
-        json.Should().BeEquivalentTo(
+        json.ShouldBeStructurallyEquivalentTo(
             """
             {
                 "partyType": "person"
@@ -265,8 +341,8 @@ public class PartyRecordTests
             """);
 
         var deserialized = JsonSerializer.Deserialize<PartyRecord>(json, _options);
-        deserialized.Should().BeOfType<PersonRecord>();
-        deserialized.Should().BeEquivalentTo(record);
+        deserialized.ShouldBeOfType<PersonRecord>();
+        deserialized.ShouldBeEquivalentTo(record);
     }
 
     [Fact]
@@ -300,7 +376,7 @@ public class PartyRecordTests
         };
 
         var json = JsonSerializer.SerializeToElement(record, _options);
-        json.Should().BeEquivalentTo(
+        json.ShouldBeStructurallyEquivalentTo(
             """
             {
                 "partyType": "person",
@@ -320,8 +396,8 @@ public class PartyRecordTests
             """);
 
         var deserialized = JsonSerializer.Deserialize<PartyRecord>(json, _options);
-        deserialized.Should().BeOfType<PersonRecord>();
-        deserialized.Should().BeEquivalentTo(record);
+        deserialized.ShouldBeOfType<PersonRecord>();
+        deserialized.ShouldBeEquivalentTo(record);
     }
 
     [Fact]
@@ -369,7 +445,7 @@ public class PartyRecordTests
         };
 
         var json = JsonSerializer.SerializeToElement(record, _options);
-        json.Should().BeEquivalentTo(
+        json.ShouldBeStructurallyEquivalentTo(
             """
             {
                 "partyType": "person",
@@ -413,8 +489,8 @@ public class PartyRecordTests
             """);
 
         var deserialized = JsonSerializer.Deserialize<PartyRecord>(json, _options);
-        deserialized.Should().BeOfType<PersonRecord>();
-        deserialized.Should().BeEquivalentTo(record);
+        deserialized.ShouldBeOfType<PersonRecord>();
+        deserialized.ShouldBeEquivalentTo(record);
     }
 
     [Fact]
@@ -448,7 +524,7 @@ public class PartyRecordTests
             BusinessAddress = FieldValue.Unset,
         };
         var json = JsonSerializer.SerializeToElement(record, _options);
-        json.Should().BeEquivalentTo(
+        json.ShouldBeStructurallyEquivalentTo(
             """
             {
                 "partyType": "organization"
@@ -456,8 +532,8 @@ public class PartyRecordTests
             """);
 
         var deserialized = JsonSerializer.Deserialize<PartyRecord>(json, _options);
-        deserialized.Should().BeOfType<OrganizationRecord>();
-        deserialized.Should().BeEquivalentTo(record);
+        deserialized.ShouldBeOfType<OrganizationRecord>();
+        deserialized.ShouldBeEquivalentTo(record);
     }
 
     [Fact]
@@ -502,7 +578,7 @@ public class PartyRecordTests
         };
 
         var json = JsonSerializer.SerializeToElement(record, _options);
-        json.Should().BeEquivalentTo(
+        json.ShouldBeStructurallyEquivalentTo(
             """
             {
                 "partyType": "organization",
@@ -540,8 +616,8 @@ public class PartyRecordTests
             """);
 
         var deserialized = JsonSerializer.Deserialize<PartyRecord>(json, _options);
-        deserialized.Should().BeOfType<OrganizationRecord>();
-        deserialized.Should().BeEquivalentTo(record);
+        deserialized.ShouldBeOfType<OrganizationRecord>();
+        deserialized.ShouldBeEquivalentTo(record);
     }
 
     [Fact]
@@ -577,7 +653,7 @@ public class PartyRecordTests
             ParentOrganizationUuid = Guid.Parse("00000000-0000-0000-0000-000000000002"),
         };
         var json = JsonSerializer.SerializeToElement(record, _options);
-        json.Should().BeEquivalentTo(
+        json.ShouldBeStructurallyEquivalentTo(
             """
             {
                 "partyType": "organization"
@@ -593,8 +669,8 @@ public class PartyRecordTests
             """;
 
         var deserialized = JsonSerializer.Deserialize<PartyRecord>(json2, _options);
-        var org = deserialized.Should().BeOfType<OrganizationRecord>().Which;
-        org.ParentOrganizationUuid.Should().BeUnset();
+        var org = deserialized.ShouldBeOfType<OrganizationRecord>();
+        org.ParentOrganizationUuid.ShouldBeUnset();
     }
 
     [Fact]
@@ -620,7 +696,7 @@ public class PartyRecordTests
         };
 
         var json = JsonSerializer.SerializeToElement(record, _options);
-        json.Should().BeEquivalentTo(
+        json.ShouldBeStructurallyEquivalentTo(
             """
             {
                 "partyType": "self-identified-user",
@@ -646,8 +722,8 @@ public class PartyRecordTests
             """);
 
         var deserialized = JsonSerializer.Deserialize<SelfIdentifiedUserRecord>(json, _options);
-        deserialized.Should().BeOfType<SelfIdentifiedUserRecord>();
-        deserialized.Should().BeEquivalentTo(record);
+        deserialized.ShouldBeOfType<SelfIdentifiedUserRecord>();
+        deserialized.ShouldBeEquivalentTo(record);
     }
 
     [Fact]
@@ -694,7 +770,7 @@ public class PartyRecordTests
         };
 
         var json = JsonSerializer.SerializeToElement(record, options);
-        json.Should().BeEquivalentTo(
+        json.ShouldBeStructurallyEquivalentTo(
             """
             {
                 "PartyType": "organization",
@@ -732,8 +808,8 @@ public class PartyRecordTests
             """);
 
         var deserialized = JsonSerializer.Deserialize<PartyRecord>(json, options);
-        deserialized.Should().BeOfType<OrganizationRecord>();
-        deserialized.Should().BeEquivalentTo(record);
+        deserialized.ShouldBeOfType<OrganizationRecord>();
+        deserialized.ShouldBeEquivalentTo(record);
     }
 
     [Fact]
@@ -754,15 +830,15 @@ public class PartyRecordTests
             """;
 
         var deserialized = JsonSerializer.Deserialize<PartyRecord>(json, options);
-        var org = deserialized.Should().BeOfType<OrganizationRecord>().Which;
-        org.DisplayName.Should().HaveValue().Which.Should().Be("Test");
-        org.UnitType.Should().HaveValue().Which.Should().Be("type");
+        var org = deserialized.ShouldBeOfType<OrganizationRecord>();
+        org.DisplayName.ShouldHaveValue().ShouldBe("Test");
+        org.UnitType.ShouldHaveValue().ShouldBe("type");
     }
 
     [Fact]
     public void Deserialize_Subclasses()
     {
-        JsonSerializer.Deserialize<PersonRecord>("""{}""", _options).Should().NotBeNull();
-        JsonSerializer.Deserialize<OrganizationRecord>("""{}""", _options).Should().NotBeNull();
+        JsonSerializer.Deserialize<PersonRecord>("""{}""", _options).ShouldNotBeNull();
+        JsonSerializer.Deserialize<OrganizationRecord>("""{}""", _options).ShouldNotBeNull();
     }
 }

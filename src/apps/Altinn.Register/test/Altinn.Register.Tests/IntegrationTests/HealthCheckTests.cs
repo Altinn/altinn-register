@@ -15,6 +15,8 @@ namespace Altinn.Register.Tests.IntegrationTests
     {
         private readonly WebApplicationFactory<Program> _factory;
 
+        private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
+
         public HealthCheckTests(WebApplicationFactory<Program> factory)
         {
             _factory = factory.WithWebHostBuilder(builder =>
@@ -37,7 +39,7 @@ namespace Altinn.Register.Tests.IntegrationTests
 
             HttpRequestMessage httpRequestMessage = new(HttpMethod.Get, "/health");
 
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
@@ -48,7 +50,7 @@ namespace Altinn.Register.Tests.IntegrationTests
 
             HttpRequestMessage httpRequestMessage = new(HttpMethod.Get, "/alive");
 
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 

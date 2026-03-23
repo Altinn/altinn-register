@@ -9,6 +9,8 @@ public class UnitOfWorkTests
 {
     private readonly IUnitOfWorkManager _manager;
 
+    private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
+
     public UnitOfWorkTests()
     {
         var impl = new UnitOfWorkManager.Impl(
@@ -21,22 +23,22 @@ public class UnitOfWorkTests
     [Fact]
     public async Task GetService_IUnitOfWork_Fallbacks()
     {
-        await using var uow = await _manager.CreateAsync();
-        uow.GetService<IUnitOfWork>().Should().BeNull();
+        await using var uow = await _manager.CreateAsync(CancellationToken);
+        uow.GetService<IUnitOfWork>().ShouldBeNull();
     }
 
     [Fact]
     public async Task GetService_IServiceProvider_ReturnsValue()
     {
-        await using var uow = await _manager.CreateAsync();
-        uow.GetService<IServiceProvider>().Should().NotBeNull();
+        await using var uow = await _manager.CreateAsync(CancellationToken);
+        uow.GetService<IServiceProvider>().ShouldNotBeNull();
     }
 
     [Fact]
     public async Task GetService_IUnitOfWorkHandle_ReturnsValue()
     {
-        await using var uow = await _manager.CreateAsync();
-        uow.GetService<IUnitOfWorkHandle>().Should().NotBeNull();
+        await using var uow = await _manager.CreateAsync(CancellationToken);
+        uow.GetService<IUnitOfWorkHandle>().ShouldNotBeNull();
     }
 
     private sealed class NullServices

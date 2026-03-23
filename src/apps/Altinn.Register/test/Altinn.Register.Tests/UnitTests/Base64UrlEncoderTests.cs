@@ -22,9 +22,9 @@ public class Base64UrlEncoderTests
         var buff = ArrayPool<byte>.Shared.Rent(Base64UrlEncoder.GetMaxDecodedLength(s.Length));
         try
         {
-            Base64UrlEncoder.TryDecode(s, buff, out var written).Should().BeTrue();
+            Base64UrlEncoder.TryDecode(s, buff, out var written).ShouldBeTrue();
             var roundTripped = Base64UrlEncoder.Encode(buff.AsSpan(0, written));
-            roundTripped.Should().Be(s);
+            roundTripped.ShouldBe(s);
         }
         finally
         {
@@ -42,12 +42,12 @@ public class Base64UrlEncoderTests
         byte[]? utf8Buff = null;
         try
         {
-            Base64UrlEncoder.TryDecode(utf8, dataBuff, out var written).Should().BeTrue();
+            Base64UrlEncoder.TryDecode(utf8, dataBuff, out var written).ShouldBeTrue();
 
             utf8Buff = ArrayPool<byte>.Shared.Rent(Base64UrlEncoder.GetMaxEncodedLength(written));
-            Base64UrlEncoder.TryEncode(dataBuff.AsSpan(0, written), utf8Buff, out var writtenUtf8).Should().BeTrue();
+            Base64UrlEncoder.TryEncode(dataBuff.AsSpan(0, written), utf8Buff, out var writtenUtf8).ShouldBeTrue();
 
-            utf8.AsSpan().SequenceEqual(utf8Buff.AsSpan(0, writtenUtf8)).Should().BeTrue();
+            utf8.AsSpan().SequenceEqual(utf8Buff.AsSpan(0, writtenUtf8)).ShouldBeTrue();
         }
         finally
         {

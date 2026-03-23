@@ -22,6 +22,9 @@ public abstract class BaseControllerTests
     private IServiceProvider? _services;
     private AsyncServiceScope _scope;
 
+    protected CancellationToken CancellationToken
+        => TestContext.Current.CancellationToken;
+
     protected BaseControllerTests(WebApplicationFixture webApplicationFixture)
     {
         _webApplicationFixture = webApplicationFixture;
@@ -46,7 +49,7 @@ public abstract class BaseControllerTests
         return ValueTask.CompletedTask;
     }
 
-    async Task IAsyncLifetime.DisposeAsync()
+    async ValueTask IAsyncDisposable.DisposeAsync()
     {
         await DisposeAsync();
         if (_scope is { } scope)
@@ -69,7 +72,7 @@ public abstract class BaseControllerTests
         }
     }
 
-    async Task IAsyncLifetime.InitializeAsync()
+    async ValueTask IAsyncLifetime.InitializeAsync()
     {
         _webApp = _webApplicationFixture.CreateServer(
             configureConfiguration: config =>

@@ -24,7 +24,7 @@ public class OpaqueTests
         var serialized = data.ToString();
         var parsed = Opaque<string>.Parse(serialized, null);
 
-        parsed.Value.Should().Be(s);
+        parsed.Value.ShouldBe(s);
     }
 
     [Theory]
@@ -36,6 +36,6 @@ public class OpaqueTests
         var parsed = JsonSerializer.Deserialize<Opaque<string>>(json);
 
         Assert.NotNull(parsed);
-        parsed.Value.Should().Be(s);
+        parsed.Value.ShouldBe(s);
     }
 }

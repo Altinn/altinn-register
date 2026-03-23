@@ -14,6 +14,8 @@ public class PartyComponentOptionModelBinderTests
 {
     private readonly Factory _factory;
 
+    private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
+
     public PartyComponentOptionModelBinderTests(Factory factory)
     {
         _factory = factory;
@@ -25,11 +27,11 @@ public class PartyComponentOptionModelBinderTests
     {
         var client = _factory.CreateClient();
 
-        var response = await client.GetAsync($"/query?{query}");
+        var response = await client.GetAsync($"/query?{query}", CancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var result = await response.Content.ReadAsStringAsync();
-        result.Should().Be(((uint)expected).ToString());
+        var result = await response.Content.ReadAsStringAsync(CancellationToken);
+        result.ShouldBe(((uint)expected).ToString());
     }
 
     public class TestController : ControllerBase

@@ -7,6 +7,8 @@ namespace Altinn.Register.Tests.UnitTests;
 
 public class JobEnabledBuilderTests
 {
+    private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
+
     [Fact]
     public async Task AllSync()
     {
@@ -19,9 +21,9 @@ public class JobEnabledBuilderTests
             .WithCheck(CreateImmediateCheck(counter))
             .ToFunc();
 
-        var result = await check(null!, default);
-        result.ShouldRun.Should().BeTrue();
-        counter.Value.Should().Be(5);
+        var result = await check(null!, CancellationToken);
+        result.ShouldRun.ShouldBeTrue();
+        counter.Value.ShouldBe(5U);
     }
 
     [Fact]
@@ -36,9 +38,9 @@ public class JobEnabledBuilderTests
             .WithCheck(CreateDeferredCheck(counter))
             .ToFunc();
 
-        var result = await check(null!, default);
-        result.ShouldRun.Should().BeTrue();
-        counter.Value.Should().Be(5);
+        var result = await check(null!, CancellationToken);
+        result.ShouldRun.ShouldBeTrue();
+        counter.Value.ShouldBe(5U);
     }
 
     [Fact]
@@ -53,9 +55,9 @@ public class JobEnabledBuilderTests
             .WithCheck(CreateImmediateCheck(counter))
             .ToFunc();
 
-        var result = await check(null!, default);
-        result.ShouldRun.Should().BeTrue();
-        counter.Value.Should().Be(5);
+        var result = await check(null!, CancellationToken);
+        result.ShouldRun.ShouldBeTrue();
+        counter.Value.ShouldBe(5U);
     }
 
     [Theory]
@@ -75,9 +77,9 @@ public class JobEnabledBuilderTests
 
         var check = builder.ToFunc();
 
-        var result = await check(null!, default);
-        result.ShouldRun.Should().BeFalse();
-        counter.Value.Should().Be((uint)(index + 1));
+        var result = await check(null!, CancellationToken);
+        result.ShouldRun.ShouldBeFalse();
+        counter.Value.ShouldBe((uint)(index + 1));
     }
 
     [Theory]
@@ -97,10 +99,10 @@ public class JobEnabledBuilderTests
 
         var check = builder.ToFunc();
 
-        var result = await check(null!, default);
-        result.ShouldRun.Should().BeFalse();
-        result.Reason.Should().Be(index.ToString());
-        counter.Value.Should().Be((uint)(index + 1));
+        var result = await check(null!, CancellationToken);
+        result.ShouldRun.ShouldBeFalse();
+        result.Reason.ShouldBe(index.ToString());
+        counter.Value.ShouldBe((uint)(index + 1));
     }
 
     [Theory]
@@ -127,10 +129,10 @@ public class JobEnabledBuilderTests
 
         var check = builder.ToFunc();
 
-        var result = await check(null!, default);
-        result.ShouldRun.Should().BeFalse();
-        result.Reason.Should().Be(index.ToString());
-        counter.Value.Should().Be((uint)(index + 1));
+        var result = await check(null!, CancellationToken);
+        result.ShouldRun.ShouldBeFalse();
+        result.Reason.ShouldBe(index.ToString());
+        counter.Value.ShouldBe((uint)(index + 1));
     }
 
     private static Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>> CreateImmediateCheck(AtomicCounter counter, bool result = true, string reason = "test")

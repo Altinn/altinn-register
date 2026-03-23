@@ -21,14 +21,19 @@ internal sealed class SpanTree
 
     public Stats GetStats()
     {
+        DateTimeOffset startTime, endTime;
         ImmutableArray<SpanItem>.Builder items = ImmutableArray.CreateBuilder<SpanItem>(_spans.Count);
 
         lock (_lock)
         {
+            Debug.Assert(_root.Duration is not null);
+            startTime = _root.StartTime;
+            endTime = startTime + _root.Duration.Value;
+
             Walk(_root, items, string.Empty, true);
         }
 
-        return new(items.DrainToImmutable());
+        return new(items.DrainToImmutable(), startTime, endTime);
 
         static void Walk(SpanNode node, ImmutableArray<SpanItem>.Builder output, string parentPrefix, bool root)
         {
@@ -138,11 +143,11 @@ internal sealed class SpanTree
     {
         private readonly ImmutableArray<SpanItem> _items;
 
-        public Stats(ImmutableArray<SpanItem> items)
+        public Stats(ImmutableArray<SpanItem> items, DateTimeOffset startTime, DateTimeOffset endTime)
         {
             _items = items;
-            Min = items.Min(static i => i.StartTime);
-            Max = items.Max(static i => i.EndTime);
+            Min = startTime;
+            Max = endTime;
         }
 
         public DateTimeOffset Min { get; }

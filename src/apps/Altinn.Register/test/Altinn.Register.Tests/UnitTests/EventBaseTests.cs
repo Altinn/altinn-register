@@ -18,13 +18,13 @@ public class EventBaseTests
         };
 
         var correlationId = ((CorrelatedBy<Guid>)evt).CorrelationId;
-        correlationId.Should().NotBeEmpty();
+        correlationId.ShouldNotBe(Guid.Empty);
 
         var json = JsonSerializer.Serialize(evt, Options);
         var roundTripped = JsonSerializer.Deserialize<TestEvent>(json, Options);
 
-        roundTripped.Should().BeEquivalentTo(evt);
-        ((CorrelatedBy<Guid>)roundTripped).CorrelationId.Should().Be(correlationId);
+        roundTripped.ShouldBeEquivalentTo(evt);
+        ((CorrelatedBy<Guid>)roundTripped).CorrelationId.ShouldBe(correlationId);
     }
 
     private sealed record TestEvent

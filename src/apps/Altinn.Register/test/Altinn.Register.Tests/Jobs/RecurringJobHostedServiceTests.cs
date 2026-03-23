@@ -10,7 +10,6 @@ using Altinn.Register.Jobs;
 using Altinn.Register.Persistence;
 using Altinn.Register.Tests.Utils;
 using Altinn.Register.TestUtils;
-using FluentAssertions.Execution;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Time.Testing;
@@ -51,7 +50,7 @@ public class RecurringJobHostedServiceTests
     {
         await using var sut = CreateService([]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
     }
 
     [Fact]
@@ -60,17 +59,17 @@ public class RecurringJobHostedServiceTests
         var counter = new AtomicCounter();
         await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Starting, counter)]);
 
-        counter.Value.Should().Be(0);
-        await sut.StartingAsync(CancellationToken.None);
-        counter.Value.Should().Be(1);
+        counter.Value.ShouldBe(0U);
+        await sut.StartingAsync(CancellationToken);
+        counter.Value.ShouldBe(1U);
 
-        await sut.StartAsync(CancellationToken.None);
-        await sut.StartedAsync(CancellationToken.None);
-        await sut.StoppingAsync(CancellationToken.None);
-        await sut.StopAsync(CancellationToken.None);
-        await sut.StoppedAsync(CancellationToken.None);
+        await sut.StartAsync(CancellationToken);
+        await sut.StartedAsync(CancellationToken);
+        await sut.StoppingAsync(CancellationToken);
+        await sut.StopAsync(CancellationToken);
+        await sut.StoppedAsync(CancellationToken);
 
-        counter.Value.Should().Be(1);
+        counter.Value.ShouldBe(1U);
     }
 
     [Fact]
@@ -79,18 +78,18 @@ public class RecurringJobHostedServiceTests
         var counter = new AtomicCounter();
         await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Start, counter)]);
 
-        await sut.StartingAsync(CancellationToken.None);
+        await sut.StartingAsync(CancellationToken);
 
-        counter.Value.Should().Be(0);
-        await sut.StartAsync(CancellationToken.None);
-        counter.Value.Should().Be(1);
+        counter.Value.ShouldBe(0U);
+        await sut.StartAsync(CancellationToken);
+        counter.Value.ShouldBe(1U);
 
-        await sut.StartedAsync(CancellationToken.None);
-        await sut.StoppingAsync(CancellationToken.None);
-        await sut.StopAsync(CancellationToken.None);
-        await sut.StoppedAsync(CancellationToken.None);
+        await sut.StartedAsync(CancellationToken);
+        await sut.StoppingAsync(CancellationToken);
+        await sut.StopAsync(CancellationToken);
+        await sut.StoppedAsync(CancellationToken);
 
-        counter.Value.Should().Be(1);
+        counter.Value.ShouldBe(1U);
     }
 
     [Fact]
@@ -99,18 +98,18 @@ public class RecurringJobHostedServiceTests
         var counter = new AtomicCounter();
         await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Started, counter)]);
 
-        await sut.StartingAsync(CancellationToken.None);
-        await sut.StartAsync(CancellationToken.None);
+        await sut.StartingAsync(CancellationToken);
+        await sut.StartAsync(CancellationToken);
 
-        counter.Value.Should().Be(0);
-        await sut.StartedAsync(CancellationToken.None);
-        counter.Value.Should().Be(1);
+        counter.Value.ShouldBe(0U);
+        await sut.StartedAsync(CancellationToken);
+        counter.Value.ShouldBe(1U);
 
-        await sut.StoppingAsync(CancellationToken.None);
-        await sut.StopAsync(CancellationToken.None);
-        await sut.StoppedAsync(CancellationToken.None);
+        await sut.StoppingAsync(CancellationToken);
+        await sut.StopAsync(CancellationToken);
+        await sut.StoppedAsync(CancellationToken);
 
-        counter.Value.Should().Be(1);
+        counter.Value.ShouldBe(1U);
     }
 
     [Fact]
@@ -119,18 +118,18 @@ public class RecurringJobHostedServiceTests
         var counter = new AtomicCounter();
         await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stopping, counter)]);
 
-        await sut.StartingAsync(CancellationToken.None);
-        await sut.StartAsync(CancellationToken.None);
-        await sut.StartedAsync(CancellationToken.None);
+        await sut.StartingAsync(CancellationToken);
+        await sut.StartAsync(CancellationToken);
+        await sut.StartedAsync(CancellationToken);
 
-        counter.Value.Should().Be(0);
-        await sut.StoppingAsync(CancellationToken.None);
-        counter.Value.Should().Be(1);
+        counter.Value.ShouldBe(0U);
+        await sut.StoppingAsync(CancellationToken);
+        counter.Value.ShouldBe(1U);
 
-        await sut.StopAsync(CancellationToken.None);
-        await sut.StoppedAsync(CancellationToken.None);
+        await sut.StopAsync(CancellationToken);
+        await sut.StoppedAsync(CancellationToken);
 
-        counter.Value.Should().Be(1);
+        counter.Value.ShouldBe(1U);
     }
 
     [Fact]
@@ -139,18 +138,18 @@ public class RecurringJobHostedServiceTests
         var counter = new AtomicCounter();
         await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stop, counter)]);
 
-        await sut.StartingAsync(CancellationToken.None);
-        await sut.StartAsync(CancellationToken.None);
-        await sut.StartedAsync(CancellationToken.None);
-        await sut.StoppingAsync(CancellationToken.None);
+        await sut.StartingAsync(CancellationToken);
+        await sut.StartAsync(CancellationToken);
+        await sut.StartedAsync(CancellationToken);
+        await sut.StoppingAsync(CancellationToken);
 
-        counter.Value.Should().Be(0);
-        await sut.StopAsync(CancellationToken.None);
-        counter.Value.Should().Be(1);
+        counter.Value.ShouldBe(0U);
+        await sut.StopAsync(CancellationToken);
+        counter.Value.ShouldBe(1U);
 
-        await sut.StoppedAsync(CancellationToken.None);
+        await sut.StoppedAsync(CancellationToken);
 
-        counter.Value.Should().Be(1);
+        counter.Value.ShouldBe(1U);
     }
 
     [Fact]
@@ -159,15 +158,15 @@ public class RecurringJobHostedServiceTests
         var counter = new AtomicCounter();
         await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stopped, counter)]);
 
-        await sut.StartingAsync(CancellationToken.None);
-        await sut.StartAsync(CancellationToken.None);
-        await sut.StartedAsync(CancellationToken.None);
-        await sut.StoppingAsync(CancellationToken.None);
-        await sut.StopAsync(CancellationToken.None);
+        await sut.StartingAsync(CancellationToken);
+        await sut.StartAsync(CancellationToken);
+        await sut.StartedAsync(CancellationToken);
+        await sut.StoppingAsync(CancellationToken);
+        await sut.StopAsync(CancellationToken);
 
-        counter.Value.Should().Be(0);
-        await sut.StoppedAsync(CancellationToken.None);
-        counter.Value.Should().Be(1);
+        counter.Value.ShouldBe(0U);
+        await sut.StoppedAsync(CancellationToken);
+        counter.Value.ShouldBe(1U);
     }
 
     [Fact]
@@ -178,19 +177,19 @@ public class RecurringJobHostedServiceTests
             JobHostLifecycles.Starting | JobHostLifecycles.Start | JobHostLifecycles.Started | JobHostLifecycles.Stopping | JobHostLifecycles.Stop | JobHostLifecycles.Stopped,
             counter)]);
 
-        counter.Value.Should().Be(0);
-        await sut.StartingAsync(CancellationToken.None);
-        counter.Value.Should().Be(1);
-        await sut.StartAsync(CancellationToken.None);
-        counter.Value.Should().Be(2);
-        await sut.StartedAsync(CancellationToken.None);
-        counter.Value.Should().Be(3);
-        await sut.StoppingAsync(CancellationToken.None);
-        counter.Value.Should().Be(4);
-        await sut.StopAsync(CancellationToken.None);
-        counter.Value.Should().Be(5);
-        await sut.StoppedAsync(CancellationToken.None);
-        counter.Value.Should().Be(6);
+        counter.Value.ShouldBe(0U);
+        await sut.StartingAsync(CancellationToken);
+        counter.Value.ShouldBe(1U);
+        await sut.StartAsync(CancellationToken);
+        counter.Value.ShouldBe(2U);
+        await sut.StartedAsync(CancellationToken);
+        counter.Value.ShouldBe(3U);
+        await sut.StoppingAsync(CancellationToken);
+        counter.Value.ShouldBe(4U);
+        await sut.StopAsync(CancellationToken);
+        counter.Value.ShouldBe(5U);
+        await sut.StoppedAsync(CancellationToken);
+        counter.Value.ShouldBe(6U);
     }
 
     [Fact]
@@ -199,7 +198,7 @@ public class RecurringJobHostedServiceTests
         var counter = new AtomicCounter();
         await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Starting, "test", counter)]);
 
-        await sut.Invoking(s => s.StartingAsync(CancellationToken.None)).Should().ThrowAsync<InvalidOperationException>();
+        await Should.ThrowAsync<InvalidOperationException>(() => sut.StartingAsync(CancellationToken));
     }
 
     [Fact]
@@ -209,16 +208,16 @@ public class RecurringJobHostedServiceTests
         var start = TimeProvider.GetUtcNow();
         await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Start, "test", counter)]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
         var end = TimeProvider.GetUtcNow();
 
-        counter.Value.Should().Be(1);
-        end.Should().Be(start + TimeSpan.FromSeconds(10));
+        counter.Value.ShouldBe(1U);
+        end.ShouldBe(start + TimeSpan.FromSeconds(10));
 
         var lease = await GetLeaseInfo("test");
-        lease.Should().NotBeNull();
-        lease.LastAcquiredAt.Should().Be(start);
-        lease.LastReleasedAt.Should().Be(end);
+        lease.ShouldNotBeNull();
+        lease.LastAcquiredAt.ShouldBe(start);
+        lease.LastReleasedAt.ShouldBe(end);
     }
 
     [Fact]
@@ -228,16 +227,16 @@ public class RecurringJobHostedServiceTests
         var start = TimeProvider.GetUtcNow();
         await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Started, "test", counter)]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
         var end = TimeProvider.GetUtcNow();
 
-        counter.Value.Should().Be(1);
-        end.Should().Be(start + TimeSpan.FromSeconds(10));
+        counter.Value.ShouldBe(1U);
+        end.ShouldBe(start + TimeSpan.FromSeconds(10));
 
         var lease = await GetLeaseInfo("test");
-        lease.Should().NotBeNull();
-        lease.LastAcquiredAt.Should().Be(start);
-        lease.LastReleasedAt.Should().Be(end);
+        lease.ShouldNotBeNull();
+        lease.LastAcquiredAt.ShouldBe(start);
+        lease.LastReleasedAt.ShouldBe(end);
     }
 
     [Fact]
@@ -247,16 +246,16 @@ public class RecurringJobHostedServiceTests
         var start = TimeProvider.GetUtcNow();
         await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stopping, "test", counter)]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
         var end = TimeProvider.GetUtcNow();
 
-        counter.Value.Should().Be(1);
-        end.Should().Be(start + TimeSpan.FromSeconds(10));
+        counter.Value.ShouldBe(1U);
+        end.ShouldBe(start + TimeSpan.FromSeconds(10));
 
         var lease = await GetLeaseInfo("test");
-        lease.Should().NotBeNull();
-        lease.LastAcquiredAt.Should().Be(start);
-        lease.LastReleasedAt.Should().Be(end);
+        lease.ShouldNotBeNull();
+        lease.LastAcquiredAt.ShouldBe(start);
+        lease.LastReleasedAt.ShouldBe(end);
     }
 
     [Fact]
@@ -266,16 +265,16 @@ public class RecurringJobHostedServiceTests
         var start = TimeProvider.GetUtcNow();
         await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stop, "test", counter)]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
         var end = TimeProvider.GetUtcNow();
 
-        counter.Value.Should().Be(1);
-        end.Should().Be(start + TimeSpan.FromSeconds(10));
+        counter.Value.ShouldBe(1U);
+        end.ShouldBe(start + TimeSpan.FromSeconds(10));
 
         var lease = await GetLeaseInfo("test");
-        lease.Should().NotBeNull();
-        lease.LastAcquiredAt.Should().Be(start);
-        lease.LastReleasedAt.Should().Be(end);
+        lease.ShouldNotBeNull();
+        lease.LastAcquiredAt.ShouldBe(start);
+        lease.LastReleasedAt.ShouldBe(end);
     }
 
     [Fact]
@@ -285,16 +284,16 @@ public class RecurringJobHostedServiceTests
         var start = TimeProvider.GetUtcNow();
         await using var sut = CreateService([Counter.RunAt(JobHostLifecycles.Stopped, "test", counter)]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
         var end = TimeProvider.GetUtcNow();
 
-        counter.Value.Should().Be(1);
-        end.Should().Be(start + TimeSpan.FromSeconds(10));
+        counter.Value.ShouldBe(1U);
+        end.ShouldBe(start + TimeSpan.FromSeconds(10));
 
         var lease = await GetLeaseInfo("test");
-        lease.Should().NotBeNull();
-        lease.LastAcquiredAt.Should().Be(start);
-        lease.LastReleasedAt.Should().Be(end);
+        lease.ShouldNotBeNull();
+        lease.LastAcquiredAt.ShouldBe(start);
+        lease.LastReleasedAt.ShouldBe(end);
     }
 
     [Theory]
@@ -308,8 +307,8 @@ public class RecurringJobHostedServiceTests
     {
         await using var sut = CreateService([Registration.RunAt(lifecycle, new Func<IServiceProvider, Task>(_ => throw new InvalidOperationException("I died miserably")), services => ValueTask.FromResult(true))]);
 
-        var assert = await sut.Invoking(s => Run(s)).Should().ThrowExactlyAsync<InvalidOperationException>();
-        assert.WithMessage("I died miserably");
+        var assert = await Should.ThrowAsync<InvalidOperationException>(() => Run(sut, CancellationToken));
+        assert.Message.ShouldBe("I died miserably");
     }
 
     [Theory]
@@ -323,8 +322,8 @@ public class RecurringJobHostedServiceTests
     {
         await using var sut = CreateService([Registration.RunAt(lifecycle, new Func<IServiceProvider, Task>(_ => throw new InvalidOperationException("I died miserably")), services => throw new InvalidOperationException("I died miserably (shouldrun)"))]);
 
-        var assert = await sut.Invoking(s => Run(s)).Should().ThrowExactlyAsync<InvalidOperationException>();
-        assert.WithMessage("I died miserably (shouldrun)");
+        var assert = await Should.ThrowAsync<InvalidOperationException>(() => Run(sut, CancellationToken));
+        assert.Message.ShouldBe("I died miserably (shouldrun)");
     }
 
     [Theory]
@@ -342,9 +341,9 @@ public class RecurringJobHostedServiceTests
             Counter.RunAt(lifecycle, counter, enabled: (_, _) => ValueTask.FromResult(JobShouldRunResult.No("test"))),
         ]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
 
-        counter.Value.Should().Be(0);
+        counter.Value.ShouldBe(0U);
     }
 
     [Theory]
@@ -363,9 +362,9 @@ public class RecurringJobHostedServiceTests
             [Counter.RunAt(lifecycle, counter)],
             [condition]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
 
-        counter.Value.Should().Be(1);
+        counter.Value.ShouldBe(1U);
     }
 
     [Theory]
@@ -384,9 +383,9 @@ public class RecurringJobHostedServiceTests
             [Counter.RunAt(lifecycle, counter)],
             [condition]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
 
-        counter.Value.Should().Be(0);
+        counter.Value.ShouldBe(0U);
     }
 
     [Theory]
@@ -405,15 +404,15 @@ public class RecurringJobHostedServiceTests
             Counter.RunAt(lifecycle, counter, tcs.Task),
         ]);
 
-        var task = Run(sut);
+        var task = Run(sut, CancellationToken);
 
         await Task.Yield();
-        counter.Value.Should().Be(0);
-        task.IsCompleted.Should().BeFalse();
+        counter.Value.ShouldBe(0U);
+        task.IsCompleted.ShouldBeFalse();
 
         tcs.SetResult();
         await task;
-        counter.Value.Should().Be(1);
+        counter.Value.ShouldBe(1U);
     }
 
     [Theory]
@@ -426,12 +425,12 @@ public class RecurringJobHostedServiceTests
     {
         var counter = new AtomicCounter();
 
-        await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1));
+        await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), CancellationToken);
         await using var sut = CreateService([Counter.RunAt(lifecycle, "test", counter)]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
 
-        counter.Value.Should().Be(0);
+        counter.Value.ShouldBe(0U);
     }
 
     [Theory]
@@ -446,20 +445,20 @@ public class RecurringJobHostedServiceTests
 
         var leaseName = "test";
         var initialLeaseInfo = await GetLeaseInfo(leaseName);
-        initialLeaseInfo.Expires.Should().Be(DateTimeOffset.MinValue);
-        initialLeaseInfo.LastAcquiredAt.Should().BeNull();
-        initialLeaseInfo.LastReleasedAt.Should().BeNull();
+        initialLeaseInfo.Expires.ShouldBe(DateTimeOffset.MinValue);
+        initialLeaseInfo.LastAcquiredAt.ShouldBeNull();
+        initialLeaseInfo.LastReleasedAt.ShouldBeNull();
 
         await using var sut = CreateService([
             Counter.RunAt(lifecycle, leaseName, counter, enabled: (_, _) => ValueTask.FromResult(JobShouldRunResult.No("test"))),
         ]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
 
-        counter.Value.Should().Be(0);
+        counter.Value.ShouldBe(0U);
 
         var postLeaseInfo = await GetLeaseInfo(leaseName);
-        postLeaseInfo.Should().Be(initialLeaseInfo);
+        postLeaseInfo.ShouldBe(initialLeaseInfo);
     }
 
     [Fact]
@@ -476,14 +475,14 @@ public class RecurringJobHostedServiceTests
             Registration.RunAt(JobHostLifecycles.Start, _ => new BothDisposableJob(job3Dispose, job3DisposeAsync)),
         ]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
 
-        job1Dispose.Value.Should().Be(1);
-        job2DisposeAsync.Value.Should().Be(1);
+        job1Dispose.Value.ShouldBe(1U);
+        job2DisposeAsync.Value.ShouldBe(1U);
 
         // async dispose is prioritized over sync dispose
-        job3Dispose.Value.Should().Be(0);
-        job3DisposeAsync.Value.Should().Be(1);
+        job3Dispose.Value.ShouldBe(0U);
+        job3DisposeAsync.Value.ShouldBe(1U);
     }
 
     [Fact]
@@ -495,11 +494,11 @@ public class RecurringJobHostedServiceTests
             Counter.Scheduled(TimeSpan.FromHours(1), counter, enabled: (_, _) => ValueTask.FromResult(JobShouldRunResult.No("test"))),
         ]);
 
-        await Start(sut);
+        await Start(sut, CancellationToken);
         TimeProvider.Advance(TimeSpan.FromHours(1));
-        await Stop(sut);
+        await Stop(sut, CancellationToken);
 
-        counter.Value.Should().Be(0);
+        counter.Value.ShouldBe(0U);
     }
 
     [Fact]
@@ -511,9 +510,9 @@ public class RecurringJobHostedServiceTests
             Counter.Scheduled(TimeSpan.FromHours(1), counter),
         ]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
 
-        counter.Value.Should().Be(0);
+        counter.Value.ShouldBe(0U);
     }
 
     [Fact]
@@ -526,15 +525,15 @@ public class RecurringJobHostedServiceTests
             Counter.Scheduled(TimeSpan.FromHours(1), counter, tcs.Task),
         ]);
 
-        await Start(sut);
+        await Start(sut, CancellationToken);
         TimeProvider.Advance(TimeSpan.FromHours(1));
         await sut.WaitForRunningScheduledJobs();
-        counter.Value.Should().Be(0);
+        counter.Value.ShouldBe(0U);
 
         tcs.SetResult();
         await Task.Yield();
         await sut.WaitForRunningScheduledJobs();
-        counter.Value.Should().Be(1);
+        counter.Value.ShouldBe(1U);
     }
 
     [Fact]
@@ -546,7 +545,7 @@ public class RecurringJobHostedServiceTests
             Counter.Scheduled(TimeSpan.FromHours(1), counter),
         ]);
 
-        await Start(sut);
+        await Start(sut, CancellationToken);
 
         for (var i = 0; i < 10; i++)
         {
@@ -554,9 +553,9 @@ public class RecurringJobHostedServiceTests
             await sut.WaitForRunningScheduledJobs();
         }
 
-        await Stop(sut);
+        await Stop(sut, CancellationToken);
 
-        counter.Value.Should().Be(10);
+        counter.Value.ShouldBe(10U);
     }
 
     [Fact]
@@ -574,12 +573,12 @@ public class RecurringJobHostedServiceTests
             }),
         ]);
 
-        await Start(sut);
+        await Start(sut, CancellationToken);
         TimeProvider.Advance(TimeSpan.FromHours(1) + TimeSpan.FromSeconds(10));
         await sut.WaitForRunningScheduledJobs();
 
-        counter.Value.Should().Be(0);
-        checksRan.Value.Should().Be(1);
+        counter.Value.ShouldBe(0U);
+        checksRan.Value.ShouldBe(1U);
 
         enabled.Set(true);
         for (var i = 0; i < 10; i++)
@@ -589,13 +588,10 @@ public class RecurringJobHostedServiceTests
             await sut.WaitForRunningScheduledJobs();
         }
 
-        using (new AssertionScope())
-        {
-            checksRan.Value.Should().BeGreaterThan(1);
-            counter.Value.Should().BeGreaterThanOrEqualTo(1);
-        }
+        checksRan.Value.ShouldBeGreaterThan(1U);
+        counter.Value.ShouldBeGreaterThanOrEqualTo(1U);
 
-        await Stop(sut);
+        await Stop(sut, CancellationToken);
     }
 
     [Fact]
@@ -620,24 +616,24 @@ public class RecurringJobHostedServiceTests
                 services => ValueTask.FromResult(true)),
         ]);
 
-        await Start(sut);
+        await Start(sut, CancellationToken);
 
         var start = TimeProvider.GetUtcNow();
         TimeProvider.SetUtcNow(start + TimeSpan.FromHours(1));
         await sut.WaitForRunningScheduledJobs();
 
         var afterFirst = TimeProvider.GetUtcNow();
-        counter.Value.Should().Be(1);
+        counter.Value.ShouldBe(1U);
 
         TimeProvider.SetUtcNow(start + TimeSpan.FromHours(2));
         await sut.WaitForRunningScheduledJobs();
-        counter.Value.Should().Be(1);
+        counter.Value.ShouldBe(1U);
 
         TimeProvider.SetUtcNow(afterFirst + TimeSpan.FromHours(1));
         await sut.WaitForRunningScheduledJobs();
-        counter.Value.Should().Be(2);
+        counter.Value.ShouldBe(2U);
 
-        await Stop(sut);
+        await Stop(sut, CancellationToken);
     }
 
     [Fact]
@@ -649,17 +645,17 @@ public class RecurringJobHostedServiceTests
             Counter.Scheduled(TimeSpan.FromHours(1), "test", counter),
         ]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
 
-        counter.Value.Should().Be(1);
+        counter.Value.ShouldBe(1U);
     }
 
     [Fact]
     public async Task ScheduledJobs_WithLease_ThatRanRecently_AreNotRunImmediately()
     {
-        var result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1));
+        var result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), CancellationToken);
         Assert.True(result.IsLeaseAcquired);
-        await Provider.ReleaseLease(result.Lease);
+        await Provider.ReleaseLease(result.Lease, CancellationToken);
 
         var counter = new AtomicCounter();
 
@@ -667,9 +663,9 @@ public class RecurringJobHostedServiceTests
             Counter.Scheduled(TimeSpan.FromHours(1), "test", counter),
         ]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
 
-        counter.Value.Should().Be(0);
+        counter.Value.ShouldBe(0U);
     }
 
     [Fact]
@@ -688,13 +684,13 @@ public class RecurringJobHostedServiceTests
             }),
         ]);
 
-        await Start(sut);
+        await Start(sut, CancellationToken);
         TimeProvider.Advance(TimeSpan.FromHours(1));
         await sut.WaitForRunningScheduledJobs();
 
         var postLeaseInfo = await GetLeaseInfo(leaseName);
-        counter.Value.Should().Be(0);
-        postLeaseInfo.LastAcquiredAt.Should().Be(initialLeaseInfo.LastAcquiredAt);
+        counter.Value.ShouldBe(0U);
+        postLeaseInfo.LastAcquiredAt.ShouldBe(initialLeaseInfo.LastAcquiredAt);
 
         enabled.Set(true);
         for (var i = 0; i < 9; i++)
@@ -706,18 +702,18 @@ public class RecurringJobHostedServiceTests
         await sut.WaitForRunningScheduledJobs();
         postLeaseInfo = await GetLeaseInfo(leaseName);
 
-        counter.Value.Should().Be(1);
-        postLeaseInfo.LastAcquiredAt.Should().NotBe(initialLeaseInfo.LastAcquiredAt);
+        counter.Value.ShouldBe(1U);
+        postLeaseInfo.LastAcquiredAt.ShouldNotBe(initialLeaseInfo.LastAcquiredAt);
 
-        await Stop(sut);
+        await Stop(sut, CancellationToken);
     }
 
     [Fact]
     public async Task ScheduledJobs_WithLease_UsesLeaseTime_ToScheduleRuns()
     {
-        var result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1));
+        var result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), CancellationToken);
         Assert.True(result.IsLeaseAcquired);
-        await Provider.ReleaseLease(result.Lease);
+        await Provider.ReleaseLease(result.Lease, CancellationToken);
 
         // advance 40 minutes since the lease was released
         TimeProvider.Advance(TimeSpan.FromMinutes(40));
@@ -728,33 +724,33 @@ public class RecurringJobHostedServiceTests
             Counter.Scheduled(TimeSpan.FromHours(1), "test", counter),
         ]);
 
-        await Start(sut);
-        counter.Value.Should().Be(0);
+        await Start(sut, CancellationToken);
+        counter.Value.ShouldBe(0U);
 
         // advance 20 minutes, 1 hour since the lease was released (+ some seconds due to random jitter)
         TimeProvider.Advance(TimeSpan.FromMinutes(21));
         await sut.WaitForRunningScheduledJobs();
-        counter.Value.Should().Be(1);
+        counter.Value.ShouldBe(1U);
         var leaseInfo = await GetLeaseInfo("test");
-        leaseInfo.LastReleasedAt.Should().Be(TimeProvider.GetUtcNow());
+        leaseInfo.LastReleasedAt.ShouldBe(TimeProvider.GetUtcNow());
 
         // advance 40 more minutes and renew the lease
         TimeProvider.Advance(TimeSpan.FromMinutes(40));
-        result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1));
+        result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), CancellationToken);
         Assert.True(result.IsLeaseAcquired);
-        await Provider.ReleaseLease(result.Lease);
+        await Provider.ReleaseLease(result.Lease, CancellationToken);
 
         // advance 20 more minutes, 1 hour since the job last completed (+ some seconds due to random jitter)
         TimeProvider.Advance(TimeSpan.FromMinutes(21));
         await sut.WaitForRunningScheduledJobs();
-        counter.Value.Should().Be(1);
+        counter.Value.ShouldBe(1U);
 
         // advance 40 more minutes, 1 hour since the lease was last released (+ some seconds due to random jitter)
         TimeProvider.Advance(TimeSpan.FromMinutes(40));
         await sut.WaitForRunningScheduledJobs();
-        counter.Value.Should().Be(2);
+        counter.Value.ShouldBe(2U);
         leaseInfo = await GetLeaseInfo("test");
-        leaseInfo.LastReleasedAt.Should().Be(TimeProvider.GetUtcNow());
+        leaseInfo.LastReleasedAt.ShouldBe(TimeProvider.GetUtcNow());
     }
 
     [Fact]
@@ -767,9 +763,9 @@ public class RecurringJobHostedServiceTests
             [Counter.RunAt(JobHostLifecycles.Start, counter)],
             [.. conditions]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
 
-        counter.Value.Should().Be(1);
+        counter.Value.ShouldBe(1U);
     }
 
     [Fact]
@@ -782,9 +778,9 @@ public class RecurringJobHostedServiceTests
             [Counter.RunAt(JobHostLifecycles.Start, counter)],
             [.. conditions, new ConstCondition(false, tags: [])]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
 
-        counter.Value.Should().Be(0);
+        counter.Value.ShouldBe(0U);
     }
 
     [Fact]
@@ -797,9 +793,9 @@ public class RecurringJobHostedServiceTests
             [Counter.RunAt(JobHostLifecycles.Start, counter, tags: ["foo"]), Counter.RunAt(JobHostLifecycles.Start, counter, tags: ["bar"]), Counter.RunAt(JobHostLifecycles.Start, counter)],
             [condition]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
 
-        counter.Value.Should().Be(0);
+        counter.Value.ShouldBe(0U);
     }
 
     [Fact]
@@ -814,11 +810,11 @@ public class RecurringJobHostedServiceTests
             [Counter.RunAt(JobHostLifecycles.Start, fooCounter, tags: ["foo"]), Counter.RunAt(JobHostLifecycles.Start, barCounter, tags: ["bar"]), Counter.RunAt(JobHostLifecycles.Start, noTag)],
             [condition]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
 
-        fooCounter.Value.Should().Be(0);
-        barCounter.Value.Should().Be(1);
-        noTag.Value.Should().Be(1);
+        fooCounter.Value.ShouldBe(0U);
+        barCounter.Value.ShouldBe(1U);
+        noTag.Value.ShouldBe(1U);
     }
 
     [Fact]
@@ -826,7 +822,7 @@ public class RecurringJobHostedServiceTests
     {
         await using var sut = CreateService([]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
         await sut.DisposeAsync();
         await sut.DisposeAsync(); // should not throw
     }
@@ -838,7 +834,7 @@ public class RecurringJobHostedServiceTests
 
         await using var sut = CreateService([]);
 
-        await Run(sut);
+        await Run(sut, CancellationToken);
 
         var rst = new ManualResetEventSlim();
         var threads = Enumerable.Range(0, THREAD_COUNT).Select(_ =>
@@ -854,7 +850,7 @@ public class RecurringJobHostedServiceTests
         }).ToList();
 
         // wait for all the threads to be ready
-        await Task.Delay(10);
+        await Task.Delay(10, CancellationToken);
         rst.Set();
 
         foreach (var thread in threads)

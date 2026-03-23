@@ -15,20 +15,20 @@ public class OrganizationIdentifierTests
     public void ParsesValidOrganizationIdentifier(string identifier)
     {
         Assert.True(OrganizationIdentifier.TryParse(identifier, provider: null, out var result));
-        result.Should().NotBeNull();
-        result.ToString().Should().Be(identifier);
+        result.ShouldNotBeNull();
+        result.ToString().ShouldBe(identifier);
 
         var result2 = OrganizationIdentifier.Parse(identifier);
-        result2.Should().NotBeNull();
-        result2.ToString().Should().Be(identifier);
+        result2.ShouldNotBeNull();
+        result2.ToString().ShouldBe(identifier);
 
         Assert.True(OrganizationIdentifier.TryParse(identifier.AsSpan(), provider: null, out var result3));
-        result3.Should().NotBeNull();
-        result3.ToString().Should().Be(identifier);
+        result3.ShouldNotBeNull();
+        result3.ToString().ShouldBe(identifier);
 
         var result4 = OrganizationIdentifier.Parse(identifier.AsSpan());
-        result4.Should().NotBeNull();
-        result4.ToString().Should().Be(identifier);
+        result4.ShouldNotBeNull();
+        result4.ToString().ShouldBe(identifier);
     }
 
     [Theory]
@@ -55,27 +55,27 @@ public class OrganizationIdentifierTests
         var id2 = OrganizationIdentifier.Parse(str2);
 
 #pragma warning disable CS1718 // Comparison made to same variable
-        (str1 == id1).Should().BeTrue();
-        (id1 == str1).Should().BeTrue();
-        (id1 == id1).Should().BeTrue();
-        (str1 != id1).Should().BeFalse();
-        (id1 != str1).Should().BeFalse();
-        (id1 != id1).Should().BeFalse();
-        id1.Equals(id1).Should().BeTrue();
-        id1.Equals(str1).Should().BeTrue();
-        id1.Equals((object)id1).Should().BeTrue();
-        id1.Equals((object)str1).Should().BeTrue();
+        (str1 == id1).ShouldBeTrue();
+        (id1 == str1).ShouldBeTrue();
+        (id1 == id1).ShouldBeTrue();
+        (str1 != id1).ShouldBeFalse();
+        (id1 != str1).ShouldBeFalse();
+        (id1 != id1).ShouldBeFalse();
+        id1.Equals(id1).ShouldBeTrue();
+        id1.Equals(str1).ShouldBeTrue();
+        id1.Equals((object)id1).ShouldBeTrue();
+        id1.Equals((object)str1).ShouldBeTrue();
 
-        (str2 == id1).Should().BeFalse();
-        (id1 == str2).Should().BeFalse();
-        (id1 == id2).Should().BeFalse();
-        (str2 != id1).Should().BeTrue();
-        (id1 != str2).Should().BeTrue();
-        (id1 != id2).Should().BeTrue();
-        id1.Equals(id2).Should().BeFalse();
-        id1.Equals(str2).Should().BeFalse();
-        id1.Equals((object)id2).Should().BeFalse();
-        id1.Equals((object)str2).Should().BeFalse();
+        (str2 == id1).ShouldBeFalse();
+        (id1 == str2).ShouldBeFalse();
+        (id1 == id2).ShouldBeFalse();
+        (str2 != id1).ShouldBeTrue();
+        (id1 != str2).ShouldBeTrue();
+        (id1 != id2).ShouldBeTrue();
+        id1.Equals(id2).ShouldBeFalse();
+        id1.Equals(str2).ShouldBeFalse();
+        id1.Equals((object)id2).ShouldBeFalse();
+        id1.Equals((object)str2).ShouldBeFalse();
 #pragma warning restore CS1718 // Comparison made to same variable
     }
 
@@ -89,19 +89,19 @@ public class OrganizationIdentifierTests
 
         // too short
         span.Fill(' ');
-        id.TryFormat(span[..5], out written, [], provider: null).Should().BeFalse();
+        id.TryFormat(span[..5], out written, [], provider: null).ShouldBeFalse();
 
         // too long
         span.Fill(' ');
-        id.TryFormat(span, out written, [], provider: null).Should().BeTrue();
-        written.Should().Be(9);
-        new string(span[..written]).Should().Be(id.ToString());
+        id.TryFormat(span, out written, [], provider: null).ShouldBeTrue();
+        written.ShouldBe(9);
+        new string(span[..written]).ShouldBe(id.ToString());
 
         // exact length
         span.Fill(' ');
-        id.TryFormat(span[0..9], out written, [], provider: null).Should().BeTrue();
-        written.Should().Be(9);
-        new string(span[..written]).Should().Be(id.ToString());
+        id.TryFormat(span[0..9], out written, [], provider: null).ShouldBeTrue();
+        written.ShouldBe(9);
+        new string(span[..written]).ShouldBe(id.ToString());
     }
 
     [Fact]
@@ -110,13 +110,13 @@ public class OrganizationIdentifierTests
         var id = OrganizationIdentifier.Parse("123456785");
 
         var json = JsonSerializer.SerializeToDocument(id);
-        json.RootElement.ValueKind.Should().Be(JsonValueKind.String);
-        json.RootElement.GetString().Should().Be(id.ToString());
+        json.RootElement.ValueKind.ShouldBe(JsonValueKind.String);
+        json.RootElement.GetString().ShouldBe(id.ToString());
 
         var parsed = json.Deserialize<OrganizationIdentifier>();
         Assert.NotNull(parsed);
 
-        parsed.Should().Be(id);
+        parsed.ShouldBe(id);
     }
 
     [Fact]
@@ -130,7 +130,7 @@ public class OrganizationIdentifierTests
     public void CanGet_ExampleData()
     {
         var examples = ExampleData.GetExamples<OrganizationIdentifier>()?.ToList();
-        examples.Should().NotBeNull();
-        examples.Should().NotBeEmpty();
+        examples.ShouldNotBeNull();
+        examples.ShouldNotBeEmpty();
     }
 }

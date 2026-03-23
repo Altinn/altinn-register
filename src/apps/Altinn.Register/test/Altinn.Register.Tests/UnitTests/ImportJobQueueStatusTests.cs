@@ -13,7 +13,7 @@ public class ImportJobQueueStatusTests
             SourceMax = null,
         };
 
-        status.SourceMax.Should().BeNull();
+        status.SourceMax.ShouldBeNull();
     }
 
     [Fact]
@@ -25,7 +25,7 @@ public class ImportJobQueueStatusTests
             SourceMax = 0,
         };
 
-        status.SourceMax.Should().Be(0);
+        status.SourceMax.ShouldBe(0UL);
     }
 
     [Fact]
@@ -36,6 +36,6 @@ public class ImportJobQueueStatusTests
             EnqueuedMax = 42,
             SourceMax = 42,
         };
-        status.SourceMax.Should().Be(42);
+        status.SourceMax.ShouldBe(42UL);
     }
 }

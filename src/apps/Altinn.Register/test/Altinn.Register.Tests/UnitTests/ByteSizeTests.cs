@@ -15,11 +15,11 @@ public class ByteSizeTests
         var actualString = value.ToString();
         var success = value.TryFormat(buffer, out var written, format: default, provider: null);
 
-        actualString.Should().Be(expected);
+        actualString.ShouldBe(expected);
 
-        success.Should().BeTrue();
-        written.Should().Be(expected.Length);
-        new string(buffer[..written]).Should().Be(expected);
+        success.ShouldBeTrue();
+        written.ShouldBe(expected.Length);
+        new string(buffer[..written]).ShouldBe(expected);
     }
 
     public static TheoryData<ByteSize, string> FormatCases()
