@@ -2,6 +2,7 @@
 
 using System.Net;
 using System.Net.Http.Json;
+using Altinn.Authorization.TestUtils.Http;
 using Altinn.Common.AccessToken.Services;
 using Altinn.Register.Configuration;
 using Altinn.Register.Controllers;
@@ -10,7 +11,6 @@ using Altinn.Register.Tests.Mocks;
 using Altinn.Register.Tests.Mocks.Authentication;
 using Altinn.Register.Tests.TestingControllers.Utils;
 using Altinn.Register.Tests.Utils;
-using Altinn.Register.TestUtils.Http;
 using AltinnCore.Authentication.JwtCookie;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -41,16 +41,16 @@ public class DebugProxyControllerTests(WebApplicationFixture fixture)
             });
 
         var client = CreateClient();
-        using var response = await client.GetAsync("register/api/v0/debug/parties/partychanges/1");
+        using var response = await client.GetAsync("register/api/v0/debug/parties/partychanges/1", CancellationToken);
 
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        response.Headers.Location.Should().Be("https://test.altinn.example.com/register");
-        response.Content.Headers.ContentType!.MediaType.Should().Be("application/json");
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Headers.Location.ShouldBe(new Uri("https://test.altinn.example.com/register"));
+        response.Content.Headers.ContentType!.MediaType.ShouldBe("application/json");
 
-        var data = await response.Content.ReadFromJsonAsync<TestData>();
+        var data = await response.Content.ReadFromJsonAsync<TestData>(CancellationToken);
         Assert.NotNull(data);
-        data.Foo.Should().Be("foo");
-        data.Bar.Should().Be("bar");
+        data.Foo.ShouldBe("foo");
+        data.Bar.ShouldBe("bar");
     }
 
     [Fact]
@@ -62,8 +62,8 @@ public class DebugProxyControllerTests(WebApplicationFixture fixture)
             .Respond(() => HttpStatusCode.OK);
 
         var client = CreateClient();
-        using var response = await client.GetAsync("register/api/v0/debug/parties/partychanges/1?query=1");
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var response = await client.GetAsync("register/api/v0/debug/parties/partychanges/1?query=1", CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     private record class TestData
@@ -101,7 +101,7 @@ public class DebugProxyControllerTests(WebApplicationFixture fixture)
         services.AddSingleton<IAuthorizationClient, AuthorizationClientMock>();
         services.AddFakeHttpHandlers(_httpHandlers);
         services.AddOptions<GeneralSettings>()
-            .Configure(s => s.BridgeApiEndpoint = FakeHttpMessageHandler.FakeBasePath.ToString());
+            .Configure(s => s.BridgeApiEndpoint = FakeHttpEndpoint.HttpsUri.ToString());
 
         base.ConfigureTestServices(services);
     }

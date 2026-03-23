@@ -41,14 +41,14 @@ namespace Altinn.Register.Tests.TestingControllers
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             _partiesClient.VerifyAll();
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            Contracts.V1.Party actual = await JsonSerializer.DeserializeAsync<Contracts.V1.Party>(await response.Content.ReadAsStreamAsync());
+            Contracts.V1.Party actual = await JsonSerializer.DeserializeAsync<Contracts.V1.Party>(await response.Content.ReadAsStreamAsync(CancellationToken), cancellationToken: CancellationToken);
 
             Assert.NotNull(actual);
         }
@@ -69,7 +69,7 @@ namespace Altinn.Register.Tests.TestingControllers
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -91,7 +91,7 @@ namespace Altinn.Register.Tests.TestingControllers
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             _partiesClient.VerifyAll();
@@ -115,7 +115,7 @@ namespace Altinn.Register.Tests.TestingControllers
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             _partiesClient.VerifyAll();
@@ -134,7 +134,7 @@ namespace Altinn.Register.Tests.TestingControllers
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             // Act
-            HttpResponseMessage response = await client.GetAsync("/register/api/v1/parties/" + partyId);
+            HttpResponseMessage response = await client.GetAsync("/register/api/v1/parties/" + partyId, CancellationToken);
 
             // Assert
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -158,7 +158,7 @@ namespace Altinn.Register.Tests.TestingControllers
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -186,7 +186,7 @@ namespace Altinn.Register.Tests.TestingControllers
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             _partiesClient.VerifyAll();
@@ -211,14 +211,14 @@ namespace Altinn.Register.Tests.TestingControllers
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             _partiesClient.VerifyAll();
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            List<Contracts.V1.Party> actual = await JsonSerializer.DeserializeAsync<List<Contracts.V1.Party>>(await response.Content.ReadAsStreamAsync());
+            List<Contracts.V1.Party> actual = await JsonSerializer.DeserializeAsync<List<Contracts.V1.Party>>(await response.Content.ReadAsStreamAsync(CancellationToken), cancellationToken: CancellationToken);
 
             Assert.NotNull(actual);
             Assert.Equal(partyIds.Count, actual.Count);
@@ -241,14 +241,14 @@ namespace Altinn.Register.Tests.TestingControllers
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             _partiesClient.VerifyAll();
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            List<Contracts.V1.Party> actual = await JsonSerializer.DeserializeAsync<List<Contracts.V1.Party>>(await response.Content.ReadAsStreamAsync());
+            List<Contracts.V1.Party> actual = await JsonSerializer.DeserializeAsync<List<Contracts.V1.Party>>(await response.Content.ReadAsStreamAsync(CancellationToken), cancellationToken: CancellationToken);
 
             Assert.NotNull(actual);
             Assert.Equal(partyIds.Count, actual.Count);
@@ -271,14 +271,14 @@ namespace Altinn.Register.Tests.TestingControllers
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             _partiesClient.VerifyAll();
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            List<Contracts.V1.Party> actual = await JsonSerializer.DeserializeAsync<List<Contracts.V1.Party>>(await response.Content.ReadAsStreamAsync());
+            List<Contracts.V1.Party> actual = await JsonSerializer.DeserializeAsync<List<Contracts.V1.Party>>(await response.Content.ReadAsStreamAsync(CancellationToken), cancellationToken: CancellationToken);
 
             Assert.NotNull(actual);
             Assert.Equal(partyUuids.Count, actual.Count);
@@ -301,14 +301,14 @@ namespace Altinn.Register.Tests.TestingControllers
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             _partiesClient.VerifyAll();
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            List<Contracts.V1.Party> actual = await JsonSerializer.DeserializeAsync<List<Contracts.V1.Party>>(await response.Content.ReadAsStreamAsync());
+            List<Contracts.V1.Party> actual = await JsonSerializer.DeserializeAsync<List<Contracts.V1.Party>>(await response.Content.ReadAsStreamAsync(CancellationToken), cancellationToken: CancellationToken);
 
             Assert.NotNull(actual);
             Assert.Equal(partyUuids.Count, actual.Count);
@@ -329,14 +329,14 @@ namespace Altinn.Register.Tests.TestingControllers
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             _partiesClient.VerifyAll();
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            Contracts.V1.Party actual = await JsonSerializer.DeserializeAsync<Contracts.V1.Party>(await response.Content.ReadAsStreamAsync());
+            Contracts.V1.Party actual = await JsonSerializer.DeserializeAsync<Contracts.V1.Party>(await response.Content.ReadAsStreamAsync(CancellationToken), cancellationToken: CancellationToken);
 
             Assert.NotNull(actual);
         }
@@ -356,7 +356,7 @@ namespace Altinn.Register.Tests.TestingControllers
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             _partiesClient.VerifyAll();
@@ -379,7 +379,7 @@ namespace Altinn.Register.Tests.TestingControllers
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             _partiesClient.VerifyAll();
@@ -400,7 +400,7 @@ namespace Altinn.Register.Tests.TestingControllers
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             _partiesClient.VerifyAll();
@@ -423,7 +423,7 @@ namespace Altinn.Register.Tests.TestingControllers
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             _partiesClient.VerifyAll();
@@ -448,14 +448,14 @@ namespace Altinn.Register.Tests.TestingControllers
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             _partiesClient.VerifyAll();
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            List<Contracts.V1.Party> actual = await JsonSerializer.DeserializeAsync<List<Contracts.V1.Party>>(await response.Content.ReadAsStreamAsync());
+            List<Contracts.V1.Party> actual = await JsonSerializer.DeserializeAsync<List<Contracts.V1.Party>>(await response.Content.ReadAsStreamAsync(CancellationToken), cancellationToken: CancellationToken);
 
             Assert.Empty(actual);
         }
@@ -484,14 +484,14 @@ namespace Altinn.Register.Tests.TestingControllers
             httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             _partiesClient.VerifyAll();
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            Contracts.V1.Party actual = await JsonSerializer.DeserializeAsync<Contracts.V1.Party>(await response.Content.ReadAsStreamAsync());
+            Contracts.V1.Party actual = await JsonSerializer.DeserializeAsync<Contracts.V1.Party>(await response.Content.ReadAsStreamAsync(CancellationToken), cancellationToken: CancellationToken);
 
             Assert.NotNull(actual);
         }
@@ -512,7 +512,7 @@ namespace Altinn.Register.Tests.TestingControllers
             StringContent requestBody = new StringContent(JsonSerializer.Serialize(lookUp), Encoding.UTF8, "application/json");
 
             // Act
-            HttpResponseMessage response = await client.PostAsync("/register/api/v1/parties/lookup", requestBody);
+            HttpResponseMessage response = await client.PostAsync("/register/api/v1/parties/lookup", requestBody, CancellationToken);
 
             // Assert
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -533,7 +533,7 @@ namespace Altinn.Register.Tests.TestingControllers
             HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/" + partyId);
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -551,7 +551,7 @@ namespace Altinn.Register.Tests.TestingControllers
             HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/identifiers");
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -569,7 +569,7 @@ namespace Altinn.Register.Tests.TestingControllers
             HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/identifiers");
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -587,7 +587,7 @@ namespace Altinn.Register.Tests.TestingControllers
             HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/identifiers");
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -613,7 +613,7 @@ namespace Altinn.Register.Tests.TestingControllers
             HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/identifiers" + queryString);
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -646,7 +646,7 @@ namespace Altinn.Register.Tests.TestingControllers
             HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/identifiers" + queryString);
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -675,11 +675,11 @@ namespace Altinn.Register.Tests.TestingControllers
             HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/identifiers" + queryString);
 
             // Act
-            HttpResponseMessage response = await httpClient.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await httpClient.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            var actual = await response.Content.ReadFromJsonAsAsyncEnumerable<PartyIdentifiers>().ToListAsync();
+            var actual = await response.Content.ReadFromJsonAsAsyncEnumerable<PartyIdentifiers>(cancellationToken: CancellationToken).ToListAsync(CancellationToken);
 
             Assert.Equal(expected.Count, actual.Count);
             Assert.Contains(expected[0], actual);
@@ -718,11 +718,11 @@ namespace Altinn.Register.Tests.TestingControllers
             HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/register/api/v1/parties/identifiers" + queryString);
 
             // Act
-            HttpResponseMessage response = await httpClient.SendAsync(httpRequestMessage);
+            HttpResponseMessage response = await httpClient.SendAsync(httpRequestMessage, CancellationToken);
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            var actual = await response.Content.ReadFromJsonAsAsyncEnumerable<PartyIdentifiers>().ToListAsync();
+            var actual = await response.Content.ReadFromJsonAsAsyncEnumerable<PartyIdentifiers>(cancellationToken: CancellationToken).ToListAsync(CancellationToken);
 
             Assert.Equal(expected.Count, actual.Count);
             Assert.Contains(expected[0], actual);

@@ -16,6 +16,8 @@ public class SwaggerEndpointTests
 {
     private readonly WebApplicationFactory<Program> _factory;
 
+    private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
+
     public SwaggerEndpointTests(WebApplicationFactory<Program> factory)
     {
         _factory = factory.WithWebHostBuilder(builder =>
@@ -42,10 +44,10 @@ public class SwaggerEndpointTests
 
         using var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, requestUri);
 
-        using var response = await client.SendAsync(httpRequestMessage);
+        using var response = await client.SendAsync(httpRequestMessage, CancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var responseText = await response.Content.ReadAsStringAsync();
+        var responseText = await response.Content.ReadAsStringAsync(CancellationToken);
         var jsonDoc = JsonDocument.Parse(responseText);
 
         Assert.NotNull(jsonDoc);

@@ -15,15 +15,11 @@ public class WebApplicationFixture
 {
     private readonly WebApplicationFactory _factory = new();
 
-    Task IAsyncLifetime.InitializeAsync()
-    {
-        return Task.CompletedTask;
-    }
+    ValueTask IAsyncLifetime.InitializeAsync()
+        => ValueTask.CompletedTask;
 
-    async Task IAsyncLifetime.DisposeAsync()
-    {
-        await _factory.DisposeAsync();
-    }
+    ValueTask IAsyncDisposable.DisposeAsync()
+        => _factory.DisposeAsync();
 
     public WebApplicationFactory<Program> CreateServer(
         Action<IConfigurationBuilder>? configureConfiguration = null,

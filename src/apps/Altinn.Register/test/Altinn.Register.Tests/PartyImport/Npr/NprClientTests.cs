@@ -2,18 +2,20 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
+using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Contracts;
 using Altinn.Register.PartyImport.Npr;
 using Altinn.Register.Tests.Utils;
-using Altinn.Register.TestUtils.Http;
 using Microsoft.Extensions.FileProviders;
-using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Altinn.Register.Tests.PartyImport.Npr;
 
 public class NprClientTests
 {
     private static readonly TestDataFileProvider GuardianshipsFileProvider = TestDataFileProvider.For("Npr/Guardianships");
+
+    private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
 
     private FakeHttpMessageHandler _handler;
     private NprClient _sut;
@@ -30,16 +32,17 @@ public class NprClientTests
     {
         ConfigureHandler(personIdentifier);
 
-        var result = (await _sut.GetGuardianshipsForPerson(PersonIdentifier.Parse(personIdentifier))).Value;
-        result.Should().HaveCount(guardianships.Length);
+        var result = (await _sut.GetGuardianshipsForPerson(PersonIdentifier.Parse(personIdentifier), CancellationToken)).Value;
+        result.ShouldNotBeNull();
+        result.Count.ShouldBe(guardianships.Length);
 
         for (var i = 0; i < result.Count; i++)
         {
             var actual = result[i];
             var expected = guardianships[i];
 
-            actual.Guardian.Should().Be(expected.Guardian);
-            actual.Roles.Should().BeEquivalentTo(expected.Roles);
+            actual.Guardian.ShouldBe(expected.Guardian);
+            actual.Roles.OrderBy(static role => role).ShouldBe(expected.Roles.OrderBy(static role => role));
         }
     }
 
@@ -192,8 +195,8 @@ public class NprClientTests
             var guardian = info.GetValue<string>(nameof(Guardian));
             var roles = info.GetValue<string[]>(nameof(Roles));
 
-            _guardian = PersonIdentifier.Parse(guardian);
-            _roles = roles;
+            _guardian = PersonIdentifier.Parse(guardian!);
+            _roles = roles!;
         }
 
         void IXunitSerializable.Serialize(IXunitSerializationInfo info)

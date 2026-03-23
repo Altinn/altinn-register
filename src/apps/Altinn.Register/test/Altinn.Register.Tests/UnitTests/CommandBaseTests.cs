@@ -18,13 +18,13 @@ public class CommandBaseTests
         };
 
         var correlationId = ((CorrelatedBy<Guid>)command).CorrelationId;
-        correlationId.Should().NotBeEmpty();
+        correlationId.ShouldNotBe(Guid.Empty);
 
         var json = JsonSerializer.Serialize(command, Options);
         var roundTripped = JsonSerializer.Deserialize<TestCommand>(json, Options);
 
-        roundTripped.Should().BeEquivalentTo(command);
-        ((CorrelatedBy<Guid>)roundTripped).CorrelationId.Should().Be(correlationId);
+        roundTripped.ShouldBeEquivalentTo(command);
+        ((CorrelatedBy<Guid>)roundTripped).CorrelationId.ShouldBe(correlationId);
     }
 
     private sealed record TestCommand

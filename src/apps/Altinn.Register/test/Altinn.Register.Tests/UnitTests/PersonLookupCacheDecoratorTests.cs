@@ -15,6 +15,8 @@ namespace Altinn.Register.Tests.UnitTests
         private readonly Mock<IPersonLookup> _personLookup;
         private readonly Mock<IOptions<PersonLookupSettings>> _personLookupSettingsOptions;
 
+        private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
+
         private readonly MemoryCache _memoryCache;
         private readonly PersonLookupSettings _personLookupSettings;
 
@@ -44,7 +46,7 @@ namespace Altinn.Register.Tests.UnitTests
                 _personLookup.Object, _memoryCache, _personLookupSettingsOptions.Object);
 
             // Act
-            var actual = await target.GetPerson("personnumber", "lastname", 777);
+            var actual = await target.GetPerson("personnumber", "lastname", 777, CancellationToken);
 
             // Assert
             _personLookup.Verify(
@@ -71,7 +73,7 @@ namespace Altinn.Register.Tests.UnitTests
                 _personLookup.Object, _memoryCache, _personLookupSettingsOptions.Object);
 
             // Act
-            var actual = await target.GetPerson("personnumber", "lastname", 777);
+            var actual = await target.GetPerson("personnumber", "lastname", 777, CancellationToken);
 
             // Assert
             _personLookup.Verify(
@@ -92,7 +94,7 @@ namespace Altinn.Register.Tests.UnitTests
                 _personLookup.Object, _memoryCache, _personLookupSettingsOptions.Object);
 
             // Act
-            var actual = await target.GetPerson("personnumber", "lastname", 777);
+            var actual = await target.GetPerson("personnumber", "lastname", 777, CancellationToken);
 
             // Assert
             _personLookup.Verify(

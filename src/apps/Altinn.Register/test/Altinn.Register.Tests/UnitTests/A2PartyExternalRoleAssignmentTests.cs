@@ -26,9 +26,9 @@ public class A2PartyExternalRoleAssignmentTests
             RoleCode = role2,
         };
 
-        left.Equals(right).Should().BeTrue();
-        right.Equals(left).Should().BeTrue();
-        left.GetHashCode().Should().Be(right.GetHashCode());
+        left.Equals(right).ShouldBeTrue();
+        right.Equals(left).ShouldBeTrue();
+        left.GetHashCode().ShouldBe(right.GetHashCode());
     }
 
     [Fact]
@@ -44,9 +44,9 @@ public class A2PartyExternalRoleAssignmentTests
             ToPartyUuid = Guid.NewGuid(),
             RoleCode = "BEDR",
         };
-        left.Equals(right).Should().BeFalse();
-        right.Equals(left).Should().BeFalse();
-        left.GetHashCode().Should().NotBe(right.GetHashCode());
+        left.Equals(right).ShouldBeFalse();
+        right.Equals(left).ShouldBeFalse();
+        left.GetHashCode().ShouldNotBe(right.GetHashCode());
     }
 
     [Fact]
@@ -63,8 +63,8 @@ public class A2PartyExternalRoleAssignmentTests
             ToPartyUuid = uuid,
             RoleCode = "DAGL",
         };
-        left.Equals(right).Should().BeFalse();
-        right.Equals(left).Should().BeFalse();
-        left.GetHashCode().Should().NotBe(right.GetHashCode());
+        left.Equals(right).ShouldBeFalse();
+        right.Equals(left).ShouldBeFalse();
+        left.GetHashCode().ShouldNotBe(right.GetHashCode());
     }
 }

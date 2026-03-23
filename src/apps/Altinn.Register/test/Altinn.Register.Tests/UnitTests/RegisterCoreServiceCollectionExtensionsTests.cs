@@ -17,7 +17,7 @@ public class RegisterCoreServiceCollectionExtensionsTests
 #pragma warning restore CS8625
 
         var exn = Assert.Throws<ArgumentNullException>(act);
-        exn.ParamName.Should().Be("name");
+        exn.ParamName.ShouldBe("name");
     }
 
     [Theory]
@@ -31,8 +31,8 @@ public class RegisterCoreServiceCollectionExtensionsTests
         var act = () => services.AddRateLimitPolicy(name);
 
         var exn = Assert.Throws<ArgumentException>(act);
-        exn.ParamName.Should().Be("name");
-        exn.Message.Should().Contain("must not be null or whitespace");
+        exn.ParamName.ShouldBe("name");
+        exn.Message.ShouldContain("must not be null or whitespace");
     }
 
     [Fact]
@@ -55,12 +55,12 @@ public class RegisterCoreServiceCollectionExtensionsTests
         using var serviceProvider = services.BuildServiceProvider();
 
         var options = serviceProvider.GetRequiredService<IOptionsMonitor<RateLimitPolicySettings>>().Get("test");
-        options.IsConfigured.Should().BeTrue();
-        options.Limit.Should().Be(3);
-        options.WindowDuration.Should().Be(TimeSpan.FromHours(1));
-        options.WindowBehavior.Should().Be(RateLimitWindowBehavior.TrailingEdge);
-        options.BlockDuration.Should().Be(TimeSpan.FromMinutes(30));
-        options.BlockedRequestBehavior.Should().Be(BlockedRequestBehavior.Renew);
+        options.IsConfigured.ShouldBeTrue();
+        options.Limit.ShouldBe(3);
+        options.WindowDuration.ShouldBe(TimeSpan.FromHours(1));
+        options.WindowBehavior.ShouldBe(RateLimitWindowBehavior.TrailingEdge);
+        options.BlockDuration.ShouldBe(TimeSpan.FromMinutes(30));
+        options.BlockedRequestBehavior.ShouldBe(BlockedRequestBehavior.Renew);
     }
 
     [Fact]
@@ -74,8 +74,7 @@ public class RegisterCoreServiceCollectionExtensionsTests
         var act = () => serviceProvider.GetRequiredService<IOptionsMonitor<RateLimitPolicySettings>>().Get("test");
         var exn = Assert.Throws<OptionsValidationException>(act);
 
-        exn.Failures.Should().ContainSingle()
-            .Which.Should().Be("Rate limit policy 'test' has not been configured.");
+        exn.Failures.ShouldHaveSingleItem().ShouldBe("Rate limit policy 'test' has not been configured.");
     }
 
     [Fact]
@@ -98,10 +97,10 @@ public class RegisterCoreServiceCollectionExtensionsTests
         var act = () => serviceProvider.GetRequiredService<IOptionsMonitor<RateLimitPolicySettings>>().Get("test");
         var exn = Assert.Throws<OptionsValidationException>(act);
 
-        exn.Failures.Should().Contain(failure => failure.Contains(nameof(RateLimitPolicySettings.Limit)));
-        exn.Failures.Should().Contain(failure => failure.Contains(nameof(RateLimitPolicySettings.WindowDuration)));
-        exn.Failures.Should().Contain(failure => failure.Contains(nameof(RateLimitPolicySettings.BlockDuration)));
-        exn.Failures.Should().NotContain(failure => failure.Contains("has not been configured"));
+        exn.Failures.ShouldContain(failure => failure.Contains(nameof(RateLimitPolicySettings.Limit)));
+        exn.Failures.ShouldContain(failure => failure.Contains(nameof(RateLimitPolicySettings.WindowDuration)));
+        exn.Failures.ShouldContain(failure => failure.Contains(nameof(RateLimitPolicySettings.BlockDuration)));
+        exn.Failures.ShouldNotContain(failure => failure.Contains("has not been configured"));
     }
 
     [Fact]
@@ -117,7 +116,7 @@ public class RegisterCoreServiceCollectionExtensionsTests
 
         services.AddRateLimitPolicy("test");
 
-        services.Count(static sd => sd.ServiceType == typeof(IConfigureOptions<RateLimitPolicySettings>)).Should().Be(configureCount);
-        services.Count(static sd => sd.ServiceType == typeof(IOptionsChangeTokenSource<RateLimitPolicySettings>)).Should().Be(changeTokenCount);
+        services.Count(static sd => sd.ServiceType == typeof(IConfigureOptions<RateLimitPolicySettings>)).ShouldBe(configureCount);
+        services.Count(static sd => sd.ServiceType == typeof(IOptionsChangeTokenSource<RateLimitPolicySettings>)).ShouldBe(changeTokenCount);
     }
 }

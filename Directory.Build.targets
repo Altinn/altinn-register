@@ -10,7 +10,6 @@
       </PropertyGroup>
 
       <PropertyGroup>
-        <DefineConstants Condition=" '$(XUnitVersion)' == 'v2' ">$(DefineConstants);XUNIT2</DefineConstants>
         <DefineConstants Condition=" '$(XUnitVersion)' == 'v3' ">$(DefineConstants);XUNIT3</DefineConstants>
       </PropertyGroup>
 
@@ -23,16 +22,9 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="FluentAssertions" Condition=" '$(XUnitVersion)' == 'v2' " />
-        <PackageReference Include="FluentAssertions.Analyzers"
-          Condition=" '$(XUnitVersion)' == 'v2' ">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-        </PackageReference>
         <PackageReference Include="Shouldly" Condition=" '$(XUnitVersion)' == 'v3' " />
         <PackageReference Include="Microsoft.NET.Test.Sdk" />
         <PackageReference Include="Xunit.Combinatorial" Condition=" '$(XUnitVersion)' == 'v3' " />
-        <PackageReference Include="xunit" Condition=" '$(XUnitVersion)' == 'v2' " />
         <PackageReference Include="xunit.v3" Condition=" '$(XUnitVersion)' == 'v3' " />
         <PackageReference Include="xunit.runner.visualstudio">
           <PrivateAssets>all</PrivateAssets>
@@ -41,7 +33,6 @@
       </ItemGroup>
 
       <ItemGroup>
-        <Using Include="FluentAssertions" Condition=" '$(XUnitVersion)' == 'v2' " />
         <Using Include="Shouldly" Condition=" '$(XUnitVersion)' == 'v3' " />
         <Using Include="Xunit" />
       </ItemGroup>
@@ -56,7 +47,6 @@
       </PropertyGroup>
 
       <PropertyGroup>
-        <DefineConstants Condition=" '$(XUnitVersion)' == 'v2' ">$(DefineConstants);XUNIT2</DefineConstants>
         <DefineConstants Condition=" '$(XUnitVersion)' == 'v3' ">$(DefineConstants);XUNIT3</DefineConstants>
       </PropertyGroup>
 
@@ -65,18 +55,14 @@
       </ItemGroup>
 
       <ItemGroup>
-        <PackageReference Include="FluentAssertions" Condition=" '$(XUnitVersion)' == 'v2' " />
         <PackageReference Include="Shouldly" Condition=" '$(XUnitVersion)' == 'v3' " />
         <PackageReference Include="Xunit.Combinatorial" Condition=" '$(XUnitVersion)' == 'v3' " />
-        <PackageReference Include="xunit.assert" Condition=" '$(XUnitVersion)' == 'v2' " />
-        <PackageReference Include="xunit.extensibility.core" Condition=" '$(XUnitVersion)' == 'v2' " />
         <PackageReference Include="xunit.v3.assert" Condition=" '$(XUnitVersion)' == 'v3' " />
         <PackageReference Include="xunit.v3.extensibility.core"
           Condition=" '$(XUnitVersion)' == 'v3' " />
       </ItemGroup>
 
       <ItemGroup>
-        <Using Include="FluentAssertions" Condition=" '$(XUnitVersion)' == 'v2' " />
         <Using Include="Shouldly" Condition=" '$(XUnitVersion)' == 'v3' " />
         <Using Include="Xunit" />
       </ItemGroup>

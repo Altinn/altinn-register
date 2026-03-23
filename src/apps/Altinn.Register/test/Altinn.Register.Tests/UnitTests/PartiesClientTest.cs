@@ -19,6 +19,8 @@ namespace Altinn.Register.Tests.UnitTests
         private readonly Mock<ILogger<PartiesClient>> _partiesClientLogger = new();
         private readonly IMemoryCache _memoryCache;
 
+        private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
+
         public PartiesClientTest()
         {
             GeneralSettings generalSettings = new() { BridgeApiEndpoint = "http://localhost/" };
@@ -69,7 +71,7 @@ namespace Altinn.Register.Tests.UnitTests
             var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partiesClientLogger.Object, _memoryCache);
 
             // Act
-            var actual = await target.GetPartyById(partyUuid);
+            var actual = await target.GetPartyById(partyUuid, CancellationToken);
 
             // Assert
             Assert.NotNull(actual);
@@ -127,7 +129,7 @@ namespace Altinn.Register.Tests.UnitTests
             var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partiesClientLogger.Object, _memoryCache);
 
             // Act
-            var actual = await target.GetPartyById(partyId);
+            var actual = await target.GetPartyById(partyId, CancellationToken);
 
             // Assert
             Assert.NotNull(actual);
@@ -160,7 +162,7 @@ namespace Altinn.Register.Tests.UnitTests
             var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partiesClientLogger.Object, _memoryCache);
 
             // Act
-            var actual = await target.GetPartyById(partyUuid);
+            var actual = await target.GetPartyById(partyUuid, CancellationToken);
 
             // Assert
             Assert.Null(actual);
@@ -189,7 +191,7 @@ namespace Altinn.Register.Tests.UnitTests
             var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partiesClientLogger.Object, _memoryCache);
 
             // Act
-            var actual = await target.GetPartyById(partyId);
+            var actual = await target.GetPartyById(partyId, CancellationToken);
 
             // Assert
             Assert.Null(actual);
@@ -271,7 +273,7 @@ namespace Altinn.Register.Tests.UnitTests
             var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partiesClientLogger.Object, _memoryCache);
 
             // Act
-            var actual = await target.GetPartiesById(partyUuids).ToListAsync();
+            var actual = await target.GetPartiesById(partyUuids, CancellationToken).ToListAsync(CancellationToken);
 
             // Assert
             Assert.NotNull(actual);
@@ -355,7 +357,7 @@ namespace Altinn.Register.Tests.UnitTests
             var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partiesClientLogger.Object, _memoryCache);
 
             // Act
-            var actual = await target.GetPartiesById(partyIds).ToListAsync();
+            var actual = await target.GetPartiesById(partyIds, CancellationToken).ToListAsync(CancellationToken);
 
             // Assert
             Assert.NotNull(actual);
@@ -385,7 +387,7 @@ namespace Altinn.Register.Tests.UnitTests
             var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partiesClientLogger.Object, _memoryCache);
 
             // Act
-            var actual = await target.GetPartiesById(partyUuids).ToListAsync();
+            var actual = await target.GetPartiesById(partyUuids, CancellationToken).ToListAsync(CancellationToken);
 
             // Assert
             Assert.Empty(actual);
@@ -412,7 +414,7 @@ namespace Altinn.Register.Tests.UnitTests
             var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partiesClientLogger.Object, _memoryCache);
 
             // Act
-            var actual = await target.GetPartiesById(partyIds).ToListAsync();
+            var actual = await target.GetPartiesById(partyIds, CancellationToken).ToListAsync(CancellationToken);
 
             // Assert
             Assert.Empty(actual);
@@ -499,7 +501,7 @@ namespace Altinn.Register.Tests.UnitTests
             var target = new PartiesClient(new HttpClient(messageHandler), _generalSettingsOptions.Object, _partiesClientLogger.Object, _memoryCache);
 
             // Act
-            var actual = await target.LookupPartiesBySSNOrOrgNos(ssnOrOrgNos).ToListAsync();
+            var actual = await target.LookupPartiesBySSNOrOrgNos(ssnOrOrgNos, CancellationToken).ToListAsync(CancellationToken);
 
             // Assert
             Assert.NotNull(actual);

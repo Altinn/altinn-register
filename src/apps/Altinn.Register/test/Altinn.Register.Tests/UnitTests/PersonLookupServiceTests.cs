@@ -16,6 +16,8 @@ public class PersonLookupServiceTests
     private readonly Mock<IPersonClient> _persons;
     private readonly Mock<ILogger<PersonLookupService>> _logger;
 
+    private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
+
     private readonly TestClock _clock;
     private readonly MemoryCache _memoryCache;
     private readonly PersonLookupSettings _lookupSettings;
@@ -46,10 +48,10 @@ public class PersonLookupServiceTests
         var target = new PersonLookupService(_persons.Object, Options.Create(_lookupSettings), _memoryCache, _logger.Object);
 
         // Act
-        var actual = await target.GetPerson("personnumber", "lastname", 777);
+        var actual = await target.GetPerson("personnumber", "lastname", 777, CancellationToken);
 
         // Assert
-        actual.Should().NotBeNull();
+        actual.ShouldNotBeNull();
     }
 
     [Fact]
@@ -66,11 +68,11 @@ public class PersonLookupServiceTests
         var target = new PersonLookupService(_persons.Object, Options.Create(_lookupSettings), _memoryCache, _logger.Object);
 
         // Act
-        await target.Awaiting(t => t.GetPerson("personnumber", "wrongname", 777)).Should().NotThrowAsync();
-        var actual = await target.GetPerson("personnumber", "lastname", 777);
+        await Should.NotThrowAsync(() => target.GetPerson("personnumber", "wrongname", 777, CancellationToken));
+        var actual = await target.GetPerson("personnumber", "lastname", 777, CancellationToken);
 
         // Assert
-        actual.Should().NotBeNull();
+        actual.ShouldNotBeNull();
     }
 
     [Fact]
@@ -83,11 +85,11 @@ public class PersonLookupServiceTests
         var target = new PersonLookupService(_persons.Object, Options.Create(_lookupSettings), _memoryCache, _logger.Object);
 
         // Act
-        await target.Awaiting(t => t.GetPerson("personnumber", "wrongname", 777)).Should().NotThrowAsync();
-        var actual = await target.GetPerson("personnumber", "lastname", 777);
+        await Should.NotThrowAsync(() => target.GetPerson("personnumber", "wrongname", 777, CancellationToken));
+        var actual = await target.GetPerson("personnumber", "lastname", 777, CancellationToken);
 
         // Assert
-        actual.Should().BeNull();
+        actual.ShouldBeNull();
     }
 
     [Fact]
@@ -104,8 +106,8 @@ public class PersonLookupServiceTests
         var target = new PersonLookupService(_persons.Object, Options.Create(_lookupSettings), _memoryCache, _logger.Object);
 
         // Act
-        await target.Awaiting(t => t.GetPerson("personnumber", "wrongname", 777)).Should().NotThrowAsync();
-        await target.Awaiting(t => t.GetPerson("personnumber", "lastname", 777)).Should().ThrowAsync<TooManyFailedLookupsException>();
+        await Should.NotThrowAsync(() => target.GetPerson("personnumber", "wrongname", 777, CancellationToken));
+        await Should.ThrowAsync<TooManyFailedLookupsException>(() => target.GetPerson("personnumber", "lastname", 777, CancellationToken));
 
         // Assert
     }
@@ -125,13 +127,13 @@ public class PersonLookupServiceTests
         var target = new PersonLookupService(_persons.Object, Options.Create(_lookupSettings), _memoryCache, _logger.Object);
 
         // Act
-        await target.Awaiting(t => t.GetPerson("personnumber", "wrongname", 777)).Should().NotThrowAsync();
-        await target.Awaiting(t => t.GetPerson("personnumber", "wrongname", 777)).Should().NotThrowAsync();
-        await target.Awaiting(t => t.GetPerson("personnumber", "wrongname", 777)).Should().ThrowAsync<TooManyFailedLookupsException>();
+        await Should.NotThrowAsync(() => target.GetPerson("personnumber", "wrongname", 777, CancellationToken));
+        await Should.NotThrowAsync(() => target.GetPerson("personnumber", "wrongname", 777, CancellationToken));
+        await Should.ThrowAsync<TooManyFailedLookupsException>(() => target.GetPerson("personnumber", "wrongname", 777, CancellationToken));
 
         // Assert
         _clock.Advance(TimeSpan.FromSeconds(_lookupSettings.FailedAttemptsCacheLifetimeSeconds + 1));
-        await target.Awaiting(t => t.GetPerson("personnumber", "wrongname", 777)).Should().NotThrowAsync();
+        await Should.NotThrowAsync(() => target.GetPerson("personnumber", "wrongname", 777, CancellationToken));
     }
 
     private class TestClock : ISystemClock

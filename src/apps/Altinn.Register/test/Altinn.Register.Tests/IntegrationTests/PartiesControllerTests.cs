@@ -20,6 +20,8 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         PropertyNameCaseInsensitive = true,
     };
 
+    private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
+
     public PartiesControllerTests(WebApplicationFactory<Program> factory)
     {
         _webApplicationFactorySetup = new WebApplicationFactorySetup(factory);
@@ -64,8 +66,8 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         testRequest.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
         // Act
-        HttpResponseMessage response = await client.SendAsync(testRequest);
-        string responseContent = await response.Content.ReadAsStringAsync();
+        HttpResponseMessage response = await client.SendAsync(testRequest, CancellationToken);
+        string responseContent = await response.Content.ReadAsStringAsync(CancellationToken);
 
         List<Party> actualParties = JsonSerializer.Deserialize<List<Party>>(
             responseContent, _options);
@@ -114,8 +116,8 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         testRequest.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
         // Act
-        HttpResponseMessage response = await client.SendAsync(testRequest);
-        string responseContent = await response.Content.ReadAsStringAsync();
+        HttpResponseMessage response = await client.SendAsync(testRequest, CancellationToken);
+        string responseContent = await response.Content.ReadAsStringAsync(CancellationToken);
 
         List<Party> actualParties = JsonSerializer.Deserialize<List<Party>>(
             responseContent, _options);
@@ -164,8 +166,8 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         testRequest.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
         // Act
-        HttpResponseMessage response = await client.SendAsync(testRequest);
-        string responseContent = await response.Content.ReadAsStringAsync();
+        HttpResponseMessage response = await client.SendAsync(testRequest, CancellationToken);
+        string responseContent = await response.Content.ReadAsStringAsync(CancellationToken);
 
         List<Party> actualParties = JsonSerializer.Deserialize<List<Party>>(
             responseContent, _options);
@@ -214,8 +216,8 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         testRequest.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
         // Act
-        HttpResponseMessage response = await client.SendAsync(testRequest);
-        string responseContent = await response.Content.ReadAsStringAsync();
+        HttpResponseMessage response = await client.SendAsync(testRequest, CancellationToken);
+        string responseContent = await response.Content.ReadAsStringAsync(CancellationToken);
 
         List<Party> actualParties = JsonSerializer.Deserialize<List<Party>>(
             responseContent, _options);
@@ -253,7 +255,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         testRequest.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
         // Act
-        HttpResponseMessage response = await client.SendAsync(testRequest);
+        HttpResponseMessage response = await client.SendAsync(testRequest, CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);

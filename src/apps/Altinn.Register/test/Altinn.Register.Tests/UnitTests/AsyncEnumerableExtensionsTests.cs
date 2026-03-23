@@ -7,6 +7,8 @@ namespace Altinn.Register.Tests.UnitTests;
 
 public class AsyncEnumerableExtensionsTests
 {
+    private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
+
     [Fact]
     public void Merge_Throws_IfNullSource()
     {
@@ -31,21 +33,21 @@ public class AsyncEnumerableExtensionsTests
         var result = await enumerable
             .Merge(new AsyncList<string>(yieldBeforeItems: false) { "d", "e", "f" })
             .Merge([new AsyncList<string>(yieldBeforeItems: false) { "g", "h", "i" }, new AsyncList<string>(yieldBeforeItems: false) { "j", "k", "l" }])
-            .ToListAsync();
+            .ToListAsync(CancellationToken);
 
-        result.Should().HaveCount(12);
-        result[0].Should().Be("a");
-        result[1].Should().Be("d");
-        result[2].Should().Be("g");
-        result[3].Should().Be("j");
-        result[4].Should().Be("b");
-        result[5].Should().Be("e");
-        result[6].Should().Be("h");
-        result[7].Should().Be("k");
-        result[8].Should().Be("c");
-        result[9].Should().Be("f");
-        result[10].Should().Be("i");
-        result[11].Should().Be("l");
+        result.Count.ShouldBe(12);
+        result[0].ShouldBe("a");
+        result[1].ShouldBe("d");
+        result[2].ShouldBe("g");
+        result[3].ShouldBe("j");
+        result[4].ShouldBe("b");
+        result[5].ShouldBe("e");
+        result[6].ShouldBe("h");
+        result[7].ShouldBe("k");
+        result[8].ShouldBe("c");
+        result[9].ShouldBe("f");
+        result[10].ShouldBe("i");
+        result[11].ShouldBe("l");
     }
 
     [Fact]
@@ -57,7 +59,7 @@ public class AsyncEnumerableExtensionsTests
         var merged = infiniteSequence.Merge(yielding);
         await foreach (var item in merged)
         {
-            await Task.Delay(TimeSpan.FromMilliseconds(10));
+            await Task.Delay(TimeSpan.FromMilliseconds(10), CancellationToken);
 
             if (item == -1)
             {
@@ -80,9 +82,9 @@ public class AsyncEnumerableExtensionsTests
         var result = await enumerable
             .Merge(new AsyncList<string>(yieldBeforeItems: true) { "d", "e", "f" })
             .Merge([new AsyncList<string>(yieldBeforeItems: true) { "g", "h", "i" }, new AsyncList<string>(yieldBeforeItems: true) { "j", "k", "l" }])
-            .ToListAsync();
+            .ToListAsync(CancellationToken);
 
-        result.Should().HaveCount(12);
+        result.Count.ShouldBe(12);
     }
 
     [Fact]
@@ -90,11 +92,11 @@ public class AsyncEnumerableExtensionsTests
     {
         using var cts = new CancellationTokenSource();
 
-        var infiniteSequence = Enumerable.Range(0, int.MaxValue).ToAsyncEnumerable().Yielding();
+        var infiniteSequence = Enumerable.Range(0, int.MaxValue).ToAsyncEnumerable().Yielding(CancellationToken);
         var cancelableSequence = new CancellableEnumerable<int>(cts.Token);
         var merged = infiniteSequence.Merge(cancelableSequence);
 
-        await using var enumerator = merged.GetAsyncEnumerator();
+        await using var enumerator = merged.GetAsyncEnumerator(CancellationToken);
         Assert.True(await enumerator.MoveNextAsync());
         Assert.Equal(0, enumerator.Current);
         Assert.True(await enumerator.MoveNextAsync());
@@ -103,7 +105,7 @@ public class AsyncEnumerableExtensionsTests
         using var resetEvent = new ManualResetEvent(false);
         cts.Token.Register(() => resetEvent.Set());
 
-        await cts.CancelAsync();
+        cts.Cancel();
         var ex = await Assert.ThrowsAsync<TaskCanceledException>(async () =>
         {
             resetEvent.WaitOne();
@@ -119,7 +121,7 @@ public class AsyncEnumerableExtensionsTests
     public async Task Merge_Empty()
     {
         var seq = AsyncEnumerableExtensions.Merge<string>([]);
-        var result = await seq.ToListAsync();
+        var result = await seq.ToListAsync(CancellationToken);
         Assert.Empty(result);
     }
 
@@ -127,7 +129,7 @@ public class AsyncEnumerableExtensionsTests
     public async Task Merge_Single()
     {
         var seq = AsyncEnumerableExtensions.Merge([AsyncEnumerable.Range(0, 10)]);
-        var result = await seq.ToListAsync();
+        var result = await seq.ToListAsync(CancellationToken);
         Assert.Equal(10, result.Count);
     }
 

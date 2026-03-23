@@ -16,6 +16,8 @@ namespace Altinn.Register.Tests.IntegrationTests
     {
         private readonly WebApplicationFactorySetup _webApplicationFactorySetup;
 
+        private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
+
         public PersonsControllerTests(WebApplicationFactory<Program> factory)
         {
             _webApplicationFactorySetup = new WebApplicationFactorySetup(factory);
@@ -49,7 +51,7 @@ namespace Altinn.Register.Tests.IntegrationTests
             testRequest.Headers.Add("X-Ai-LastName", ConvertToBase64("lastname"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(testRequest);
+            HttpResponseMessage response = await client.SendAsync(testRequest, CancellationToken);
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -69,12 +71,12 @@ namespace Altinn.Register.Tests.IntegrationTests
             testRequest.Headers.Add("X-Ai-NationalIdentityNumber", "personnumber");
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(testRequest);
+            HttpResponseMessage response = await client.SendAsync(testRequest, CancellationToken);
 
             // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-            string content = await response.Content.ReadAsStringAsync();
+            string content = await response.Content.ReadAsStringAsync(CancellationToken);
 
             Assert.Contains("X-Ai-LastName", content);
         }
@@ -104,7 +106,7 @@ namespace Altinn.Register.Tests.IntegrationTests
             testRequest.Headers.Add("X-Ai-LastName", ConvertToBase64("lastname"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(testRequest);
+            HttpResponseMessage response = await client.SendAsync(testRequest, CancellationToken);
 
             // Assert
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -141,7 +143,7 @@ namespace Altinn.Register.Tests.IntegrationTests
             testRequest.Headers.Add("X-Ai-LastName", ConvertToBase64("lastname"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(testRequest);
+            HttpResponseMessage response = await client.SendAsync(testRequest, CancellationToken);
 
             // Assert
             Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
@@ -172,7 +174,7 @@ namespace Altinn.Register.Tests.IntegrationTests
             testRequest.Headers.Add("X-Ai-LastName", ConvertToBase64("lastname"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(testRequest);
+            HttpResponseMessage response = await client.SendAsync(testRequest, CancellationToken);
 
             // Assert
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -191,7 +193,7 @@ namespace Altinn.Register.Tests.IntegrationTests
             testRequest.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
 
             // Act
-            HttpResponseMessage response = await client.SendAsync(testRequest);
+            HttpResponseMessage response = await client.SendAsync(testRequest, CancellationToken);
 
             // Assert
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);

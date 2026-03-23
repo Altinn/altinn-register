@@ -13,7 +13,7 @@ public class JobRegistrationTests
     {
         var actualName = JobRegistration.GetJobNameForType(type);
 
-        actualName.Should().Be(expectedName);
+        actualName.ShouldBe(expectedName);
     }
 
     private class DefaultJobName

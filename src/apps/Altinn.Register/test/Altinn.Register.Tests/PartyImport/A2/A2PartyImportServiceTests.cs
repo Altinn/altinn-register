@@ -6,14 +6,14 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Altinn.Authorization.ProblemDetails;
+using Altinn.Authorization.TestUtils.Http;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.PartyImport.A2;
 using Altinn.Register.Tests.Utils;
 using Altinn.Register.TestUtils;
-using Altinn.Register.TestUtils.Http;
-using FluentAssertions.Execution;
 using Microsoft.Extensions.Logging;
 using Nerdbank.Streams;
 
@@ -40,38 +40,35 @@ public class A2PartyImportServiceTests
         var logger = GetRequiredService<ILogger<A2PartyImportService>>();
         var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
 
-        var result = await client.GetParty(partyUuid);
-        var partyRecord = result.Should().HaveValue().Which;
+        var result = await client.GetParty(partyUuid, CancellationToken);
+        var partyRecord = result.ShouldHaveValue();
 
-        using (new AssertionScope())
+        partyRecord.ShouldNotBeNull();
+        partyRecord.PartyId.ShouldBe(partyId);
+        partyRecord.PartyUuid.ShouldBe(partyUuid);
+
+        var orgRecord = partyRecord.ShouldBeOfType<OrganizationRecord>();
+        orgRecord.OrganizationIdentifier.ShouldHaveValue().ShouldBe(OrganizationIdentifier.Parse("311654306"));
+        orgRecord.DisplayName.ShouldHaveValue().ShouldBe("TYNSET OG OPPDAL");
+        orgRecord.UnitType.ShouldHaveValue().ShouldBe("ANS");
+        orgRecord.UnitStatus.ShouldHaveValue().ShouldBe("N");
+        orgRecord.TelephoneNumber.ShouldHaveValue().ShouldBe("22077000");
+        orgRecord.MobileNumber.ShouldHaveValue().ShouldBe("99000000");
+        orgRecord.FaxNumber.ShouldHaveValue().ShouldBe("22077108");
+        orgRecord.EmailAddress.ShouldHaveValue().ShouldBe("tynset_og_oppdal@example.com");
+        orgRecord.InternetAddress.ShouldHaveValue().ShouldBe("tynset-og-oppdal.example.com");
+        orgRecord.MailingAddress.ShouldHaveValue().ShouldBe(new MailingAddressRecord
         {
-            partyRecord.Should().NotBeNull();
-            partyRecord.PartyId.Should().Be(partyId);
-            partyRecord.PartyUuid.Should().Be(partyUuid);
-
-            var orgRecord = partyRecord.Should().BeOfType<OrganizationRecord>().Which;
-            orgRecord.OrganizationIdentifier.Should().HaveValue().Which.Should().Be("311654306");
-            orgRecord.DisplayName.Should().HaveValue().Which.Should().Be("TYNSET OG OPPDAL");
-            orgRecord.UnitType.Should().HaveValue().Which.Should().Be("ANS");
-            orgRecord.UnitStatus.Should().HaveValue().Which.Should().Be("N");
-            orgRecord.TelephoneNumber.Should().HaveValue().Which.Should().Be("22077000");
-            orgRecord.MobileNumber.Should().HaveValue().Which.Should().Be("99000000");
-            orgRecord.FaxNumber.Should().HaveValue().Which.Should().Be("22077108");
-            orgRecord.EmailAddress.Should().HaveValue().Which.Should().Be("tynset_og_oppdal@example.com");
-            orgRecord.InternetAddress.Should().HaveValue().Which.Should().Be("tynset-og-oppdal.example.com");
-            orgRecord.MailingAddress.Should().HaveValue().Which.Should().Be(new MailingAddressRecord
-            {
-                Address = "Postboks 6662 St. Bergens plass",
-                PostalCode = "1666",
-                City = "Bergen",
-            });
-            orgRecord.BusinessAddress.Should().HaveValue().Which.Should().Be(new MailingAddressRecord
-            {
-                Address = "Postboks 6662 St. Olavs plass",
-                PostalCode = "0555",
-                City = "Oslo",
-            });
-        }
+            Address = "Postboks 6662 St. Bergens plass",
+            PostalCode = "1666",
+            City = "Bergen",
+        });
+        orgRecord.BusinessAddress.ShouldHaveValue().ShouldBe(new MailingAddressRecord
+        {
+            Address = "Postboks 6662 St. Olavs plass",
+            PostalCode = "0555",
+            City = "Oslo",
+        });
     }
 
     [Fact]
@@ -91,39 +88,36 @@ public class A2PartyImportServiceTests
         var logger = GetRequiredService<ILogger<A2PartyImportService>>();
         var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
 
-        var result = await client.GetParty(partyUuid);
-        var partyRecord = result.Should().HaveValue().Which;
+        var result = await client.GetParty(partyUuid, CancellationToken);
+        var partyRecord = result.ShouldHaveValue();
 
-        using (new AssertionScope())
+        partyRecord.ShouldNotBeNull();
+        partyRecord.PartyId.ShouldBe(partyId);
+        partyRecord.PartyUuid.ShouldBe(partyUuid);
+
+        var persRecord = partyRecord.ShouldBeOfType<PersonRecord>();
+        persRecord.PersonIdentifier.ShouldHaveValue().ShouldBe(PersonIdentifier.Parse("25871999336"));
+        persRecord.DisplayName.ShouldHaveValue().ShouldBe("Ola Bla Nordmann");
+        persRecord.FirstName.ShouldHaveValue().ShouldBe("Ola");
+        persRecord.MiddleName.ShouldHaveValue().ShouldBe("Bla");
+        persRecord.LastName.ShouldHaveValue().ShouldBe("Nordmann");
+        persRecord.ShortName.ShouldHaveValue().ShouldBe("Ola Bla Nordmann");
+        persRecord.MailingAddress.ShouldHaveValue().ShouldBe(new MailingAddressRecord
         {
-            partyRecord.Should().NotBeNull();
-            partyRecord.PartyId.Should().Be(partyId);
-            partyRecord.PartyUuid.Should().Be(partyUuid);
-
-            var persRecord = partyRecord.Should().BeOfType<PersonRecord>().Which;
-            persRecord.PersonIdentifier.Should().HaveValue().Which.Should().Be("25871999336");
-            persRecord.DisplayName.Should().HaveValue().Which.Should().Be("Ola Bla Nordmann");
-            persRecord.FirstName.Should().HaveValue().Which.Should().Be("Ola");
-            persRecord.MiddleName.Should().HaveValue().Which.Should().Be("Bla");
-            persRecord.LastName.Should().HaveValue().Which.Should().Be("Nordmann");
-            persRecord.ShortName.Should().HaveValue().Which.Should().Be("Ola Bla Nordmann");
-            persRecord.MailingAddress.Should().HaveValue().Which.Should().Be(new MailingAddressRecord
-            {
-                Address = "Blåbæreveien 7 8450 Stokmarknes",
-                PostalCode = "8450",
-                City = "Stokmarknes",
-            });
-            persRecord.Address.Should().HaveValue().Which.Should().Be(new StreetAddressRecord
-            {
-                MunicipalNumber = "1866",
-                MunicipalName = "Hadsel",
-                StreetName = "Blåbærveien",
-                HouseNumber = "7",
-                HouseLetter = "G",
-                PostalCode = "8450",
-                City = "Stokarknes",
-            });
-        }
+            Address = "Blåbæreveien 7 8450 Stokmarknes",
+            PostalCode = "8450",
+            City = "Stokmarknes",
+        });
+        persRecord.Address.ShouldHaveValue().ShouldBe(new StreetAddressRecord
+        {
+            MunicipalNumber = "1866",
+            MunicipalName = "Hadsel",
+            StreetName = "Blåbærveien",
+            HouseNumber = "7",
+            HouseLetter = "G",
+            PostalCode = "8450",
+            City = "Stokarknes",
+        });
     }
 
     [Theory]
@@ -146,8 +140,8 @@ public class A2PartyImportServiceTests
         var logger = GetRequiredService<ILogger<A2PartyImportService>>();
         var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
 
-        var result = await client.GetParty(partyUuid);
-        result.Should().BeProblem(expected);
+        var result = await client.GetParty(partyUuid, CancellationToken);
+        result.ShouldBeProblem(expected);
     }
 
     public static TheoryData<HttpStatusCode, string> GetPartyProblemStatuses()
@@ -183,24 +177,18 @@ public class A2PartyImportServiceTests
         var logger = GetRequiredService<ILogger<A2PartyImportService>>();
         var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
 
-        var roleAssignments = await client.GetExternalRoleAssignmentsFrom(partyId, partyUuid).ToListAsync();
+        var roleAssignments = await client.GetExternalRoleAssignmentsFrom(partyId, partyUuid, CancellationToken).ToListAsync(CancellationToken);
         Assert.NotNull(roleAssignments);
 
-        roleAssignments.Should().HaveCount(2);
+        roleAssignments.Count.ShouldBe(2);
 
-        using (new AssertionScope())
-        {
-            var roleAssignment = roleAssignments[0];
-            roleAssignment.ToPartyUuid.Should().Be("00000000-0000-0000-0000-000000000001");
-            roleAssignment.RoleCode.Should().Be("DAGL");
-        }
+        var firstRoleAssignment = roleAssignments[0];
+        firstRoleAssignment.ToPartyUuid.ShouldBe(Guid.Parse("00000000-0000-0000-0000-000000000001"));
+        firstRoleAssignment.RoleCode.ShouldBe("DAGL");
 
-        using (new AssertionScope())
-        {
-            var roleAssignment = roleAssignments[1];
-            roleAssignment.ToPartyUuid.Should().Be("00000000-0000-0000-0000-000000000002");
-            roleAssignment.RoleCode.Should().Be("REVI");
-        }
+        var secondRoleAssignment = roleAssignments[1];
+        secondRoleAssignment.ToPartyUuid.ShouldBe(Guid.Parse("00000000-0000-0000-0000-000000000002"));
+        secondRoleAssignment.RoleCode.ShouldBe("REVI");
     }
 
     [Fact]
@@ -232,21 +220,29 @@ public class A2PartyImportServiceTests
         var logger = GetRequiredService<ILogger<A2PartyImportService>>();
         var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
 
-        var roleAssignments = await client.GetExternalRoleAssignmentsFrom(partyId, partyUuid).ToListAsync();
+        var roleAssignments = await client.GetExternalRoleAssignmentsFrom(partyId, partyUuid, CancellationToken).ToListAsync(CancellationToken);
         Assert.NotNull(roleAssignments);
 
-        roleAssignments.Should().HaveCount(11);
-        roleAssignments.Where(ra => ra.ToPartyUuid == Guid.Parse("00000000-0000-0000-0000-000000000003")).Should().HaveCount(1)
-            .And.ContainSingle(ra => ra.RoleCode == "KONT");
-        roleAssignments.Where(ra => ra.ToPartyUuid == Guid.Parse("00000000-0000-0000-0000-000000000004")).Should().HaveCount(2)
-            .And.ContainSingle(ra => ra.RoleCode == "KOMK")
-            .And.ContainSingle(ra => ra.RoleCode == "KONT");
-        roleAssignments.Where(ra => ra.ToPartyUuid == Guid.Parse("00000000-0000-0000-0000-000000000005")).Should().HaveCount(2)
-            .And.ContainSingle(ra => ra.RoleCode == "SREVA")
-            .And.ContainSingle(ra => ra.RoleCode == "KONT");
-        roleAssignments.Where(ra => ra.ToPartyUuid == Guid.Parse("00000000-0000-0000-0000-000000000006")).Should().HaveCount(2)
-            .And.ContainSingle(ra => ra.RoleCode == "KNUF")
-            .And.ContainSingle(ra => ra.RoleCode == "KONT");
+        roleAssignments.Count.ShouldBe(11);
+
+        var party3Assignments = roleAssignments.Where(ra => ra.ToPartyUuid == Guid.Parse("00000000-0000-0000-0000-000000000003")).ToArray();
+        party3Assignments.Length.ShouldBe(1);
+        party3Assignments.ShouldContain(ra => ra.RoleCode == "KONT");
+
+        var party4Assignments = roleAssignments.Where(ra => ra.ToPartyUuid == Guid.Parse("00000000-0000-0000-0000-000000000004")).ToArray();
+        party4Assignments.Length.ShouldBe(2);
+        party4Assignments.ShouldContain(ra => ra.RoleCode == "KOMK");
+        party4Assignments.ShouldContain(ra => ra.RoleCode == "KONT");
+
+        var party5Assignments = roleAssignments.Where(ra => ra.ToPartyUuid == Guid.Parse("00000000-0000-0000-0000-000000000005")).ToArray();
+        party5Assignments.Length.ShouldBe(2);
+        party5Assignments.ShouldContain(ra => ra.RoleCode == "SREVA");
+        party5Assignments.ShouldContain(ra => ra.RoleCode == "KONT");
+
+        var party6Assignments = roleAssignments.Where(ra => ra.ToPartyUuid == Guid.Parse("00000000-0000-0000-0000-000000000006")).ToArray();
+        party6Assignments.Length.ShouldBe(2);
+        party6Assignments.ShouldContain(ra => ra.RoleCode == "KNUF");
+        party6Assignments.ShouldContain(ra => ra.RoleCode == "KONT");
     }
 
     [Fact]
@@ -266,9 +262,9 @@ public class A2PartyImportServiceTests
 
         var logger = GetRequiredService<ILogger<A2PartyImportService>>();
         var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
-        var changes = await client.GetChanges().ToListAsync();
+        var changes = await client.GetChanges(cancellationToken: CancellationToken).ToListAsync(CancellationToken);
 
-        changes.Should().BeEmpty();
+        changes.ShouldBeEmpty();
     }
 
     [Fact]
@@ -313,21 +309,21 @@ public class A2PartyImportServiceTests
 
         var logger = GetRequiredService<ILogger<A2PartyImportService>>();
         var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
-        var changes = await client.GetChanges().ToListAsync();
+        var changes = await client.GetChanges(cancellationToken: CancellationToken).ToListAsync(CancellationToken);
 
-        var page = changes.Should().ContainSingle().Which;
-        page.LastKnownChangeId.Should().Be(2);
-        page.Should().HaveCount(2);
+        var page = changes.ShouldHaveSingleItem();
+        page.LastKnownChangeId.ShouldBe(2U);
+        page.Count.ShouldBe(2);
 
-        page[0].ChangeId.Should().Be(1);
-        page[0].PartyId.Should().Be(1);
-        page[0].PartyUuid.Should().Be(Guid.Parse("00000000-0000-0000-0000-000000000001"));
-        page[0].ChangeTime.Should().Be(new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        page[0].ChangeId.ShouldBe(1U);
+        page[0].PartyId.ShouldBe(1);
+        page[0].PartyUuid.ShouldBe(Guid.Parse("00000000-0000-0000-0000-000000000001"));
+        page[0].ChangeTime.ShouldBe(new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero));
 
-        page[1].ChangeId.Should().Be(2);
-        page[1].PartyId.Should().Be(2);
-        page[1].PartyUuid.Should().Be(Guid.Parse("00000000-0000-0000-0000-000000000002"));
-        page[1].ChangeTime.Should().Be(new DateTimeOffset(2020, 1, 2, 0, 0, 0, TimeSpan.Zero));
+        page[1].ChangeId.ShouldBe(2U);
+        page[1].PartyId.ShouldBe(2);
+        page[1].PartyUuid.ShouldBe(Guid.Parse("00000000-0000-0000-0000-000000000002"));
+        page[1].ChangeTime.ShouldBe(new DateTimeOffset(2020, 1, 2, 0, 0, 0, TimeSpan.Zero));
     }
 
     [Fact]
@@ -414,45 +410,45 @@ public class A2PartyImportServiceTests
 
         var logger = GetRequiredService<ILogger<A2PartyImportService>>();
         var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
-        var changes = await client.GetChanges().ToListAsync();
+        var changes = await client.GetChanges(cancellationToken: CancellationToken).ToListAsync(CancellationToken);
 
-        changes.Should().HaveCount(3);
+        changes.Count.ShouldBe(3);
         var firstPage = changes[0];
-        firstPage.LastKnownChangeId.Should().Be(3);
-        firstPage.Should().HaveCount(2);
+        firstPage.LastKnownChangeId.ShouldBe(3U);
+        firstPage.Count.ShouldBe(2);
 
-        firstPage[0].ChangeId.Should().Be(1);
-        firstPage[0].PartyId.Should().Be(1);
-        firstPage[0].PartyUuid.Should().Be(Guid.Parse("00000000-0000-0000-0000-000000000001"));
-        firstPage[0].ChangeTime.Should().Be(new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        firstPage[0].ChangeId.ShouldBe(1U);
+        firstPage[0].PartyId.ShouldBe(1);
+        firstPage[0].PartyUuid.ShouldBe(Guid.Parse("00000000-0000-0000-0000-000000000001"));
+        firstPage[0].ChangeTime.ShouldBe(new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero));
 
-        firstPage[1].ChangeId.Should().Be(2);
-        firstPage[1].PartyId.Should().Be(2);
-        firstPage[1].PartyUuid.Should().Be(Guid.Parse("00000000-0000-0000-0000-000000000002"));
-        firstPage[1].ChangeTime.Should().Be(new DateTimeOffset(2020, 1, 2, 0, 0, 0, TimeSpan.Zero));
+        firstPage[1].ChangeId.ShouldBe(2U);
+        firstPage[1].PartyId.ShouldBe(2);
+        firstPage[1].PartyUuid.ShouldBe(Guid.Parse("00000000-0000-0000-0000-000000000002"));
+        firstPage[1].ChangeTime.ShouldBe(new DateTimeOffset(2020, 1, 2, 0, 0, 0, TimeSpan.Zero));
 
         var secondPage = changes[1];
-        secondPage.LastKnownChangeId.Should().Be(5);
-        secondPage.Should().HaveCount(2);
+        secondPage.LastKnownChangeId.ShouldBe(5U);
+        secondPage.Count.ShouldBe(2);
 
-        secondPage[0].ChangeId.Should().Be(3);
-        secondPage[0].PartyId.Should().Be(3);
-        secondPage[0].PartyUuid.Should().Be(Guid.Parse("00000000-0000-0000-0000-000000000003"));
-        secondPage[0].ChangeTime.Should().Be(new DateTimeOffset(2020, 1, 3, 0, 0, 0, TimeSpan.Zero));
+        secondPage[0].ChangeId.ShouldBe(3U);
+        secondPage[0].PartyId.ShouldBe(3);
+        secondPage[0].PartyUuid.ShouldBe(Guid.Parse("00000000-0000-0000-0000-000000000003"));
+        secondPage[0].ChangeTime.ShouldBe(new DateTimeOffset(2020, 1, 3, 0, 0, 0, TimeSpan.Zero));
 
-        secondPage[1].ChangeId.Should().Be(4);
-        secondPage[1].PartyId.Should().Be(4);
-        secondPage[1].PartyUuid.Should().Be(Guid.Parse("00000000-0000-0000-0000-000000000004"));
-        secondPage[1].ChangeTime.Should().Be(new DateTimeOffset(2020, 1, 4, 0, 0, 0, TimeSpan.Zero));
+        secondPage[1].ChangeId.ShouldBe(4U);
+        secondPage[1].PartyId.ShouldBe(4);
+        secondPage[1].PartyUuid.ShouldBe(Guid.Parse("00000000-0000-0000-0000-000000000004"));
+        secondPage[1].ChangeTime.ShouldBe(new DateTimeOffset(2020, 1, 4, 0, 0, 0, TimeSpan.Zero));
 
         var thirdPage = changes[2];
-        thirdPage.LastKnownChangeId.Should().Be(5);
-        thirdPage.Should().HaveCount(1);
+        thirdPage.LastKnownChangeId.ShouldBe(5U);
+        thirdPage.Count.ShouldBe(1);
 
-        thirdPage[0].ChangeId.Should().Be(5);
-        thirdPage[0].PartyId.Should().Be(5);
-        thirdPage[0].PartyUuid.Should().Be(Guid.Parse("00000000-0000-0000-0000-000000000005"));
-        thirdPage[0].ChangeTime.Should().Be(new DateTimeOffset(2020, 1, 5, 0, 0, 0, TimeSpan.Zero));
+        thirdPage[0].ChangeId.ShouldBe(5U);
+        thirdPage[0].PartyId.ShouldBe(5);
+        thirdPage[0].PartyUuid.ShouldBe(Guid.Parse("00000000-0000-0000-0000-000000000005"));
+        thirdPage[0].ChangeTime.ShouldBe(new DateTimeOffset(2020, 1, 5, 0, 0, 0, TimeSpan.Zero));
     }
 
     [Fact]
@@ -520,16 +516,16 @@ public class A2PartyImportServiceTests
 
         var logger = GetRequiredService<ILogger<A2PartyImportService>>();
         var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
-        var profileResult = await client.GetProfile(20002097);
+        var profileResult = await client.GetProfile(20002097, CancellationToken);
 
-        var profile = profileResult.Should().HaveValue().Which;
-        profile.PartyId.Should().Be(50004205);
-        profile.PartyUuid.Should().Be(Guid.Parse("76bc6f6e-8090-4ca6-8fd0-57054ffe1daf"));
-        profile.UserId.Should().Be(20002097);
-        profile.UserUuid.Should().Be(Guid.Parse("76bc6f6e-8090-4ca6-8fd0-57054ffe1daf"));
-        profile.UserName.Should().BeNull();
-        profile.IsActive.Should().BeTrue();
-        profile.ProfileType.Should().Be(A2UserProfileType.Person);
+        var profile = profileResult.ShouldHaveValue();
+        profile.PartyId.ShouldBe(50004205U);
+        profile.PartyUuid.ShouldBe(Guid.Parse("76bc6f6e-8090-4ca6-8fd0-57054ffe1daf"));
+        profile.UserId.ShouldBe(20002097U);
+        profile.UserUuid.ShouldBe(Guid.Parse("76bc6f6e-8090-4ca6-8fd0-57054ffe1daf"));
+        profile.UserName.ShouldBeNull();
+        profile.IsActive.ShouldBeTrue();
+        profile.ProfileType.ShouldBe(A2UserProfileType.Person);
     }
 
     [Fact]
@@ -578,16 +574,16 @@ public class A2PartyImportServiceTests
 
         var logger = GetRequiredService<ILogger<A2PartyImportService>>();
         var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
-        var profileResult = await client.GetProfile(20002139);
+        var profileResult = await client.GetProfile(20002139, CancellationToken);
 
-        var profile = profileResult.Should().HaveValue().Which;
-        profile.PartyId.Should().Be(50006237);
-        profile.PartyUuid.Should().Be(Guid.Parse("4fe860c4-bc65-4d2f-a288-f825b460f26b"));
-        profile.UserId.Should().Be(20002139);
-        profile.UserUuid.Should().Be(Guid.Parse("4fe860c4-bc65-4d2f-a288-f825b460f26b"));
-        profile.UserName.Should().Be("TestSelfIdentifiedUser");
-        profile.IsActive.Should().BeTrue();
-        profile.ProfileType.Should().Be(A2UserProfileType.SelfIdentifiedUser);
+        var profile = profileResult.ShouldHaveValue();
+        profile.PartyId.ShouldBe(50006237U);
+        profile.PartyUuid.ShouldBe(Guid.Parse("4fe860c4-bc65-4d2f-a288-f825b460f26b"));
+        profile.UserId.ShouldBe(20002139U);
+        profile.UserUuid.ShouldBe(Guid.Parse("4fe860c4-bc65-4d2f-a288-f825b460f26b"));
+        profile.UserName.ShouldBe("TestSelfIdentifiedUser");
+        profile.IsActive.ShouldBeTrue();
+        profile.ProfileType.ShouldBe(A2UserProfileType.SelfIdentifiedUser);
     }
 
     [Fact]
@@ -653,16 +649,16 @@ public class A2PartyImportServiceTests
 
         var logger = GetRequiredService<ILogger<A2PartyImportService>>();
         var client = new A2PartyImportService(handler.CreateClient(), TimeProvider, logger);
-        var profileResult = await client.GetProfile(20005073);
+        var profileResult = await client.GetProfile(20005073, CancellationToken);
 
-        var profile = profileResult.Should().HaveValue().Which;
-        profile.PartyId.Should().Be(50066480);
-        profile.PartyUuid.Should().Be(Guid.Parse("ec061efa-4c2a-4dbd-87f5-bcb59cdeaf91"));
-        profile.UserId.Should().Be(20005073);
-        profile.UserUuid.Should().Be(Guid.Parse("869a3a5f-02db-402c-823a-94584afea394"));
-        profile.UserName.Should().Be("PKQHFDZGLDRIRGJU");
-        profile.IsActive.Should().BeTrue();
-        profile.ProfileType.Should().Be(A2UserProfileType.EnterpriseUser);
+        var profile = profileResult.ShouldHaveValue();
+        profile.PartyId.ShouldBe(50066480U);
+        profile.PartyUuid.ShouldBe(Guid.Parse("ec061efa-4c2a-4dbd-87f5-bcb59cdeaf91"));
+        profile.UserId.ShouldBe(20005073U);
+        profile.UserUuid.ShouldBe(Guid.Parse("869a3a5f-02db-402c-823a-94584afea394"));
+        profile.UserName.ShouldBe("PKQHFDZGLDRIRGJU");
+        profile.IsActive.ShouldBeTrue();
+        profile.ProfileType.ShouldBe(A2UserProfileType.EnterpriseUser);
     }
 
     private static async Task<SequenceHttpContent> TestDataParty(uint id)

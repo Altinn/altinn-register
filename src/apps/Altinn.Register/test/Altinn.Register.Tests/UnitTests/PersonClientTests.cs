@@ -18,6 +18,8 @@ public class PersonClientTests
     private Mock<IOptions<GeneralSettings>> _generalSettingsOptions = new();
     private Mock<ILogger<PersonClient>> _personClientLogger = new();
 
+    private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
+
     public PersonClientTests()
     {
         GeneralSettings generalSettings = new() { BridgeApiEndpoint = "http://localhost/" };
@@ -41,7 +43,7 @@ public class PersonClientTests
             new HttpClient(messageHandler), _generalSettingsOptions.Object, _personClientLogger.Object);
 
         // Act
-        var actual = await target.GetPerson("thisperson");
+        var actual = await target.GetPerson("thisperson", CancellationToken);
 
         // Assert
         Assert.NotNull(actual);
@@ -67,7 +69,7 @@ public class PersonClientTests
             new HttpClient(messageHandler), _generalSettingsOptions.Object, _personClientLogger.Object);
 
         // Act
-        var actual = await target.GetPerson("thisperson");
+        var actual = await target.GetPerson("thisperson", CancellationToken);
 
         // Assert
         Assert.Null(actual);

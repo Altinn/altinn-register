@@ -8,6 +8,8 @@ namespace Altinn.Register.Tests.UnitTests;
 
 public class RateLimiterTests
 {
+    private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
+
     [Fact]
     public async Task GetStatus_ConfiguredPolicy_ForwardsMaterializedSettings()
     {
@@ -27,11 +29,11 @@ public class RateLimiterTests
         });
 
         var sut = serviceProvider.GetRequiredService<IRateLimiter>();
-        var result = await sut.GetStatus("test", "resource-1", "subject-1");
+        var result = await sut.GetStatus("test", "resource-1", "subject-1", CancellationToken);
 
-        result.Should().BeSameAs(RateLimitStatus.NotFound);
-        provider.LastGetStatus.Should().NotBeNull();
-        provider.LastGetStatus!.Value.Should().BeEquivalentTo(new CapturingRateLimitProvider.GetStatusCall(
+        result.ShouldBeSameAs(RateLimitStatus.NotFound);
+        provider.LastGetStatus.ShouldNotBeNull();
+        provider.LastGetStatus!.Value.ShouldBe(new CapturingRateLimitProvider.GetStatusCall(
             "test",
             "resource-1",
             "subject-1",
@@ -58,11 +60,11 @@ public class RateLimiterTests
         });
 
         var sut = serviceProvider.GetRequiredService<IRateLimiter>();
-        var result = await sut.Record("test", "resource-1", "subject-1", cost: 2);
+        var result = await sut.Record("test", "resource-1", "subject-1", cost: 2, cancellationToken: CancellationToken);
 
-        result.Should().BeSameAs(RateLimitStatus.NotFound);
-        provider.LastRecord.Should().NotBeNull();
-        provider.LastRecord!.Value.Should().BeEquivalentTo(new CapturingRateLimitProvider.RecordCall(
+        result.ShouldBeSameAs(RateLimitStatus.NotFound);
+        provider.LastRecord.ShouldNotBeNull();
+        provider.LastRecord!.Value.ShouldBe(new CapturingRateLimitProvider.RecordCall(
             "test",
             "resource-1",
             "subject-1",
@@ -82,8 +84,7 @@ public class RateLimiterTests
         var act = () => sut.GetStatus("test", "resource-1", "subject-1").AsTask();
 
         var exn = await Assert.ThrowsAsync<OptionsValidationException>(act);
-        exn.Failures.Should().ContainSingle()
-            .Which.Should().Be("Rate limit policy 'test' has not been configured.");
+        exn.Failures.ShouldHaveSingleItem().ShouldBe("Rate limit policy 'test' has not been configured.");
     }
 
     [Fact]
@@ -95,8 +96,7 @@ public class RateLimiterTests
         var act = () => sut.Record("test", "resource-1", "subject-1", cost: 1).AsTask();
 
         var exn = await Assert.ThrowsAsync<OptionsValidationException>(act);
-        exn.Failures.Should().ContainSingle()
-            .Which.Should().Be("Rate limit policy 'test' has not been configured.");
+        exn.Failures.ShouldHaveSingleItem().ShouldBe("Rate limit policy 'test' has not been configured.");
     }
 
     private static ServiceProvider CreateServiceProvider(
