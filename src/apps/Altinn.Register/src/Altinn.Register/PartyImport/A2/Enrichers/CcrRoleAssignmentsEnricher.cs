@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.ExternalRoles;
-using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
 
@@ -19,7 +18,7 @@ internal sealed partial class CcrRoleAssignmentsEnricher
 
     /// <inheritdoc/>
     public static bool CanEnrich(A2PartyImportSagaEnrichmentCheckContext context)
-        => context.Party is OrganizationRecord { Source.Value: OrganizationSource.CentralCoordinatingRegister };
+        => context.Party is OrganizationRecord; // While we use A2 for role enrichment we need to fetch the roles for all organization types
 
     private readonly IA2PartyImportService _importService;
     private readonly IExternalRoleDefinitionPersistence _roleDefinitions;
@@ -41,7 +40,7 @@ internal sealed partial class CcrRoleAssignmentsEnricher
     /// <inheritdoc/>
     public async Task Run(A2PartyImportSagaEnrichmentRunContext context, CancellationToken cancellationToken)
     {
-        Debug.Assert(context.Party is OrganizationRecord { Source.Value: OrganizationSource.CentralCoordinatingRegister });
+        Debug.Assert(context.Party is OrganizationRecord);
         Debug.Assert(context.Party.PartyId.HasValue);
         var assignments = await _importService.GetExternalRoleAssignmentsFrom(context.Party.PartyId.Value, context.PartyUuid, cancellationToken)
             .ToListAsync(cancellationToken);
