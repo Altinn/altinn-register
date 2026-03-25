@@ -51,6 +51,8 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
 
         public Mock<IOptions<GeneralSettings>> GeneralSettingsOptions { get; set; } = new();
 
+        public MockRateLimitProvider RateLimitProvider { get; } = new();
+
         public MemoryCache MemoryCache { get; set; } = new MemoryCache(new MemoryCacheOptions());
 
         public HttpMessageHandler SblBridgeHttpMessageHandler { get; set; } = new DelegatingHandlerStub();
@@ -69,7 +71,8 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
                     services.AddSingleton<IMemoryCache>(MemoryCache);
                     services.AddSingleton<IAccessTokenGenerator, TestAccessTokenGenerator>();
                     services.AddSingleton<IExternalRoleDefinitionPersistence, MockExternalRoleDefinitionPersistence>();
-                    services.AddSingleton<IRateLimitProvider, MockRateLimitProvider>();
+                    services.AddSingleton(RateLimitProvider);
+                    services.AddSingleton<IRateLimitProvider>(sp => sp.GetRequiredService<MockRateLimitProvider>());
 
                     // Using the real/actual implementation of IParties and IPersons, but with a mocked message handler.
                     // Haven't found any other ways of injecting a mocked message handler to simulate SBL Bridge.

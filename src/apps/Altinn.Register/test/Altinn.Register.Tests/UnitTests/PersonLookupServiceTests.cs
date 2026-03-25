@@ -3,146 +3,153 @@
 using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Contracts.V1;
 using Altinn.Register.Core;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Internal;
+using Altinn.Register.Core.Errors;
+using Altinn.Register.Core.RateLimiting;
+using Altinn.Register.Services;
+using Altinn.Register.Tests.Mocks;
+using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 
 namespace Altinn.Register.Tests.UnitTests;
 
-public class PersonLookupServiceTests
+public sealed class PersonLookupServiceTests
+    : IDisposable
 {
     private readonly Mock<IPersonClient> _persons;
-    private readonly Mock<ILogger<PersonLookupService>> _logger;
+    private readonly MockRateLimitProvider _rateLimitProvider;
+    private readonly ILogger<PersonLookupService> _logger;
+    private readonly ServiceProvider _serviceProvider;
+    private readonly HybridCache _cache;
+    private readonly IRateLimiter _rateLimiter;
+    private readonly PersonLookupSettings _lookupSettings;
 
     private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
-
-    private readonly TestClock _clock;
-    private readonly MemoryCache _memoryCache;
-    private readonly PersonLookupSettings _lookupSettings;
 
     public PersonLookupServiceTests()
     {
         _persons = new Mock<IPersonClient>();
+        _rateLimitProvider = new MockRateLimitProvider();
+        _logger = NullLogger<PersonLookupService>.Instance;
         _lookupSettings = new PersonLookupSettings();
 
-        _clock = new TestClock();
-        _memoryCache = new MemoryCache(new MemoryCacheOptions
-        {
-            Clock = _clock,
-        });
-        _logger = new Mock<ILogger<PersonLookupService>>();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddMemoryCache();
+        services.AddHybridCache();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder()
+            .AddInMemoryCollection([
+                new($"Altinn:Register:RateLimit:Policy:{PersonLookupService.FailedAttemptsRateLimitPolicyName}:Limit", "2"),
+                new($"Altinn:Register:RateLimit:Policy:{PersonLookupService.FailedAttemptsRateLimitPolicyName}:WindowDuration", "01:00:00"),
+                new($"Altinn:Register:RateLimit:Policy:{PersonLookupService.FailedAttemptsRateLimitPolicyName}:WindowBehavior", "TrailingEdge"),
+                new($"Altinn:Register:RateLimit:Policy:{PersonLookupService.FailedAttemptsRateLimitPolicyName}:BlockDuration", "01:00:00"),
+                new($"Altinn:Register:RateLimit:Policy:{PersonLookupService.FailedAttemptsRateLimitPolicyName}:BlockedRequestBehavior", "Ignore"),
+            ])
+            .Build());
+        services.AddSingleton(_rateLimitProvider);
+        services.AddSingleton<IRateLimitProvider>(sp => sp.GetRequiredService<MockRateLimitProvider>());
+        services.AddRateLimitPolicy(PersonLookupService.FailedAttemptsRateLimitPolicyName);
+
+        _serviceProvider = services.BuildServiceProvider();
+        _cache = _serviceProvider.GetRequiredService<HybridCache>();
+        _rateLimiter = _serviceProvider.GetRequiredService<IRateLimiter>();
     }
 
     [Fact]
-    public async Task GetPerson_NoFailedAttempts_CorrectInput_ReturnsParty()
+    public async Task GetPerson_CorrectInput_ReturnsPersonAndCachesResult()
     {
-        // Arrange
-        Person person = new Person
-        {
-            LastName = "lastname"
-        };
+        Person person = new() { LastName = "lastname", };
         _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(person);
 
-        var target = new PersonLookupService(_persons.Object, Options.Create(_lookupSettings), _memoryCache, _logger.Object);
+        var target = CreateTarget();
+        var activeUser = Guid.Parse("00000000-0000-0000-0000-000000000777");
 
-        // Act
-        var actual = await target.GetPerson("personnumber", "lastname", 777, CancellationToken);
+        var first = await target.GetPerson("personnumber", "lastname", activeUser, CancellationToken);
+        var second = await target.GetPerson("personnumber", "lastname", activeUser, CancellationToken);
 
-        // Assert
-        actual.ShouldNotBeNull();
+        first.ShouldHaveValue().LastName.ShouldBe(person.LastName);
+        second.ShouldHaveValue().LastName.ShouldBe(person.LastName);
+        _persons.Verify(s => s.GetPerson("personnumber", It.IsAny<CancellationToken>()), Times.Once);
+        _rateLimitProvider.GetStatusCallCount.ShouldBe(2);
+        _persons.Verify(s => s.GetPerson("personnumber", It.IsAny<CancellationToken>()), Times.Once);
+        _rateLimitProvider.LastGetStatus.ShouldBe(new MockRateLimitProvider.GetStatusCall(
+            PersonLookupService.FailedAttemptsRateLimitPolicyName,
+            IRateLimiter.DefaultResource,
+            activeUser.ToString("D"),
+            BlockedRequestBehavior.Ignore,
+            TimeSpan.FromHours(1)));
     }
 
     [Fact]
-    public async Task GetPerson_OneFailedAttempt_MoreToGo_CorrectInput_ReturnsParty()
+    public async Task GetPerson_WrongInput_ReturnsProblemAndRecordsFailure()
     {
-        // Arrange
-        Person person = new Person
-        {
-            LastName = "lastname"
-        };
-        _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(person);
-        _lookupSettings.MaximumFailedAttempts = 2;
-
-        var target = new PersonLookupService(_persons.Object, Options.Create(_lookupSettings), _memoryCache, _logger.Object);
-
-        // Act
-        await Should.NotThrowAsync(() => target.GetPerson("personnumber", "wrongname", 777, CancellationToken));
-        var actual = await target.GetPerson("personnumber", "lastname", 777, CancellationToken);
-
-        // Assert
-        actual.ShouldNotBeNull();
-    }
-
-    [Fact]
-    public async Task GetPerson_OneFailedAttempt_MoreToGo_WrongInput_ReturnsNull()
-    {
-        // Arrange
         _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync((Person?)null);
-        _lookupSettings.MaximumFailedAttempts = 2;
 
-        var target = new PersonLookupService(_persons.Object, Options.Create(_lookupSettings), _memoryCache, _logger.Object);
+        var target = CreateTarget();
+        var activeUser = Guid.Parse("00000000-0000-0000-0000-000000000777");
 
-        // Act
-        await Should.NotThrowAsync(() => target.GetPerson("personnumber", "wrongname", 777, CancellationToken));
-        var actual = await target.GetPerson("personnumber", "lastname", 777, CancellationToken);
+        var actual = await target.GetPerson("personnumber", "lastname", activeUser, CancellationToken);
 
-        // Assert
-        actual.ShouldBeNull();
+        actual.ShouldBeProblem(Problems.PersonNotFound.ErrorCode);
+        _rateLimitProvider.RecordCallCount.ShouldBe(1);
+        _rateLimitProvider.LastRecord.ShouldBe(new MockRateLimitProvider.RecordCall(
+            PersonLookupService.FailedAttemptsRateLimitPolicyName,
+            IRateLimiter.DefaultResource,
+            activeUser.ToString("D"),
+            1,
+            2,
+            TimeSpan.FromHours(1),
+            RateLimitWindowBehavior.TrailingEdge,
+            TimeSpan.FromHours(1)));
     }
 
     [Fact]
-    public async Task GetPerson_TooManyFailedAttempts_CorrectInput_ThrowsTooManyFailedLookupsException()
+    public async Task GetPerson_TooManyFailedAttempts_ReturnsProblem()
     {
-        // Arrange
-        Person person = new Person
-        {
-            LastName = "lastname"
-        };
-        _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(person);
-        _lookupSettings.MaximumFailedAttempts = 1;
+        var target = CreateTarget();
+        var activeUser = Guid.Parse("00000000-0000-0000-0000-000000000777");
+        _rateLimitProvider.SetStatus(
+            PersonLookupService.FailedAttemptsRateLimitPolicyName,
+            IRateLimiter.DefaultResource,
+            activeUser.ToString("D"),
+            RateLimitStatus.Found(
+                count: 2,
+                windowStartedAt: DateTimeOffset.UtcNow.AddMinutes(-1),
+                windowExpiresAt: DateTimeOffset.UtcNow.AddMinutes(59),
+                blockedUntil: DateTimeOffset.UtcNow.AddMinutes(59)));
 
-        var target = new PersonLookupService(_persons.Object, Options.Create(_lookupSettings), _memoryCache, _logger.Object);
+        var result = await target.GetPerson("personnumber", "lastname", activeUser, CancellationToken);
 
-        // Act
-        await Should.NotThrowAsync(() => target.GetPerson("personnumber", "wrongname", 777, CancellationToken));
-        await Should.ThrowAsync<TooManyFailedLookupsException>(() => target.GetPerson("personnumber", "lastname", 777, CancellationToken));
+        result.ShouldBeProblem(Problems.PartyLookupTooManyFailedAttempts.ErrorCode);
 
-        // Assert
+        _persons.Verify(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _rateLimitProvider.RecordCallCount.ShouldBe(0);
     }
 
     [Fact]
-    public async Task GetPerson_WrongInput_FailedAttemptsBeingResetAtCacheTimeout()
+    public async Task GetPerson_CachedResult_DoesNotInvokePersonClientAgain()
     {
-        // Arrange
-        Person person = new Person
-        {
-            LastName = "lastname"
-        };
+        Person person = new() { LastName = "lastname", };
         _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(person);
-        _lookupSettings.MaximumFailedAttempts = 2;
-        _lookupSettings.FailedAttemptsCacheLifetimeSeconds = 100;
 
-        var target = new PersonLookupService(_persons.Object, Options.Create(_lookupSettings), _memoryCache, _logger.Object);
+        var target = CreateTarget();
 
-        // Act
-        await Should.NotThrowAsync(() => target.GetPerson("personnumber", "wrongname", 777, CancellationToken));
-        await Should.NotThrowAsync(() => target.GetPerson("personnumber", "wrongname", 777, CancellationToken));
-        await Should.ThrowAsync<TooManyFailedLookupsException>(() => target.GetPerson("personnumber", "wrongname", 777, CancellationToken));
+        await target.GetPerson("personnumber", "lastname", Guid.Parse("00000000-0000-0000-0000-000000000777"), CancellationToken);
+        await target.GetPerson("personnumber", "lastname", Guid.Parse("00000000-0000-0000-0000-000000000888"), CancellationToken);
 
-        // Assert
-        _clock.Advance(TimeSpan.FromSeconds(_lookupSettings.FailedAttemptsCacheLifetimeSeconds + 1));
-        await Should.NotThrowAsync(() => target.GetPerson("personnumber", "wrongname", 777, CancellationToken));
+        _rateLimitProvider.GetStatusCallCount.ShouldBe(2);
+        _persons.Verify(s => s.GetPerson("personnumber", It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    private class TestClock : ISystemClock
+    public void Dispose()
     {
-        public DateTimeOffset UtcNow { get; set; } = DateTimeOffset.UtcNow;
-
-        public void Advance(TimeSpan duration)
-        {
-            UtcNow += duration;
-        }
+        _serviceProvider.Dispose();
     }
+
+    private PersonLookupService CreateTarget()
+        => new(_persons.Object, Options.Create(_lookupSettings), _cache, _rateLimiter, _logger);
 }

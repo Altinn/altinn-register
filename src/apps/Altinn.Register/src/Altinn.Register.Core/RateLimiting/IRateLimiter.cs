@@ -60,7 +60,7 @@ public interface IRateLimiter
         string policyName,
         string resource,
         string subject,
-        ushort cost,
+        ushort cost = 1,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -74,7 +74,7 @@ public interface IRateLimiter
     public ValueTask<RateLimitStatus> Record(
         string policyName,
         string subject,
-        ushort cost,
+        ushort cost = 1,
         CancellationToken cancellationToken = default)
         => Record(policyName, DefaultResource, subject, cost, cancellationToken);
 }
