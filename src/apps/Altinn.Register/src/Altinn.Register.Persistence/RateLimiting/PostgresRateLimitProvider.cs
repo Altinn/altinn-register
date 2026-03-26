@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Data;
 using System.Diagnostics;
 using Altinn.Authorization.ServiceDefaults.Npgsql;

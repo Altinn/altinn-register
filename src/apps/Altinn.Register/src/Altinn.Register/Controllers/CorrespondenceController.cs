@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Runtime.InteropServices;

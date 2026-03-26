@@ -1,5 +1,3 @@
-#nullable enable
-
 namespace Altinn.Register.Core.Utils;
 
 /// <summary>

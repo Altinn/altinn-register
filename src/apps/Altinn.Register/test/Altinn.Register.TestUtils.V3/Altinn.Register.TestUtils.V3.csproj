@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Nullable>enable</Nullable>
     <RootNamespace>Altinn.Register.TestUtils</RootNamespace>
     <IsTestProject>false</IsTestProject>
     <IsTestLibrary>true</IsTestLibrary>

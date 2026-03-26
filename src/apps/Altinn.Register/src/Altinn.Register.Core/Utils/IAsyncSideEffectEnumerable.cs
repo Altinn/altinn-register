@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Runtime.CompilerServices;
 
 namespace Altinn.Register.Core.Utils;

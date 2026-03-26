@@ -1,5 +1,3 @@
-#nullable enable
-
 namespace Altinn.Register.Extensions;
 
 /// <summary>

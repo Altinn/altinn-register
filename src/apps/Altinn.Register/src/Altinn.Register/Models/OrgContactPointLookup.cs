@@ -11,5 +11,5 @@ public class OrgContactPointLookup
     /// Gets or sets the list of organization numbers to lookup contact points for
     /// </summary>
     [JsonPropertyName("organizationNumbers")]
-    public List<string> OrganizationNumbers { get; set; }
+    public List<string> OrganizationNumbers { get; set; } = [];
 }

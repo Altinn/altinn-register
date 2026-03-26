@@ -22,7 +22,7 @@ public partial class A2PartyImportSaga
         }
 
         var enricher = A2PartyImportSagaEnricher.Get(enricherName);
-        var context = new A2PartyImportSagaEnrichmentRunContext { Party = State.Party, PartyUuid = State.PartyUuid, RoleAssignments = State.RoleAssignments };
+        var context = new A2PartyImportSagaEnrichmentRunContext { Party = State.Party!, PartyUuid = State.PartyUuid, RoleAssignments = State.RoleAssignments };
         await enricher.Run(_services, context, cancellationToken);
         State.Party = context.Party;
 

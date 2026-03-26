@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Text.Json.Serialization;
 using Altinn.Register.Contracts.V1;
 

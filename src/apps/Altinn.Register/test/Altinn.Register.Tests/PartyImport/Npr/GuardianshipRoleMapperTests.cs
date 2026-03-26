@@ -105,10 +105,10 @@ public partial class GuardianshipRoleMapperTests
 
         void IXunitSerializable.Deserialize(IXunitSerializationInfo info)
         {
-            _identifier = info.GetValue<string>(nameof(Identifier));
+            _identifier = info.GetValue<string>(nameof(Identifier))!;
             _role = new(Contracts.ExternalRoleSource.CivilRightsAuthority, _identifier);
-            _nprArea = info.GetValue<string>(nameof(NprArea));
-            _nprTask = info.GetValue<string>(nameof(NprTask));
+            _nprArea = info.GetValue<string>(nameof(NprArea))!;
+            _nprTask = info.GetValue<string>(nameof(NprTask))!;
         }
 
         void IXunitSerializable.Serialize(IXunitSerializationInfo info)
@@ -143,8 +143,8 @@ public partial class GuardianshipRoleMapperTests
 
         void IXunitSerializable.Deserialize(IXunitSerializationInfo info)
         {
-            _nprArea = info.GetValue<string>(nameof(NprArea));
-            _nprTask = info.GetValue<string>(nameof(NprTask));
+            _nprArea = info.GetValue<string>(nameof(NprArea))!;
+            _nprTask = info.GetValue<string>(nameof(NprTask))!;
         }
 
         void IXunitSerializable.Serialize(IXunitSerializationInfo info)

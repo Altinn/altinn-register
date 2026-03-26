@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Security.Claims;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts.V1;

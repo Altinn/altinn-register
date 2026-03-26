@@ -1,5 +1,3 @@
-#nullable enable
-
 using Altinn.Common.AccessTokenClient.Services;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.RateLimiting;

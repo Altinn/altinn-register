@@ -1,5 +1,3 @@
-#nullable enable
-
 using Altinn.Register.Contracts.V1;
 
 namespace Altinn.Register.Clients.Interfaces;

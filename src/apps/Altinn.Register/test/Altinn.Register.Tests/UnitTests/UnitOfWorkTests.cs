@@ -1,5 +1,3 @@
-#nullable enable
-
 using Altinn.Register.Core.UnitOfWork;
 using Microsoft.Extensions.DependencyInjection;
 

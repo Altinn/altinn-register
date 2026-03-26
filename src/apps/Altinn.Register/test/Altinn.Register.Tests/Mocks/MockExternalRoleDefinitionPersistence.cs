@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Collections.Immutable;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.ExternalRoles;

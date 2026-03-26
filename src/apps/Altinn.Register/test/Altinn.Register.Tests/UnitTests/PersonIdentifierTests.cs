@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Text.Json;
 using Altinn.Register.Contracts;
 using Altinn.Swashbuckle.Examples;

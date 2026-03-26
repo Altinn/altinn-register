@@ -32,10 +32,10 @@ namespace Altinn.Register.Tests.UnitTests
         public async Task GetParty_ByPartyUuid_SblBridge_finds_party_Target_returns_Party()
         {
             // Arrange
-            HttpRequestMessage sblRequest = null;
+            HttpRequestMessage? sblRequest = null;
             Guid partyUuid = new Guid("4c3b4909-eb17-45d5-bde1-256e065e196a");
             string cacheKey = $"PartyUUID:{partyUuid}";
-            bool inCache = _memoryCache.TryGetValue(cacheKey, out Party fromCache);
+            bool inCache = _memoryCache.TryGetValue(cacheKey, out Party? fromCache);
 
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
@@ -79,7 +79,7 @@ namespace Altinn.Register.Tests.UnitTests
             Assert.Equal(partyUuid, actual.PartyUuid);
             inCache = _memoryCache.TryGetValue(cacheKey, out fromCache);
             Assert.True(inCache);
-            Assert.Equal(partyUuid, fromCache.PartyUuid);
+            Assert.Equal(partyUuid, fromCache!.PartyUuid);
 
             Assert.NotNull(sblRequest);
             Assert.Equal(HttpMethod.Get, sblRequest.Method);
@@ -90,10 +90,10 @@ namespace Altinn.Register.Tests.UnitTests
         public async Task GetParty_ByPartyId_SblBridge_finds_party_Target_returns_Party()
         {
             // Arrange
-            HttpRequestMessage sblRequest = null;
+            HttpRequestMessage? sblRequest = null;
             int partyId = 50002114;
             string cacheKey = $"PartyId:{partyId}";
-            bool inCache = _memoryCache.TryGetValue(cacheKey, out Party fromCache);
+            bool inCache = _memoryCache.TryGetValue(cacheKey, out Party? fromCache);
 
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
@@ -137,7 +137,7 @@ namespace Altinn.Register.Tests.UnitTests
             Assert.Equal(partyId, actual.PartyId);
             inCache = _memoryCache.TryGetValue(cacheKey, out fromCache);
             Assert.True(inCache);
-            Assert.Equal(partyId, fromCache.PartyId);
+            Assert.Equal(partyId, fromCache!.PartyId);
 
             Assert.NotNull(sblRequest);
             Assert.Equal(HttpMethod.Get, sblRequest.Method);
@@ -148,10 +148,10 @@ namespace Altinn.Register.Tests.UnitTests
         public async Task GetParty_ByPartyUuid_SblBridge_returns_NotFound_Target_returns_Null()
         {
             // Arrange
-            HttpRequestMessage sblRequest = null;
+            HttpRequestMessage? sblRequest = null;
             Guid partyUuid = new Guid("4c3b4909-eb17-45d5-bde1-256e065e196a");
             string cacheKey = $"PartyUUID:{partyUuid}";
-            bool inCache = _memoryCache.TryGetValue(cacheKey, out Party fromCache);
+            bool inCache = _memoryCache.TryGetValue(cacheKey, out Party? fromCache);
 
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
@@ -177,10 +177,10 @@ namespace Altinn.Register.Tests.UnitTests
         public async Task GetParty_ByPartyId_SblBridge_returns_NotFound_Target_returns_Null()
         {
             // Arrange
-            HttpRequestMessage sblRequest = null;
+            HttpRequestMessage? sblRequest = null;
             int partyId = 50002114;
             string cacheKey = $"PartyId:{partyId}";
-            bool inCache = _memoryCache.TryGetValue(cacheKey, out Party fromCache);
+            bool inCache = _memoryCache.TryGetValue(cacheKey, out Party? fromCache);
 
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
@@ -206,7 +206,7 @@ namespace Altinn.Register.Tests.UnitTests
         public async Task GetParty_ByPartyUuid_SblBridge_finds_partylist_Target_returns_PartyList()
         {
             // Arrange
-            HttpRequestMessage sblRequest = null;
+            HttpRequestMessage? sblRequest = null;
             List<Guid> partyUuids = new List<Guid> { new("4c3b4909-eb17-45d5-bde1-256e065e196a"), new("93630d41-ca61-4b5c-b8fb-3346b561f6ff"), new("e622554e-3de5-44cd-a822-c66024768013") };
 
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
@@ -290,7 +290,7 @@ namespace Altinn.Register.Tests.UnitTests
         public async Task GetParty_ByPartyId_SblBridge_finds_partylist_Target_returns_PartyList()
         {
             // Arrange
-            HttpRequestMessage sblRequest = null;
+            HttpRequestMessage? sblRequest = null;
             List<int> partyIds = [50002114, 50002118, 50002119];
 
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
@@ -374,7 +374,7 @@ namespace Altinn.Register.Tests.UnitTests
         public async Task GetParty_ByPartyUuid_SblBridge_returns_NotFound_Target_returns_EmptyList()
         {
             // Arrange
-            HttpRequestMessage sblRequest = null;
+            HttpRequestMessage? sblRequest = null;
             List<Guid> partyUuids = new List<Guid> { new("4c3b4909-eb17-45d5-bde1-256e065e196a"), new("93630d41-ca61-4b5c-b8fb-3346b561f6ff"), new("e622554e-3de5-44cd-a822-c66024768013") };
 
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
@@ -401,7 +401,7 @@ namespace Altinn.Register.Tests.UnitTests
         public async Task GetParty_ByPartyId_SblBridge_returns_NotFound_Target_returns_EmptyList()
         {
             // Arrange
-            HttpRequestMessage sblRequest = null;
+            HttpRequestMessage? sblRequest = null;
             List<int> partyIds = [50002114, 50002118, 50002119];
 
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
@@ -428,14 +428,14 @@ namespace Altinn.Register.Tests.UnitTests
         public async Task LookupPartiesBySSNOrOrgNos_Calls_SplBridge_Once()
         {
             // Arrange
-            HttpRequestMessage sblRequest = null;
+            HttpRequestMessage? sblRequest = null;
             List<string> ssnOrOrgNos = new() { "01025161013", "01035922055", "01035942080" };
 
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
                 sblRequest = request;
 
-                var body = await request.Content.ReadFromJsonAsync<string[]>(token);
+                var body = await request.Content!.ReadFromJsonAsync<string[]>(token);
                 if (body == null)
                 {
                     throw new Exception("No body");

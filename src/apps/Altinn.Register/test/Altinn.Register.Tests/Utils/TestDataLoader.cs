@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Buffers;
 using System.Text.Json;
 using Altinn.Register.Tests.IntegrationTests;
@@ -9,11 +7,12 @@ namespace Altinn.Register.Tests.Utils;
 
 public static class TestDataLoader
 {
-    public static async Task<T?> Load<T>(string id)
+    public static async Task<T> Load<T>(string id)
     {
         using var content = await LoadContent(id);
 
-        return await JsonSerializer.DeserializeAsync<T>(content.AsReadOnlySequence.AsStream());
+        return await JsonSerializer.DeserializeAsync<T>(content.AsReadOnlySequence.AsStream())
+            ?? throw new InvalidDataException($"Test data '{id}' could not be deserialized as {typeof(T).FullName}.");
     }
 
     public static async Task<Sequence<byte>> LoadContent(string id)

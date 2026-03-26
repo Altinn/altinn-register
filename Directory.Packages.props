@@ -23,8 +23,8 @@
     <PackageVersion Include="Altinn.Common.PEP" Version="4.2.3" />
     <PackageVersion Include="Altinn.Swashbuckle.Abstractions" Version="3.1.0" />
     <PackageVersion Include="Altinn.Swashbuckle" Version="3.1.0" />
-    <PackageVersion Include="Altinn.Urn" Version="4.2.0" />
-    <PackageVersion Include="Altinn.Urn.Swashbuckle" Version="4.2.0" />
+    <PackageVersion Include="Altinn.Urn" Version="4.2.1" />
+    <PackageVersion Include="Altinn.Urn.Swashbuckle" Version="4.2.1" />
     <PackageVersion Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.1" />
     <PackageVersion Include="Aspire.AppHost.Sdk" Version="13.1.2" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.1.2" />

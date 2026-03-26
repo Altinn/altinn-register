@@ -54,7 +54,7 @@ public partial class A2PartyImportSaga
                     return;
                 }
 
-                State.Party = Enrichers.A2ProfileHelper.ApplyProfile(State.Party, profile, now);
+                State.Party = Enrichers.A2ProfileHelper.ApplyProfile(State.Party!, profile, now);
                 break;
 
             case A2UserProfileType.EnterpriseUser:

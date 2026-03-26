@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ServiceDefaults;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;

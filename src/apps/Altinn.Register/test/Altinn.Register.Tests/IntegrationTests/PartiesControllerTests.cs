@@ -41,7 +41,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
             await TestDataLoader.Load<Party>("50004219")
         ];
 
-        HttpRequestMessage sblRequest = null;
+        HttpRequestMessage? sblRequest = null;
         DelegatingHandlerStub messageHandler = new(async (request, token) =>
         {
             sblRequest = request;
@@ -70,12 +70,12 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         string responseContent = await response.Content.ReadAsStringAsync(CancellationToken);
 
         List<Party> actualParties = JsonSerializer.Deserialize<List<Party>>(
-            responseContent, _options);
+            responseContent, _options)!;
 
         // Assert
         Assert.NotNull(sblRequest);
         Assert.Equal(HttpMethod.Post, sblRequest.Method);
-        Assert.EndsWith($"/parties?fetchsubunits=false", sblRequest.RequestUri.ToString().ToLower());
+        Assert.EndsWith($"/parties?fetchsubunits=false", sblRequest.RequestUri!.ToString().ToLower());
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         AssertionUtil.AssertEqual(expectedParties, actualParties);
     }
@@ -91,7 +91,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
             await TestDataLoader.Load<Party>("50004219")
         ];
 
-        HttpRequestMessage sblRequest = null;
+        HttpRequestMessage? sblRequest = null;
         DelegatingHandlerStub messageHandler = new(async (request, token) =>
         {
             sblRequest = request;
@@ -120,12 +120,12 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         string responseContent = await response.Content.ReadAsStringAsync(CancellationToken);
 
         List<Party> actualParties = JsonSerializer.Deserialize<List<Party>>(
-            responseContent, _options);
+            responseContent, _options)!;
 
         // Assert
         Assert.NotNull(sblRequest);
         Assert.Equal(HttpMethod.Post, sblRequest.Method);
-        Assert.EndsWith($"/parties?fetchsubunits=true", sblRequest.RequestUri.ToString().ToLower());
+        Assert.EndsWith($"/parties?fetchsubunits=true", sblRequest.RequestUri!.ToString().ToLower());
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         AssertionUtil.AssertEqual(expectedParties, actualParties);
     }
@@ -141,7 +141,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         ];
         List<Guid> partyUuids = expectedParties.Select(p => p.PartyUuid).OfType<Guid>().ToList();
 
-        HttpRequestMessage sblRequest = null;
+        HttpRequestMessage? sblRequest = null;
         DelegatingHandlerStub messageHandler = new(async (request, token) =>
         {
             sblRequest = request;
@@ -170,12 +170,12 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         string responseContent = await response.Content.ReadAsStringAsync(CancellationToken);
 
         List<Party> actualParties = JsonSerializer.Deserialize<List<Party>>(
-            responseContent, _options);
+            responseContent, _options)!;
 
         // Assert
         Assert.NotNull(sblRequest);
         Assert.Equal(HttpMethod.Post, sblRequest.Method);
-        Assert.EndsWith($"/parties/byuuid?fetchsubunits=false", sblRequest.RequestUri.ToString().ToLower());
+        Assert.EndsWith($"/parties/byuuid?fetchsubunits=false", sblRequest.RequestUri!.ToString().ToLower());
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         AssertionUtil.AssertEqual(expectedParties, actualParties);
     }
@@ -191,7 +191,7 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         ];
         List<Guid> partyUuids = expectedParties.Select(p => p.PartyUuid).OfType<Guid>().ToList();
 
-        HttpRequestMessage sblRequest = null;
+        HttpRequestMessage? sblRequest = null;
         DelegatingHandlerStub messageHandler = new(async (request, token) =>
         {
             sblRequest = request;
@@ -220,12 +220,12 @@ public class PartiesControllerTests : IClassFixture<WebApplicationFactory<Progra
         string responseContent = await response.Content.ReadAsStringAsync(CancellationToken);
 
         List<Party> actualParties = JsonSerializer.Deserialize<List<Party>>(
-            responseContent, _options);
+            responseContent, _options)!;
 
         // Assert
         Assert.NotNull(sblRequest);
         Assert.Equal(HttpMethod.Post, sblRequest.Method);
-        Assert.EndsWith($"/parties/byuuid?fetchsubunits=true", sblRequest.RequestUri.ToString().ToLower());
+        Assert.EndsWith($"/parties/byuuid?fetchsubunits=true", sblRequest.RequestUri!.ToString().ToLower());
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         AssertionUtil.AssertEqual(expectedParties, actualParties);
     }

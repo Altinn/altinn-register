@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Diagnostics;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core;

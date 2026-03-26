@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 		<PropertyGroup>
-				<Nullable>enable</Nullable>
 				<IsTestProject>true</IsTestProject>
 				<XUnitVersion>v3</XUnitVersion>
 		</PropertyGroup>

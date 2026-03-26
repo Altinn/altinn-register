@@ -31,7 +31,7 @@ namespace Altinn.Register.Tests.IntegrationTests
         public async Task GetPerson_CorrectInput_OutcomeSuccessful()
         {
             // Arrange
-            HttpRequestMessage sblRequest = null;
+            HttpRequestMessage? sblRequest = null;
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
                 sblRequest = request;
@@ -86,7 +86,7 @@ namespace Altinn.Register.Tests.IntegrationTests
         public async Task GetPerson_InvalidInput_ReturnsNotFound()
         {
             // Arrange
-            HttpRequestMessage sblRequest = null;
+            HttpRequestMessage? sblRequest = null;
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
                 sblRequest = request;
@@ -117,7 +117,7 @@ namespace Altinn.Register.Tests.IntegrationTests
         public async Task GetPerson_TooManyAttempts_OutcomeTooManyRequests()
         {
             // Arrange
-            HttpRequestMessage sblRequest = null;
+            HttpRequestMessage? sblRequest = null;
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
                 sblRequest = request;
@@ -158,7 +158,7 @@ namespace Altinn.Register.Tests.IntegrationTests
         public async Task GetPerson_CallAsOrg_OutcomeForbidden()
         {
             // Arrange
-            HttpRequestMessage sblRequest = null;
+            HttpRequestMessage? sblRequest = null;
             DelegatingHandlerStub messageHandler = new(async (request, token) =>
             {
                 sblRequest = request;

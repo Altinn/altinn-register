@@ -133,7 +133,8 @@ internal static partial class RegisterHost
         services.AddAuthentication(JwtCookieDefaults.AuthenticationScheme)
           .AddJwtCookie(JwtCookieDefaults.AuthenticationScheme, options =>
           {
-              GeneralSettings generalSettings = config.GetSection("GeneralSettings").Get<GeneralSettings>();
+              GeneralSettings generalSettings = config.GetSection("GeneralSettings").Get<GeneralSettings>()
+                  ?? throw new InvalidOperationException("Missing GeneralSettings configuration.");
               options.JwtCookieName = generalSettings.JwtCookieName;
               options.MetadataAddress = generalSettings.OpenIdWellKnownEndpoint;
               options.TokenValidationParameters = new TokenValidationParameters
@@ -172,7 +173,7 @@ internal static partial class RegisterHost
         services.AddHttpClient<IAuthorizationClient, AuthorizationClient>();
 
         services.AddHttpClient<IA2PartyImportService, A2PartyImportService>()
-            .ConfigureBaseAddressFromOptions(static (A2PartyImportSettings settings) => settings.BridgeApiEndpoint)
+            .ConfigureBaseAddressFromOptions(static (A2PartyImportSettings settings) => settings.BridgeApiEndpoint!)
             .ReplaceResilienceHandler(static c =>
             {
                 // Do not retry in the IA2PartyImportService, it's handled by MassTransit
@@ -319,7 +320,8 @@ internal static partial class RegisterHost
 
                     if (t.Assembly == typeof(Contracts.PartyType).Assembly)
                     {
-                        if (GetVersionedNamespaceRegex().Match(t.Namespace) is { Success: true, Groups: var groups })
+                        if (t.Namespace is string typeNamespace
+                            && GetVersionedNamespaceRegex().Match(typeNamespace) is { Success: true, Groups: var groups })
                         {
                             orig = $"Contracts.{groups[1].ValueSpan}.{orig}";
                         }
@@ -336,7 +338,7 @@ internal static partial class RegisterHost
                 do
                 {
                     chain.Add(originalIdSelector(t));
-                    t = t.DeclaringType;
+                    t = t.DeclaringType!;
                 }
                 while (t != null);
 

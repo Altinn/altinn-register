@@ -1,5 +1,3 @@
-#nullable enable
-
 using Altinn.Register.Core.Utils;
 
 namespace Altinn.Register.Tests.UnitTests;

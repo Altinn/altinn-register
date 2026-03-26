@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
