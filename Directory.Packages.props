@@ -44,6 +44,7 @@
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.14" />
     <PackageVersion Include="Microsoft.AspNetCore.WebUtilities" Version="9.0.14" />
     <PackageVersion Include="Microsoft.Build.Artifacts" Version="6.1.63" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.Hybrid" Version="9.10.0" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.14" />
     <PackageVersion Include="Microsoft.Extensions.FileProviders.Embedded" Version="9.0.14" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.14" />
@@ -61,7 +62,6 @@
     <PackageVersion Include="Polly.Extensions" Version="8.6.6" />
     <PackageVersion Include="Quartz.AspNetCore" Version="3.16.1" />
     <PackageVersion Include="Quartz.Serialization.SystemTextJson" Version="3.16.1" />
-    <PackageVersion Include="Scrutor" Version="6.1.0" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
     <PackageVersion Include="Roslynator.Formatting.Analyzers" Version="4.15.0" />

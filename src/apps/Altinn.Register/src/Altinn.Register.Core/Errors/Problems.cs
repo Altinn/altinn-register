@@ -43,4 +43,12 @@ public static class Problems
     /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
     public static ProblemDescriptor PartyNotFound { get; }
         = _factory.Create(7, HttpStatusCode.NotFound, "Party not found");
+
+    /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
+    public static ProblemDescriptor PartyLookupTooManyFailedAttempts { get; }
+        = _factory.Create(8, HttpStatusCode.TooManyRequests, "Too many failed attempts to lookup person");
+
+    /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
+    public static ProblemDescriptor PersonNotFound { get; }
+        = _factory.Create(9, HttpStatusCode.NotFound, "Person not found");
 }

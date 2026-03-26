@@ -4,11 +4,12 @@ using System.Text;
 using System.Text.Json;
 using Altinn.Register.Configuration;
 using Altinn.Register.Contracts.V1;
+using Altinn.Register.Core.RateLimiting;
+using Altinn.Register.Services;
 using Altinn.Register.Tests.IntegrationTests.Utils;
 using Altinn.Register.Tests.Mocks;
 using Altinn.Register.Tests.Utils;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace Altinn.Register.Tests.IntegrationTests
 {
@@ -126,11 +127,15 @@ namespace Altinn.Register.Tests.IntegrationTests
             });
             _webApplicationFactorySetup.SblBridgeHttpMessageHandler = messageHandler;
 
-            MemoryCacheEntryOptions options = new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60)
-            };
-            _webApplicationFactorySetup.MemoryCache.Set("Person-Lookup-Failed-Attempts1", 44, options);
+            _webApplicationFactorySetup.RateLimitProvider.SetStatus(
+                PersonLookupService.FailedAttemptsRateLimitPolicyName,
+                IRateLimiter.DefaultResource,
+                Guid.ParseExact(1.ToString("D32"), "N").ToString("D"),
+                RateLimitStatus.Found(
+                    count: 44,
+                    windowStartedAt: DateTimeOffset.UtcNow.AddMinutes(-1),
+                    windowExpiresAt: DateTimeOffset.UtcNow.AddMinutes(59),
+                    blockedUntil: DateTimeOffset.UtcNow.AddMinutes(59)));
 
             string token = PrincipalUtil.GetToken(1);
 

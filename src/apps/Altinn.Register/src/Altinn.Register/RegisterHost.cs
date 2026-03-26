@@ -62,6 +62,7 @@ internal static partial class RegisterHost
         var descriptor = builder.GetAltinnServiceDescriptor();
 
         services.AddMemoryCache();
+        services.AddHybridCache();
 
         services
             .AddControllers()
@@ -105,6 +106,7 @@ internal static partial class RegisterHost
         services.Configure<AccessTokenSettings>(config.GetSection("AccessTokenSettings"));
         services.Configure<PlatformSettings>(config.GetSection("PlatformSettings"));
         services.Configure<PersonLookupSettings>(config.GetSection("PersonLookupSettings"));
+        services.AddRateLimitPolicy(PersonLookupService.FailedAttemptsRateLimitPolicyName);
         services.AddOptions<Controllers.V2.PartyController.Settings>().ValidateDataAnnotations();
 
         services.AddOptions<A2PartyImportSettings>()
@@ -123,8 +125,7 @@ internal static partial class RegisterHost
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddSingleton<IPublicSigningKeyProvider, PublicSigningKeyProvider>();
 
-        services.AddTransient<IPersonLookup, PersonLookupService>();
-        services.Decorate<IPersonLookup, PersonLookupCacheDecorator>();
+        services.AddScoped<IPersonLookup, PersonLookupService>();
 
         services.ConfigureOpenTelemetryTracerProvider((builder) => builder.AddSource(RegisterTelemetry.Name));
         services.ConfigureOpenTelemetryMeterProvider((builder) => builder.AddMeter(RegisterTelemetry.Name));

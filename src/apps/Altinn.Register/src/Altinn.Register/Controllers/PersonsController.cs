@@ -1,8 +1,9 @@
 #nullable enable
 
 using System.Security.Claims;
+using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts.V1;
-using Altinn.Register.Core;
+using Altinn.Register.Core.A2;
 using Altinn.Register.Models;
 using AltinnCore.Authentication.Constants;
 using Asp.Versioning;
@@ -57,40 +58,34 @@ namespace Altinn.Register.Controllers
                 return BadRequest(ModelState);
             }
 
-            int? userId = GetUserId(HttpContext);
+            Guid? userId = GetPartyUuid(HttpContext);
 
             if (userId is null)
             {
                 return Forbid();
             }
 
-            Person? person;
-            try
+            var result = await _personLookup.GetPerson(
+                personLookup.NationalIdentityNumber,
+                personLookup.LastName,
+                userId.Value,
+                cancellationToken);
+
+            if (result.IsProblem)
             {
-                person = await _personLookup.GetPerson(
-                    personLookup.NationalIdentityNumber,
-                    personLookup.LastName,
-                    userId.Value,
-                    cancellationToken);
-            }
-            catch (TooManyFailedLookupsException)
-            {
-                return StatusCode(StatusCodes.Status429TooManyRequests);
+                return result.Problem.ToActionResult();
             }
 
-            if (person is null)
-            {
-                return NotFound();
-            }
-
-            return person;
+            return result.Value;
         }
 
-        private static int? GetUserId(HttpContext context)
+        private static Guid? GetPartyUuid(HttpContext context)
         {
-            Claim? userIdClaim = context.User.Claims.FirstOrDefault(c => c.Type.Equals(AltinnCoreClaimTypes.UserId));
+            Claim? userIdClaim = context.User.Claims.FirstOrDefault(c => c.Type.Equals(AltinnCoreClaimTypes.PartyUUID));
 
-            return userIdClaim is not null ? Convert.ToInt32(userIdClaim.Value) : null;
+            return userIdClaim is not null && Guid.TryParse(userIdClaim.Value, out Guid partyUuid)
+                ? partyUuid
+                : null;
         }
     }
 }
