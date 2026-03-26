@@ -91,7 +91,7 @@ internal static class V1PartyMapper
     /// </summary>
     /// <param name="person">The person record.</param>
     /// <returns>The mapped v1 person.</returns>
-    private static V1Models.Person ToV1Person(PersonRecord person)
+    internal static V1Models.Person ToV1Person(PersonRecord person)
     {
         var ret = new V1Models.Person
         {

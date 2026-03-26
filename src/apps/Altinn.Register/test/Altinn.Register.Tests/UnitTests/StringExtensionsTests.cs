@@ -1,4 +1,4 @@
-using Altinn.Register.Core;
+using Altinn.Register.Core.Utils;
 
 namespace Altinn.Register.Tests.UnitTests
 {
@@ -11,14 +11,14 @@ namespace Altinn.Register.Tests.UnitTests
         [InlineData("ôröe", "Oroe")]
         public void IsSimilarTo_TestPositive(string text1, string text2)
         {
-            Assert.True(text1.IsSimilarTo(text2));
+            Assert.True(PersonNames.IsLastNamesSimilar(text1, text2));
         }
 
         [Theory]
         [InlineData("Åjue", "Ajue")]
         public void IsSimilarTo_TestNegative(string text1, string text2)
         {
-            Assert.False(text1.IsSimilarTo(text2));
+            Assert.False(PersonNames.IsLastNamesSimilar(text1, text2));
         }
     }
 }

@@ -91,11 +91,7 @@ public sealed class TestWebApplication
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            if (request.Headers.Authorization is null)
-            {
-                var token = jwt.GenerateToken();
-                request.Headers.Authorization = new("Bearer", token);
-            }
+            HttpRequestUtils.ApplyIntegrationTestAuthorization(request, jwt);
 
             return base.SendAsync(request, cancellationToken);
         }

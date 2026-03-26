@@ -25,6 +25,11 @@ internal sealed class RegisterMediator
             .ApiSourceSwitch<GetOrganizationFromA2RequestHandler, GetOrganizationFromDBRequestHandler>(this, sender, "organizations/get")
             .Handle(request, cancellationToken);
 
+    private ValueTask<Result<Contracts.V1.Person>> Send(GetV1PersonRequest request, Sender sender, CancellationToken cancellationToken)
+        => RequestDispatcher<GetV1PersonRequest, Contracts.V1.Person>
+            .ApiSourceSwitch<GetV1PersonFromA2RequestHandler, GetV1PersonFromDBRequestHandler>(this, sender, "persons/get")
+            .Handle(request, cancellationToken);
+
     private ValueTask<Result<Contracts.V1.Party>> Send(LookupV1PartyRequest request, Sender sender, CancellationToken cancellationToken)
         => RequestDispatcher<LookupV1PartyRequest, Contracts.V1.Party>
             .ApiSourceSwitch<LookupV1PartyFromA2RequestHandler, LookupV1PartyFromDBRequestHandler>(this, sender, "parties/lookup")
@@ -62,6 +67,7 @@ internal sealed class RegisterMediator
     /// </summary>
     internal sealed class Sender
         : IRequestSender<GetV1OrganizationRequest, Contracts.V1.Organization>
+        , IRequestSender<GetV1PersonRequest, Contracts.V1.Person>
         , IRequestSender<LookupV1PartyRequest, Contracts.V1.Party>
         , IRequestSender<LookupV1PartyNamesRequest, Contracts.V1.PartyNamesLookupResult>
     {
@@ -85,6 +91,12 @@ internal sealed class RegisterMediator
         /// <inheritdoc/>
         public ValueTask<Result<Contracts.V1.Organization>> Send(
             GetV1OrganizationRequest request,
+            CancellationToken cancellationToken = default)
+            => _mediator.Send(request, this, cancellationToken);
+
+        /// <inheritdoc/>
+        public ValueTask<Result<Contracts.V1.Person>> Send(
+            GetV1PersonRequest request,
             CancellationToken cancellationToken = default)
             => _mediator.Send(request, this, cancellationToken);
 
