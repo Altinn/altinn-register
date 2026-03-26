@@ -1,5 +1,3 @@
-#nullable enable
-
 using Altinn.Register.PartyImport.A2;
 using Altinn.Register.PartyImport.SystemUser;
 

@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Diagnostics.CodeAnalysis;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties.Records;

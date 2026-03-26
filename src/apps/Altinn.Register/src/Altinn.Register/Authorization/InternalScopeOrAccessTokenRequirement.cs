@@ -1,5 +1,3 @@
-#nullable enable
-
 using Altinn.Common.AccessToken;
 using Altinn.Common.PEP.Authorization;
 

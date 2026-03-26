@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using Altinn.Authorization.ServiceDefaults.Jobs;

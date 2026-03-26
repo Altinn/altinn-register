@@ -21,7 +21,7 @@ public class CommandBaseTests
         correlationId.ShouldNotBe(Guid.Empty);
 
         var json = JsonSerializer.Serialize(command, Options);
-        var roundTripped = JsonSerializer.Deserialize<TestCommand>(json, Options);
+        var roundTripped = JsonSerializer.Deserialize<TestCommand>(json, Options)!;
 
         roundTripped.ShouldBeEquivalentTo(command);
         ((CorrelatedBy<Guid>)roundTripped).CorrelationId.ShouldBe(correlationId);

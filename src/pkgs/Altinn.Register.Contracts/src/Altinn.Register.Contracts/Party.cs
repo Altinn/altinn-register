@@ -17,8 +17,11 @@ namespace Altinn.Register.Contracts;
 public record Party
     : IHasExtensionData
 {
+    // CS0649: this field is populated by serializers via [JsonExtensionData], not by direct assignments in code.
+#pragma warning disable CS0649
     [JsonExtensionData]
     private readonly JsonExtensionData _extensionData;
+#pragma warning restore CS0649
 
     private readonly Guid _uuid;
     private readonly PartyUrn.PartyUuid _urn = null!;

@@ -1,5 +1,3 @@
-#nullable enable
-
 using Altinn.Register.Extensions;
 using Altinn.Register.Tests.Utils;
 

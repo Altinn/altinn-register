@@ -1,5 +1,3 @@
-#nullable enable
-
 using CommunityToolkit.Diagnostics;
 
 using Microsoft.AspNetCore.Mvc.ModelBinding;

@@ -1,5 +1,3 @@
-#nullable enable
-
 using MassTransit;
 
 namespace Altinn.Register.PartyImport.A2;

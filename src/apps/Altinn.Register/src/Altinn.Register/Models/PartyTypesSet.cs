@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Collections;
 using Altinn.Authorization.ModelUtils.EnumUtils;
 using Altinn.Register.Core.Parties.Records;

@@ -1,5 +1,3 @@
-#nullable enable
-
 using Altinn.Authorization.ServiceDefaults.Jobs;
 
 namespace Altinn.Register.Tests.Jobs;

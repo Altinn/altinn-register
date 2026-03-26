@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Security.Cryptography.X509Certificates;
 using Altinn.Common.AccessTokenClient.Services;
 

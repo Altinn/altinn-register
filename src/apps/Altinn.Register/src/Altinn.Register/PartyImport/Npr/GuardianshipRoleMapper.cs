@@ -1,5 +1,3 @@
-#nullable enable
-
 using Altinn.Register.Contracts.ExternalRoles;
 
 namespace Altinn.Register.PartyImport.Npr;

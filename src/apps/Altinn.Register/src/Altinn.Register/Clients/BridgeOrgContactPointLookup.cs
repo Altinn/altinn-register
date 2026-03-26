@@ -11,5 +11,5 @@ public class BridgeOrgContactPointLookup
     /// Gets or sets the list of organization numbers to lookup contact points for
     /// </summary>
     [JsonPropertyName("organisationNumbers")]
-    public List<string> OrganisationNumbers { get; set; }
+    public List<string> OrganisationNumbers { get; set; } = [];
 }

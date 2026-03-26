@@ -1,5 +1,3 @@
-#nullable enable
-
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 
 namespace Altinn.Register.Conventions;

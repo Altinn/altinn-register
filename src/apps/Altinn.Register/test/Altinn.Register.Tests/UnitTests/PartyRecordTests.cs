@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Text.Json;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.TestUtils.Shouldly;

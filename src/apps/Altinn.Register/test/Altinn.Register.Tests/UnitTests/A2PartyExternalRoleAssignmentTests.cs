@@ -1,5 +1,3 @@
-#nullable enable
-
 using Altinn.Register.Core.PartyImport.A2;
 
 namespace Altinn.Register.Tests.UnitTests;

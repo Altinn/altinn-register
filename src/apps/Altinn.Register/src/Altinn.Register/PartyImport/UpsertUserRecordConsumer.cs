@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Diagnostics.Metrics;
 using Altinn.Authorization.ServiceDefaults.Telemetry;
 using Altinn.Register.Contracts.Parties;

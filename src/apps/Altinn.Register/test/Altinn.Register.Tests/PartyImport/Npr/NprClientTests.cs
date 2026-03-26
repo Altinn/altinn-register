@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using Altinn.Authorization.TestUtils.Http;

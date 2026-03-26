@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Diagnostics;
 using System.Security.Claims;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts.V1;
@@ -53,10 +54,25 @@ namespace Altinn.Register.Controllers
             PersonLookupIdentifiers personLookup,
             CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid)
+            ValidationProblemBuilder builder = default;
+
+            if (string.IsNullOrWhiteSpace(personLookup.NationalIdentityNumber))
             {
-                return BadRequest(ModelState);
+                builder.Add(StdValidationErrors.Required, $"$HEADER/{PersonLookupIdentifiers.NationalIdentityNumberHeaderName}");
             }
+
+            if (string.IsNullOrWhiteSpace(personLookup.LastName))
+            {
+                builder.Add(StdValidationErrors.Required, $"$HEADER/{PersonLookupIdentifiers.LastNameHeaderName}");
+            }
+
+            if (builder.TryBuild(out var error))
+            {
+                return error.ToActionResult();
+            }
+
+            Debug.Assert(personLookup.NationalIdentityNumber is not null);
+            Debug.Assert(personLookup.LastName is not null);
 
             Guid? userId = GetPartyUuid(HttpContext);
 

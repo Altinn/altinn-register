@@ -1,5 +1,3 @@
-#nullable enable
-
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;

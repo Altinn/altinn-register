@@ -1,5 +1,3 @@
-#nullable enable
-
 using Microsoft.Extensions.FileProviders;
 
 namespace Altinn.Register.Tests.Utils;

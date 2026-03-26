@@ -34,6 +34,9 @@ in
     pkgs.prek
     pkgs.docker-compose
     pkgs.pnpm
+    pkgs.just
+    pkgs.powershell
+    pkgs.nodePackages.nodejs
   ];
 
   languages.dotnet.enable = true;

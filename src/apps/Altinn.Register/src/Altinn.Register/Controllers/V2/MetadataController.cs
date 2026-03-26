@@ -1,5 +1,3 @@
-#nullable enable
-
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Models;

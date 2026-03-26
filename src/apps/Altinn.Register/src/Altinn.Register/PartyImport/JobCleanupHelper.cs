@@ -1,5 +1,3 @@
-#nullable enable
-
 using Altinn.Authorization.ServiceDefaults.Leases;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;

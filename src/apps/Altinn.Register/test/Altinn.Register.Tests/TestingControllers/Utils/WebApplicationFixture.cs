@@ -1,5 +1,3 @@
-#nullable enable
-
 using Altinn.Authorization.ServiceDefaults;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;

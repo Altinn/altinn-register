@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Text.Json;
 
 namespace Altinn.Register.Contracts.Tests;

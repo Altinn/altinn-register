@@ -21,7 +21,7 @@ public class EventBaseTests
         correlationId.ShouldNotBe(Guid.Empty);
 
         var json = JsonSerializer.Serialize(evt, Options);
-        var roundTripped = JsonSerializer.Deserialize<TestEvent>(json, Options);
+        var roundTripped = JsonSerializer.Deserialize<TestEvent>(json, Options)!;
 
         roundTripped.ShouldBeEquivalentTo(evt);
         ((CorrelatedBy<Guid>)roundTripped).CorrelationId.ShouldBe(correlationId);
