@@ -320,6 +320,7 @@ public static class AsyncEnumerableExtensions
             private readonly ImmutableArray<IAsyncEnumerable<T>> _enumerables;
             private readonly SourceState[] _sources;
             private ManualResetValueTaskSourceCore<bool> _tcs;
+            private bool _disposed;
             private bool _waiting;
             private int _index;
             private T _current = default!;
@@ -337,30 +338,7 @@ public static class AsyncEnumerableExtensions
 
             public async ValueTask DisposeAsync()
             {
-                List<Exception>? exceptions = null;
-
-                for (var i = 0; i < _sources.Length; i++)
-                {
-                    if (_sources[i].Source is not { } source)
-                    {
-                        continue;
-                    }
-
-                    try
-                    {
-                        await source.DisposeAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        exceptions ??= [];
-                        exceptions.Add(ex);
-                    }
-                }
-
-                if (exceptions is not null)
-                {
-                    throw new AggregateException(exceptions);
-                }
+                await DisposeSourcesAsync(DetachSourcesForDispose());
             }
 
             public ValueTask<bool> MoveNextAsync()
@@ -469,9 +447,18 @@ public static class AsyncEnumerableExtensions
 
             private void OnSourceReady(int index)
             {
+                IAsyncEnumerator<T>?[]? sourcesToDispose = null;
+                Exception? error = null;
+
                 lock (_lock)
                 {
                     ref var source = ref _sources[index];
+                    if (source.Status == SourceState.STATUS_DONE)
+                    {
+                        // This can happen if the source completes during dispose, after we've done DetachSourcesForDispose
+                        return;
+                    }
+
                     Debug.Assert(source.Status == SourceState.STATUS_PENDING);
                     source.Status = SourceState.STATUS_READY;
 
@@ -480,7 +467,7 @@ public static class AsyncEnumerableExtensions
                         return;
                     }
 
-                    bool moveNextResult;
+                    bool moveNextResult = false;
                     try
                     {
                         moveNextResult = source.Awaiter.GetResult();
@@ -488,10 +475,9 @@ public static class AsyncEnumerableExtensions
                     }
                     catch (Exception e)
                     {
-                        _index = (index + 1) % _sources.Length;
-                        _waiting = false;
-                        _tcs.SetException(e);
-                        return;
+                        sourcesToDispose = DetachSourcesForDisposeNoLock(index);
+                        error = e;
+                        goto CompleteException;
                     }
 
                     if (moveNextResult)
@@ -512,6 +498,13 @@ public static class AsyncEnumerableExtensions
                         _tcs.SetResult(false);
                     }
                 }
+
+            CompleteException:
+                if (error is not null)
+                {
+                    Debug.Assert(sourcesToDispose is not null);
+                    _ = CompleteExceptionAfterDisposeAsync(sourcesToDispose, error);
+                }
             }
 
             private static Action CreateCallback(Enumerator enumerator, int index)
@@ -521,7 +514,7 @@ public static class AsyncEnumerableExtensions
             {
                 try
                 {
-                    await DisposeAsync();
+                    await DisposeSourcesAsync(DetachSourcesForDispose());
                 }
                 catch (Exception disposeException)
                 {
@@ -535,6 +528,92 @@ public static class AsyncEnumerableExtensions
 
                 ExceptionDispatchInfo.Capture(exception).Throw();
                 throw null!;
+            }
+
+            private async Task CompleteExceptionAfterDisposeAsync(IAsyncEnumerator<T>?[] sourcesToDispose, Exception exception)
+            {
+                Exception error = exception;
+
+                try
+                {
+                    await DisposeSourcesAsync(sourcesToDispose);
+                }
+                catch (Exception disposeException)
+                {
+                    error = disposeException is AggregateException aggregateException
+                        ? new AggregateException([exception, .. aggregateException.InnerExceptions])
+                        : new AggregateException(exception, disposeException);
+                }
+
+                lock (_lock)
+                {
+                    _tcs.SetException(error);
+                }
+            }
+
+            private IAsyncEnumerator<T>?[] DetachSourcesForDispose()
+            {
+                lock (_lock)
+                {
+                    return DetachSourcesForDisposeNoLock();
+                }
+            }
+
+            private IAsyncEnumerator<T>?[] DetachSourcesForDisposeNoLock(int? completedIndex = null)
+            {
+                if (_disposed)
+                {
+                    return [];
+                }
+
+                _disposed = true;
+                _waiting = false;
+
+                if (completedIndex is int index)
+                {
+                    _index = (index + 1) % _sources.Length;
+                }
+
+                var sourcesToDispose = new IAsyncEnumerator<T>?[_sources.Length];
+                for (var i = 0; i < _sources.Length; i++)
+                {
+                    ref var source = ref _sources[i];
+                    sourcesToDispose[i] = source.Source;
+                    source.Source = null;
+                    source.Status = SourceState.STATUS_DONE;
+                    source.Callback = null;
+                    source.Awaiter = default;
+                }
+
+                return sourcesToDispose;
+            }
+
+            private static async ValueTask DisposeSourcesAsync(IAsyncEnumerator<T>?[] sourcesToDispose)
+            {
+                List<Exception>? exceptions = null;
+
+                for (var i = 0; i < sourcesToDispose.Length; i++)
+                {
+                    if (sourcesToDispose[i] is not { } source)
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        await source.DisposeAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        exceptions ??= [];
+                        exceptions.Add(ex);
+                    }
+                }
+
+                if (exceptions is not null)
+                {
+                    throw new AggregateException(exceptions);
+                }
             }
 
             private struct SourceState
