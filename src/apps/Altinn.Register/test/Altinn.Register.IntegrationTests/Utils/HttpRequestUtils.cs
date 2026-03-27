@@ -6,6 +6,8 @@ using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.IntegrationTests.TestServices;
 using AltinnCore.Authentication.Constants;
 
+namespace Altinn.Register.IntegrationTests.Utils;
+
 /// <summary>
 /// Utility class for authorization related operations in integration tests.
 /// </summary>

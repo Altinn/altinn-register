@@ -110,6 +110,7 @@ public partial class PartiesController
     /// <summary>
     /// Gets the party for a given party uuid.
     /// </summary>
+    /// <param name="sender">The request sender.</param>
     /// <param name="partyUuid">The party uuid.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The information about a given party.</returns>
@@ -119,27 +120,30 @@ public partial class PartiesController
     [ProducesResponseType(200)]
     [Produces("application/json")]
     [Authorize]
-    public async Task<ActionResult<V1Models.Party>> GetByUuid([FromRoute] Guid partyUuid, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<V1Models.Party>> GetByUuid(
+        [FromServices] IRequestSender<GetV1PartyByUuidRequest, V1Models.Party> sender,
+        [FromRoute] Guid partyUuid,
+        CancellationToken cancellationToken = default)
     {
-        V1Models.Party? party = await _partyClient.GetPartyById(partyUuid, cancellationToken);
-
-        if (!IsOrg(HttpContext))
+        var result = await sender.Send(new GetV1PartyByUuidRequest(partyUuid), cancellationToken);
+        if (result.IsProblem)
         {
-            if (party is null)
+            if (!IsOrg(HttpContext) && result.Problem.ErrorCode == Problems.PartyNotFound.ErrorCode)
             {
                 Log.PartyNotFoundUnauthorized(_logger, partyUuid);
                 return Unauthorized();
             }
 
-            if (await AuthorizePartyLookup(party, cancellationToken) is { } result)
-            {
-                return result;
-            }
+            return result.Problem.ToActionResult();
         }
 
-        if (party is null)
+        var party = result.Value;
+        if (!IsOrg(HttpContext))
         {
-            return NotFound();
+            if (await AuthorizePartyLookup(party, cancellationToken) is { } authorizationResult)
+            {
+                return authorizationResult;
+            }
         }
 
         return Ok(party);
