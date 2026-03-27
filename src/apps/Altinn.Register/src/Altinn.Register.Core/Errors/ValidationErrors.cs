@@ -49,4 +49,8 @@ public static class ValidationErrors
     /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
     public static ValidationErrorDescriptor InvalidPartyId { get; }
         = _factory.Create(9, "Invalid party id");
+
+    /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
+    public static ValidationErrorDescriptor InvalidPartyUuid { get; }
+        = _factory.Create(10, "Invalid party uuid");
 }

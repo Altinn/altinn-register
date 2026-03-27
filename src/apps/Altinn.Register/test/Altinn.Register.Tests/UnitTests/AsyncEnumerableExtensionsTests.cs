@@ -1,4 +1,4 @@
-using Altinn.Register.Extensions;
+using Altinn.Register.Core.Utils;
 using Altinn.Register.Tests.Utils;
 
 namespace Altinn.Register.Tests.UnitTests;

@@ -1205,6 +1205,187 @@ public class PartiesControllerTests
         actual.Errors.ShouldNotContain(e => e.ErrorCode == StdValidationErrors.Required.ErrorCode);
     }
 
+    [Theory]
+    [CombinatorialData]
+    public async Task GetPartyIdentifiers_MixedIdentifierTypes_ReturnsPartyIdentifiers(TestApiSource source)
+    {
+        var (byId, byUuid, byOrgNo) = await Setup(async (uow, ct) =>
+        {
+            var person = await uow.CreatePerson(cancellationToken: ct);
+            var secondPerson = await uow.CreatePerson(cancellationToken: ct);
+            var organization = await uow.CreateOrg(cancellationToken: ct);
+
+            return (person, secondPerson, organization);
+        });
+
+        SetSource(source);
+        if (source == TestApiSource.A2)
+        {
+            ConfigureA2PartyIdentifiersResponses([
+                V1PartyMapper.ToV1Party(byId),
+                V1PartyMapper.ToV1Party(byUuid),
+                V1PartyMapper.ToV1Party(byOrgNo),
+            ]);
+        }
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"register/api/v1/parties/identifiers?ids={byId.PartyId.Value}&uuids={byUuid.PartyUuid.Value:D}&orgs={byOrgNo.OrganizationIdentifier.Value!}")
+            .WithOrganizationToken(byOrgNo.OrganizationIdentifier.Value!, orgCode: "ttd")
+            .WithPlatformToken();
+
+        var response = await HttpClient.SendAsync(request, CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
+        var actual = await response.Content.ReadFromJsonAsAsyncEnumerable<PartyIdentifiers>(cancellationToken: CancellationToken).ToListAsync(CancellationToken);
+        var expected = new[]
+        {
+            CreatePartyIdentifiers(V1PartyMapper.ToV1Party(byId)),
+            CreatePartyIdentifiers(V1PartyMapper.ToV1Party(byUuid)),
+            CreatePartyIdentifiers(V1PartyMapper.ToV1Party(byOrgNo)),
+        };
+
+        actual.Count.ShouldBe(expected.Length);
+        actual.ShouldContain(expected[0]);
+        actual.ShouldContain(expected[1]);
+        actual.ShouldContain(expected[2]);
+    }
+
+    [Theory]
+    [CombinatorialData]
+    public async Task GetPartyIdentifiers_InvalidIds_ReturnsValidationProblem(TestApiSource source)
+    {
+        SetSource(source);
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            "register/api/v1/parties/identifiers?ids=not-an-id")
+            .WithOrganizationToken(OrganizationIdentifier.Parse("991825827"), orgCode: "ttd")
+            .WithPlatformToken();
+
+        var response = await HttpClient.SendAsync(request, CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
+        await AssertValidationError(response, ValidationErrors.InvalidPartyId.ErrorCode, "$QUERY/ids");
+    }
+
+    [Theory]
+    [CombinatorialData]
+    public async Task GetPartyIdentifiers_InvalidUuids_ReturnsValidationProblem(TestApiSource source)
+    {
+        SetSource(source);
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            "register/api/v1/parties/identifiers?uuids=not-a-uuid")
+            .WithOrganizationToken(OrganizationIdentifier.Parse("991825827"), orgCode: "ttd")
+            .WithPlatformToken();
+
+        var response = await HttpClient.SendAsync(request, CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
+        await AssertValidationError(response, ValidationErrors.InvalidPartyUuid.ErrorCode, "$QUERY/uuids");
+    }
+
+    [Theory]
+    [CombinatorialData]
+    public async Task GetPartyIdentifiers_InvalidOrganizationNumbers_ReturnsValidationProblem(TestApiSource source)
+    {
+        SetSource(source);
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            "register/api/v1/parties/identifiers?orgs=not-an-org-number")
+            .WithOrganizationToken(OrganizationIdentifier.Parse("991825827"), orgCode: "ttd")
+            .WithPlatformToken();
+
+        var response = await HttpClient.SendAsync(request, CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
+        await AssertValidationError(response, ValidationErrors.InvalidOrganizationNumber.ErrorCode, "$QUERY/orgs");
+    }
+
+    [Theory]
+    [CombinatorialData]
+    public async Task GetPartyIdentifiers_MixedQueryFormat_ReturnsPartyIdentifiers(TestApiSource source)
+    {
+        var (first, second, third) = await Setup(async (uow, ct) =>
+        {
+            var person = await uow.CreatePerson(cancellationToken: ct);
+            var secondPerson = await uow.CreatePerson(cancellationToken: ct);
+            var thirdPerson = await uow.CreatePerson(cancellationToken: ct);
+
+            return (person, secondPerson, thirdPerson);
+        });
+
+        SetSource(source);
+        if (source == TestApiSource.A2)
+        {
+            ConfigureA2PartyIdentifiersResponses([
+                V1PartyMapper.ToV1Party(first),
+                V1PartyMapper.ToV1Party(second),
+                V1PartyMapper.ToV1Party(third),
+            ]);
+        }
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"register/api/v1/parties/identifiers?ids={first.PartyId.Value},{second.PartyId.Value}&ids={third.PartyId.Value}")
+            .WithOrganizationToken(OrganizationIdentifier.Parse("991825827"), orgCode: "ttd")
+            .WithPlatformToken();
+
+        var response = await HttpClient.SendAsync(request, CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
+        var actual = await response.Content.ReadFromJsonAsAsyncEnumerable<PartyIdentifiers>(cancellationToken: CancellationToken).ToListAsync(CancellationToken);
+        var expected = new[]
+        {
+            CreatePartyIdentifiers(V1PartyMapper.ToV1Party(first)),
+            CreatePartyIdentifiers(V1PartyMapper.ToV1Party(second)),
+            CreatePartyIdentifiers(V1PartyMapper.ToV1Party(third)),
+        };
+
+        actual.Count.ShouldBe(expected.Length);
+        actual.ShouldContain(expected[0]);
+        actual.ShouldContain(expected[1]);
+        actual.ShouldContain(expected[2]);
+    }
+
+    [Fact]
+    public async Task GetPartyIdentifiers_EndpointSourceOverride_UsesEndpointSource()
+    {
+        var (person, organization) = await Setup(async (uow, ct) =>
+        {
+            var createdPerson = await uow.CreatePerson(cancellationToken: ct);
+            var createdOrganization = await uow.CreateOrg(cancellationToken: ct);
+
+            return (createdPerson, createdOrganization);
+        });
+
+        SetSource(TestApiSource.A2);
+        SetSourceForEndpoint("parties/get-identifiers", TestApiSource.DB);
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"register/api/v1/parties/identifiers?ids={person.PartyId.Value}&orgs={organization.OrganizationIdentifier.Value!}")
+            .WithOrganizationToken(organization.OrganizationIdentifier.Value!, orgCode: "ttd")
+            .WithPlatformToken();
+
+        var response = await HttpClient.SendAsync(request, CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
+        var actual = await response.Content.ReadFromJsonAsAsyncEnumerable<PartyIdentifiers>(cancellationToken: CancellationToken).ToListAsync(CancellationToken);
+        var expected = new[]
+        {
+            CreatePartyIdentifiers(V1PartyMapper.ToV1Party(person)),
+            CreatePartyIdentifiers(V1PartyMapper.ToV1Party(organization)),
+        };
+
+        actual.Count.ShouldBe(expected.Length);
+        actual.ShouldContain(expected[0]);
+        actual.ShouldContain(expected[1]);
+    }
+
     private void SetSource(TestApiSource source)
     {
         SetSourceString(source switch
@@ -1285,6 +1466,49 @@ public class PartiesControllerTests
             });
     }
 
+    private void ConfigureA2PartyIdentifiersResponses(IEnumerable<Contracts.V1.Party> parties)
+    {
+        var partiesById = parties
+            .Where(static party => party.PartyId > 0)
+            .ToDictionary(static party => party.PartyId);
+        var partiesByUuid = parties
+            .Where(static party => party.PartyUuid is { })
+            .ToDictionary(static party => party.PartyUuid!.Value);
+        var partiesByOrganizationNumber = parties
+            .Where(static party => !string.IsNullOrEmpty(party.OrgNumber))
+            .ToDictionary(static party => party.OrgNumber!, StringComparer.Ordinal);
+
+        FakeHttpHandlers.For<IV1PartyService>()
+            .Fallback.Respond(async (HttpRequestMessage request, CancellationToken cancellationToken) =>
+            {
+                var path = request.RequestUri?.AbsolutePath;
+                object response = path switch
+                {
+                    { } value when value.EndsWith("/parties", StringComparison.Ordinal) => (await request.Content!.ReadFromJsonAsync<IReadOnlyList<int>>(cancellationToken: cancellationToken) ?? [])
+                        .Where(partiesById.ContainsKey)
+                        .Select(id => partiesById[id])
+                        .ToArray(),
+                    { } value when value.EndsWith("/parties/byuuid", StringComparison.Ordinal) => (await request.Content!.ReadFromJsonAsync<IReadOnlyList<Guid>>(cancellationToken: cancellationToken) ?? [])
+                        .Where(partiesByUuid.ContainsKey)
+                        .Select(uuid => partiesByUuid[uuid])
+                        .ToArray(),
+                    { } value when value.EndsWith("/parties/byssnorgnumber", StringComparison.Ordinal) => (await request.Content!.ReadFromJsonAsync<IReadOnlyList<string>>(cancellationToken: cancellationToken) ?? [])
+                        .Where(partiesByOrganizationNumber.ContainsKey)
+                        .Select(orgNumber => partiesByOrganizationNumber[orgNumber])
+                        .ToArray(),
+                    _ => throw new InvalidOperationException($"Unexpected A2 request path '{path}'."),
+                };
+
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(response),
+                };
+            });
+    }
+
+    private static PartyIdentifiers CreatePartyIdentifiers(Contracts.V1.Party party)
+        => PartyIdentifiers.Create(party);
+
     private static string ChangeLastDigit(string value)
     {
         value.ShouldNotBeNullOrWhiteSpace();
@@ -1294,11 +1518,16 @@ public class PartiesControllerTests
         return $"{value[..^1]}{replacement}";
     }
 
-    private static async Task AssertValidationError(HttpResponseMessage response, ErrorCode expectedErrorCode)
+    private static async Task AssertValidationError(HttpResponseMessage response, ErrorCode expectedErrorCode, string? expectedPath = null)
     {
         var actual = await response.ShouldHaveJsonContent<AltinnValidationProblemDetails>();
         actual.ErrorCode.ShouldBe(StdProblemDescriptors.ErrorCodes.ValidationError);
         actual.Errors.ShouldContain(e => e.ErrorCode == expectedErrorCode);
+
+        if (expectedPath is not null)
+        {
+            actual.Errors.ShouldContain(e => e.ErrorCode == expectedErrorCode && e.Paths.Contains(expectedPath));
+        }
     }
 
     public readonly record struct PartyNamesLookupQueryParameterHandling(
