@@ -45,4 +45,8 @@ public static class ValidationErrors
     /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
     public static ValidationErrorDescriptor MutuallyExclusive { get; }
         = _factory.Create(8, "Values are mutually exclusive");
+
+    /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
+    public static ValidationErrorDescriptor InvalidPartyId { get; }
+        = _factory.Create(9, "Invalid party id");
 }

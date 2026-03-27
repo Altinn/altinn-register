@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Claims;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts.V1;
@@ -49,6 +50,7 @@ public partial class PartiesController
     /// <summary>
     /// Gets the party for a given party id.
     /// </summary>
+    /// <param name="sender">The request sender.</param>
     /// <param name="partyId">The party id.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The information about a given party.</returns>
@@ -58,27 +60,48 @@ public partial class PartiesController
     [ProducesResponseType(200)]
     [Produces("application/json")]
     [Authorize]
-    public async Task<ActionResult<V1Models.Party>> Get(int partyId, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<V1Models.Party>> Get(
+        [FromServices] IRequestSender<GetV1PartyByIdRequest, V1Models.Party> sender,
+        int partyId,
+        CancellationToken cancellationToken = default)
     {
-        V1Models.Party? party = await _partyClient.GetPartyById(partyId, cancellationToken);
+        uint uintPartyId = default;
+        ValidationProblemBuilder builder = default;
 
-        if (!IsOrg(HttpContext))
+        if (partyId <= 0)
         {
-            if (party is null)
+            builder.Add(ValidationErrors.InvalidPartyId, nameof(partyId));
+        }
+        else
+        {
+            uintPartyId = (uint)partyId;
+        }
+
+        if (builder.TryBuild(out var error))
+        {
+            return error.ToActionResult();
+        }
+
+        Debug.Assert(uintPartyId > 0);
+        var result = await sender.Send(new GetV1PartyByIdRequest(uintPartyId), cancellationToken);
+        if (result.IsProblem)
+        {
+            if (!IsOrg(HttpContext) && result.Problem.ErrorCode == Problems.PartyNotFound.ErrorCode)
             {
                 Log.PartyNotFoundUnauthorized(_logger, partyId);
                 return Unauthorized();
             }
 
-            if (await AuthorizePartyLookup(party, cancellationToken) is { } result)
-            {
-                return result;
-            }
+            return result.Problem.ToActionResult();
         }
 
-        if (party is null)
+        var party = result.Value;
+        if (!IsOrg(HttpContext))
         {
-            return NotFound();
+            if (await AuthorizePartyLookup(party, cancellationToken) is { } authorizationResult)
+            {
+                return authorizationResult;
+            }
         }
 
         return Ok(party);

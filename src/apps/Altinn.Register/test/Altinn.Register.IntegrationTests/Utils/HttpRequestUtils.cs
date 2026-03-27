@@ -165,6 +165,7 @@ public static class HttpRequestUtils
         {
             if (!string.IsNullOrWhiteSpace(orgCode))
             {
+                yield return new Claim(AltinnCoreClaimTypes.Org, orgCode, ClaimValueTypes.String, ISSUER);
                 yield return new Claim("urn:altinn:orgCode", orgCode, ClaimValueTypes.String, ISSUER);
             }
 

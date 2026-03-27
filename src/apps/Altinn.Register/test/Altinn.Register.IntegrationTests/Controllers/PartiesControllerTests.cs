@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.TestUtils.Http;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Operations;
 using Altinn.Register.Core.Parties;
@@ -13,6 +14,242 @@ namespace Altinn.Register.IntegrationTests.Controllers;
 public class PartiesControllerTests
     : IntegrationTestBase
 {
+    [Theory]
+    [CombinatorialData]
+    public async Task GetParty_ValidTokenRequestForExistingParty_ReturnsParty(TestApiSource source)
+    {
+        var person = await Setup((uow, ct) => uow.CreatePerson(cancellationToken: ct));
+
+        SetSource(source);
+        if (source == TestApiSource.A2)
+        {
+            FakeHttpHandlers.For<IV1PartyService>()
+                .Expect(HttpMethod.Get, "/parties/{partyId}")
+                .WithRouteValue("partyId", person.PartyId.Value.ToString())
+                .Respond(() => JsonContent.Create(V1PartyMapper.ToV1Party(person)));
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"register/api/v1/parties/{person.PartyId.Value}")
+            .WithPersonToken(person)
+            .WithPlatformToken();
+
+        var response = await HttpClient.SendAsync(request, CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
+        var actual = await response.ShouldHaveJsonContent<Contracts.V1.Party>();
+
+        actual.ShouldSatisfyAllConditions([
+            (Contracts.V1.Party p) => p.PartyId.ShouldBe((int)person.PartyId.Value),
+            (Contracts.V1.Party p) => p.PartyUuid.ShouldBe(person.PartyUuid.Value),
+            (Contracts.V1.Party p) => p.PartyTypeName.ShouldBe(Contracts.V1.PartyType.Person),
+            (Contracts.V1.Party p) => p.SSN.ShouldBe(person.PersonIdentifier.Value!.ToString()),
+            (Contracts.V1.Party p) => p.Name.ShouldBe(person.ShortName.Value),
+            (Contracts.V1.Party p) => p.Person.ShouldNotBeNull(),
+            (Contracts.V1.Party p) => p.Organization.ShouldBeNull(),
+        ]);
+    }
+
+    [Theory]
+    [CombinatorialData]
+    public async Task GetParty_ValidTokenRequestForExistingOrganization_ReturnsParty(TestApiSource source)
+    {
+        var org = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));
+
+        SetSource(source);
+        if (source == TestApiSource.A2)
+        {
+            FakeHttpHandlers.For<IV1PartyService>()
+                .Expect(HttpMethod.Get, "/parties/{partyId}")
+                .WithRouteValue("partyId", org.PartyId.Value.ToString())
+                .Respond(() => JsonContent.Create(V1PartyMapper.ToV1Party(org)));
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"register/api/v1/parties/{org.PartyId.Value}")
+            .WithOrganizationToken(org.OrganizationIdentifier.Value!, orgCode: "ttd")
+            .WithPlatformToken();
+
+        var response = await HttpClient.SendAsync(request, CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
+        var actual = await response.ShouldHaveJsonContent<Contracts.V1.Party>();
+
+        actual.ShouldSatisfyAllConditions([
+            (Contracts.V1.Party p) => p.PartyId.ShouldBe((int)org.PartyId.Value),
+            (Contracts.V1.Party p) => p.PartyUuid.ShouldBe(org.PartyUuid.Value),
+            (Contracts.V1.Party p) => p.PartyTypeName.ShouldBe(Contracts.V1.PartyType.Organisation),
+            (Contracts.V1.Party p) => p.OrgNumber.ShouldBe(org.OrganizationIdentifier.Value!.ToString()),
+            (Contracts.V1.Party p) => p.Name.ShouldBe(org.DisplayName.Value),
+            (Contracts.V1.Party p) => p.UnitType.ShouldBe(org.UnitType.Value),
+            (Contracts.V1.Party p) => p.Organization.ShouldNotBeNull(),
+            (Contracts.V1.Party p) => p.Person.ShouldBeNull(),
+        ]);
+    }
+
+    [Theory]
+    [CombinatorialData]
+    public async Task GetParty_ValidTokenRequestForExistingSelfIdentifiedUser_ReturnsParty(TestApiSource source)
+    {
+        var siUser = await Setup((uow, ct) => uow.CreateSelfIdentifiedUser(cancellationToken: ct));
+
+        SetSource(source);
+        if (source == TestApiSource.A2)
+        {
+            FakeHttpHandlers.For<IV1PartyService>()
+                .Expect(HttpMethod.Get, "/parties/{partyId}")
+                .WithRouteValue("partyId", siUser.PartyId.Value.ToString())
+                .Respond(() => JsonContent.Create(V1PartyMapper.ToV1Party(siUser)));
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"register/api/v1/parties/{siUser.PartyId.Value}")
+            .WithOrganizationToken(OrganizationIdentifier.Parse("991825827"), orgCode: "ttd")
+            .WithPlatformToken();
+
+        var response = await HttpClient.SendAsync(request, CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
+        var actual = await response.ShouldHaveJsonContent<Contracts.V1.Party>();
+
+        actual.ShouldSatisfyAllConditions([
+            (Contracts.V1.Party p) => p.PartyId.ShouldBe((int)siUser.PartyId.Value),
+            (Contracts.V1.Party p) => p.PartyUuid.ShouldBe(siUser.PartyUuid.Value),
+            (Contracts.V1.Party p) => p.PartyTypeName.ShouldBe(Contracts.V1.PartyType.SelfIdentified),
+            (Contracts.V1.Party p) => p.Name.ShouldBe(siUser.DisplayName.Value),
+            (Contracts.V1.Party p) => p.Person.ShouldBeNull(),
+            (Contracts.V1.Party p) => p.Organization.ShouldBeNull(),
+        ]);
+    }
+
+    [Theory]
+    [CombinatorialData]
+    public async Task GetParty_InvalidPartyId_ReturnsValidationProblem(
+        TestApiSource source,
+        [CombinatorialValues(0, -1)] int partyId)
+    {
+        SetSource(source);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"register/api/v1/parties/{partyId}")
+            .WithOrganizationToken(OrganizationIdentifier.Parse("991825827"), orgCode: "ttd")
+            .WithPlatformToken();
+
+        var response = await HttpClient.SendAsync(request, CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
+        await AssertValidationError(response, ValidationErrors.InvalidPartyId.ErrorCode);
+    }
+
+    [Theory]
+    [CombinatorialData]
+    public async Task GetParty_ValidUserTokenRequestForNonExistingParty_ReturnsUnauthorized(TestApiSource source)
+    {
+        var (user, partyId) = await Setup(async (uow, ct) =>
+        {
+            var createdUser = await uow.CreatePerson(cancellationToken: ct);
+            var nextPartyId = await uow.GetNextPartyId(ct);
+
+            return (createdUser, (int)nextPartyId);
+        });
+
+        SetSource(source);
+        if (source == TestApiSource.A2)
+        {
+            FakeHttpHandlers.For<IV1PartyService>()
+                .Expect(HttpMethod.Get, "/parties/{partyId}")
+                .WithRouteValue("partyId", partyId.ToString())
+                .Respond(HttpStatusCode.NotFound);
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"register/api/v1/parties/{partyId}")
+            .WithPersonToken(user)
+            .WithPlatformToken();
+
+        var response = await HttpClient.SendAsync(request, CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.Unauthorized);
+    }
+
+    [Theory]
+    [CombinatorialData]
+    public async Task GetParty_ValidOrgTokenRequestForNonExistingParty_ReturnsNotFound(TestApiSource source)
+    {
+        var (org, partyId) = await Setup(async (uow, ct) =>
+        {
+            var createdOrg = await uow.CreateOrg(cancellationToken: ct);
+            var nextPartyId = await uow.GetNextPartyId(ct);
+
+            return (createdOrg, (int)nextPartyId);
+        });
+
+        SetSource(source);
+        if (source == TestApiSource.A2)
+        {
+            FakeHttpHandlers.For<IV1PartyService>()
+                .Expect(HttpMethod.Get, "/parties/{partyId}")
+                .WithRouteValue("partyId", partyId.ToString())
+                .Respond(HttpStatusCode.NotFound);
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"register/api/v1/parties/{partyId}")
+            .WithOrganizationToken(org.OrganizationIdentifier.Value!, orgCode: "ttd")
+            .WithPlatformToken();
+
+        var response = await HttpClient.SendAsync(request, CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.NotFound);
+        var content = await response.ShouldHaveJsonContent<AltinnProblemDetails>();
+        content.ErrorCode.ShouldBe(Problems.PartyNotFound.ErrorCode);
+    }
+
+    [Theory]
+    [CombinatorialData]
+    public async Task GetParty_InvalidToken_ReturnsUnauthorized(TestApiSource source)
+    {
+        var partyId = await Setup(async (uow, ct) => (int)await uow.GetNextPartyId(ct));
+        SetSource(source);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"register/api/v1/parties/{partyId}")
+            .WithPlatformToken();
+        request.Headers.Authorization = new("Bearer", "bogus");
+
+        var response = await HttpClient.SendAsync(request, CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.Unauthorized);
+    }
+
+    [Theory]
+    [CombinatorialData]
+    public async Task GetParty_MissingAccessToken_ReturnsForbidden(TestApiSource source)
+    {
+        var person = await Setup((uow, ct) => uow.CreatePerson(cancellationToken: ct));
+        SetSource(source);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"register/api/v1/parties/{person.PartyId.Value}")
+            .WithPersonToken(person);
+
+        var response = await HttpClient.SendAsync(request, CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task GetParty_EndpointSourceOverride_UsesEndpointSource()
+    {
+        var person = await Setup((uow, ct) => uow.CreatePerson(cancellationToken: ct));
+
+        SetSource(TestApiSource.A2);
+        SetSourceForEndpoint("parties/get-by-id", TestApiSource.DB);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"register/api/v1/parties/{person.PartyId.Value}")
+            .WithPersonToken(person)
+            .WithPlatformToken();
+
+        var response = await HttpClient.SendAsync(request, CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
+        var actual = await response.ShouldHaveJsonContent<Contracts.V1.Party>();
+        actual.PartyId.ShouldBe((int)person.PartyId.Value);
+        actual.PartyUuid.ShouldBe(person.PartyUuid.Value);
+    }
+
     [Theory]
     [CombinatorialData]
     public async Task PostPartyLookup_ValidTokenRequestForExistingOrganization_ReturnsParty(TestApiSource source)
