@@ -28,16 +28,20 @@ internal static class V1PartyMapper
         switch (party)
         {
             case OrganizationRecord org:
+                var organization = ToV1Organization(org);
                 ret.PartyTypeName = V1Models.PartyType.Organisation;
-                ret.OrgNumber = org.OrganizationIdentifier.Value!.ToString();
-                ret.Organization = ToV1Organization(org);
+                ret.OrgNumber = organization.OrgNumber;
+                ret.Name = organization.Name;
+                ret.UnitType = organization.UnitType;
+                ret.Organization = organization;
                 break;
 
             case PersonRecord person:
+                var mappedPerson = ToV1Person(person);
                 ret.PartyTypeName = V1Models.PartyType.Person;
-                ret.SSN = person.PersonIdentifier.Value!.ToString();
-                ret.Name = person.ShortName.HasValue ? person.ShortName.Value : person.DisplayName.Value;
-                ret.Person = ToV1Person(person);
+                ret.SSN = mappedPerson.SSN;
+                ret.Name = mappedPerson.Name;
+                ret.Person = mappedPerson;
                 break;
 
             default:

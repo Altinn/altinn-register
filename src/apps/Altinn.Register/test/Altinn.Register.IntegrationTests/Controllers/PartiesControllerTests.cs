@@ -42,6 +42,7 @@ public class PartiesControllerTests
             (Contracts.V1.Party p) => p.PartyTypeName.ShouldBe(Contracts.V1.PartyType.Organisation),
             (Contracts.V1.Party p) => p.OrgNumber.ShouldBe(orgNo),
             (Contracts.V1.Party p) => p.Name.ShouldBe(org.DisplayName.Value),
+            (Contracts.V1.Party p) => p.UnitType.ShouldBe(org.UnitType.Value),
             (Contracts.V1.Party p) => p.Organization.ShouldNotBeNull(),
             (Contracts.V1.Party p) => p.Person.ShouldBeNull(),
         ]);
