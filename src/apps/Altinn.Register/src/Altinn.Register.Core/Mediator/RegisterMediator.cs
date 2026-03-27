@@ -33,6 +33,7 @@ internal sealed class RegisterMediator
     private ValueTask<Result<Contracts.V1.Party>> Send(GetV1PartyByUuidRequest request, Sender sender, CancellationToken cancellationToken)
         => RequestDispatcher<GetV1PartyByUuidRequest, Contracts.V1.Party>
             .ApiSourceSwitch<GetV1PartyByUuidFromA2RequestHandler, GetV1PartyByUuidFromDBRequestHandler>(this, sender, "parties/get-by-uuid")
+            .Handle(request, cancellationToken);
 
     private ValueTask<Result<IAsyncEnumerable<Parties.PartyIdentifiers>>> Send(GetV1PartyIdentifiersRequest request, Sender sender, CancellationToken cancellationToken)
         => RequestDispatcher<GetV1PartyIdentifiersRequest, IAsyncEnumerable<Parties.PartyIdentifiers>>
