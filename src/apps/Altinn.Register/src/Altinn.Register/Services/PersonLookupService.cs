@@ -8,6 +8,7 @@ using Altinn.Register.Core;
 using Altinn.Register.Core.A2;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.RateLimiting;
+using Altinn.Register.Core.Utils;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Options;
 
@@ -79,7 +80,7 @@ internal partial class PersonLookupService
 
         var person = result.Person;
         if (person is { LastName: { Length: > 0 } lastNameFromParty }
-            && lastNameFromParty.IsSimilarTo(lastName))
+            && PersonNames.IsLastNamesSimilar(lastNameFromParty, lastName))
         {
             return person;
         }

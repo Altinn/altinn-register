@@ -7,6 +7,8 @@ namespace Altinn.Register.IntegrationTests.TestServices;
 
 internal class TestJwtService
 {
+    public const string ISSUER = "jwt";
+
     private readonly TestCertificateService _certs;
 
     public TestJwtService(TestCertificateService certs)
@@ -16,7 +18,7 @@ internal class TestJwtService
 
     public X509Certificate2 GetCertificate()
     {
-        return _certs.GetIssuerCertificate("jwt");
+        return _certs.GetIssuerCertificate(ISSUER);
     }
 
     public string GenerateToken()
@@ -39,9 +41,9 @@ internal class TestJwtService
         {
             Subject = identity,
             Expires = DateTimeOffset.UtcNow.Add(tokenExpiry).UtcDateTime,
-            SigningCredentials = _certs.GetSigningCredentials("jwt"),
+            SigningCredentials = _certs.GetSigningCredentials(ISSUER),
             Audience = "altinn.no",
-            Issuer = "jwt",
+            Issuer = ISSUER,
         };
 
         var token = handler.CreateToken(descriptor);
