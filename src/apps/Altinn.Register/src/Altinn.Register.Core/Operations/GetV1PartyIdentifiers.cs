@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Mediator;
@@ -67,7 +69,7 @@ internal sealed class GetV1PartyIdentifiersFromDBRequestHandler(IUnitOfWorkManag
 
     private async IAsyncEnumerable<PartyIdentifiers> GetPartyIdentifiers(
         GetV1PartyIdentifiersRequest request,
-        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+        [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         await using var uow = await manager.CreateAsync(cancellationToken, activityName: "get v1 party identifiers");
         var persistence = uow.GetPartyPersistence();
