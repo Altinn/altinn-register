@@ -131,6 +131,23 @@ public class AsyncEnumerableExtensionsTests
         Assert.Equal(10, result.Count);
     }
 
+    [Fact]
+    public async Task Merge_DisposeAsync_Attempts_All_Sources_And_Aggregates_Exceptions()
+    {
+        var first = new ThrowingDisposeEnumerable<int>(new InvalidOperationException("first"));
+        var second = new ThrowingDisposeEnumerable<int>(new InvalidOperationException("second"));
+
+        var enumerator = first.Merge(second).GetAsyncEnumerator(CancellationToken);
+
+        var ex = await Assert.ThrowsAsync<AggregateException>(async () => await enumerator.DisposeAsync());
+
+        first.DisposeCalls.ShouldBe(1);
+        second.DisposeCalls.ShouldBe(1);
+        ex.InnerExceptions.Count.ShouldBe(2);
+        ex.InnerExceptions[0].Message.ShouldBe("first");
+        ex.InnerExceptions[1].Message.ShouldBe("second");
+    }
+
     private sealed class CancellableEnumerable<T>
         : IAsyncEnumerable<T>
     {
@@ -175,6 +192,31 @@ public class AsyncEnumerableExtensionsTests
             public ValueTask<bool> MoveNextAsync()
             {
                 return new(_tcs.Task);
+            }
+        }
+    }
+
+    private sealed class ThrowingDisposeEnumerable<T>(Exception exception)
+        : IAsyncEnumerable<T>
+    {
+        private int _disposeCalls;
+
+        public int DisposeCalls => _disposeCalls;
+
+        public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+            => new Enumerator(this, exception);
+
+        private sealed class Enumerator(ThrowingDisposeEnumerable<T> owner, Exception exception)
+            : IAsyncEnumerator<T>
+        {
+            public T Current => default!;
+
+            public ValueTask<bool> MoveNextAsync() => ValueTask.FromResult(false);
+
+            public ValueTask DisposeAsync()
+            {
+                Interlocked.Increment(ref owner._disposeCalls);
+                return ValueTask.FromException(exception);
             }
         }
     }

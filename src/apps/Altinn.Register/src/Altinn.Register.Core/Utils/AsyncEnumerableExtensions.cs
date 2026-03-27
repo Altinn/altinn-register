@@ -342,9 +342,24 @@ public static class AsyncEnumerableExtensions
 
             public async ValueTask DisposeAsync()
             {
+                List<Exception>? exceptions = null;
+
                 for (var i = 0; i < _sources.Length; i++)
                 {
-                    await _sources[i].Source.DisposeAsync();
+                    try
+                    {
+                        await _sources[i].Source.DisposeAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        exceptions ??= [];
+                        exceptions.Add(ex);
+                    }
+                }
+
+                if (exceptions is not null)
+                {
+                    throw new AggregateException(exceptions);
                 }
             }
 
