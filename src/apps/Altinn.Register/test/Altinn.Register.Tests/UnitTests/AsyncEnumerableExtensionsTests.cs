@@ -132,12 +132,42 @@ public class AsyncEnumerableExtensionsTests
     }
 
     [Fact]
+    public async Task Merge_Does_Not_Create_Source_Enumerators_Until_Polled()
+    {
+        var first = new TrackingEnumerable<int>();
+        var second = new TrackingEnumerable<int>();
+
+        var enumerator = first.Merge(second).GetAsyncEnumerator(CancellationToken);
+
+        first.GetAsyncEnumeratorCalls.ShouldBe(0);
+        second.GetAsyncEnumeratorCalls.ShouldBe(0);
+
+        await enumerator.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task Merge_Disposes_Already_Created_Sources_When_Later_Source_Creation_Fails()
+    {
+        var first = new TrackingEnumerable<int>();
+        var second = new ThrowingGetAsyncEnumeratorEnumerable<int>(new InvalidOperationException("boom"));
+        var enumerator = first.Merge(second).GetAsyncEnumerator(CancellationToken);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await enumerator.MoveNextAsync());
+
+        ex.Message.ShouldBe("boom");
+        first.GetAsyncEnumeratorCalls.ShouldBe(1);
+        first.DisposeCalls.ShouldBe(1);
+        second.GetAsyncEnumeratorCalls.ShouldBe(1);
+    }
+
+    [Fact]
     public async Task Merge_DisposeAsync_Attempts_All_Sources_And_Aggregates_Exceptions()
     {
         var first = new ThrowingDisposeEnumerable<int>(new InvalidOperationException("first"));
         var second = new ThrowingDisposeEnumerable<int>(new InvalidOperationException("second"));
 
         var enumerator = first.Merge(second).GetAsyncEnumerator(CancellationToken);
+        (await enumerator.MoveNextAsync()).ShouldBeFalse();
 
         var ex = await Assert.ThrowsAsync<AggregateException>(async () => await enumerator.DisposeAsync());
 
@@ -218,6 +248,48 @@ public class AsyncEnumerableExtensionsTests
                 Interlocked.Increment(ref owner._disposeCalls);
                 return ValueTask.FromException(exception);
             }
+        }
+    }
+
+    private sealed class TrackingEnumerable<T> : IAsyncEnumerable<T>
+    {
+        private int _getAsyncEnumeratorCalls;
+        private int _disposeCalls;
+
+        public int GetAsyncEnumeratorCalls => _getAsyncEnumeratorCalls;
+
+        public int DisposeCalls => _disposeCalls;
+
+        public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+        {
+            Interlocked.Increment(ref _getAsyncEnumeratorCalls);
+            return new Enumerator(this);
+        }
+
+        private sealed class Enumerator(TrackingEnumerable<T> owner) : IAsyncEnumerator<T>
+        {
+            public T Current => default!;
+
+            public ValueTask<bool> MoveNextAsync() => ValueTask.FromResult(false);
+
+            public ValueTask DisposeAsync()
+            {
+                Interlocked.Increment(ref owner._disposeCalls);
+                return ValueTask.CompletedTask;
+            }
+        }
+    }
+
+    private sealed class ThrowingGetAsyncEnumeratorEnumerable<T>(Exception exception) : IAsyncEnumerable<T>
+    {
+        private int _getAsyncEnumeratorCalls;
+
+        public int GetAsyncEnumeratorCalls => _getAsyncEnumeratorCalls;
+
+        public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+        {
+            Interlocked.Increment(ref _getAsyncEnumeratorCalls);
+            throw exception;
         }
     }
 }

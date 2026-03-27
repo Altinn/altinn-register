@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Threading.Channels;
 using System.Threading.Tasks.Sources;
 using CommunityToolkit.Diagnostics;
@@ -316,6 +317,7 @@ public static class AsyncEnumerableExtensions
         {
             private readonly Lock _lock = new();
             private readonly CancellationToken _cancellationToken;
+            private readonly ImmutableArray<IAsyncEnumerable<T>> _enumerables;
             private readonly SourceState[] _sources;
             private ManualResetValueTaskSourceCore<bool> _tcs;
             private bool _waiting;
@@ -325,17 +327,10 @@ public static class AsyncEnumerableExtensions
             public Enumerator(ImmutableArray<IAsyncEnumerable<T>> sources, CancellationToken cancellationToken)
             {
                 _cancellationToken = cancellationToken;
+                _enumerables = sources;
                 _tcs = default;
                 _tcs.RunContinuationsAsynchronously = true;
                 _sources = new SourceState[sources.Length];
-
-                for (var i = 0; i < sources.Length; i++)
-                {
-                    _sources[i] = new SourceState
-                    {
-                        Source = sources[i].GetAsyncEnumerator(cancellationToken),
-                    };
-                }
             }
 
             public T Current => _current;
@@ -346,9 +341,14 @@ public static class AsyncEnumerableExtensions
 
                 for (var i = 0; i < _sources.Length; i++)
                 {
+                    if (_sources[i].Source is not { } source)
+                    {
+                        continue;
+                    }
+
                     try
                     {
-                        await _sources[i].Source.DisposeAsync();
+                        await source.DisposeAsync();
                     }
                     catch (Exception ex)
                     {
@@ -367,67 +367,77 @@ public static class AsyncEnumerableExtensions
             {
                 _cancellationToken.ThrowIfCancellationRequested();
 
-                lock (_lock)
+                try
                 {
-                    Debug.Assert(!_waiting);
-                    bool anyPending = false;
-
-                    for (var offset = 0; offset < _sources.Length; offset++)
+                    lock (_lock)
                     {
-                        var i = (_index + offset) % _sources.Length;
-                        ref var source = ref _sources[i];
+                        Debug.Assert(!_waiting);
+                        bool anyPending = false;
 
-                        switch (source.Status)
+                        for (var offset = 0; offset < _sources.Length; offset++)
                         {
-                            case SourceState.STATUS_INITIAL:
-                                var awaiter = source.Source.MoveNextAsync().ConfigureAwait(false).GetAwaiter();
-                                if (awaiter.IsCompleted)
-                                {
-                                    if (awaiter.GetResult())
+                            var i = (_index + offset) % _sources.Length;
+                            ref var source = ref _sources[i];
+
+                            switch (source.Status)
+                            {
+                                case SourceState.STATUS_INITIAL:
+                                    source.Source ??= _enumerables[i].GetAsyncEnumerator(_cancellationToken);
+
+                                    var awaiter = source.Source.MoveNextAsync().ConfigureAwait(false).GetAwaiter();
+                                    if (awaiter.IsCompleted)
                                     {
+                                        if (awaiter.GetResult())
+                                        {
+                                            _current = source.Source.Current;
+                                            _index = (i + 1) % _sources.Length;
+                                            return new ValueTask<bool>(true);
+                                        }
+
+                                        source.Status = SourceState.STATUS_DONE;
+                                    }
+                                    else
+                                    {
+                                        source.Status = SourceState.STATUS_PENDING;
+                                        source.Awaiter = awaiter;
+                                        var callback = source.Callback ??= CreateCallback(this, i);
+                                        awaiter.UnsafeOnCompleted(callback);
+                                        anyPending = true;
+                                    }
+
+                                    break;
+
+                                case SourceState.STATUS_PENDING:
+                                    anyPending = true;
+                                    break;
+
+                                case SourceState.STATUS_READY:
+                                    Debug.Assert(source.Awaiter.IsCompleted);
+                                    if (source.Awaiter.GetResult())
+                                    {
+                                        Debug.Assert(source.Source is not null);
                                         _current = source.Source.Current;
                                         _index = (i + 1) % _sources.Length;
+                                        source.Status = SourceState.STATUS_INITIAL;
                                         return new ValueTask<bool>(true);
                                     }
 
                                     source.Status = SourceState.STATUS_DONE;
-                                }
-                                else
-                                {
-                                    source.Status = SourceState.STATUS_PENDING;
-                                    source.Awaiter = awaiter;
-                                    var callback = source.Callback ??= CreateCallback(this, i);
-                                    awaiter.UnsafeOnCompleted(callback);
-                                    anyPending = true;
-                                }
+                                    break;
+                            }
+                        }
 
-                                break;
-
-                            case SourceState.STATUS_PENDING:
-                                anyPending = true;
-                                break;
-
-                            case SourceState.STATUS_READY:
-                                Debug.Assert(source.Awaiter.IsCompleted);
-                                if (source.Awaiter.GetResult())
-                                {
-                                    _current = source.Source.Current;
-                                    _index = (i + 1) % _sources.Length;
-                                    source.Status = SourceState.STATUS_INITIAL;
-                                    return new ValueTask<bool>(true);
-                                }
-
-                                source.Status = SourceState.STATUS_DONE;
-                                break;
+                        if (anyPending)
+                        {
+                            _tcs.Reset();
+                            _waiting = true;
+                            return new ValueTask<bool>(this, _tcs.Version);
                         }
                     }
-
-                    if (anyPending)
-                    {
-                        _tcs.Reset();
-                        _waiting = true;
-                        return new ValueTask<bool>(this, _tcs.Version);
-                    }
+                }
+                catch (Exception ex)
+                {
+                    return DisposeOnErrorAsync(ex);
                 }
 
                 return new ValueTask<bool>(false);
@@ -486,6 +496,7 @@ public static class AsyncEnumerableExtensions
 
                     if (moveNextResult)
                     {
+                        Debug.Assert(source.Source is not null);
                         _current = source.Source.Current;
                         _index = (index + 1) % _sources.Length;
                         _waiting = false;
@@ -506,6 +517,26 @@ public static class AsyncEnumerableExtensions
             private static Action CreateCallback(Enumerator enumerator, int index)
                 => () => enumerator.OnSourceReady(index);
 
+            private async ValueTask<bool> DisposeOnErrorAsync(Exception exception)
+            {
+                try
+                {
+                    await DisposeAsync();
+                }
+                catch (Exception disposeException)
+                {
+                    if (disposeException is AggregateException aggregateException)
+                    {
+                        throw new AggregateException([exception, .. aggregateException.InnerExceptions]);
+                    }
+
+                    throw new AggregateException(exception, disposeException);
+                }
+
+                ExceptionDispatchInfo.Capture(exception).Throw();
+                throw null!;
+            }
+
             private struct SourceState
             {
                 public const byte STATUS_INITIAL = 0;
@@ -513,7 +544,7 @@ public static class AsyncEnumerableExtensions
                 public const byte STATUS_READY = 2;
                 public const byte STATUS_DONE = 3;
 
-                public IAsyncEnumerator<T> Source;
+                public IAsyncEnumerator<T>? Source;
                 public byte Status;
                 public Action? Callback;
                 public ConfiguredValueTaskAwaitable<bool>.ConfiguredValueTaskAwaiter Awaiter;
