@@ -44,6 +44,10 @@ internal static class V1PartyMapper
                 ret.Person = mappedPerson;
                 break;
 
+            case SelfIdentifiedUserRecord:
+                ret.PartyTypeName = V1Models.PartyType.SelfIdentified;
+                break;
+
             default:
                 throw new UnreachableException($"Unsupported party type: {party.GetType().Name}");
         }
