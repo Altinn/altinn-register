@@ -35,6 +35,11 @@ internal sealed class RegisterMediator
             .ApiSourceSwitch<GetV1PartyByUuidFromA2RequestHandler, GetV1PartyByUuidFromDBRequestHandler>(this, sender, "parties/get-by-uuid")
             .Handle(request, cancellationToken);
 
+    private ValueTask<Result<IAsyncEnumerable<Parties.PartyIdentifiers>>> Send(GetV1PartyIdentifiersRequest request, Sender sender, CancellationToken cancellationToken)
+        => RequestDispatcher<GetV1PartyIdentifiersRequest, IAsyncEnumerable<Parties.PartyIdentifiers>>
+            .ApiSourceSwitch<GetV1PartyIdentifiersFromA2RequestHandler, GetV1PartyIdentifiersFromDBRequestHandler>(this, sender, "parties/get-identifiers")
+            .Handle(request, cancellationToken);
+
     private ValueTask<Result<Contracts.V1.Person>> Send(GetV1PersonRequest request, Sender sender, CancellationToken cancellationToken)
         => RequestDispatcher<GetV1PersonRequest, Contracts.V1.Person>
             .ApiSourceSwitch<GetV1PersonFromA2RequestHandler, GetV1PersonFromDBRequestHandler>(this, sender, "persons/get")
@@ -79,6 +84,7 @@ internal sealed class RegisterMediator
         : IRequestSender<GetV1OrganizationRequest, Contracts.V1.Organization>
         , IRequestSender<GetV1PartyByIdRequest, Contracts.V1.Party>
         , IRequestSender<GetV1PartyByUuidRequest, Contracts.V1.Party>
+        , IRequestSender<GetV1PartyIdentifiersRequest, IAsyncEnumerable<Parties.PartyIdentifiers>>
         , IRequestSender<GetV1PersonRequest, Contracts.V1.Person>
         , IRequestSender<LookupV1PartyRequest, Contracts.V1.Party>
         , IRequestSender<LookupV1PartyNamesRequest, Contracts.V1.PartyNamesLookupResult>
@@ -115,6 +121,12 @@ internal sealed class RegisterMediator
         /// <inheritdoc/>
         public ValueTask<Result<Contracts.V1.Party>> Send(
             GetV1PartyByUuidRequest request,
+            CancellationToken cancellationToken = default)
+            => _mediator.Send(request, this, cancellationToken);
+
+        /// <inheritdoc/>
+        public ValueTask<Result<IAsyncEnumerable<Parties.PartyIdentifiers>>> Send(
+            GetV1PartyIdentifiersRequest request,
             CancellationToken cancellationToken = default)
             => _mediator.Send(request, this, cancellationToken);
 

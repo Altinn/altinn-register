@@ -1,13 +1,13 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Security.Claims;
 using Altinn.Authorization.ProblemDetails;
+using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.V1;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Mediator;
 using Altinn.Register.Core.Operations;
 using Altinn.Register.Core.Parties;
-using Altinn.Register.Extensions;
-using Altinn.Register.Models;
 using Altinn.Register.Services.Interfaces;
 using AltinnCore.Authentication.Constants;
 using Asp.Versioning;
@@ -296,6 +296,7 @@ public partial class PartiesController
     /// <summary>
     /// Gets a set of party identifiers given a list of party uuids or org.nos.
     /// </summary>
+    /// <param name="sender">The request sender.</param>
     /// <param name="idsQuery">The party ids.</param>
     /// <param name="uuidsQuery">The party uuids.</param>
     /// <param name="orgNosQuery">The org.nos.</param>
@@ -304,25 +305,28 @@ public partial class PartiesController
     [HttpGet("identifiers")]
     [Consumes("application/json")]
     [Produces("application/json")]
-    public ActionResult<IAsyncEnumerable<PartyIdentifiers>> GetPartyIdentifiers(
+    public async Task<ActionResult<IAsyncEnumerable<PartyIdentifiers>>> GetPartyIdentifiers(
+        [FromServices] IRequestSender<GetV1PartyIdentifiersRequest, IAsyncEnumerable<PartyIdentifiers>> sender,
         [FromQuery(Name = "ids")] List<string?>? idsQuery = null,
         [FromQuery(Name = "uuids")] List<string?>? uuidsQuery = null,
         [FromQuery(Name = "orgs")] List<string?>? orgNosQuery = null,
         CancellationToken cancellationToken = default)
     {
+        ValidationProblemBuilder builder = default;
         int count = 0;
-        List<int>? ids = null;
+        List<uint>? ids = null;
         List<Guid>? uuids = null;
-        List<string>? orgNos = null;
+        List<OrganizationIdentifier>? orgNos = null;
 
         if (idsQuery is { Count: > 0 })
         {
-            ids = new List<int>();
+            ids = new List<uint>();
             foreach (var idString in idsQuery.Where(x => x is not null).SelectMany(idsQuery => idsQuery!.Split(',')))
             {
-                if (!int.TryParse(idString, out int id))
+                if (!uint.TryParse(idString, NumberStyles.None, provider: null, out uint id))
                 {
-                    ModelState.AddModelError("ids", $"Invalid id: {idString}");
+                    builder.Add(ValidationErrors.InvalidPartyId, "$QUERY/ids", $"Invalid id: {idString}");
+                    continue;
                 }
 
                 ids.Add(id);
@@ -338,7 +342,8 @@ public partial class PartiesController
             {
                 if (!Guid.TryParse(uuidString, out Guid uuid))
                 {
-                    ModelState.AddModelError("uuids", $"Invalid uuid: {uuidString}");
+                    builder.Add(ValidationErrors.InvalidPartyUuid, "$QUERY/uuids", $"Invalid uuid: {uuidString}");
+                    continue;
                 }
 
                 uuids.Add(uuid);
@@ -349,11 +354,16 @@ public partial class PartiesController
 
         if (orgNosQuery is { Count: > 0 })
         {
-            orgNos = new List<string>();
+            orgNos = new List<OrganizationIdentifier>();
             foreach (var orgNo in orgNosQuery.Where(x => x is not null).SelectMany(orgNosQuery => orgNosQuery!.Split(',')))
             {
-                // TODO: Validate orgNo
-                orgNos.Add(orgNo);
+                if (!OrganizationIdentifier.TryParse(orgNo, provider: null, out var organizationIdentifier))
+                {
+                    builder.Add(ValidationErrors.InvalidOrganizationNumber, "$QUERY/orgs", $"Invalid organization number: {orgNo}");
+                    continue;
+                }
+
+                orgNos.Add(organizationIdentifier);
             }
 
             count += orgNos.Count;
@@ -361,41 +371,27 @@ public partial class PartiesController
 
         if (count > 100)
         {
-            ModelState.AddModelError(string.Empty, "Maximum number of identifiers is 100");
+            builder.Add(ValidationErrors.TooManyItems, ["$QUERY/ids", "$QUERY/uuids", "$QUERY/orgs"], "Maximum number of identifiers is 100");
         }
 
         if (count == 0)
         {
-            ModelState.AddModelError(string.Empty, "At least one of the query parameters 'ids', 'uuids' or 'orgs' must be provided");
+            builder.Add(StdValidationErrors.Required, ["$QUERY/ids", "$QUERY/uuids", "$QUERY/orgs"], "At least one of the query parameters 'ids', 'uuids' or 'orgs' must be provided");
         }
 
-        if (!ModelState.IsValid)
+        if (builder.TryBuild(out var validationProblem))
         {
-            return BadRequest(ModelState);
+            return validationProblem.ToActionResult();
         }
 
-        var parties = AsyncEnumerable.Empty<V1Models.Party>();
-
-        if (ids is { Count: > 0 })
+        var request = new GetV1PartyIdentifiersRequest(ids, uuids, orgNos);
+        var result = await sender.Send(request, cancellationToken);
+        if (result.IsProblem)
         {
-            parties = parties.Merge(_partyClient.GetPartiesById(ids, cancellationToken));
+            return result.Problem.ToActionResult();
         }
 
-        if (uuids is { Count: > 0 })
-        {
-            parties = parties.Merge(_partyClient.GetPartiesById(uuids, cancellationToken));
-        }
-
-        if (orgNos is { Count: > 0 })
-        {
-            parties = parties.Merge(_partyClient.LookupPartiesBySSNOrOrgNos(orgNos, cancellationToken));
-        }
-
-        var all = parties
-            .DistinctBy(static p => p.PartyId)
-            .Select(static p => PartyIdentifiers.Create(p));
-
-        return Ok(all);
+        return Ok(result.Value);
     }
 
     [NonAction]
