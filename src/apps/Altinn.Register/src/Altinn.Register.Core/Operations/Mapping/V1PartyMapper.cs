@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Altinn.Register.Core.Parties.Records;
 using V1Models = Altinn.Register.Contracts.V1;
 
@@ -51,6 +52,20 @@ internal static class V1PartyMapper
             default:
                 throw new UnreachableException($"Unsupported party type: {party.GetType().Name}");
         }
+
+        return ret;
+    }
+
+    /// <summary>
+    /// Maps a <see cref="PartyRecord"/> to a <see cref="V1Models.Party"/>.
+    /// </summary>
+    /// <param name="org">The organization record.</param>
+    /// <param name="childOrgs">The child organization records.</param>
+    /// <returns>The mapped v1 party.</returns>
+    internal static V1Models.Party ToV1Party(OrganizationRecord org, IEnumerable<OrganizationRecord> childOrgs)
+    {
+        var ret = ToV1Party(org);
+        ret.ChildParties = [.. childOrgs.Select(ToV1Party)];
 
         return ret;
     }
@@ -134,5 +149,64 @@ internal static class V1PartyMapper
         }
 
         return ret;
+    }
+
+    /// <summary>
+    /// Maps a sequence of <see cref="PartyRecord"/> items to a v1 party list.
+    /// </summary>
+    /// <param name="parties">The party records to map.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The mapped v1 party list.</returns>
+    /// <remarks>
+    /// This method requires a strict ordering where a parent organization appears before any of its child units,
+    /// and each child unit follows its parent immediately. This ordering contract is fulfilled by
+    /// <see cref="Parties.IPartyPersistence.LookupParties(IReadOnlyList{Guid}?, IReadOnlyList{uint}?, IReadOnlyList{Altinn.Register.Contracts.PartyExternalRefUrn}?, IReadOnlyList{Altinn.Register.Contracts.OrganizationIdentifier}?, IReadOnlyList{Altinn.Register.Contracts.PersonIdentifier}?, IReadOnlyList{uint}?, IReadOnlyList{string}?, IReadOnlyList{string}?, Parties.PartyFieldIncludes, CancellationToken)"/>.
+    /// </remarks>
+    internal static async IAsyncEnumerable<V1Models.Party> ToV1PartyList(
+        IAsyncEnumerable<PartyRecord> parties,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        V1Models.Party? currentParent = null;
+        List<V1Models.Party>? children = null;
+
+        await foreach (var party in parties.WithCancellation(cancellationToken))
+        {
+            if (party is not OrganizationRecord org)
+            {
+                if (currentParent is not null)
+                {
+                    yield return currentParent;
+                    currentParent = null;
+                    children = null;
+                }
+
+                yield return ToV1Party(party);
+                continue;
+            }
+
+            if (org.ParentOrganizationUuid.HasValue)
+            {
+                Debug.Assert(currentParent is not null);
+                Debug.Assert(children is not null);
+                Debug.Assert(currentParent.PartyUuid.HasValue && currentParent.PartyUuid.Value == org.ParentOrganizationUuid.Value);
+                children.Add(ToV1Party(org));
+                continue;
+            }
+
+            if (currentParent is not null)
+            {
+                yield return currentParent;
+                currentParent = null;
+                children = null;
+            }
+
+            currentParent = ToV1Party(org);
+            currentParent.ChildParties = children = new List<V1Models.Party>();
+        }
+
+        if (currentParent is not null)
+        {
+            yield return currentParent;
+        }
     }
 }

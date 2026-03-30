@@ -475,6 +475,151 @@ public class PartiesControllerTests
 
     [Theory]
     [CombinatorialData]
+    public async Task GetPartyListById_ReturnsPartyList(TestApiSource source)
+    {
+        var (person1, person2) = await Setup(async (uow, ct) =>
+        {
+            var first = await uow.CreatePerson(cancellationToken: ct);
+            var second = await uow.CreatePerson(cancellationToken: ct);
+            return (first, second);
+        });
+
+        SetSource(source);
+        if (source == TestApiSource.A2)
+        {
+            FakeHttpHandlers.For<IV1PartyService>()
+                .Expect(HttpMethod.Post, "/parties")
+                .WithQuery("fetchSubUnits", "False")
+                .Respond(() => JsonContent.Create(new[]
+                {
+                    V1PartyMapper.ToV1Party(person1),
+                    V1PartyMapper.ToV1Party(person2),
+                }));
+        }
+
+        var response = await HttpClient.PostAsJsonAsync(
+            "register/api/v1/parties/partylist",
+            new[] { (int)person1.PartyId.Value, (int)person2.PartyId.Value },
+            CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
+        var actual = await response.ShouldHaveJsonContent<List<Contracts.V1.Party>>();
+
+        actual.Count.ShouldBe(2);
+        actual.Select(static party => party.PartyId)
+            .ShouldBe(
+                [(int)person1.PartyId.Value, (int)person2.PartyId.Value],
+                ignoreOrder: true);
+    }
+
+    [Theory]
+    [CombinatorialData]
+    public async Task GetPartyListById_FetchSubUnits_ReturnsPartyListWithSubUnits(TestApiSource source)
+    {
+        var (parent1, parent1Children, parent2, parent2Children) = await Setup(async (uow, ct) =>
+        {
+            var parent1 = await uow.CreateOrg(unitType: "AS", cancellationToken: ct);
+            var parent2 = await uow.CreateOrg(unitType: "AS", cancellationToken: ct);
+
+            var parent1Children = await uow.CreateOrgs(count: 3, unitType: "BEDR", cancellationToken: ct);
+            var parent2Children = await uow.CreateOrgs(count: 5, unitType: "BEDR", cancellationToken: ct);
+
+            foreach (var child in parent1Children)
+            {
+                await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet", from: child.PartyUuid.Value, to: parent1.PartyUuid.Value, cancellationToken: ct);
+            }
+
+            foreach (var child in parent2Children)
+            {
+                await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet", from: child.PartyUuid.Value, to: parent2.PartyUuid.Value, cancellationToken: ct);
+            }
+
+            return (parent1, parent1Children, parent2, parent2Children);
+        });
+
+        SetSource(source);
+        if (source == TestApiSource.A2)
+        {
+            FakeHttpHandlers.For<IV1PartyService>()
+                .Expect(HttpMethod.Post, "/parties")
+                .WithQuery("fetchSubUnits", "True")
+                .Respond(() => JsonContent.Create(new[]
+                {
+                    V1PartyMapper.ToV1Party(parent1, parent1Children),
+                    V1PartyMapper.ToV1Party(parent2, parent2Children),
+                }));
+        }
+
+        var response = await HttpClient.PostAsJsonAsync(
+            "register/api/v1/parties/partylist?fetchSubUnits=true",
+            new[] { (int)parent1.PartyId.Value, (int)parent2.PartyId.Value },
+            CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
+        var actual = await response.ShouldHaveJsonContent<List<Contracts.V1.Party>>();
+
+        actual.Count.ShouldBe(2);
+        actual.Select(static party => party.PartyId).ShouldBe([(int)parent1.PartyId.Value, (int)parent2.PartyId.Value], ignoreOrder: true);
+
+        var parent1Actual = actual.Find(party => party.PartyId == (int)parent1.PartyId.Value);
+        var parent2Actual = actual.Find(party => party.PartyId == (int)parent2.PartyId.Value);
+
+        parent1Actual.ShouldNotBeNull();
+        parent2Actual.ShouldNotBeNull();
+
+        parent1Actual!.ChildParties.ShouldNotBeNull();
+        parent2Actual!.ChildParties.ShouldNotBeNull();
+
+        parent1Actual.ChildParties!.Select(static party => party.PartyId)
+            .ShouldBe(parent1Children.Select(child => (int)child.PartyId.Value), ignoreOrder: true);
+
+        parent2Actual.ChildParties!.Select(static party => party.PartyId)
+            .ShouldBe(parent2Children.Select(child => (int)child.PartyId.Value), ignoreOrder: true);
+    }
+
+    [Theory]
+    [CombinatorialData]
+    public async Task GetPartyListById_NoMatches_ReturnsNotFound(TestApiSource source)
+    {
+        var partyId = await Setup(async (uow, ct) => (int)await uow.GetNextPartyId(ct));
+
+        SetSource(source);
+        if (source == TestApiSource.A2)
+        {
+            FakeHttpHandlers.For<IV1PartyService>()
+                .Expect(HttpMethod.Post, "/parties")
+                .WithQuery("fetchSubUnits", "False")
+                .Respond(() => JsonContent.Create(Array.Empty<Contracts.V1.Party>()));
+        }
+
+        var response = await HttpClient.PostAsJsonAsync(
+            "register/api/v1/parties/partylist",
+            new[] { partyId },
+            CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task GetPartyListById_EndpointSourceOverride_UsesEndpointSource()
+    {
+        var person = await Setup((uow, ct) => uow.CreatePerson(cancellationToken: ct));
+
+        SetSource(TestApiSource.A2);
+        SetSourceForEndpoint("parties/partylist", TestApiSource.DB);
+
+        var response = await HttpClient.PostAsJsonAsync(
+            "register/api/v1/parties/partylist",
+            new[] { (int)person.PartyId.Value },
+            CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
+        var actual = await response.ShouldHaveJsonContent<List<Contracts.V1.Party>>();
+        actual.Select(static party => party.PartyId).ShouldBe([(int)person.PartyId.Value]);
+    }
+
+    [Theory]
+    [CombinatorialData]
     public async Task PostPartyLookup_ValidTokenRequestForExistingOrganization_ReturnsParty(TestApiSource source)
     {
         var org = await Setup((uow, ct) => uow.CreateOrg(cancellationToken: ct));

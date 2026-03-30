@@ -105,10 +105,11 @@ public static class PartyPersistenceExtensions
     public static async Task<ImmutableArray<OrganizationRecord>> CreateOrgs(
         this IUnitOfWork uow,
         int count,
+        FieldValue<string> unitType = default,
         CancellationToken cancellationToken = default)
     {
         var toInsert = await uow.GetRequiredService<RegisterTestDataGenerator>()
-            .GetOrgsData(count, cancellationToken);
+            .GetOrgsData(count, unitType, cancellationToken);
 
         var persistence = uow.GetRequiredService<IPartyPersistence>();
         var builder = ImmutableArray.CreateBuilder<OrganizationRecord>(count);

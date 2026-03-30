@@ -77,66 +77,6 @@ namespace Altinn.Register.Tests.TestingControllers
         }
 
         [Fact]
-        public async Task GetPartyListById_SameLengthRequestAsResponse_ReturnsPartyList()
-        {
-            List<int> partyIds = new List<int> { 1, 2 };
-
-            // Arrange
-            _partiesClient.Setup(s => s.GetPartiesById(It.IsAny<List<int>>(), It.Is<bool>(b => b == false), It.IsAny<CancellationToken>()))
-                .Returns(new AsyncList<Contracts.V1.Party> { new(), new() });
-
-            HttpClient client = CreateClient();
-
-            StringContent requestBody = new StringContent(JsonSerializer.Serialize(partyIds), Encoding.UTF8, "application/json");
-
-            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, "/register/api/v1/parties/partylist") { Content = requestBody };
-            httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
-
-            // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
-
-            // Assert
-            _partiesClient.VerifyAll();
-
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-            List<Contracts.V1.Party> actual = (await JsonSerializer.DeserializeAsync<List<Contracts.V1.Party>>(await response.Content.ReadAsStreamAsync(CancellationToken), cancellationToken: CancellationToken))!;
-
-            Assert.NotNull(actual);
-            Assert.Equal(partyIds.Count, actual.Count);
-        }
-
-        [Fact]
-        public async Task GetPartyListById_FetchSubUnitsTrue_ReturnsPartyList()
-        {
-            List<int> partyIds = new List<int> { 1, 2 };
-
-            // Arrange
-            _partiesClient.Setup(s => s.GetPartiesById(It.IsAny<List<int>>(), It.Is<bool>(b => b == true), It.IsAny<CancellationToken>()))
-                .Returns(new AsyncList<Contracts.V1.Party> { new(), new() });
-
-            HttpClient client = CreateClient();
-
-            StringContent requestBody = new StringContent(JsonSerializer.Serialize(partyIds), Encoding.UTF8, "application/json");
-
-            HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, "/register/api/v1/parties/partylist?fetchSubUnits=true") { Content = requestBody };
-            httpRequestMessage.Headers.Add("PlatformAccessToken", PrincipalUtil.GetAccessToken("ttd", "unittest"));
-
-            // Act
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage, CancellationToken);
-
-            // Assert
-            _partiesClient.VerifyAll();
-
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-            List<Contracts.V1.Party> actual = (await JsonSerializer.DeserializeAsync<List<Contracts.V1.Party>>(await response.Content.ReadAsStreamAsync(CancellationToken), cancellationToken: CancellationToken))!;
-
-            Assert.NotNull(actual);
-            Assert.Equal(partyIds.Count, actual.Count);
-        }
-
-        [Fact]
         public async Task GetPartyListByUuid_SameLengthRequestAsResponse_ReturnsPartyList()
         {
             List<Guid> partyUuids = new List<Guid> { new("93630d41-ca61-4b5c-b8fb-3346b561f6ff"), new("e622554e-3de5-44cd-a822-c66024768013") };

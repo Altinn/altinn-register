@@ -232,12 +232,13 @@ public sealed partial class RegisterTestDataGenerator
 
     private ImmutableArray<OrganizationRecord> GetOrgsData(
         UsedIdentifiers used,
+        FieldValue<string> unitType,
         int count)
     {
         var builder = ImmutableArray.CreateBuilder<OrganizationRecord>(count);
         for (int i = 0; i < count; i++)
         {
-            var org = GetOrgData(used);
+            var org = GetOrgData(used, unitType: unitType);
             builder.Add(org);
         }
 
@@ -246,11 +247,12 @@ public sealed partial class RegisterTestDataGenerator
 
     public ValueTask<ImmutableArray<OrganizationRecord>> GetOrgsData(
         int count,
+        FieldValue<string> unitType = default,
         CancellationToken cancellationToken = default)
     {
         return WithIdentifiers(
-            (self: this, count),
-            static (used, rng, data) => data.self.GetOrgsData(used, data.count),
+            (self: this, count, unitType),
+            static (used, rng, data) => data.self.GetOrgsData(used, data.unitType, data.count),
             cancellationToken);
     }
 

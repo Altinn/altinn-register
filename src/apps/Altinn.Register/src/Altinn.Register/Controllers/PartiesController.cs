@@ -258,6 +258,7 @@ public partial class PartiesController
     /// <summary>
     /// Gets the party list for the list of party ids.
     /// </summary>
+    /// <param name="sender">The request sender.</param>
     /// <param name="partyIds">List of partyIds for parties to retrieve.</param>
     /// <param name="fetchSubUnits">flag indicating whether subunits should be included</param>
     /// <param name="cancellationToken">The cancellation token.</param>
@@ -265,11 +266,20 @@ public partial class PartiesController
     [HttpPost("partylist")]
     [Consumes("application/json")]
     [Produces("application/json")]
-    public async Task<ActionResult<List<V1Models.Party>>> GetPartyListForPartyIds([FromBody] List<int> partyIds, [FromQuery] bool fetchSubUnits = false, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<List<V1Models.Party>>> GetPartyListForPartyIds(
+        [FromServices] IRequestSender<GetV1PartyListByIdRequest, IAsyncEnumerable<V1Models.Party>> sender,
+        [FromBody] List<int> partyIds,
+        [FromQuery] bool fetchSubUnits = false,
+        CancellationToken cancellationToken = default)
     {
-        List<V1Models.Party> parties = await _partyClient.GetPartiesById(partyIds, fetchSubUnits, cancellationToken).ToListAsync(cancellationToken);
+        var result = await sender.Send(new GetV1PartyListByIdRequest(partyIds, fetchSubUnits), cancellationToken);
+        if (result.IsProblem)
+        {
+            return result.Problem.ToActionResult();
+        }
 
-        if (parties == null || parties.Count < 1)
+        var parties = await result.Value.ToListAsync(cancellationToken);
+        if (parties.Count < 1)
         {
             return NotFound();
         }
