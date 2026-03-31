@@ -1,6 +1,5 @@
 using System.Buffers;
 using System.Text.Json;
-using Altinn.Register.Tests.IntegrationTests;
 using Nerdbank.Streams;
 
 namespace Altinn.Register.Tests.Utils;
@@ -36,7 +35,7 @@ public static class TestDataLoader
 
     private static string GetPath(string id)
     {
-        string unitTestFolder = Path.GetDirectoryName(new Uri(typeof(PartiesControllerTests).Assembly.Location).LocalPath)!;
+        string unitTestFolder = Path.GetDirectoryName(new Uri(typeof(TestDataLoader).Assembly.Location).LocalPath)!;
         return Path.Combine(unitTestFolder, "Testdata", $"{id}.json");
     }
 }
