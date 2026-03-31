@@ -91,6 +91,8 @@ public static class RegisterCoreServiceCollectionExtensions
             services.TryAddScoped<GetV1PartyByIdFromDBRequestHandler>();
             services.TryAddScoped<GetV1PartyByUuidFromA2RequestHandler>();
             services.TryAddScoped<GetV1PartyByUuidFromDBRequestHandler>();
+            services.TryAddScoped<GetV1PartyListByIdFromA2RequestHandler>();
+            services.TryAddScoped<GetV1PartyListByIdFromDBRequestHandler>();
             services.TryAddScoped<GetV1PartyIdentifiersFromA2RequestHandler>();
             services.TryAddScoped<GetV1PartyIdentifiersFromDBRequestHandler>();
             services.TryAddScoped<GetV1PersonFromA2RequestHandler>();
