@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using Altinn.Register.TestUtils.Async;
 using Altinn.Register.TestUtils.Tracing;
@@ -14,9 +15,12 @@ public class PostgresServerFixture
 
     private readonly AsyncConcurrencyLimiter _throttler = new(MAX_CONCURRENCY);
     private readonly PostgreSqlContainer _container;
+    private readonly ConcurrentDictionary<string, Task<TemplateDb>> _templateDatabases = new();
 
     private NpgsqlDataSource? _dataSource;
+    private string? _serverConnectionString;
     private int _dbCounter = 0;
+    private int _templateDbCounter = 0;
 
     public PostgresServerFixture()
     {
@@ -37,15 +41,94 @@ public class PostgresServerFixture
         _container = builder.Build();
     }
 
-    public async Task<PostgresDatabase> CreateDatabase(CancellationToken cancellationToken)
+    public Task<PostgresDatabase> CreateDatabase(CancellationToken cancellationToken)
+        => CreateDatabase(template: null, cancellationToken);
+
+    public async Task<PostgresDatabase> CreateDatabase(TemplateDb? template, CancellationToken cancellationToken)
     {
         var dbName = $"db_{Interlocked.Increment(ref _dbCounter):D4}";
-        using var rootActivity = TestUtilsActivities.Source.StartActivity(ActivityKind.Internal, name: $"create database {dbName}");
+        var handle = await CreateDatabaseCore(dbName, template, cancellationToken);
 
-        var owner = DefineUser(dbName, PostgresUserType.Owner);
-        var migrator = DefineUser(dbName, PostgresUserType.Migrator);
-        var seeder = DefineUser(dbName, PostgresUserType.Seeder);
-        var app = DefineUser(dbName, PostgresUserType.App);
+        return new PostgresDatabase(handle);
+    }
+
+    public async Task<TemplateDb> GetOrCreateTemplateDatabase(
+        string key,
+        Func<PostgresDatabase, CancellationToken, Task> initialize,
+        CancellationToken cancellationToken)
+    {
+        Guard.IsNotNullOrWhiteSpace(key);
+        Guard.IsNotNull(initialize);
+
+        var task = _templateDatabases.GetOrAdd(key, key => CreateTemplateDatabaseCore(key, initialize, CancellationToken.None));
+
+        return await task.WaitAsync(cancellationToken);
+
+        async Task<TemplateDb> CreateTemplateDatabaseCore(string key, Func<PostgresDatabase, CancellationToken, Task> initialize, CancellationToken cancellationToken)
+        {
+            var dbName = $"db_template_{Interlocked.Increment(ref _templateDbCounter):D4}";
+            using var activity = TestUtilsActivities.Source.StartActivity(ActivityKind.Internal, name: $"create template database {key} ({dbName})");
+
+            DatabaseHandle? db = null;
+            IDisposable? ticket = null;
+            try
+            {
+                db = await CreateDatabaseCore(dbName, template: null, cancellationToken);
+                (var templateDb, ticket) = db.IntoTemplate();
+                db = null;
+
+                {
+                    await using var wrapper = new PostgresDatabase(templateDb);
+                    await initialize(wrapper, cancellationToken);
+                }
+
+                return new TemplateDb(templateDb);
+            }
+            finally
+            {
+                if (db is not null)
+                {
+                    await db.DisposeAsync();
+                }
+
+                if (ticket is not null)
+                {
+                    ticket.Dispose();
+                }
+            }
+        }
+    }
+
+    private async Task<DatabaseHandle> CreateDatabaseCore(
+        string dbName,
+        TemplateDb? template,
+        CancellationToken cancellationToken)
+    {
+        var activityName = template is null
+            ? $"create database {dbName}"
+            : $"create database {dbName} from template {template.DatabaseName}";
+        using var rootActivity = TestUtilsActivities.Source.StartActivity(ActivityKind.Internal, name: activityName);
+
+        DbUser owner;
+        DbUser migrator;
+        DbUser seeder;
+        DbUser app;
+
+        if (template is null)
+        {
+            owner = DefineUser(dbName, PostgresUserType.Owner);
+            migrator = DefineUser(dbName, PostgresUserType.Migrator);
+            seeder = DefineUser(dbName, PostgresUserType.Seeder);
+            app = DefineUser(dbName, PostgresUserType.App);
+        }
+        else
+        {
+            // We use the users from the template, as they have already been granted persmissions
+            owner = template.Owner;
+            migrator = template.Migrator;
+            seeder = template.Seeder;
+            app = template.App;
+        }
 
         IDisposable? ticket = null;
         DatabaseHandle? handle = null;
@@ -61,6 +144,13 @@ public class PostgresServerFixture
             handle = new DatabaseHandle(this, ticket, dbName, owner: owner, migrator: migrator, seeder: seeder, app: app);
             ticket = null;
 
+            if (template is not null)
+            {
+                await using var conn = await _dataSource!.OpenConnectionAsync(cancellationToken);
+                await CreateDatabaseFromTemplate(conn, dbName, owner, template.DatabaseName, cancellationToken);
+                return ClearRef(ref handle);
+            }
+
             {
                 await using var conn = await _dataSource!.OpenConnectionAsync(cancellationToken);
                 await CreateRoles(conn, owner: owner, migrator: migrator, seeder: seeder, app: app, cancellationToken);
@@ -69,14 +159,13 @@ public class PostgresServerFixture
             }
 
             {
-                await using var source = new NpgsqlDataSourceBuilder(handle.ConnectionString(PostgresUserType.Owner)).Build();
+                var connectionString = handle.ConnectionString(PostgresUserType.Owner);
+                await using var source = new NpgsqlDataSourceBuilder(connectionString).Build();
                 await using var conn = await source.OpenConnectionAsync(cancellationToken);
-                await GrantSchemaPrivileges(conn, migrator: migrator, seeder: seeder, app: app, cancellationToken);
+                await GrantSchemaPrivileges(conn, migrator: migrator, app: app, cancellationToken);
             }
 
-            var result = new PostgresDatabase(handle);
-            handle = null;
-            return result;
+            return ClearRef(ref handle);
         }
         finally
         {
@@ -89,6 +178,16 @@ public class PostgresServerFixture
             {
                 t.Dispose();
             }
+        }
+
+        static T ClearRef<T>(ref T? value)
+            where T : class
+        {
+            var result = value!;
+            Guard.IsNotNull(result);
+
+            value = null;
+            return result;
         }
 
         static DbUser DefineUser(string dbName, PostgresUserType userType)
@@ -172,6 +271,19 @@ public class PostgresServerFixture
             await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
 
+        static async Task CreateDatabaseFromTemplate(NpgsqlConnection conn, string dbName, DbUser owner, string templateDbName, CancellationToken cancellationToken)
+        {
+            using var activity = TestUtilsActivities.Source.StartActivity(ActivityKind.Internal, name: $"create database");
+            await using var cmd = conn.CreateCommand();
+
+            cmd.CommandText =
+                /*strpsql*/$"""
+                CREATE DATABASE "{dbName}" WITH OWNER "{owner.Name}" TEMPLATE "{templateDbName}"
+                """;
+
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+        }
+
         static async Task GrantDatabasePrivileges(NpgsqlConnection conn, string dbName, DbUser migrator, DbUser seeder, DbUser app, CancellationToken cancellationToken)
         {
             using var activity = TestUtilsActivities.Source.StartActivity(ActivityKind.Internal, name: $"grant database privileges");
@@ -198,7 +310,7 @@ public class PostgresServerFixture
             await batch.ExecuteNonQueryAsync(cancellationToken);
         }
 
-        static async Task GrantSchemaPrivileges(NpgsqlConnection conn, DbUser migrator, DbUser seeder, DbUser app, CancellationToken cancellationToken)
+        static async Task GrantSchemaPrivileges(NpgsqlConnection conn, DbUser migrator, DbUser app, CancellationToken cancellationToken)
         {
             using var activity = TestUtilsActivities.Source.StartActivity(ActivityKind.Internal, name: $"grant schema privileges");
             await using var batch = conn.CreateBatch();
@@ -220,14 +332,14 @@ public class PostgresServerFixture
         }
     }
 
-    private async Task DeleteDatabase(string databaseName)
+    private async Task DeleteDatabase(string databaseName, CancellationToken cancellationToken)
     {
         using var rootActivity = TestUtilsActivities.Source.StartActivity(ActivityKind.Internal, name: $"delete database {databaseName}");
 
-        await using var conn = await _dataSource!.OpenConnectionAsync(TestContext.Current.CancellationToken);
+        await using var conn = await _dataSource!.OpenConnectionAsync(cancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = /*strpsql*/$"DROP DATABASE IF EXISTS \"{databaseName}\"";
-        await cmd.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
     private static string UserTypeString(PostgresUserType type)
@@ -266,17 +378,13 @@ public class PostgresServerFixture
         csBuilder.IncludeErrorDetail = true;
         csBuilder.Pooling = false;
 
+        _serverConnectionString = csBuilder.ConnectionString;
         _dataSource = NpgsqlDataSource.Create(csBuilder);
     }
 
-    internal record struct DbUser(string Name, string Pass, PostgresUserType Type);
-
-    internal sealed class DatabaseHandle
+    internal abstract class BaseDatabaseHandle
         : IAsyncDisposable
     {
-        private readonly PostgresServerFixture _server;
-        private readonly IDisposable _ticket;
-        private readonly string _databaseName;
         private readonly DbUser _owner;
         private readonly DbUser _migrator;
         private readonly DbUser _seeder;
@@ -288,22 +396,37 @@ public class PostgresServerFixture
         private string? _seederConnectionString;
         private string? _appConnectionString;
 
-        public DatabaseHandle(
+        protected PostgresServerFixture Server { get; }
+
+        protected string DatabaseName { get; }
+
+        protected DbUser Owner => _owner;
+
+        protected DbUser Migrator => _migrator;
+
+        protected DbUser Seeder => _seeder;
+
+        protected DbUser App => _app;
+
+        protected BaseDatabaseHandle(
             PostgresServerFixture server,
-            IDisposable ticket,
             string databaseName,
             DbUser owner,
             DbUser migrator,
             DbUser seeder,
             DbUser app)
         {
-            _server = server;
-            _ticket = ticket;
-            _databaseName = databaseName;
+            Server = server;
+            DatabaseName = databaseName;
             _owner = owner;
             _migrator = migrator;
             _seeder = seeder;
             _app = app;
+        }
+
+        protected BaseDatabaseHandle(BaseDatabaseHandle other)
+            : this(other.Server, other.DatabaseName, other._owner, other._migrator, other._seeder, other._app)
+        {
         }
 
         public string ConnectionString(PostgresUserType type)
@@ -327,9 +450,9 @@ public class PostgresServerFixture
                 return connectionString;
             }
 
-            var builder = new NpgsqlConnectionStringBuilder(_server._dataSource!.ConnectionString)
+            var builder = new NpgsqlConnectionStringBuilder(Server._dataSource!.ConnectionString)
             {
-                Database = _databaseName,
+                Database = DatabaseName,
                 Username = user.Name,
                 Password = user.Pass,
                 Pooling = false,
@@ -340,28 +463,104 @@ public class PostgresServerFixture
             return connectionString;
         }
 
-        public ValueTask DisposeAsync()
+        public virtual ValueTask DisposeAsync()
         {
             if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 0)
             {
-                return DisposeCore(_server, _databaseName, _ticket);
+                return DisposeAsyncCore();
             }
 
             return ValueTask.CompletedTask;
-
-            async static ValueTask DisposeCore(PostgresServerFixture server, string databaseName, IDisposable ticket)
-            {
-                await server.DeleteDatabase(databaseName);
-                ticket.Dispose();
-            }
         }
 
-        private void ThrowIfDisposed()
+        protected abstract ValueTask DisposeAsyncCore();
+
+        protected void ThrowIfDisposed()
         {
             if (Volatile.Read(ref _disposed) != 0)
             {
                 ThrowHelper.ThrowObjectDisposedException(nameof(DatabaseHandle));
             }
+        }
+    }
+
+    public sealed class TemplateDb
+    {
+        private readonly TemplateDbHandle _templateDb;
+
+        internal TemplateDb(TemplateDbHandle templateDb)
+        {
+            _templateDb = templateDb;
+        }
+
+        public string DatabaseName => _templateDb.DatabaseName;
+
+        internal DbUser Owner => _templateDb.Owner;
+
+        internal DbUser Migrator => _templateDb.Migrator;
+
+        internal DbUser Seeder => _templateDb.Seeder;
+
+        internal DbUser App => _templateDb.App;
+    }
+
+    internal sealed class TemplateDbHandle
+        : BaseDatabaseHandle
+    {
+        internal TemplateDbHandle(BaseDatabaseHandle databaseInfo)
+            : base(databaseInfo)
+        {
+        }
+
+        public new string DatabaseName => base.DatabaseName;
+
+        public new DbUser Owner => base.Owner;
+
+        public new DbUser Migrator => base.Migrator;
+
+        public new DbUser Seeder => base.Seeder;
+
+        public new DbUser App => base.App;
+
+        protected override ValueTask DisposeAsyncCore()
+            => throw new NotSupportedException(); // should not happen
+
+        // Template databases are not deleted after use, so disposal is a no-op.
+        public override ValueTask DisposeAsync()
+            => ValueTask.CompletedTask;
+    }
+
+    internal record struct DbUser(string Name, string Pass, PostgresUserType Type);
+
+    internal sealed class DatabaseHandle
+        : BaseDatabaseHandle
+    {
+        private readonly IDisposable _ticket;
+
+        public DatabaseHandle(
+            PostgresServerFixture server,
+            IDisposable ticket,
+            string databaseName,
+            DbUser owner,
+            DbUser migrator,
+            DbUser seeder,
+            DbUser app)
+            : base(server, databaseName, owner, migrator, seeder, app)
+        {
+            _ticket = ticket;
+        }
+
+        internal (TemplateDbHandle TemplateDb, IDisposable Ticket) IntoTemplate()
+        {
+            var templateDb = new TemplateDbHandle(this);
+            return (templateDb, _ticket);
+        }
+
+        protected override async ValueTask DisposeAsyncCore()
+        {
+            await Server.DeleteDatabase(DatabaseName, TestContext.Current.CancellationToken);
+
+            _ticket.Dispose();
         }
     }
 }

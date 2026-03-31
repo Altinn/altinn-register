@@ -17,13 +17,13 @@ public sealed class PostgresDatabase
         return await serverFixture.CreateDatabase(testContext.CancellationToken);
     }
 
-    private readonly PostgresServerFixture.DatabaseHandle _handle;
+    private readonly PostgresServerFixture.BaseDatabaseHandle _handle;
     private NpgsqlDataSource? _ownerDataSource;
     private NpgsqlDataSource? _migratorDataSource;
     private NpgsqlDataSource? _seederDataSource;
     private NpgsqlDataSource? _dataSource;
 
-    internal PostgresDatabase(PostgresServerFixture.DatabaseHandle handle)
+    internal PostgresDatabase(PostgresServerFixture.BaseDatabaseHandle handle)
     {
         _handle = handle;
     }
