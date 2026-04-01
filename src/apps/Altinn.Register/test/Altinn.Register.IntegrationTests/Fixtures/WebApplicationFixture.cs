@@ -37,17 +37,8 @@ namespace Altinn.Register.IntegrationTests.Fixtures;
 public sealed class WebApplicationFixture
     : IAsyncLifetime
 {
-    private readonly WebApplicationFactory _factory = new();
-
     ValueTask IAsyncDisposable.DisposeAsync()
-    {
-        if (_factory is { } factory)
-        {
-            return factory.DisposeAsync();
-        }
-
-        return ValueTask.CompletedTask;
-    }
+        => ValueTask.CompletedTask;
 
     ValueTask IAsyncLifetime.InitializeAsync()
     {
@@ -62,9 +53,44 @@ public sealed class WebApplicationFixture
 
         var ctx = TestContext.Current;
         var dbFixture = await ctx.GetRequiredFixture<PostgresServerFixture>();
-        var db = await dbFixture.CreateDatabase(ctx.CancellationToken);
+        var templateDb = await dbFixture.GetOrCreateTemplateDatabase(
+            "integration-tests-template-db",
+            async (db, ct) =>
+            {
+                await using var factory = new WebApplicationFactory().WithWebHostBuilder(builder =>
+                {
+                    builder.ConfigureServices(services =>
+                    {
+                        services.AddSingleton(db);
+                    });
 
-        var factory = _factory.WithWebHostBuilder(builder =>
+                    var settings = new ConfigurationBuilder();
+
+                    settings.AddInMemoryCollection([
+                        /* Init only */
+                        new("Altinn:RunInitOnly", "true"), // this may need to be removed
+
+                        /* DB */
+                        new("Altinn:Npgsql:register:Enable", "true"),
+                        new("Altinn:Npgsql:register:Migrate:Enabled", "true"),
+
+                        new("Altinn:Npgsql:register:ConnectionString", db.AppConnectionString),
+                        new("Altinn:Npgsql:register:Migrate:ConnectionString", db.MigratorConnectionString),
+                        new("Altinn:Npgsql:register:Seed:ConnectionString", db.SeederConnectionString),
+                    ]);
+                    builder.UseConfiguration(settings.Build());
+                });
+
+                {
+                    using var startActivity = IntegrationTestsActivities.Source.StartActivity(ActivityKind.Internal, name: $"start web-app server for template db");
+                    factory.CreateClient();
+                }
+            },
+            ctx.CancellationToken);
+
+        var db = await dbFixture.CreateDatabase(templateDb, ctx.CancellationToken);
+
+        var factory = new WebApplicationFactory().WithWebHostBuilder(builder =>
         {
             builder.ConfigureServices(services =>
             {
@@ -87,7 +113,7 @@ public sealed class WebApplicationFixture
             settings.AddInMemoryCollection([
                 /* DB */
                 new("Altinn:Npgsql:register:Enable", "true"),
-                new("Altinn:Npgsql:register:Migrate:Enabled", "true"),
+                new("Altinn:Npgsql:register:Migrate:Enabled", "false"),
 
                 new("Altinn:Npgsql:register:ConnectionString", db.AppConnectionString),
                 new("Altinn:Npgsql:register:Migrate:ConnectionString", db.MigratorConnectionString),

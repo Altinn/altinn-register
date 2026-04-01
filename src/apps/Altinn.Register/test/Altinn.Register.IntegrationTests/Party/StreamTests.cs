@@ -63,7 +63,7 @@ public class StreamTests
     [Fact]
     public async Task MultiplePages()
     {
-        var pageSize = Settings.RoleAssignmentsStreamPageSize;
+        var pageSize = Settings.PartyStreamPageSize;
 
         var orgs = await Setup(async (uow, ct) =>
         {
