@@ -27,17 +27,22 @@ internal sealed class RegisterMediator
 
     private ValueTask<Result<Contracts.V1.Party>> Send(GetV1PartyByIdRequest request, Sender sender, CancellationToken cancellationToken)
         => RequestDispatcher<GetV1PartyByIdRequest, Contracts.V1.Party>
-            .ApiSourceSwitch<GetV1PartyByIdFromA2RequestHandler, GetV1PartyByIdFromDBRequestHandler>(this, sender, "parties/get-by-id")
+            .ApiSourceSwitch<GetV1PartyByIdFromA2RequestHandler, GetV1PartyByIdFromDBRequestHandler>(this, sender, "parties/get/by-id")
             .Handle(request, cancellationToken);
 
     private ValueTask<Result<Contracts.V1.Party>> Send(GetV1PartyByUuidRequest request, Sender sender, CancellationToken cancellationToken)
         => RequestDispatcher<GetV1PartyByUuidRequest, Contracts.V1.Party>
-            .ApiSourceSwitch<GetV1PartyByUuidFromA2RequestHandler, GetV1PartyByUuidFromDBRequestHandler>(this, sender, "parties/get-by-uuid")
+            .ApiSourceSwitch<GetV1PartyByUuidFromA2RequestHandler, GetV1PartyByUuidFromDBRequestHandler>(this, sender, "parties/get/by-uuid")
             .Handle(request, cancellationToken);
 
     private ValueTask<Result<IAsyncEnumerable<Contracts.V1.Party>>> Send(GetV1PartyListByIdRequest request, Sender sender, CancellationToken cancellationToken)
         => RequestDispatcher<GetV1PartyListByIdRequest, IAsyncEnumerable<Contracts.V1.Party>>
-            .ApiSourceSwitch<GetV1PartyListByIdFromA2RequestHandler, GetV1PartyListByIdFromDBRequestHandler>(this, sender, "parties/partylist")
+            .ApiSourceSwitch<GetV1PartyListByIdFromA2RequestHandler, GetV1PartyListByIdFromDBRequestHandler>(this, sender, "parties/partylist/by-id")
+            .Handle(request, cancellationToken);
+
+    private ValueTask<Result<IAsyncEnumerable<Contracts.V1.Party>>> Send(GetV1PartyListByUuidRequest request, Sender sender, CancellationToken cancellationToken)
+        => RequestDispatcher<GetV1PartyListByUuidRequest, IAsyncEnumerable<Contracts.V1.Party>>
+            .ApiSourceSwitch<GetV1PartyListByUuidFromA2RequestHandler, GetV1PartyListByUuidFromDBRequestHandler>(this, sender, "parties/partylist/by-uuid")
             .Handle(request, cancellationToken);
 
     private ValueTask<Result<IAsyncEnumerable<Parties.PartyIdentifiers>>> Send(GetV1PartyIdentifiersRequest request, Sender sender, CancellationToken cancellationToken)
@@ -90,6 +95,7 @@ internal sealed class RegisterMediator
         , IRequestSender<GetV1PartyByIdRequest, Contracts.V1.Party>
         , IRequestSender<GetV1PartyByUuidRequest, Contracts.V1.Party>
         , IRequestSender<GetV1PartyListByIdRequest, IAsyncEnumerable<Contracts.V1.Party>>
+        , IRequestSender<GetV1PartyListByUuidRequest, IAsyncEnumerable<Contracts.V1.Party>>
         , IRequestSender<GetV1PartyIdentifiersRequest, IAsyncEnumerable<Parties.PartyIdentifiers>>
         , IRequestSender<GetV1PersonRequest, Contracts.V1.Person>
         , IRequestSender<LookupV1PartyRequest, Contracts.V1.Party>
@@ -133,6 +139,12 @@ internal sealed class RegisterMediator
         /// <inheritdoc/>
         public ValueTask<Result<IAsyncEnumerable<Contracts.V1.Party>>> Send(
             GetV1PartyListByIdRequest request,
+            CancellationToken cancellationToken = default)
+            => _mediator.Send(request, this, cancellationToken);
+
+        /// <inheritdoc/>
+        public ValueTask<Result<IAsyncEnumerable<Contracts.V1.Party>>> Send(
+            GetV1PartyListByUuidRequest request,
             CancellationToken cancellationToken = default)
             => _mediator.Send(request, this, cancellationToken);
 
