@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Altinn.Authorization.ModelUtils.Swashbuckle" />
+    <PackageReference Include="Altinn.Authorization.ProblemDetails.Validation" />
     <PackageReference Include="Altinn.Authorization.ProblemDetails" />
     <PackageReference Include="Altinn.Authorization.ServiceDefaults" />
     <PackageReference Include="Altinn.Authorization.ServiceDefaults.HttpClient" />

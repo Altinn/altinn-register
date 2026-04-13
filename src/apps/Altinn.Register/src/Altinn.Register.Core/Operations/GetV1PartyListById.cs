@@ -14,7 +14,7 @@ namespace Altinn.Register.Core.Operations;
 /// <param name="PartyIds">The party ids.</param>
 /// <param name="FetchSubUnits">Whether direct child units should be included for organizations.</param>
 public readonly record struct GetV1PartyListByIdRequest(
-    IReadOnlyList<int> PartyIds,
+    IReadOnlyList<uint> PartyIds,
     bool FetchSubUnits)
     : IRequest<IAsyncEnumerable<V1Models.Party>>;
 
@@ -27,7 +27,7 @@ internal sealed class GetV1PartyListByIdFromA2RequestHandler(IV1PartyService par
     /// <inheritdoc/>
     public ValueTask<Result<IAsyncEnumerable<V1Models.Party>>> Handle(GetV1PartyListByIdRequest request, CancellationToken cancellationToken)
         => ValueTask.FromResult(new Result<IAsyncEnumerable<V1Models.Party>>(
-            partyService.GetPartiesById(request.PartyIds, request.FetchSubUnits, cancellationToken)));
+            partyService.GetPartiesById(request.PartyIds.Select(static id => checked((int)id)), request.FetchSubUnits, cancellationToken)));
 }
 
 /// <summary>
@@ -47,12 +47,7 @@ internal sealed class GetV1PartyListByIdFromDBRequestHandler(IUnitOfWorkManager 
         await using var uow = await manager.CreateAsync(cancellationToken, activityName: "get v1 party list by id");
         var persistence = uow.GetPartyPersistence();
 
-        var partyIds = request.PartyIds
-            .Where(static id => id > 0)
-            .Select(static id => checked((uint)id))
-            .ToArray();
-
-        if (partyIds.Length == 0)
+        if (request.PartyIds.Count == 0)
         {
             yield break;
         }
@@ -64,7 +59,7 @@ internal sealed class GetV1PartyListByIdFromDBRequestHandler(IUnitOfWorkManager 
         }
 
         await foreach (var party in V1PartyMapper.ToV1PartyList(
-            persistence.LookupParties(partyIds: partyIds, include: include, cancellationToken: cancellationToken),
+            persistence.LookupParties(partyIds: request.PartyIds, include: include, cancellationToken: cancellationToken),
             cancellationToken))
         {
             yield return party;
