@@ -1471,8 +1471,12 @@ public class PartiesControllerTests
         await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
         var actual = await response.ShouldHaveJsonContent<AltinnValidationProblemDetails>();
         actual.ErrorCode.ShouldBe(StdProblemDescriptors.ErrorCodes.ValidationError);
-        actual.Errors.ShouldContain(e => e.ErrorCode == StdValidationErrors.Required.ErrorCode);
-        actual.Errors.ShouldContain(e => e.Paths.Contains("/parties/0"));
+
+        actual.Errors.Count.ShouldBe(1);
+        actual.Errors.Single().ShouldSatisfyAllConditions([
+            e => e.ErrorCode.ShouldBe(StdValidationErrors.ErrorCodes.Required),
+            e => e.Paths.ShouldBe(["/parties/0/ssn", "/parties/0/orgNo"], ignoreOrder: true),
+        ]);
     }
 
     [Theory]
@@ -1492,9 +1496,12 @@ public class PartiesControllerTests
         await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
         var actual = await response.ShouldHaveJsonContent<AltinnValidationProblemDetails>();
         actual.ErrorCode.ShouldBe(StdProblemDescriptors.ErrorCodes.ValidationError);
-        actual.Errors.ShouldContain(e => e.ErrorCode == ValidationErrors.TooManyItems.ErrorCode);
-        actual.Errors.ShouldContain(e => e.Paths.Contains("/parties"));
-        actual.Errors.ShouldNotContain(e => e.ErrorCode == StdValidationErrors.Required.ErrorCode);
+
+        actual.Errors.Count.ShouldBe(1);
+        actual.Errors.Single().ShouldSatisfyAllConditions([
+            e => e.ErrorCode.ShouldBe(ValidationErrors.TooManyItems.ErrorCode),
+            e => e.Paths.ShouldBe(["/parties"], ignoreOrder: true),
+        ]);
     }
 
     [Theory]

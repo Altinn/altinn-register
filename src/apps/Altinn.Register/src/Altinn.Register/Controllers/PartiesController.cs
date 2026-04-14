@@ -2,12 +2,14 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Security.Claims;
 using Altinn.Authorization.ProblemDetails;
+using Altinn.Authorization.ProblemDetails.Validation;
 using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.V1;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Mediator;
 using Altinn.Register.Core.Operations;
 using Altinn.Register.Core.Parties;
+using Altinn.Register.Operations.Validation;
 using Altinn.Register.Services.Interfaces;
 using AltinnCore.Authentication.Constants;
 using Asp.Versioning;
@@ -30,7 +32,6 @@ public partial class PartiesController
 {
     private const int MaxPartyNamesLookupItems = 1000;
 
-    private readonly IV1PartyService _partyClient;
     private readonly IAuthorizationClient _authorization;
     private readonly ILogger<PartiesController> _logger;
 
@@ -38,11 +39,9 @@ public partial class PartiesController
     /// Initializes a new instance of the <see cref="PartiesController"/> class.
     /// </summary>
     public PartiesController(
-        IV1PartyService partyClient,
         IAuthorizationClient authorizationClient,
         ILogger<PartiesController> logger)
     {
-        _partyClient = partyClient;
         _authorization = authorizationClient;
         _logger = logger;
     }
@@ -65,17 +64,9 @@ public partial class PartiesController
         int partyId,
         CancellationToken cancellationToken = default)
     {
-        uint uintPartyId = default;
         ValidationProblemBuilder builder = default;
 
-        if (partyId <= 0)
-        {
-            builder.Add(ValidationErrors.InvalidPartyId, nameof(partyId));
-        }
-        else
-        {
-            uintPartyId = (uint)partyId;
-        }
+        builder.TryValidate(path: "/$PATH/partyId", partyId, default(PartyIdValidator), out uint uintPartyId);
 
         if (builder.TryBuild(out var error))
         {
@@ -168,7 +159,8 @@ public partial class PartiesController
         CancellationToken cancellationToken = default)
     {
         ValidationProblemBuilder errors = default;
-        if (!LookupV1PartyRequest.TryCreate(partyLookup, ref errors, pathPrefix: string.Empty, out var request))
+
+        if (!errors.TryValidate(path: "/", partyLookup, default(LookupV1PartyRequestValidator), out LookupV1PartyRequest request))
         {
             if (errors.TryBuild(out var problem))
             {
@@ -207,42 +199,26 @@ public partial class PartiesController
         [FromQuery] PartyComponentOptions partyComponentOption = PartyComponentOptions.None,
         CancellationToken cancellationToken = default)
     {
-        if (partyNamesLookup.Parties is null or { Count: 0 })
+        ValidationProblemBuilder errors = default;
+
+        errors.TryValidate(
+            path: "/",
+            partyNamesLookup,
+            new LookupV1PartyNamesRequestValidator { MaxItems = MaxPartyNamesLookupItems },
+            out IReadOnlyList<LookupV1PartyRequest>? requests);
+
+        if (errors.TryBuild(out var validationProblem))
+        {
+            return validationProblem.ToActionResult();
+        }
+
+        Debug.Assert(requests is not null);
+        if (requests.Count == 0)
         {
             return Ok(new PartyNamesLookupResult
             {
                 PartyNames = [],
             });
-        }
-
-        if (partyNamesLookup.Parties.Count > MaxPartyNamesLookupItems)
-        {
-            return ValidationErrors.TooManyItems
-                .Create("/parties")
-                .ToProblemInstance()
-                .ToActionResult();
-        }
-
-        ValidationProblemBuilder errors = default;
-        List<LookupV1PartyRequest> requests = new(partyNamesLookup.Parties.Count);
-        for (var i = 0; i < partyNamesLookup.Parties.Count; i++)
-        {
-            var partyLookup = partyNamesLookup.Parties[i];
-            if (partyLookup is null)
-            {
-                errors.Add(StdValidationErrors.Required, $"/parties/{i}");
-                continue;
-            }
-
-            if (LookupV1PartyRequest.TryCreate(partyLookup, ref errors, $"/parties/{i}", out var lookupRequest))
-            {
-                requests.Add(lookupRequest);
-            }
-        }
-
-        if (errors.TryBuild(out var validationProblem))
-        {
-            return validationProblem.ToActionResult();
         }
 
         var request = new LookupV1PartyNamesRequest(requests, partyComponentOption);
@@ -272,7 +248,21 @@ public partial class PartiesController
         [FromQuery] bool fetchSubUnits = false,
         CancellationToken cancellationToken = default)
     {
-        var result = await sender.Send(new GetV1PartyListByIdRequest(partyIds, fetchSubUnits), cancellationToken);
+        ValidationProblemBuilder builder = default;
+
+        builder.TryValidate(
+            path: "/",
+            partyIds.AsEnumerable(),
+            ListValidator.ForEnumerable<int, uint, PartyIdValidator>(default),
+            out IReadOnlyList<uint>? validPartyIds);
+
+        if (builder.TryBuild(out var validationProblem))
+        {
+            return validationProblem.ToActionResult();
+        }
+
+        Debug.Assert(validPartyIds is not null);
+        var result = await sender.Send(new GetV1PartyListByIdRequest(validPartyIds, fetchSubUnits), cancellationToken);
         if (result.IsProblem)
         {
             return result.Problem.ToActionResult();
