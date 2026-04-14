@@ -960,8 +960,9 @@ public class PartyImportFlowTests
             created.DisplayName.ShouldBe(siUser.DisplayName);
             created.IsDeleted.ShouldBe(false);
 
-            var createSi = created.ShouldBeOfType<SelfIdentifiedUserRecord>();
-            createSi.SelfIdentifiedUserType.ShouldBe(SelfIdentifiedUserType.Educational);
+            var createdSi = created.ShouldBeOfType<SelfIdentifiedUserRecord>();
+            createdSi.SelfIdentifiedUserType.ShouldBe(SelfIdentifiedUserType.Educational);
+            createdSi.ExtRef.ShouldBe("some-random-gibberish");
         });
     }
 

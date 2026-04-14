@@ -117,6 +117,7 @@ SELECT
     org.source p_organization_source,
     si_u."type" p_self_identified_user_type,
     si_u.email p_self_identified_user_email,
+    si_u.ext_ref p_self_identified_user_ext_ref,
     sys_u."type" p_system_user_type,
     "user".is_active u_is_active,
     "user".user_id u_user_id,

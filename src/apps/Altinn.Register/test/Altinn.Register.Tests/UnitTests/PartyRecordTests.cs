@@ -87,6 +87,7 @@ public class PartyRecordTests
             OwnerUuid = record.OwnerUuid,
             SelfIdentifiedUserType = FieldValue.Unset,
             Email = FieldValue.Unset,
+            ExtRef = FieldValue.Unset,
         };
 
     [Fact]
@@ -691,6 +692,7 @@ public class PartyRecordTests
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = FieldValue.Null,
             Email = FieldValue.Null,
+            ExtRef = FieldValue.Null,
         };
 
         var json = JsonSerializer.SerializeToElement(record, _options);
@@ -715,7 +717,173 @@ public class PartyRecordTests
                 "versionId":42,
                 "ownerUuid": null,
                 "selfIdentifiedUserType": null,
-                "email": null
+                "email": null,
+                "extRef": null
+            }
+            """);
+
+        var deserialized = JsonSerializer.Deserialize<SelfIdentifiedUserRecord>(json, _options);
+        deserialized.ShouldBeOfType<SelfIdentifiedUserRecord>();
+        deserialized.ShouldBeEquivalentTo(record);
+    }
+
+    [Fact]
+    public void Serialize_SIRecord_Legacy()
+    {
+        SelfIdentifiedUserRecord record = new SelfIdentifiedUserRecord
+        {
+            PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+            PartyId = 1,
+            ExternalUrn = FieldValue.Null,
+            DisplayName = "1",
+            PersonIdentifier = FieldValue.Null,
+            OrganizationIdentifier = FieldValue.Null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            DeletedAt = FieldValue.Null,
+            User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
+            VersionId = 42,
+            OwnerUuid = FieldValue.Null,
+            SelfIdentifiedUserType = SelfIdentifiedUserType.Legacy,
+            Email = FieldValue.Null,
+            ExtRef = FieldValue.Null,
+        };
+
+        var json = JsonSerializer.SerializeToElement(record, _options);
+        json.ShouldBeStructurallyEquivalentTo(
+            """
+            {
+                "partyType": "self-identified-user",
+                "partyUuid":"00000000-0000-0000-0000-000000000001",
+                "partyId":1,
+                "externalUrn": null,
+                "displayName":"1",
+                "personIdentifier": null,
+                "organizationIdentifier": null,
+                "createdAt":"2000-01-01T00:00:00+00:00",
+                "modifiedAt":"2000-01-01T00:00:00+00:00",
+                "isDeleted":false,
+                "deletedAt": null,
+                "user": {
+                    "userId": 1,
+                    "userIds": [1]
+                },
+                "versionId":42,
+                "ownerUuid": null,
+                "selfIdentifiedUserType": "legacy",
+                "email": null,
+                "extRef": null
+            }
+            """);
+
+        var deserialized = JsonSerializer.Deserialize<SelfIdentifiedUserRecord>(json, _options);
+        deserialized.ShouldBeOfType<SelfIdentifiedUserRecord>();
+        deserialized.ShouldBeEquivalentTo(record);
+    }
+
+    [Fact]
+    public void Serialize_SIRecord_Edu()
+    {
+        SelfIdentifiedUserRecord record = new SelfIdentifiedUserRecord
+        {
+            PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+            PartyId = 1,
+            ExternalUrn = FieldValue.Null,
+            DisplayName = "1",
+            PersonIdentifier = FieldValue.Null,
+            OrganizationIdentifier = FieldValue.Null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            DeletedAt = FieldValue.Null,
+            User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
+            VersionId = 42,
+            OwnerUuid = FieldValue.Null,
+            SelfIdentifiedUserType = SelfIdentifiedUserType.Educational,
+            Email = FieldValue.Null,
+            ExtRef = "edu-ext-ref",
+        };
+
+        var json = JsonSerializer.SerializeToElement(record, _options);
+        json.ShouldBeStructurallyEquivalentTo(
+            """
+            {
+                "partyType": "self-identified-user",
+                "partyUuid":"00000000-0000-0000-0000-000000000001",
+                "partyId":1,
+                "externalUrn": null,
+                "displayName":"1",
+                "personIdentifier": null,
+                "organizationIdentifier": null,
+                "createdAt":"2000-01-01T00:00:00+00:00",
+                "modifiedAt":"2000-01-01T00:00:00+00:00",
+                "isDeleted":false,
+                "deletedAt": null,
+                "user": {
+                    "userId": 1,
+                    "userIds": [1]
+                },
+                "versionId":42,
+                "ownerUuid": null,
+                "selfIdentifiedUserType": "edu",
+                "email": null,
+                "extRef": "edu-ext-ref"
+            }
+            """);
+
+        var deserialized = JsonSerializer.Deserialize<SelfIdentifiedUserRecord>(json, _options);
+        deserialized.ShouldBeOfType<SelfIdentifiedUserRecord>();
+        deserialized.ShouldBeEquivalentTo(record);
+    }
+
+    [Fact]
+    public void Serialize_SIRecord_Email()
+    {
+        SelfIdentifiedUserRecord record = new SelfIdentifiedUserRecord
+        {
+            PartyUuid = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+            PartyId = 1,
+            ExternalUrn = FieldValue.Null,
+            DisplayName = "1",
+            PersonIdentifier = FieldValue.Null,
+            OrganizationIdentifier = FieldValue.Null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            DeletedAt = FieldValue.Null,
+            User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
+            VersionId = 42,
+            OwnerUuid = FieldValue.Null,
+            SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
+            Email = "test@example.com",
+            ExtRef = FieldValue.Null,
+        };
+
+        var json = JsonSerializer.SerializeToElement(record, _options);
+        json.ShouldBeStructurallyEquivalentTo(
+            """
+            {
+                "partyType": "self-identified-user",
+                "partyUuid":"00000000-0000-0000-0000-000000000001",
+                "partyId":1,
+                "externalUrn": null,
+                "displayName":"1",
+                "personIdentifier": null,
+                "organizationIdentifier": null,
+                "createdAt":"2000-01-01T00:00:00+00:00",
+                "modifiedAt":"2000-01-01T00:00:00+00:00",
+                "isDeleted":false,
+                "deletedAt": null,
+                "user": {
+                    "userId": 1,
+                    "userIds": [1]
+                },
+                "versionId":42,
+                "ownerUuid": null,
+                "selfIdentifiedUserType": "idporten-email",
+                "email": "test@example.com",
+                "extRef": null
             }
             """);
 

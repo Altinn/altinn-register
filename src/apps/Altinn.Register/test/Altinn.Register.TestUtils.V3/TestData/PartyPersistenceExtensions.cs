@@ -206,6 +206,7 @@ public static class PartyPersistenceExtensions
         FieldValue<bool> isDeleted = default,
         FieldValue<SelfIdentifiedUserType> type = default,
         FieldValue<string> email = default,
+        FieldValue<string> extRef = default,
         FieldValue<PartyUserRecord> user = default,
         CancellationToken cancellationToken = default)
     {
@@ -219,6 +220,7 @@ public static class PartyPersistenceExtensions
                 isDeleted,
                 type,
                 email,
+                extRef,
                 user,
                 cancellationToken);
 

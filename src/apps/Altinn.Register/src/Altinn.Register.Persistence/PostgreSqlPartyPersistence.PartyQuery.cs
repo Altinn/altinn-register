@@ -453,6 +453,7 @@ internal partial class PostgreSqlPartyPersistence
                 var common = await ReadCommonFields(reader, fields, cancellationToken);
                 var selfIdentifiedUserType = await reader.GetConditionalFieldValueAsync<SelfIdentifiedUserType>(fields.SelfIdentifiedUserType, cancellationToken);
                 var email = await reader.GetConditionalFieldValueAsync<string>(fields.SelfIdentifiedUserEmail, cancellationToken);
+                var extRef = await reader.GetConditionalFieldValueAsync<string>(fields.SelfIdentifiedUserExtRef, cancellationToken);
 
                 // must be the last read-access to the reader
                 Debug.Assert(common.PartyUuid.HasValue);
@@ -476,6 +477,7 @@ internal partial class PostgreSqlPartyPersistence
                     User = user,
                     SelfIdentifiedUserType = selfIdentifiedUserType,
                     Email = email,
+                    ExtRef = extRef,
                 };
 
                 return (party, hasMore);
@@ -661,6 +663,7 @@ internal partial class PostgreSqlPartyPersistence
                     organizationSource: builder._organizationSource,
                     selfIdentifiedUserType: builder._selfIdentifiedUserType,
                     selfIdentifiedUserEmail: builder._selfIdentifiedUserEmail,
+                    selfIdentifiedUserExtRef: builder._selfIdentifiedUserExtRef,
                     systemUserType: builder._systemUserType,
                     userIsActive: builder._userIsActive,
                     userId: builder._userId,
@@ -761,6 +764,7 @@ internal partial class PostgreSqlPartyPersistence
             // register.self_identified_user
             private sbyte _selfIdentifiedUserType = -1;
             private sbyte _selfIdentifiedUserEmail = -1;
+            private sbyte _selfIdentifiedUserExtRef = -1;
 
             // register.system_user
             private sbyte _systemUserType = -1;
@@ -815,6 +819,7 @@ internal partial class PostgreSqlPartyPersistence
 
                 _selfIdentifiedUserType = AddField("si_u.\"type\"", "p_self_identified_user_type", includes.HasFlag(PartyFieldIncludes.SelfIdentifiedUserType));
                 _selfIdentifiedUserEmail = AddField("si_u.email", "p_self_identified_user_email", includes.HasFlag(PartyFieldIncludes.SelfIdentifiedUserEmail));
+                _selfIdentifiedUserExtRef = AddField("si_u.ext_ref", "p_self_identified_user_ext_ref", includes.HasFlag(PartyFieldIncludes.SelfIdentifiedUserExtRef));
 
                 _systemUserType = AddField("sys_u.\"type\"", "p_system_user_type", includes.HasFlag(PartyFieldIncludes.SystemUserType));
 
@@ -1403,6 +1408,7 @@ internal partial class PostgreSqlPartyPersistence
             // register.self_identified_user
             sbyte selfIdentifiedUserType,
             sbyte selfIdentifiedUserEmail,
+            sbyte selfIdentifiedUserExtRef,
 
             // register.system_user
             sbyte systemUserType,
@@ -1456,6 +1462,7 @@ internal partial class PostgreSqlPartyPersistence
             // register.self_identified_user
             public int SelfIdentifiedUserType => selfIdentifiedUserType;
             public int SelfIdentifiedUserEmail => selfIdentifiedUserEmail;
+            public int SelfIdentifiedUserExtRef => selfIdentifiedUserExtRef;
 
             // register.system_user
             public int SystemUserType => systemUserType;

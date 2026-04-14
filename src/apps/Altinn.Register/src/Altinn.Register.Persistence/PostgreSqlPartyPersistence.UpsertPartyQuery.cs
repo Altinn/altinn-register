@@ -643,7 +643,8 @@ internal partial class PostgreSqlPartyPersistence
                     @set_deleted_at, @deleted_at,
                     @set_owner, @owner,
                     @self_identified_user_type,
-                    @email)
+                    @set_email, @email,
+                    @set_ext_ref, @ext_ref)
                 """;
 
             protected override string GetQuery(SelfIdentifiedUserRecord party)
@@ -667,10 +668,17 @@ internal partial class PostgreSqlPartyPersistence
                     {
                         case SelfIdentifiedUserType.IdPortenEmail:
                             Debug.Assert(party.Email.HasValue);
+                            Debug.Assert(party.ExtRef.IsNull);
+                            break;
+
+                        case SelfIdentifiedUserType.Educational:
+                            Debug.Assert(party.Email.IsNull);
+                            Debug.Assert(party.ExtRef.HasValue);
                             break;
 
                         default:
                             Debug.Assert(party.Email.IsNull);
+                            Debug.Assert(party.ExtRef.IsNull);
                             break;
                     }
                 }
@@ -679,6 +687,7 @@ internal partial class PostgreSqlPartyPersistence
                     Debug.Assert(party.SelfIdentifiedUserType.IsNull);
 
                     Debug.Assert(party.Email.IsNull);
+                    Debug.Assert(party.ExtRef.IsNull);
                 }
             }
 
@@ -689,7 +698,8 @@ internal partial class PostgreSqlPartyPersistence
                 if (party.SelfIdentifiedUserType.HasValue)
                 {
                     parameters.Add<SelfIdentifiedUserType>("self_identified_user_type").TypedValue = party.SelfIdentifiedUserType.Value;
-                    parameters.Add<string?>("email", NpgsqlDbType.Text).TypedValue = party.Email.IsNull ? null : party.Email.Value;
+                    parameters.AddOptional("set_email", "email", NpgsqlDbType.Text, party.Email);
+                    parameters.AddOptional("set_ext_ref", "ext_ref", NpgsqlDbType.Text, party.ExtRef);
                 }
             }
 
@@ -698,11 +708,13 @@ internal partial class PostgreSqlPartyPersistence
                 // For now, we have to deal with the fact that some SI users do not have the SI table in the DB, so not all the information is always available
                 FieldValue<SelfIdentifiedUserType> type = FieldValue.Null;
                 FieldValue<string> email = FieldValue.Null;
+                FieldValue<string> extRef = FieldValue.Null;
 
                 if (TryGetOrdinal(reader, "p_self_identified_user_type", out var typeOrdinal))
                 {
                     type = await reader.GetConditionalFieldValueAsync<SelfIdentifiedUserType>(typeOrdinal, cancellationToken);
                     email = await reader.GetConditionalFieldValueAsync<string>("p_self_identified_email", cancellationToken);
+                    extRef = await reader.GetConditionalFieldValueAsync<string>("p_self_identified_ext_ref", cancellationToken);
                 }
 
                 return new SelfIdentifiedUserRecord
@@ -723,6 +735,7 @@ internal partial class PostgreSqlPartyPersistence
 
                     SelfIdentifiedUserType = type,
                     Email = email,
+                    ExtRef = extRef,
                 };
             }
         }

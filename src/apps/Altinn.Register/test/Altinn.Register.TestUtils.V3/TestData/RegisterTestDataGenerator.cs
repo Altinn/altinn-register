@@ -440,6 +440,7 @@ public sealed partial class RegisterTestDataGenerator
         FieldValue<bool> isDeleted = default,
         FieldValue<SelfIdentifiedUserType> type = default,
         FieldValue<string> email = default,
+        FieldValue<string> extRef = default,
         FieldValue<PartyUserRecord> user = default)
     {
         if (id.IsUnset)
@@ -449,24 +450,35 @@ public sealed partial class RegisterTestDataGenerator
 
         if (type.IsUnset)
         {
-            if (email.HasValue)
+            switch (email, extRef)
             {
-                type = SelfIdentifiedUserType.IdPortenEmail;
-            }
-            else if (email.IsNull)
-            {
-                SelfIdentifiedUserType t;
-                do
-                {
-                    t = _random.Next<SelfIdentifiedUserType>();
-                }
-                while (t == SelfIdentifiedUserType.IdPortenEmail);
+                case ({ HasValue: true }, { HasValue: true }):
+                    ThrowHelper.ThrowInvalidOperationException("Cannot specify both email and extRef for a self-identified user.");
+                    break;
 
-                type = t;
-            }
-            else
-            {
-                type = _random.Next<SelfIdentifiedUserType>();
+                case ({ HasValue: true }, _):
+                    type = SelfIdentifiedUserType.IdPortenEmail;
+                    break;
+
+                case (_, { HasValue: true }):
+                    type = SelfIdentifiedUserType.Educational;
+                    break;
+
+                default:
+                    List<SelfIdentifiedUserType> possible = Enum.GetValues<SelfIdentifiedUserType>().ToList();
+
+                    if (email.IsNull)
+                    {
+                        possible.Remove(SelfIdentifiedUserType.IdPortenEmail);
+                    }
+
+                    if (extRef.IsNull)
+                    {
+                        possible.Remove(SelfIdentifiedUserType.Educational);
+                    }
+
+                    type = _random.Next(possible);
+                    break;
             }
         }
 
@@ -499,6 +511,11 @@ public sealed partial class RegisterTestDataGenerator
                     break;
 
                 case SelfIdentifiedUserType.Educational:
+                    if (extRef.IsUnset)
+                    {
+                        extRef = $"extref-{id.Value}";
+                    }
+
                     if (name.IsUnset)
                     {
                         name = $"si-edu-user-{id.Value}";
@@ -510,6 +527,11 @@ public sealed partial class RegisterTestDataGenerator
             if (!email.IsSet)
             {
                 email = FieldValue.Null;
+            }
+
+            if (!extRef.IsSet)
+            {
+                extRef = FieldValue.Null;
             }
         }
 
@@ -550,6 +572,7 @@ public sealed partial class RegisterTestDataGenerator
             DeletedAt = isDeleted.HasValue && isDeleted.Value ? modifiedAt : FieldValue.Null,
             SelfIdentifiedUserType = type,
             Email = email,
+            ExtRef = extRef,
         };
     }
 
@@ -562,11 +585,12 @@ public sealed partial class RegisterTestDataGenerator
         FieldValue<bool> isDeleted = default,
         FieldValue<SelfIdentifiedUserType> type = default,
         FieldValue<string> email = default,
+        FieldValue<string> extRef = default,
         FieldValue<PartyUserRecord> user = default,
         CancellationToken cancellationToken = default)
     {
         return WithIdentifiers(
-            (self: this, uuid, id, name, createdAt, modifiedAt, isDeleted, type, email, user),
+            (self: this, uuid, id, name, createdAt, modifiedAt, isDeleted, type, email, extRef, user),
             static (used, rng, data)
                 => data.self.GetSelfIdentifiedUserData(
                     used,
@@ -578,6 +602,7 @@ public sealed partial class RegisterTestDataGenerator
                     data.isDeleted,
                     data.type,
                     data.email,
+                    data.extRef,
                     data.user),
             cancellationToken);
     }

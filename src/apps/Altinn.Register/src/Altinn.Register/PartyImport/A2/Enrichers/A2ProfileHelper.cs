@@ -45,7 +45,7 @@ internal static class A2ProfileHelper
             {
                 null => ApplyLegacyProfile(si, profile),
                 string s when PartyExternalRefUrn.TryParse(s, out var urn) && urn.IsIDPortenEmail(out var email) => ApplyEpostProfile(si, email.Value),
-                _ => ApplyEducationalProfile(si),
+                string s => ApplyEducationalProfile(si, s),
             };
 
             party = si;
@@ -60,16 +60,18 @@ internal static class A2ProfileHelper
             {
                 SelfIdentifiedUserType = SelfIdentifiedUserType.Legacy,
                 Email = FieldValue.Null,
+                ExtRef = FieldValue.Null,
                 ExternalUrn = PartyExternalRefUrn.LegacySelfIdentifiedUsername.Create(UrnEncoded.Create(profile.UserName.ToLowerInvariant())),
             };
         }
 
-        static SelfIdentifiedUserRecord ApplyEducationalProfile(SelfIdentifiedUserRecord si)
+        static SelfIdentifiedUserRecord ApplyEducationalProfile(SelfIdentifiedUserRecord si, string extRef)
         {
             return si with
             {
                 SelfIdentifiedUserType = SelfIdentifiedUserType.Educational,
                 Email = FieldValue.Null,
+                ExtRef = extRef,
             };
         }
 
@@ -81,6 +83,7 @@ internal static class A2ProfileHelper
             {
                 SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
                 Email = email,
+                ExtRef = FieldValue.Null,
                 ExternalUrn = PartyExternalRefUrn.IDPortenEmail.Create(UrnEncoded.Create(email)),
                 DisplayName = email,
             };

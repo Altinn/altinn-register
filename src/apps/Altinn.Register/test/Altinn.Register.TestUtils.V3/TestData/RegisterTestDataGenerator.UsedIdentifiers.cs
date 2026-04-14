@@ -367,6 +367,12 @@ public sealed partial class RegisterTestDataGenerator
             return values[index];
         }
 
+        internal T Next<T>(IReadOnlyList<T> values)
+        {
+            var index = Next(0, values.Count);
+            return values[index];
+        }
+
         internal bool NextBool(double chance)
         {
             lock (_lock)

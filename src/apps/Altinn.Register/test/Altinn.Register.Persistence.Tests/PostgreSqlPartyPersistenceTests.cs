@@ -1287,6 +1287,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = FieldValue.Null,
             Email = FieldValue.Null,
+            ExtRef = FieldValue.Null,
         };
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
@@ -1320,6 +1321,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = SelfIdentifiedUserType.Legacy,
             Email = FieldValue.Null,
+            ExtRef = FieldValue.Null,
         };
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
@@ -1353,6 +1355,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = SelfIdentifiedUserType.Educational,
             Email = FieldValue.Null,
+            ExtRef = uuid.ToString(),
         };
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
@@ -1386,6 +1389,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
             Email = "test-si-user@example.com",
+            ExtRef = FieldValue.Null,
         };
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
@@ -1420,6 +1424,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = FieldValue.Null,
             Email = FieldValue.Null,
+            ExtRef = FieldValue.Null,
         };
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
@@ -1433,18 +1438,21 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             {
                 SelfIdentifiedUserType = type,
                 Email = FieldValue.Null,
+                ExtRef = FieldValue.Null,
                 ExternalUrn = PartyExternalRefUrn.LegacySelfIdentifiedUsername.Create(UrnEncoded.Create("test_si_user")),
             },
             SelfIdentifiedUserType.Educational => toInsert with
             {
                 SelfIdentifiedUserType = type,
                 Email = FieldValue.Null,
+                ExtRef = uuid.ToString(),
                 ExternalUrn = FieldValue.Null,
             },
             SelfIdentifiedUserType.IdPortenEmail => toInsert with
             {
                 SelfIdentifiedUserType = type,
                 Email = "test-si-user@example.com",
+                ExtRef = FieldValue.Null,
                 ExternalUrn = PartyExternalRefUrn.IDPortenEmail.Create(UrnEncoded.Create("test-si-user@example.com")),
             },
             _ => throw new UnreachableException($"Invalid {nameof(SelfIdentifiedUserType)}: {type}"),
@@ -1488,6 +1496,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = SelfIdentifiedUserType.Legacy,
             Email = FieldValue.Null,
+            ExtRef = FieldValue.Null,
         };
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
@@ -1499,6 +1508,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             SelfIdentifiedUserType = SelfIdentifiedUserType.Educational,
             ExternalUrn = FieldValue.Null,
+            ExtRef = uuid.ToString(),
         };
 
         await NewTransaction();
@@ -1534,6 +1544,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = SelfIdentifiedUserType.Legacy,
             Email = FieldValue.Null,
+            ExtRef = FieldValue.Null,
         };
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
@@ -1589,6 +1600,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = SelfIdentifiedUserType.Legacy,
             Email = FieldValue.Null,
+            ExtRef = FieldValue.Null,
         };
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
@@ -1643,6 +1655,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = SelfIdentifiedUserType.Legacy,
             Email = FieldValue.Null,
+            ExtRef = FieldValue.Null,
         };
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
