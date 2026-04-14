@@ -1508,6 +1508,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             SelfIdentifiedUserType = SelfIdentifiedUserType.Educational,
             ExternalUrn = FieldValue.Null,
+            ExtRef = uuid.ToString(),
         };
 
         await NewTransaction();

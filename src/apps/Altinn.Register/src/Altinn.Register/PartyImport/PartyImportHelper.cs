@@ -1,9 +1,8 @@
-using System.Diagnostics;
 using System.Text;
 using Altinn.Authorization.ProblemDetails;
-using Altinn.Register.Contracts;
-using Altinn.Register.Core.Errors;
+using Altinn.Authorization.ProblemDetails.Validation;
 using Altinn.Register.Core.Parties.Records;
+using Altinn.Register.PartyImport.Validation;
 
 namespace Altinn.Register.PartyImport;
 
@@ -21,56 +20,7 @@ public static class PartyImportHelper
     {
         ValidationProblemBuilder builder = default;
 
-        CheckRequired(ref builder, party.PartyUuid.HasValue, "/partyUuid");
-        CheckRequired(ref builder, party.PartyType.HasValue, "/partyType");
-        CheckRequired(ref builder, party.ExternalUrn.IsSet, "/externalUrn");
-        CheckRequired(ref builder, party.DisplayName.HasValue, "/name");
-        CheckRequired(ref builder, party.PersonIdentifier.IsSet, "/personIdentifier");
-        CheckRequired(ref builder, party.OrganizationIdentifier.IsSet, "/organizationIdentifier");
-        CheckRequired(ref builder, party.CreatedAt.HasValue, "/createdAt");
-        CheckRequired(ref builder, party.ModifiedAt.HasValue, "/modifiedAt");
-        CheckRequired(ref builder, !party.IsDeleted.IsNull, "/isDeleted");
-
-        if (party.PartyType.HasValue)
-        {
-            var type = party.PartyType.Value;
-
-            if (type is PartyRecordType.Person or PartyRecordType.Organization or PartyRecordType.SelfIdentifiedUser)
-            {
-                CheckRequired(ref builder, party.PartyId.HasValue, "/partyId");
-            }
-            else
-            {
-                Check(ref builder, party.PartyId.IsNull, ValidationErrors.NotNull, "/partyId");
-            }
-        }
-
-        Check(ref builder, !party.User.IsNull, ValidationErrors.Null, "/user");
-        if (party.User.HasValue)
-        {
-            CheckUser(ref builder, party.User.Value);
-        }
-
-        if (party is PersonRecord person)
-        {
-            CheckPerson(ref builder, person);
-        }
-        else if (party is OrganizationRecord org)
-        {
-            CheckOrganization(ref builder, org);
-        }
-        else if (party is SelfIdentifiedUserRecord si)
-        {
-            CheckSelfIdentified(ref builder, si);
-        }
-        else if (party is SystemUserRecord sys)
-        {
-            CheckSystemUser(ref builder, sys);
-        }
-        else if (party is EnterpriseUserRecord enterprise)
-        {
-            CheckEnterpriseUser(ref builder, enterprise);
-        }
+        builder.TryValidate(path: "/", party, default(PartyForImportValidator), out PartyRecord? _);
 
         if (builder.TryBuild(out var error))
         {
@@ -81,91 +31,6 @@ public static class PartyImportHelper
             }
 
             throw new ProblemInstanceException(messageBuilder.ToString(), error);
-        }
-
-        static void Check(ref ValidationProblemBuilder builder, bool condition, ValidationErrorDescriptor descriptor, string path)
-        {
-            if (!condition)
-            {
-                builder.Add(descriptor, path);
-            }
-        }
-
-        static void CheckRequired(ref ValidationProblemBuilder builder, bool condition, string path)
-        {
-            Check(ref builder, condition, StdValidationErrors.Required, path);
-        }
-
-        static void CheckUser(ref ValidationProblemBuilder builder, PartyUserRecord user)
-        {
-            Check(ref builder, !user.UserIds.IsNull, ValidationErrors.Null, "/user/userIds");
-            if (user.UserIds.HasValue)
-            {
-                Check(ref builder, !user.UserIds.Value.IsDefaultOrEmpty, ValidationErrors.Empty, "/user/userIds");
-            }
-        }
-
-        static void CheckPerson(ref ValidationProblemBuilder builder, PersonRecord person)
-        {
-            Check(ref builder, !person.Source.IsNull, ValidationErrors.Null, "/source");
-            CheckRequired(ref builder, person.FirstName.HasValue, "/firstName");
-            CheckRequired(ref builder, person.MiddleName.IsSet, "/middleName");
-            CheckRequired(ref builder, person.LastName.HasValue, "/lastName");
-            CheckRequired(ref builder, person.ShortName.HasValue, "/shortName");
-            CheckRequired(ref builder, person.Address.IsSet, "/address");
-            CheckRequired(ref builder, person.MailingAddress.IsSet, "/mailingAddress");
-            CheckRequired(ref builder, person.DateOfBirth.IsSet, "/dateOfBirth");
-            CheckRequired(ref builder, person.DateOfDeath.IsSet, "/dateOfDeath");
-        }
-
-        static void CheckOrganization(ref ValidationProblemBuilder builder, OrganizationRecord org)
-        {
-            Check(ref builder, !org.Source.IsNull, ValidationErrors.Null, "/source");
-            CheckRequired(ref builder, org.UnitStatus.HasValue, "/unitStatus");
-            CheckRequired(ref builder, org.UnitType.HasValue, "/unitType");
-            CheckRequired(ref builder, org.TelephoneNumber.IsSet, "/telephoneNumber");
-            CheckRequired(ref builder, org.MobileNumber.IsSet, "/mobileNumber");
-            CheckRequired(ref builder, org.FaxNumber.IsSet, "/faxNumber");
-            CheckRequired(ref builder, org.EmailAddress.IsSet, "/emailAddress");
-            CheckRequired(ref builder, org.InternetAddress.IsSet, "/internetAddress");
-            CheckRequired(ref builder, org.MailingAddress.IsSet, "/mailingAddress");
-            CheckRequired(ref builder, org.BusinessAddress.IsSet, "/businessAddress");
-        }
-
-        static void CheckSelfIdentified(ref ValidationProblemBuilder builder, SelfIdentifiedUserRecord si)
-        {
-            CheckRequired(ref builder, si.SelfIdentifiedUserType.IsSet, "/selfIdentifiedUserType");
-
-            if (si.SelfIdentifiedUserType.HasValue)
-            {
-                switch (si.SelfIdentifiedUserType.Value)
-                {
-                    case SelfIdentifiedUserType.IdPortenEmail:
-                        CheckRequired(ref builder, si.Email.HasValue, "/email");
-                        break;
-
-                    default:
-                        Check(ref builder, si.Email.IsNull, ValidationErrors.NotNull, "/email");
-                        break;
-                }
-            }
-            else
-            {
-                Debug.Assert(si.SelfIdentifiedUserType.IsNull);
-
-                Check(ref builder, si.Email.IsNull, ValidationErrors.NotNull, "/email");
-            }
-        }
-
-        static void CheckSystemUser(ref ValidationProblemBuilder builder, SystemUserRecord sys)
-        {
-            CheckRequired(ref builder, sys.OwnerUuid.HasValue, "/owner");
-            CheckRequired(ref builder, sys.SystemUserType.HasValue, "/systemUserType");
-        }
-
-        static void CheckEnterpriseUser(ref ValidationProblemBuilder builder, EnterpriseUserRecord user)
-        {
-            CheckRequired(ref builder, user.OwnerUuid.HasValue, "/owner");
         }
     }
 }

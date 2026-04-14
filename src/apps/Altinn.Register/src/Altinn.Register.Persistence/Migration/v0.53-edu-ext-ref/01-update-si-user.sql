@@ -114,7 +114,7 @@ BEGIN
             , COLUMN = 'type';
     END IF;
 
-    IF s_self_identified_email AND o_self_identified_user."email" <> p_self_identified_email THEN
+    IF s_self_identified_email AND o_self_identified_user."email" IS DISTINCT FROM p_self_identified_email THEN
       RAISE EXCEPTION 'Cannot update immutable field "email" on self_identified_user, existing: %, updated: %, party_uuid: %', o_self_identified_user."email", p_self_identified_email, p_uuid
         USING ERRCODE = 'ZZ001'
             , SCHEMA = 'register'
@@ -122,7 +122,10 @@ BEGIN
             , COLUMN = 'email';
     END IF;
 
-    IF s_self_identified_ext_ref AND o_self_identified_user.ext_ref IS NOT NULL AND o_self_identified_user.ext_ref <> p_self_identified_ext_ref THEN
+    IF s_self_identified_ext_ref
+      AND o_self_identified_user.ext_ref IS NOT NULL
+      AND o_self_identified_user.ext_ref IS DISTINCT FROM p_self_identified_ext_ref
+    THEN
       RAISE EXCEPTION 'Cannot update immutable field "ext_ref" on self_identified_user, existing: %, updated: %, party_uuid: %', o_self_identified_user.ext_ref, p_self_identified_ext_ref, p_uuid
         USING ERRCODE = 'ZZ001'
             , SCHEMA = 'register'

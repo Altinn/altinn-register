@@ -668,10 +668,17 @@ internal partial class PostgreSqlPartyPersistence
                     {
                         case SelfIdentifiedUserType.IdPortenEmail:
                             Debug.Assert(party.Email.HasValue);
+                            Debug.Assert(party.ExtRef.IsNull);
+                            break;
+
+                        case SelfIdentifiedUserType.Educational:
+                            Debug.Assert(party.Email.IsNull);
+                            Debug.Assert(party.ExtRef.HasValue);
                             break;
 
                         default:
                             Debug.Assert(party.Email.IsNull);
+                            Debug.Assert(party.ExtRef.IsNull);
                             break;
                     }
                 }
@@ -680,6 +687,7 @@ internal partial class PostgreSqlPartyPersistence
                     Debug.Assert(party.SelfIdentifiedUserType.IsNull);
 
                     Debug.Assert(party.Email.IsNull);
+                    Debug.Assert(party.ExtRef.IsNull);
                 }
             }
 
