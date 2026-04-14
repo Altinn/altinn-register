@@ -261,10 +261,16 @@ public enum PartyFieldIncludes
     SelfIdentifiedUserEmail = 1UL << 33,
 
     /// <summary>
+    /// The self-identified user external reference, if the party is a self-identified educational user.
+    /// </summary>
+    [JsonStringEnumMemberName("si.ext-ref")]
+    SelfIdentifiedUserExtRef = 1UL << 34,
+
+    /// <summary>
     /// All self-identified user fields.
     /// </summary>
     [JsonStringEnumMemberName("si")]
-    SelfIdentifiedUser = SelfIdentifiedUserType | SelfIdentifiedUserEmail,
+    SelfIdentifiedUser = SelfIdentifiedUserType | SelfIdentifiedUserEmail | SelfIdentifiedUserExtRef,
 
     /// <summary>
     /// All system user fields.
@@ -280,25 +286,25 @@ public enum PartyFieldIncludes
     /// The system user type, if the party is a system user.
     /// </summary>
     [JsonStringEnumMemberName("sysuser.type")]
-    SystemUserType = 1UL << 34,
+    SystemUserType = 1UL << 35,
 
     /// <summary>
     /// Include subunits (if party is an organization).
     /// </summary>
     [JsonStringEnumMemberName("org.subunits")]
-    SubUnits = 1UL << 35,
+    SubUnits = 1UL << 36,
 
     /// <summary>
     /// The user id(s), if the party has an associated user.
     /// </summary>
     [JsonStringEnumMemberName("user.id")]
-    UserId = 1UL << 36,
+    UserId = 1UL << 37,
 
     /// <summary>
     /// The username, if the party has an associated user.
     /// </summary>
     [JsonStringEnumMemberName("user.name")]
-    Username = 1UL << 37,
+    Username = 1UL << 38,
 
     /// <summary>
     /// All user fields.

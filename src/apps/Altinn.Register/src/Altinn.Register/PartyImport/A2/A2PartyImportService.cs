@@ -546,6 +546,7 @@ internal sealed partial class A2PartyImportService
                 VersionId = FieldValue.Unset,
                 SelfIdentifiedUserType = FieldValue.Null, // we cannot conclude about the SI user type based on the party object from A2
                 Email = FieldValue.Null, // we cannot conclude about the email based on the party object from A2
+                ExtRef = FieldValue.Null, // we cannot conclude about the external reference based on the party object from A2
             };
         }
 

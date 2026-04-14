@@ -33,4 +33,13 @@ public sealed record SelfIdentifiedUserRecord
     /// </remarks>
     [JsonPropertyName("email")]
     public required FieldValue<string> Email { get; init; }
+
+    /// <summary>
+    /// Gets the external reference of the self-identified user.
+    /// </summary>
+    /// <remarks>
+    /// Only applicable for <see cref="SelfIdentifiedUserType.Educational"/>.
+    /// </remarks>
+    [JsonPropertyName("extRef")]
+    public required FieldValue<string> ExtRef { get; init; }
 }
