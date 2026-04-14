@@ -194,13 +194,14 @@ internal sealed partial class RecurringJobHostedService
         JobHostLifecycles lifecycle,
         CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         // https://github.com/dotnet/aspnetcore/issues/40271
         if (_dispose.IsDisposed)
         {
             return;
         }
 
-        _dispose.EnsureNotDisposed();
         var lifecycleString = lifecycle.ToString();
         using var lifecycleActivity = JobsTelemetry.StartActivity($"run {lifecycleString} lifecycle jobs", ActivityKind.Internal);
 
