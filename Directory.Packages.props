@@ -35,7 +35,7 @@
     <PackageVersion Include="CommunityToolkit.Diagnostics" Version="8.4.2" />
     <PackageVersion Include="coverlet.collector" Version="8.0.1" />
     <PackageVersion Include="JWTCookieAuthentication" Version="4.0.4" />
-    <PackageVersion Include="MassTransit.Abstractions" Version="8.5.9" />
+    <PackageVersion Include="MassTransit.Abstractions" Version="9.1.0" />
     <PackageVersion Include="MassTransit.Analyzers" Version="8.5.9" />
     <PackageVersion Include="MassTransit.Azure.ServiceBus.Core" Version="8.5.9" />
     <PackageVersion Include="MassTransit.Quartz" Version="8.5.9" />
