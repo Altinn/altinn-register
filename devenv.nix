@@ -36,7 +36,7 @@ in
     pkgs.pnpm
     pkgs.just
     pkgs.powershell
-    pkgs.nodePackages.nodejs
+    pkgs.nodejs
   ];
 
   languages.dotnet.enable = true;
