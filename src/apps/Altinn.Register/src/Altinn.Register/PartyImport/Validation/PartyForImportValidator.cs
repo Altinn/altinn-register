@@ -200,7 +200,7 @@ public readonly struct PartyForImportValidator
         CheckRequired(ref context, input.PartyUuid.HasValue, "/partyUuid");
         CheckRequired(ref context, input.PartyType.HasValue, "/partyType");
         CheckRequired(ref context, input.ExternalUrn.IsSet, "/externalUrn");
-        CheckRequired(ref context, input.DisplayName.HasValue, "/name");
+        CheckRequired(ref context, input.DisplayName.HasValue, "/displayName");
         CheckRequired(ref context, input.PersonIdentifier.IsSet, "/personIdentifier");
         CheckRequired(ref context, input.OrganizationIdentifier.IsSet, "/organizationIdentifier");
         CheckRequired(ref context, input.CreatedAt.HasValue, "/createdAt");
