@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - id: release
-        uses: googleapis/release-please-action@16a9c90856f42705d54a6fda1823352bdc62cf38 # v4.4.0
+        uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4.4.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
@@ -80,7 +80,7 @@ jobs:
         run: dotnet pack -c Release --no-build
 
       - name: Create artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ fromJSON(needs.release-please.outputs.full)[format('{0}--tag_name', matrix.path)] }}
           path: artifacts/**/*.nupkg
