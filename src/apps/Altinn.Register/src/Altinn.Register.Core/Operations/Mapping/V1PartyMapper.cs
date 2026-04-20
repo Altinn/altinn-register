@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Core.Parties.Records;
 using V1Models = Altinn.Register.Contracts.V1;
 
@@ -45,8 +46,9 @@ internal static class V1PartyMapper
                 ret.Person = mappedPerson;
                 break;
 
-            case SelfIdentifiedUserRecord:
+            case SelfIdentifiedUserRecord siUser:
                 ret.PartyTypeName = V1Models.PartyType.SelfIdentified;
+                ret.Name = siUser.User.SelectFieldValue(static u => u.Username).OrDefault(siUser.DisplayName.Value);
                 break;
 
             default:

@@ -50,7 +50,7 @@ internal sealed class GetV1PartyByIdFromDBRequestHandler(IUnitOfWorkManager mana
         var persistence = uow.GetPartyPersistence();
 
         var party = await persistence
-            .GetPartyById(request.PartyId, PartyFieldIncludes.Party | PartyFieldIncludes.Person | PartyFieldIncludes.Organization, cancellationToken)
+            .GetPartyById(request.PartyId, PartyFieldIncludes.Party | PartyFieldIncludes.Person | PartyFieldIncludes.Organization | PartyFieldIncludes.User, cancellationToken)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (party is null)
