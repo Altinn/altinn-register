@@ -52,7 +52,7 @@ internal sealed class GetV1PartyListByIdFromDBRequestHandler(IUnitOfWorkManager 
             yield break;
         }
 
-        var include = PartyFieldIncludes.Party | PartyFieldIncludes.Person | PartyFieldIncludes.Organization;
+        var include = PartyFieldIncludes.Party | PartyFieldIncludes.Person | PartyFieldIncludes.Organization | PartyFieldIncludes.User;
         if (request.FetchSubUnits)
         {
             include |= PartyFieldIncludes.SubUnits;
