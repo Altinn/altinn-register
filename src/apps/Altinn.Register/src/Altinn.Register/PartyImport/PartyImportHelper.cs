@@ -1,4 +1,3 @@
-using System.Text;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ProblemDetails.Validation;
 using Altinn.Register.Core.Parties.Records;
@@ -24,13 +23,7 @@ public static class PartyImportHelper
 
         if (builder.TryBuild(out var error))
         {
-            var messageBuilder = new StringBuilder("Party validation failed. The following fields contains errors:");
-            foreach (var e in error.Errors)
-            {
-                messageBuilder.AppendLine().Append(" - ").Append(e.Paths.FirstOrDefault()).Append(": ").Append(e.Detail);
-            }
-
-            throw new ProblemInstanceException(messageBuilder.ToString(), error);
+            throw new ProblemInstanceException(error);
         }
     }
 }
