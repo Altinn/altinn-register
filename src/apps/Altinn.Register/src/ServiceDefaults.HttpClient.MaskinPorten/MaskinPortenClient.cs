@@ -119,6 +119,18 @@ internal sealed partial class MaskinPortenClient
 
         var jwtAssertion = GetJwtAssertion(key, settings);
 
+        /*
+#if DEBUG
+        _logger.LogWarning(
+            "JWT Assertion for ClientId: '{clientId}', Scope: '{scope}', Resource: '{resource}', ConsumerOrg: '{consumerOrg}': {jwtAssertion}",
+            key.ClientId,
+            key.Scope,
+            key.Resource,
+            key.ConsumerOrg,
+            jwtAssertion);
+#endif
+        */
+
         HttpStatusCode? statusCode = null;
         ErrorResponse? errorResponse = null;
         Exception? inner = null;

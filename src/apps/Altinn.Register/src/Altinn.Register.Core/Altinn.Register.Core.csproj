@@ -6,6 +6,7 @@
   <ItemGroup>
     <PackageReference Include="Altinn.Authorization.ModelUtils" />
     <PackageReference Include="Altinn.Authorization.ProblemDetails.Abstractions" />
+    <PackageReference Include="Altinn.Authorization.ProblemDetails.Validation" />
     <PackageReference Include="Altinn.Authorization.ServiceDefaults.Telemetry" />
     <PackageReference Include="Altinn.Swashbuckle.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />

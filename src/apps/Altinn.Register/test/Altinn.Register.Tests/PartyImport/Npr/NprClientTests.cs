@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Contracts;
+using Altinn.Register.Integrations.Npr;
 using Altinn.Register.PartyImport.Npr;
 using Altinn.Register.Tests.Utils;
 using Microsoft.Extensions.FileProviders;
@@ -147,12 +148,6 @@ public class NprClientTests
             return role.Identifier;
         }
     }
-
-    ////public sealed record ExpectedGuardianships
-    ////    : IXunitSerializable
-    ////{
-
-    ////}
 
     public sealed record ExpectedGuardianship
         : IXunitSerializable

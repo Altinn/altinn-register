@@ -3,19 +3,19 @@ using Altinn.Authorization.ProblemDetails.Validation;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
 
-namespace Altinn.Register.Operations.Validation;
+namespace Altinn.Register.Core.Validation;
 
 /// <summary>
 /// Input validators for <see cref="PersonIdentifier"/>
 /// </summary>
-internal readonly struct PersonIdentifierValidator
+public readonly struct PersonIdentifierValidator
     : IValidator<string, PersonIdentifier>
     , IValidator<ReadOnlySpan<char>, PersonIdentifier>
 {
     /// <inheritdoc/>
     public bool TryValidate(
         ref ValidationContext context,
-        string input,
+        string? input,
         [NotNullWhen(true)] out PersonIdentifier? validated)
     {
         if (!PersonIdentifier.TryParse(input, provider: null, out validated))

@@ -34,9 +34,8 @@ function* areaRoleProperties(area: GuardianshipArea): Iterable<string> {
     else yield ``;
 
     yield `/// <summary>${guardianship.description.nb}</summary>`;
-    yield `public static ExternalRoleReference ${task.identifier} { get; } = new(ExternalRoleSource.CivilRightsAuthority, "${
-      guardianship.identifier
-    }");`;
+    yield `public static ExternalRoleReference ${task.identifier} { get; } = new(ExternalRoleSource.CivilRightsAuthority, "${guardianship.identifier
+      }");`;
   }
 }
 
@@ -181,9 +180,8 @@ function* tryFind(): Iterable<string> {
         if (match.expired) {
           yield `role = null;`;
         } else {
-          yield `role = GuardianshipRoles.${
-            area.identifier
-          }.${match.codeIdentifiers.task};`;
+          yield `role = GuardianshipRoles.${area.identifier
+            }.${match.codeIdentifiers.task};`;
         }
         yield `return true;`;
       }),
@@ -209,9 +207,8 @@ function* tryFind(): Iterable<string> {
           if (match.expired) {
             yield `role = null;`;
           } else {
-            yield `role = GuardianshipRoles.${
-              area.identifier
-            }.${match.codeIdentifiers.task};`;
+            yield `role = GuardianshipRoles.${area.identifier
+              }.${match.codeIdentifiers.task};`;
           }
           yield `return true;`;
         },
@@ -234,7 +231,7 @@ const lines = [
   `using Altinn.Register.Contracts.ExternalRoles;`,
   `using System.Diagnostics.CodeAnalysis;`,
   ``,
-  `namespace Altinn.Register.PartyImport.Npr;`,
+  `namespace Altinn.Register.Integrations.Npr;`,
   ``,
   `/// <summary>Roles for guardianships.</summary>`,
   `internal static partial class GuardianshipRoles`,

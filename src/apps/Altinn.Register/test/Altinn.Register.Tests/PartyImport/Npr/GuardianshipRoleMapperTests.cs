@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using Altinn.Register.Contracts.ExternalRoles;
-using Altinn.Register.PartyImport.Npr;
+using Altinn.Register.Integrations.Npr;
 using Xunit.Sdk;
 
 namespace Altinn.Register.Tests.PartyImport.Npr;

@@ -37,6 +37,8 @@ in
     pkgs.just
     pkgs.powershell
     pkgs.nodejs
+    pkgs.xlsx2csv
+    pkgs.python3
   ];
 
   languages.dotnet.enable = true;

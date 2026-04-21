@@ -6,6 +6,7 @@ using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.V1;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Operations;
+using Altinn.Register.Core.Validation;
 
 namespace Altinn.Register.Operations.Validation;
 

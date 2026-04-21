@@ -5,7 +5,7 @@ using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.ExternalRoles;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Altinn.Register.PartyImport.Npr;
+namespace Altinn.Register.Integrations.Npr;
 
 /// <summary>Roles for guardianships.</summary>
 internal static partial class GuardianshipRoles
@@ -208,7 +208,7 @@ internal static partial class GuardianshipRoles
 }
 
 /// <summary>Mappings of guardianship values from npr to Altinn Register.</summary>
-internal static partial class GuardianshipRoleMapper
+public static partial class GuardianshipRoleMapper
 {
 #pragma warning disable CS0164 // Unreferenced label
     /// <summary>Tries to find a guardianship role by NPR values.</summary>
@@ -368,7 +368,7 @@ internal static partial class GuardianshipRoleMapper
             return TryFindForsikringsselskapRoleByNprValue(vergeTjenesteoppgave, out role);
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -530,7 +530,7 @@ internal static partial class GuardianshipRoleMapper
             return TryFindForsikringsselskapRoleByNprValue(vergeTjenesteoppgave, out role);
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -563,7 +563,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -596,7 +596,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -612,7 +612,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -628,7 +628,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -655,7 +655,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -682,7 +682,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -709,7 +709,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -736,7 +736,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -752,7 +752,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -768,7 +768,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -847,7 +847,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -926,7 +926,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -993,7 +993,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1060,7 +1060,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1076,7 +1076,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1092,7 +1092,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1136,7 +1136,7 @@ internal static partial class GuardianshipRoleMapper
             goto end;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1180,7 +1180,7 @@ internal static partial class GuardianshipRoleMapper
             goto end;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1225,7 +1225,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1270,7 +1270,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1286,7 +1286,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1302,7 +1302,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1358,7 +1358,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1414,7 +1414,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1430,7 +1430,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1446,7 +1446,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1490,7 +1490,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1534,7 +1534,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1596,7 +1596,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1658,7 +1658,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1691,7 +1691,7 @@ internal static partial class GuardianshipRoleMapper
             goto end;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1724,7 +1724,7 @@ internal static partial class GuardianshipRoleMapper
             goto end;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1751,7 +1751,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }
@@ -1778,7 +1778,7 @@ internal static partial class GuardianshipRoleMapper
             return true;
         }
 
-        end:
+    end:
         role = null;
         return false;
     }

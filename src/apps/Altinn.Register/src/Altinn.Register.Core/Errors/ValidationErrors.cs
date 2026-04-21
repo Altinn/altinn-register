@@ -53,4 +53,25 @@ public static class ValidationErrors
     /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
     public static ValidationErrorDescriptor InvalidPartyUuid { get; }
         = _factory.Create(10, "Invalid party uuid");
+
+    /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
+    public static ValidationErrorDescriptor MultipleActiveElements { get; }
+        = _factory.Create(11, "Multiple elements are marked as active, but only one is allowed.");
+
+    /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
+    public static ValidationErrorDescriptor InvalidDate { get; }
+        = _factory.Create(12, "Invalid date");
+
+    /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
+    public static ValidationErrorDescriptor UnknownEnumValue { get; }
+        = _factory.Create(13, "Unknown enum value");
+
+    /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
+    /// <remarks>Prefer using more specific error descriptors when possible, such as <see cref="InvalidOrganizationNumber"/> or <see cref="InvalidPersonNumber"/>.</remarks>
+    public static ValidationErrorDescriptor InvalidValue { get; }
+        = _factory.Create(14, "Invalid value");
+
+    /// <summary>Gets a <see cref="ValidationErrorDescriptor"/>.</summary>
+    public static ValidationErrorDescriptor UnknownGuardianshipRole { get; }
+        = _factory.Create(15, "Unknown guardianship role");
 }

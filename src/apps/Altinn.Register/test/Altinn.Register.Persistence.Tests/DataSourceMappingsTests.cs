@@ -1,5 +1,6 @@
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.ImportJobs;
+using Altinn.Register.Core.Location;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Persistence.Tests.Utils;
@@ -157,6 +158,27 @@ public class DataSourceMappingsTests
 
         var result = await reader.GetFieldValueAsync<SelfIdentifiedUserType>(0, CancellationToken);
         result.ShouldBe(siType);
+    }
+
+    [Theory]
+    [EnumMembersData<MunicipalityStatus>]
+    public async Task MapsMunicipalityStatus(MunicipalityStatus status)
+    {
+        var source = GetRequiredService<NpgsqlDataSource>();
+        await using var conn = await source.OpenConnectionAsync(CancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = /*strpsql*/"SELECT @p::register.municipality_status";
+
+        var param = cmd.Parameters.Add<MunicipalityStatus>("p");
+        param.TypedValue = status;
+
+        await cmd.PrepareAsync(CancellationToken);
+
+        await using var reader = await cmd.ExecuteReaderAsync(CancellationToken);
+        (await reader.ReadAsync(CancellationToken)).ShouldBeTrue();
+
+        var result = await reader.GetFieldValueAsync<MunicipalityStatus>(0, CancellationToken);
+        result.ShouldBe(status);
     }
 
     [Theory]

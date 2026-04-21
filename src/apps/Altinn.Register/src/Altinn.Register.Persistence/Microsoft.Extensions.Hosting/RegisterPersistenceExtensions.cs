@@ -9,6 +9,7 @@ using Altinn.Register.Contracts;
 using Altinn.Register.Core.CcrLog;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.ImportJobs;
+using Altinn.Register.Core.Location;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.RateLimiting;
@@ -18,6 +19,7 @@ using Altinn.Register.Persistence.CcrLog;
 using Altinn.Register.Persistence.DbArgTypes;
 using Altinn.Register.Persistence.ImportJobs;
 using Altinn.Register.Persistence.Leases;
+using Altinn.Register.Persistence.Location;
 using Altinn.Register.Persistence.RateLimiting;
 using Altinn.Register.Persistence.UnitOfWork;
 using CommunityToolkit.Diagnostics;
@@ -102,6 +104,9 @@ public static class RegisterPersistenceExtensions
         builder.Services.AddSingleton<PostgreSqlExternalRoleDefinitionPersistence.Cache>();
         builder.Services.AddScoped<PostgreSqlExternalRoleDefinitionPersistence>();
         builder.Services.AddScoped<IExternalRoleDefinitionPersistence>(static s => s.GetRequiredService<PostgreSqlExternalRoleDefinitionPersistence>());
+        builder.Services.AddSingleton<PostgreSqlLocationLookupProvider.Cache>();
+        builder.Services.AddScoped<PostgreSqlLocationLookupProvider>();
+        builder.Services.AddScoped<ILocationLookupProvider>(static s => s.GetRequiredService<PostgreSqlLocationLookupProvider>());
         builder.Services.AddSingleton<IPartyPersistenceCleanupService, PartyPostgreSqlPersistenceCleanupService>();
 
         builder.Services.AddSingleton<PostgresCcrLogWriter>();
@@ -251,6 +256,13 @@ public static class RegisterPersistenceExtensions
             SelfIdentifiedUserType.Legacy => "legacy",
             SelfIdentifiedUserType.Educational => "edu",
             SelfIdentifiedUserType.IdPortenEmail => "idporten-email",
+            _ => null,
+        }));
+
+        builder.MapEnum<MunicipalityStatus>("register.municipality_status", new EnumNameTranslator<MunicipalityStatus>(static value => value switch
+        {
+            MunicipalityStatus.Inactive => "inactive",
+            MunicipalityStatus.Active => "active",
             _ => null,
         }));
 

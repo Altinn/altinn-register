@@ -1,9 +1,11 @@
 using Altinn.Register.Contracts.ExternalRoles;
 
-namespace Altinn.Register.PartyImport.Npr;
+namespace Altinn.Register.Integrations.Npr;
+
+// TODO: make internal once NprClient does not use it anymore
 
 /// <summary>Mappings of guardianship values from npr to Altinn Register.</summary>
-internal partial class GuardianshipRoleMapper
+public partial class GuardianshipRoleMapper
 {
     /// <summary>Tries to find a guardianship role by NPR values.</summary>
     /// <param name="vergeTjenestevirksomhet">The NPR value for the guardianship area.</param>

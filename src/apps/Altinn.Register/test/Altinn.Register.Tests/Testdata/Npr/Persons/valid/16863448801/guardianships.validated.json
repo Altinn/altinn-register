@@ -1,0 +1,62 @@
+[
+  {
+    "guardian": "17927096528",
+    "roles": [
+      "forsikringsselskap-forvalte-forsikringsavtaler",
+      "helfo-fastlege",
+      "husbanken-bostotte",
+      "inkassoselskap-inkassoavtaler",
+      "kartverket-arv-privat-skifte-uskifte",
+      "kartverket-avtaler-rettigheter",
+      "kartverket-endring-eiendom",
+      "kommune-bygg-eiendom",
+      "kommune-helse-omsorg",
+      "namsmannen-gjeldsordning",
+      "nav-arbeid",
+      "nav-familie",
+      "nav-hjelpemidler",
+      "ovrige-avslutning-husleiekontrakter",
+      "ovrige-disponere-inntekter-dekke-utgifter",
+      "skatteetaten-endre-postadresse",
+      "tingretten-begjaere-skifte-uskiftebo",
+      "tingretten-begjaere-uskifte"
+    ]
+  },
+  {
+    "guardian": "17927096528",
+    "roles": [
+      "bank-representasjon-dagligbank",
+      "forsikringsselskap-forvalte-forsikringsavtaler",
+      "helfo-fastlege",
+      "helfo-refusjon-privatpersoner",
+      "husbanken-bostotte",
+      "inkassoselskap-inkassoavtaler",
+      "kartverket-arv-privat-skifte-uskifte",
+      "kartverket-avtaler-rettigheter",
+      "kartverket-endring-eiendom",
+      "kartverket-kjop-eiendom",
+      "kartverket-laneopptak",
+      "kartverket-salg-fast-eiendom-borettslagsandel",
+      "kommune-bygg-eiendom",
+      "kommune-helse-omsorg",
+      "kredittvurderingsselskap-kredittsperre",
+      "namsmannen-gjeldsordning",
+      "nav-arbeid",
+      "nav-familie",
+      "nav-hjelpemidler",
+      "nav-pensjon",
+      "ovrige-avslutning-husleiekontrakter",
+      "ovrige-disponere-inntekter-dekke-utgifter",
+      "ovrige-inngaelse-husleiekontrakter",
+      "ovrige-kjop-leie-varer-tjenester",
+      "ovrige-salg-losore-storre-verdi",
+      "pasientreiser-refusjon-pasientreiser",
+      "skatteetaten-endre-postadresse",
+      "skatteetaten-melde-flytting",
+      "skatteetaten-skatt",
+      "tingretten-begjaere-skifte-uskiftebo",
+      "tingretten-begjaere-uskifte",
+      "tingretten-privat-skifte-dodsbo"
+    ]
+  }
+]

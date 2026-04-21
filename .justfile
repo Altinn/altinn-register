@@ -28,6 +28,11 @@ set windows-shell := ["pwsh.exe", "-NoLogo", "-CommandWithArgs"]
   pushd .github/scripts
   pnpm install --frozen-lockfile
 
+# Run register locally
+@start:
+  #!{{shebang}}
+  dotnet run --project src/apps/Altinn.Register/src/Altinn.Register.AppHost/
+
 # Print all projects metadata
 @get-metadata: install-script-packages-frozen
   #!{{shebang}}
@@ -44,5 +49,5 @@ set windows-shell := ["pwsh.exe", "-NoLogo", "-CommandWithArgs"]
 
 @generate-guardianship-code: install-script-packages-frozen
   #!{{shebang}}
-  node ./.github/scripts/generate-guardianship-code.mts > "./src/apps/Altinn.Register/src/Altinn.Register/PartyImport/Npr/Guardianships.g.cs"
+  node ./.github/scripts/generate-guardianship-code.mts > "./src/apps/Altinn.Register/src/Altinn.Register.Integrations.Npr/Guardianships.g.cs"
   node ./.github/scripts/generate-guardianship-tests.mts > "./src/apps/Altinn.Register/test/Altinn.Register.Tests/PartyImport/Npr/GuardianshipRoleMapperTests.g.cs"
