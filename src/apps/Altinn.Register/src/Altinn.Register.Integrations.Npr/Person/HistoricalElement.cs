@@ -11,13 +11,13 @@ public abstract record HistoricalElement
     /// Gets a value indicating whether this entry is the current one.
     /// </summary>
     [JsonPropertyName("erGjeldende")]
-    public required bool? IsCurrent { get; init; }
+    public bool? IsCurrent { get; init; }
 
     /// <summary>
     /// Gets the timestamp when the entry was last updated.
     /// </summary>
     [JsonPropertyName("ajourholdstidspunkt")]
-    public required DateTimeOffset? UpdatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
 
     /// <summary>
     /// Gets the timestamp when the entry became valid.

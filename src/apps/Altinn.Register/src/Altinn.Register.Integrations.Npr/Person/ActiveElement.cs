@@ -78,7 +78,7 @@ public readonly record struct ActiveElement<T>
     }
 
     /// <summary>
-    /// The value of the active-element union. Preffer using the TryGetValue methods instead.
+    /// The value of the active-element union. Prefer using the TryGetValue methods instead.
     /// </summary>
     /// <remarks>
     /// A value here might be an error-value. This implements the C# union contract.
@@ -102,7 +102,7 @@ public readonly record struct ActiveElement<T>
     }
 
     /// <summary>
-    /// Gets whether the current <see cref="ActiveElement{T}"/> has has a value or not.
+    /// Gets whether the current <see cref="ActiveElement{T}"/> has a value or not.
     /// </summary>
     /// <remarks>
     /// A value here might be an error-value. This implements the C# union contract.

@@ -1,0 +1,31 @@
+{
+  "partyType": "person",
+  "source": "npr",
+  "firstName": "KNUSLETE",
+  "middleName": null,
+  "lastName": "GAUPE",
+  "shortName": "GAUPE KNUSLETE",
+  "address": {
+    "municipalNumber": "4638",
+    "municipalName": "H\u00D8YANGER",
+    "streetName": "Kr\u00E5kevika",
+    "houseNumber": "15",
+    "houseLetter": null,
+    "postalCode": "6996",
+    "city": "VADHEIM"
+  },
+  "mailingAddress": {
+    "address": "Nedre Tolgenslivei 22 2540 TOLGA",
+    "postalCode": "2540",
+    "city": "TOLGA"
+  },
+  "dateOfBirth": "1950-03-22",
+  "dateOfDeath": null,
+  "ownerUuid": null,
+  "externalUrn": "urn:altinn:person:identifier-no:22835095049",
+  "displayName": "KNUSLETE GAUPE",
+  "personIdentifier": "22835095049",
+  "organizationIdentifier": null,
+  "isDeleted": false,
+  "deletedAt": null
+}

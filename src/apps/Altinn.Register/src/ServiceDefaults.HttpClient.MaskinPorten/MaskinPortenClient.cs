@@ -213,7 +213,7 @@ internal sealed partial class MaskinPortenClient
 
     private string GetJwtAssertion(MaskinPortenCacheKey key, MaskinPortenClientOptions settings)
     {
-        var now = _timeProvider.GetUtcNow();
+        var now = _timeProvider.GetUtcNow() - TimeSpan.FromSeconds(10);
         var header = new JwtHeader(new SigningCredentials(settings.Key, settings.Key!.Alg));
         var payload = new JwtPayload
         {
