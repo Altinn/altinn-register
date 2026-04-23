@@ -1051,7 +1051,7 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         {
             Address = string.Join(' ', addressLines),
             PostalCode = postCode,
-            City = input.CityOrPlaceName.Trim(),
+            City = input.CityOrPlaceName?.Trim(),
             IsFirstLineCareOfAddress = isFirstLineCo,
         };
         return true;
