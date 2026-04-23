@@ -48,7 +48,6 @@ public class DebugController
     /// </summary>
     [HttpGet("npr/person/{fnr}")]
     [Authorize(Policy = "Debug")]
-    [AllowAnonymous]
     public async Task<IActionResult> Test(
         [FromServices] IHttpClientFactory httpClientFactory,
         string fnr,

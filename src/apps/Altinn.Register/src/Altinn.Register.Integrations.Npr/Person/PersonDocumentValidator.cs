@@ -846,7 +846,7 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         }
 
         var address = string.Join(' ', input.AddressLines);
-        if (input.AddressLines.Length > 0 && !input.AddressLines[^1].StartsWith(postalInfo.Code))
+        if (input.AddressLines.Length > 0 && !input.AddressLines[^1].StartsWith(postalInfo.Code, StringComparison.Ordinal))
         {
             address = $"{address} {postalInfo.Code} {postalInfo.Name}".Trim();
         }
@@ -1051,7 +1051,7 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         {
             Address = string.Join(' ', addressLines),
             PostalCode = postCode,
-            City = input.CityOrPlaceName,
+            City = input.CityOrPlaceName.Trim(),
             IsFirstLineCareOfAddress = isFirstLineCo,
         };
         return true;

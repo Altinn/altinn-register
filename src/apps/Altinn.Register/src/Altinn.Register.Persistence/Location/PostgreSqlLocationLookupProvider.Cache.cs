@@ -92,25 +92,19 @@ internal sealed partial class PostgreSqlLocationLookupProvider
                     current = coldTask.Unwrap().ContinueWith(
                         task =>
                         {
-                            if (!task.IsCompletedSuccessfully)
-                            {
-                                return task;
-                            }
-
-                            var result = task.GetAwaiter().GetResult();
                             lock (_lock)
                             {
                                 if (ReferenceEquals(_state, current))
                                 {
-                                    if (task.IsCompletedSuccessfully)
-                                    {
-                                        _state = result;
-                                        return task;
-                                    }
-                                    else
+                                    if (!task.IsCompletedSuccessfully)
                                     {
                                         _state = null;
+                                        return task;
                                     }
+
+                                    var result = task.GetAwaiter().GetResult();
+                                    _state = result;
+                                    return task;
                                 }
                             }
 
