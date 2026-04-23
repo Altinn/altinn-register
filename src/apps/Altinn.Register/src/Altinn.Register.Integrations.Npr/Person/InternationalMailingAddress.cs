@@ -10,7 +10,7 @@ public sealed record InternationalMailingAddress
     /// <summary>
     /// Gets the care-of name for the address.
     /// </summary>
-    [JsonPropertyName("coadressenavn")]
+    [JsonPropertyName("coAdressenavn")]
     public string? CareOfAddressName { get; init; }
 
     /// <summary>
