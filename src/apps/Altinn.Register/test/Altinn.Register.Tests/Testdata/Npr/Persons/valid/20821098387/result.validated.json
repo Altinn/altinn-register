@@ -1,6 +1,6 @@
 {
-  "partyType": "person",
-  "source": "npr",
+  "personIdentifier": "20821098387",
+  "displayName": "ERFAREN SJAKAL",
   "firstName": "ERFAREN",
   "middleName": null,
   "lastName": "SJAKAL",
@@ -13,11 +13,5 @@
   },
   "dateOfBirth": "2010-02-20",
   "dateOfDeath": null,
-  "ownerUuid": null,
-  "externalUrn": "urn:altinn:person:identifier-no:20821098387",
-  "displayName": "ERFAREN SJAKAL",
-  "personIdentifier": "20821098387",
-  "organizationIdentifier": null,
-  "isDeleted": false,
-  "deletedAt": null
+  "guardians": []
 }

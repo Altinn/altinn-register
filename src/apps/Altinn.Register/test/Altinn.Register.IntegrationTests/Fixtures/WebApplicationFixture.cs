@@ -12,7 +12,6 @@ using Altinn.Register.IntegrationTests.Fakes;
 using Altinn.Register.IntegrationTests.TestServices;
 using Altinn.Register.IntegrationTests.Tracing;
 using Altinn.Register.PartyImport.A2;
-using Altinn.Register.PartyImport.Npr;
 using Altinn.Register.PartyImport.SystemUser;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Database;
@@ -207,7 +206,7 @@ public sealed class WebApplicationFixture
                     .PostConfigure(s => s.BridgeApiEndpoint = FakeHttpEndpoint.HttpsUri);
                 services.AddHttpClient("a2:ccr").ConfigureBaseAddress(FakeHttpEndpoint.HttpsUri);
                 services.AddHttpClient<SystemUserImportService>().ConfigureBaseAddress(FakeHttpEndpoint.HttpsUri);
-                services.AddHttpClient<NprClient>().ConfigureBaseAddress(FakeHttpEndpoint.HttpsUri);
+                services.AddNprClient().ConfigureBaseAddress(FakeHttpEndpoint.HttpsUri);
                 services.AddSingleton<IMaskinPortenClient, FakeMaskinPortenClient>();
 
                 AltinnServiceDefaultsMassTransitTestingExtensions.AddAltinnMassTransitTestHarness(

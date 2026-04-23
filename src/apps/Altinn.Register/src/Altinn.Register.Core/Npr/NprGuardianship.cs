@@ -1,11 +1,12 @@
 using Altinn.Register.Contracts;
+using Altinn.Register.Core.Utils;
 
-namespace Altinn.Register.Integrations.Npr;
+namespace Altinn.Register.Core.Npr;
 
 /// <summary>
-/// Represents information about a guardianship, including the guardian's identifier and their roles in relation to the ward.
+/// Represents a guardianship as returned by the NPR API, including the guardian's identifier and their roles in relation to the ward.
 /// </summary>
-public record GuardianshipInfo
+public sealed record NprGuardianship
 {
     /// <summary>
     /// Gets the <see cref="PersonIdentifier"/> of the guardian.

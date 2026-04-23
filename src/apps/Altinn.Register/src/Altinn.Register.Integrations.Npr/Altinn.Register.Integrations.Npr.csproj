@@ -5,6 +5,8 @@
     <PackageReference Include="Altinn.Authorization.ProblemDetails.Abstractions" />
     <PackageReference Include="Altinn.Authorization.ProblemDetails.Validation" />
     <PackageReference Include="Altinn.Authorization.ServiceDefaults.Telemetry" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
     <PackageReference Include="System.Linq.AsyncEnumerable" />
   </ItemGroup>
 

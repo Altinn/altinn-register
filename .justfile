@@ -57,3 +57,10 @@ set windows-shell := ["pwsh.exe", "-NoLogo", "-CommandWithArgs"]
   $null = New-Item -Type Directory -Force "src/apps/Altinn.Register/test/Altinn.Register.Tests/Testdata/Npr/Persons/valid/{{ID}}"
   $response = Invoke-WebRequest -Uri "http://localhost:5020/register/api/v0/debug/npr/person/{{ID}}"
   $response.Content | prettier --parser json | Out-File -FilePath "src/apps/Altinn.Register/test/Altinn.Register.Tests/Testdata/Npr/Persons/valid/{{ID}}/npr.json"
+
+@accept-npr-valid-results:
+  #!{{shebang}}
+  Get-ChildItem "src/apps/Altinn.Register/test/Altinn.Register.Tests/Testdata/Npr/Persons/valid/*/result.received.json" -File | ForEach-Object {
+    $destination = Join-Path $_.DirectoryName "result.validated.json"
+    Move-Item $_.FullName $destination -Force
+  }

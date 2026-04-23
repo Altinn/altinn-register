@@ -1,6 +1,6 @@
 {
-  "partyType": "person",
-  "source": "npr",
+  "personIdentifier": "06864796743",
+  "displayName": "INTRIKAT INDREFILET",
   "firstName": "INTRIKAT",
   "middleName": null,
   "lastName": "INDREFILET",
@@ -13,11 +13,5 @@
   },
   "dateOfBirth": "1947-06-06",
   "dateOfDeath": null,
-  "ownerUuid": null,
-  "externalUrn": "urn:altinn:person:identifier-no:06864796743",
-  "displayName": "INTRIKAT INDREFILET",
-  "personIdentifier": "06864796743",
-  "organizationIdentifier": null,
-  "isDeleted": false,
-  "deletedAt": null
+  "guardians": []
 }

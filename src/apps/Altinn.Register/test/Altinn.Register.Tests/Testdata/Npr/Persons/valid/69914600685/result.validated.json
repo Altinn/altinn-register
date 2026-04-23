@@ -1,6 +1,6 @@
 {
-  "partyType": "person",
-  "source": "npr",
+  "personIdentifier": "69914600685",
+  "displayName": "BESKJEDEN-UROMANTISK FIOLETT BAUG",
   "firstName": "BESKJEDEN-UROMANTISK",
   "middleName": "FIOLETT",
   "lastName": "BAUG",
@@ -13,11 +13,5 @@
   },
   "dateOfBirth": "1946-11-29",
   "dateOfDeath": null,
-  "ownerUuid": null,
-  "externalUrn": "urn:altinn:person:identifier-no:69914600685",
-  "displayName": "BESKJEDEN-UROMANTISK FIOLETT BAUG",
-  "personIdentifier": "69914600685",
-  "organizationIdentifier": null,
-  "isDeleted": false,
-  "deletedAt": null
+  "guardians": []
 }

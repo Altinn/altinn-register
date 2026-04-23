@@ -1,6 +1,6 @@
 {
-  "partyType": "person",
-  "source": "npr",
+  "personIdentifier": "41919701143",
+  "displayName": "FRUKTBAR LUNSJ",
   "firstName": "FRUKTBAR",
   "middleName": null,
   "lastName": "LUNSJ",
@@ -13,11 +13,5 @@
   },
   "dateOfBirth": "1997-11-01",
   "dateOfDeath": null,
-  "ownerUuid": null,
-  "externalUrn": "urn:altinn:person:identifier-no:41919701143",
-  "displayName": "FRUKTBAR LUNSJ",
-  "personIdentifier": "41919701143",
-  "organizationIdentifier": null,
-  "isDeleted": false,
-  "deletedAt": null
+  "guardians": []
 }

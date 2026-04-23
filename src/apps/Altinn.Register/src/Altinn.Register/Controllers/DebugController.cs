@@ -8,8 +8,8 @@ using Altinn.Register.Configuration;
 using Altinn.Register.Contracts;
 using Altinn.Register.Conventions;
 using Altinn.Register.Core.Errors;
+using Altinn.Register.Core.Npr;
 using Altinn.Register.PartyImport.A2;
-using Altinn.Register.PartyImport.Npr;
 using Asp.Versioning;
 using CommunityToolkit.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
@@ -46,7 +46,7 @@ public class DebugController
     /// <summary>
     /// Temp test
     /// </summary>
-    [HttpGet("npr/person/{fnr}")]
+    [HttpGet("npr/raw/{fnr}")]
     [Authorize(Policy = "Debug")]
     public async Task<IActionResult> Test(
         [FromServices] IHttpClientFactory httpClientFactory,
@@ -70,7 +70,7 @@ public class DebugController
         }
 
         Debug.Assert(personIdentifier is not null);
-        using var client = httpClientFactory.CreateClient(nameof(NprClient));
+        using var client = httpClientFactory.CreateClient(nameof(INprClient));
         using var response = await client.GetAsync($"folkeregisteret/offentlig-med-hjemmel/api/v1/personer/{personIdentifier!}?part=navn&part=foedsel&part=bostedsadresse&part=doedsfall&part=status&part=oppholdsadresse&part=familierelasjon&part=postadresse&part=postadresseIUtlandet&part=vergemaalEllerFremtidsfullmakt&part=sivilstand&part=statsborgerskap&part=historikk&part=identifikasjonsnummer&part=deltBosted&part=adressebeskyttelse&part=utenlandskPersonidentifikasjon&part=foreldreansvar&part=innflytting&part=utflytting&part=foedselINorge&part=opphold&part=RettsligHandleevne&part=bibehold&part=brukAvSamiskSpraak", cancellationToken);
 
         Response.StatusCode = (int)response.StatusCode;
@@ -84,7 +84,7 @@ public class DebugController
     /// <summary>
     /// Temp test
     /// </summary>
-    [HttpGet("npr/guardianships/{fnr}")]
+    [HttpGet("npr/person/{fnr}")]
     [Authorize(Policy = "Debug")]
     public async Task<IActionResult> Test2(
         string fnr,
@@ -107,21 +107,14 @@ public class DebugController
         }
 
         Debug.Assert(personIdentifier is not null);
-        var client = HttpContext.RequestServices.GetRequiredService<NprClient>();
-        var response = await client.GetGuardianshipsForPerson(personIdentifier!, cancellationToken);
+        var client = HttpContext.RequestServices.GetRequiredService<INprClient>();
+        var response = await client.GetPerson(personIdentifier!, cancellationToken);
         if (response.IsProblem)
         {
             return response.Problem.ToActionResult();
         }
 
-        return Ok(new
-        {
-            Data = response.Value.Select(g => new
-            {
-                Guardian = g.Guardian,
-                Roles = g.Roles,
-            }),
-        });
+        return Ok(response.Value);
     }
 
     /// <summary>

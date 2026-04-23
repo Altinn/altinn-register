@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Altinn.Authorization.ModelUtils;
 
-namespace Altinn.Register.Integrations.Npr;
+namespace Altinn.Register.Core.Utils;
 
 // TODO: Move this to modelutils and build out properly
 
@@ -54,19 +54,6 @@ public readonly struct ImmutableValueSet<T>
 
         builder.Sort(comparer);
         return CreateUnchecked(builder.DrainToImmutableValueArray(), comparer);
-
-        static bool Contains(ImmutableArray<T>.Builder builder, T item, IComparer<T> comparer)
-        {
-            for (int i = 0; i < builder.Count; i++)
-            {
-                if (comparer.Compare(builder[i], item) == 0)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
     }
 
     /// <summary>
@@ -175,5 +162,46 @@ public readonly struct ImmutableValueSet<T>
     bool IReadOnlySet<T>.SetEquals(IEnumerable<T> other)
     {
         throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Returns a new <see cref="ImmutableValueSet{T}"/> that is the union of this set and another set.
+    /// The resulting set will contain all unique elements from both sets.
+    /// The resulting set is sorted using this set's comparer, matching the ordering invariant of <see cref="ImmutableValueSet{T}"/>.
+    /// </summary>
+    /// <param name="other">The other set to union with.</param>
+    /// <returns>A new <see cref="ImmutableValueSet{T}"/> containing all unique elements from both sets.</returns>
+    public ImmutableValueSet<T> UnionWith(ImmutableValueSet<T> other)
+    {
+        ImmutableArray<T>.Builder builder = ImmutableArray.CreateBuilder<T>(Length + other.Length);
+        foreach (var item in this)
+        {
+            // no need to check for duplicates within the same set since duplicates are not allowed
+            builder.Add(item);
+        }
+
+        foreach (var item in other)
+        {
+            if (!Contains(builder, item, _comparer))
+            {
+                builder.Add(item);
+            }
+        }
+
+        builder.Sort(_comparer);
+        return CreateUnchecked(builder.DrainToImmutableValueArray(), _comparer);
+    }
+
+    private static bool Contains(ImmutableArray<T>.Builder builder, T item, IComparer<T> comparer)
+    {
+        for (int i = 0; i < builder.Count; i++)
+        {
+            if (comparer.Compare(builder[i], item) == 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

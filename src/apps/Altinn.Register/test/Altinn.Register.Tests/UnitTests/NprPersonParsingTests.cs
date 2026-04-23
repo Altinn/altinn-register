@@ -1,12 +1,12 @@
-using System.Collections.Immutable;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Unicode;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ProblemDetails.Validation;
 using Altinn.Authorization.TestUtils;
 using Altinn.Authorization.TestUtils.Shouldly;
 using Altinn.Register.Core.Location;
-using Altinn.Register.Core.Parties.Records;
-using Altinn.Register.Integrations.Npr;
+using Altinn.Register.Core.Npr;
 using Altinn.Register.Integrations.Npr.Person;
 using Altinn.Register.Tests.Utils;
 using Altinn.Register.TestUtils;
@@ -35,8 +35,7 @@ public class NprPersonParsingTests
         parsed.ShouldNotBeNull();
 
         ValidationProblemBuilder builder = default;
-        builder.TryValidate(path: "/", parsed, validator, out PersonRecord? person);
-        builder.TryValidate(path: "/", parsed, validator, out ImmutableArray<GuardianshipInfo> guardianships);
+        builder.TryValidate(path: "/", parsed, validator, out NprPerson? person);
 
         if (builder.TryBuild(out var error))
         {
@@ -45,25 +44,20 @@ public class NprPersonParsingTests
 
         person.ShouldNotBeNull();
         using var serializedPerson = Json.SerializeToDocument(person);
-        using var serializedGuardianships = Json.SerializeToDocument(guardianships);
 
-        using var validatedPerson = await validPersonCase.ReadValidatedPartyJson();
-        using var validatedGuardianships = await validPersonCase.ReadValidatedGuardianshipsJson();
+        using var validatedPerson = await validPersonCase.ReadValidatedJson();
 
         try
         {
             validatedPerson.ShouldNotBeNull($"Validated JSON not found for case '{validPersonCase.Name}'.");
-            validatedGuardianships.ShouldNotBeNull($"Validated guardianships JSON not found for case '{validPersonCase.Name}'.");
 
             serializedPerson.ShouldBeStructurallyEquivalentTo(validatedPerson);
-            serializedGuardianships.ShouldBeStructurallyEquivalentTo(validatedGuardianships);
 
             validPersonCase.DeleteReceivedJsons();
         }
         catch
         {
-            await validPersonCase.WriteReceivedPartyJson(serializedPerson);
-            await validPersonCase.WriteReceivedGuardianshipsJson(serializedGuardianships);
+            await validPersonCase.WriteReceivedJson(serializedPerson);
             throw;
         }
     }
@@ -85,14 +79,13 @@ public class NprPersonParsingTests
         : IXunitSerializable
     {
         private const string SOURCE_FILE_NAME = "npr.json";
-        private const string VALIDATED_PARTY_FILE_NAME = "party.validated.json";
-        private const string RECEIVED_PARTY_FILE_NAME = "party.received.json";
-        private const string VALIDATED_GUARDIANSHIPS_NAME = "guardianships.validated.json";
-        private const string RECEIVED_GUARDIANSHIPS_NAME = "guardianships.received.json";
+        private const string VALIDATED_RESULT_FILE_NAME = "result.validated.json";
+        private const string RECEIVED_RESULT_FILE_NAME = "result.received.json";
 
         private static readonly JsonSerializerOptions Options = new JsonSerializerOptions(Json.Options)
         {
             WriteIndented = true,
+            Encoder = JavaScriptEncoder.Create(UnicodeRanges.BasicLatin, UnicodeRanges.Latin1Supplement),
         };
 
         private string _name = null!;
@@ -112,25 +105,18 @@ public class NprPersonParsingTests
             return await JsonDocument.ParseAsync(fs, cancellationToken: TestContext.Current.CancellationToken);
         }
 
-        public Task<JsonDocument?> ReadValidatedPartyJson()
-            => ReadValidatedJson(VALIDATED_PARTY_FILE_NAME);
+        public Task<JsonDocument?> ReadValidatedJson()
+            => ReadValidatedJson(VALIDATED_RESULT_FILE_NAME);
 
-        public Task WriteReceivedPartyJson(JsonDocument document)
-            => WriteReceivedJson(document, RECEIVED_PARTY_FILE_NAME);
-
-        public Task<JsonDocument?> ReadValidatedGuardianshipsJson()
-            => ReadValidatedJson(VALIDATED_GUARDIANSHIPS_NAME);
-
-        public Task WriteReceivedGuardianshipsJson(JsonDocument document)
-            => WriteReceivedJson(document, RECEIVED_GUARDIANSHIPS_NAME);
+        public Task WriteReceivedJson(JsonDocument document)
+            => WriteReceivedJson(document, RECEIVED_RESULT_FILE_NAME);
 
         public void DeleteReceivedJsons()
         {
             var personsDir = FindPersonsDir();
             var caseDir = Path.Join(personsDir, "valid", Name);
 
-            TryDelete(Path.Join(caseDir, RECEIVED_PARTY_FILE_NAME));
-            TryDelete(Path.Join(caseDir, RECEIVED_GUARDIANSHIPS_NAME));
+            TryDelete(Path.Join(caseDir, RECEIVED_RESULT_FILE_NAME));
 
             static void TryDelete(string path)
             {

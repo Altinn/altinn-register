@@ -1,6 +1,6 @@
 {
-  "partyType": "person",
-  "source": "npr",
+  "personIdentifier": "05839297221",
+  "displayName": "UAVHENGIG HYPPIG DREGG",
   "firstName": "UAVHENGIG",
   "middleName": "HYPPIG",
   "lastName": "DREGG",
@@ -13,11 +13,5 @@
   },
   "dateOfBirth": "1992-03-05",
   "dateOfDeath": null,
-  "ownerUuid": null,
-  "externalUrn": "urn:altinn:person:identifier-no:05839297221",
-  "displayName": "UAVHENGIG HYPPIG DREGG",
-  "personIdentifier": "05839297221",
-  "organizationIdentifier": null,
-  "isDeleted": false,
-  "deletedAt": null
+  "guardians": []
 }
