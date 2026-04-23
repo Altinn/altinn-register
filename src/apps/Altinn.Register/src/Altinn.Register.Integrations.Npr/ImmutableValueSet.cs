@@ -21,19 +21,17 @@ public readonly struct ImmutableValueSet<T>
     /// <summary>
     /// An empty (initialized) instance of <see cref="ImmutableValueSet{T}"/>.
     /// </summary>
-    public static readonly ImmutableValueSet<T> Empty = new(ImmutableValueArray<T>.Empty, null);
+    public static readonly ImmutableValueSet<T> Empty = new(ImmutableValueArray<T>.Empty, Comparer<T>.Default);
 
     /// <summary>
     /// Creates a new instance of <see cref="ImmutableValueSet{T}"/> with the specified items.
     /// </summary>
     /// <param name="items">The items. Duplicates are removed.</param>
     /// <param name="comparer">The comparer used to sort the items.</param>
-    /// <param name="equalityComparer">The equality comparer used to check if items are the same.</param>
     /// <returns>A new instance of <see cref="ImmutableValueSet{T}"/> containing the specified items.</returns>
     public static ImmutableValueSet<T> Create(
         IEnumerable<T> items,
-        IComparer<T>? comparer = null,
-        IEqualityComparer<T>? equalityComparer = null)
+        IComparer<T>? comparer = null)
     {
         ImmutableArray<T>.Builder builder;
         if (items.TryGetNonEnumeratedCount(out int count))
@@ -45,16 +43,30 @@ public readonly struct ImmutableValueSet<T>
             builder = ImmutableArray.CreateBuilder<T>();
         }
 
+        comparer ??= Comparer<T>.Default;
         foreach (var item in items)
         {
-            if (!builder.Contains(item, equalityComparer))
+            if (!Contains(builder, item, comparer))
             {
                 builder.Add(item);
             }
         }
 
         builder.Sort(comparer);
-        return CreateUnchecked(builder.DrainToImmutableValueArray(), equalityComparer);
+        return CreateUnchecked(builder.DrainToImmutableValueArray(), comparer);
+
+        static bool Contains(ImmutableArray<T>.Builder builder, T item, IComparer<T> comparer)
+        {
+            for (int i = 0; i < builder.Count; i++)
+            {
+                if (comparer.Compare(builder[i], item) == 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 
     /// <summary>
@@ -66,16 +78,16 @@ public readonly struct ImmutableValueSet<T>
     /// <returns>A new instance of <see cref="ImmutableValueSet{T}"/> containing the specified values.</returns>
     internal static ImmutableValueSet<T> CreateUnchecked(
         ImmutableValueArray<T> inner,
-        IEqualityComparer<T>? comparer = null)
-        => new(inner, comparer);
+        IComparer<T>? comparer = null)
+        => new(inner, comparer ?? Comparer<T>.Default);
 
     [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
     private readonly ImmutableValueArray<T> _inner;
-    private readonly IEqualityComparer<T>? _comparer;
+    private readonly IComparer<T> _comparer;
 
     private ImmutableValueSet(
         ImmutableValueArray<T> inner,
-        IEqualityComparer<T>? comparer)
+        IComparer<T> comparer)
     {
         _inner = inner;
         _comparer = comparer;
@@ -107,7 +119,7 @@ public readonly struct ImmutableValueSet<T>
 
     /// <inheritdoc/>
     public bool Contains(T item)
-        => _inner.Contains(item, _comparer);
+        => _inner.AsSpan().BinarySearch(item, _comparer) >= 0;
 
     /// <summary>
     /// Returns an enumerator for the contents of the array.

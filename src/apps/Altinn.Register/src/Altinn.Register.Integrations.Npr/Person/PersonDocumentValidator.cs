@@ -121,7 +121,9 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         validated = new GuardianshipInfo
         {
             Guardian = guardianIdentifier,
-            Roles = ImmutableValueSet<string>.Create(roles.Where(static r => r.HasValue).Select(static r => r.Value)),
+            Roles = ImmutableValueSet<string>.Create(
+                roles.Where(static r => r.HasValue).Select(static r => r.Value),
+                StringComparer.Ordinal),
         };
         return true;
     }
@@ -488,9 +490,9 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         {
             _ when TryAddress(ref context, path: "/postadresse", input.MailingAddress, this, out result) => result,
             _ when TryAddress(ref context, path: "/oppholdsadresse", input.CurrentStayAddress, this, out result) => result,
-            PersonStatus.Emigrated when TryAddress(ref context, path: "/utenlandskAddresse", input.InternationalMailingAddress, this, out result) => result,
+            PersonStatus.Emigrated when TryAddress(ref context, path: "/utenlandskAdresse", input.InternationalMailingAddress, this, out result) => result,
             _ when TryAddress(ref context, path: "/bostedsadresse", input.RegisteredResidentialAddress, this, out result) => result,
-            not PersonStatus.Emigrated when TryAddress(ref context, path: "/utenlandskAddresse", input.InternationalMailingAddress, this, out result) => result,
+            not PersonStatus.Emigrated when TryAddress(ref context, path: "/utenlandskAdresse", input.InternationalMailingAddress, this, out result) => result,
             _ => null,
         };
 
@@ -846,7 +848,7 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         var address = string.Join(' ', input.AddressLines);
         if (input.AddressLines.Length > 0 && !input.AddressLines[^1].StartsWith(postalInfo.Code))
         {
-            address += $" {postalInfo.Code} {postalInfo.Name}".Trim();
+            address = $"{address} {postalInfo.Code} {postalInfo.Name}".Trim();
         }
 
         validated = new MailingAddressRecordExt
@@ -1168,6 +1170,14 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             context.TryValidateChild(path: "/poststed", input.PostalArea, this, out postal);
         }
 
+        string? municipalNumber = null;
+        string? municipalName = null;
+        if (input.MatrikkelNumber?.MunicipalityNumber is { } mn)
+        {
+            municipalNumber = mn.Trim();
+            TryGetMunicipalName(municipalNumber, out municipalName);
+        }
+
         if (context.HasErrors)
         {
             validated = default;
@@ -1176,6 +1186,8 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
 
         validated = new StreetAddressRecord
         {
+            MunicipalNumber = municipalNumber,
+            MunicipalName = municipalName,
             PostalCode = postal.Code,
             City = postal.Name,
         };
@@ -1382,7 +1394,7 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         }
 
         string postBoxPrefix = isForeign ? "Postbox" : "Postboks";
-        return $"{postBoxPrefix} {postBoxAddress}";
+        return $"{postBoxPrefix} {postBoxAddress}".Trim();
     }
 
     private bool TryLookupCountryName(string? countryCode, out string? countryDisplay)

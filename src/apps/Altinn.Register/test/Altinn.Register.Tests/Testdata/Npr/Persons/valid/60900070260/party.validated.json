@@ -1,0 +1,23 @@
+{
+  "partyType": "person",
+  "source": "npr",
+  "firstName": "SKY",
+  "middleName": null,
+  "lastName": "MAI",
+  "shortName": "MAI SKY",
+  "address": null,
+  "mailingAddress": {
+    "address": "POSTBOKS 0134 Oslo",
+    "postalCode": "0134",
+    "city": "Oslo"
+  },
+  "dateOfBirth": "2000-01-01",
+  "dateOfDeath": null,
+  "ownerUuid": null,
+  "externalUrn": "urn:altinn:person:identifier-no:60900070260",
+  "displayName": "SKY MAI",
+  "personIdentifier": "60900070260",
+  "organizationIdentifier": null,
+  "isDeleted": false,
+  "deletedAt": null
+}
