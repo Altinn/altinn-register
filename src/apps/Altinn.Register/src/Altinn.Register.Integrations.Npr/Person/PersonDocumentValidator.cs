@@ -43,6 +43,7 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
     , IValidator<InternationalFreeFormMailingAddress, PersonDocumentValidator.MailingAddressRecordExt>
     , IValidator<InternationalMailingAddress, PersonDocumentValidator.MailingAddressRecordExt>
     , IValidator<MatrikkelAddress, PersonDocumentValidator.MailingAddressRecordExt>
+    , IValidator<MatrikkelAddress, StreetAddressRecord>
     , IValidator<PostalArea, PersonDocumentValidator.PostalInfo>
 {
     /// <inheritdoc/>
@@ -235,6 +236,15 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
                 var hasGuardian = !input.GuardianshipOrPowerOfAttorney.IsDefaultOrEmpty;
                 var prefix = hasGuardian ? "v/" : "c/o ";
                 mailingAddress = mailingAddress with { Address = prefix + mailingAddress.Address };
+            }
+            else if (mailingAddress is not null && mailingAddress.IsEmpty)
+            {
+                mailingAddress = null;
+            }
+
+            if (address is not null && address.IsEmpty)
+            {
+                address = null;
             }
         }
 
@@ -737,12 +747,14 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
 
         if (input.MatrikkelAddress is not null)
         {
-            // We cannot map a matrikkel address to a street address.
-            validated = new StreetAddressRecord
+            if (context.TryValidateChild(path: "/matrikkeladresse", input.MatrikkelAddress, this, out StreetAddressRecord? result))
             {
-                // All nulls
-            };
-            return true;
+                validated = result;
+                return true;
+            }
+
+            validated = default;
+            return false;
         }
 
         context.AddChildProblem(
@@ -1087,36 +1099,41 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
 
         // Cadastral number (matrikkeladresse) format:
         // municipality no.-land no./title no./share no./sub no.
-        string cadastralNumber = string.Empty;
+        var cadastralNumber = new StringBuilder();
 
         if (!string.IsNullOrWhiteSpace(input.MatrikkelNumber?.MunicipalityNumber))
         {
-            cadastralNumber += input.MatrikkelNumber.MunicipalityNumber.Trim() + "-";
+            cadastralNumber.Append(input.MatrikkelNumber.MunicipalityNumber.Trim()).Append('-');
         }
 
-        if (!string.IsNullOrWhiteSpace(input.MatrikkelNumber?.PropertyNumber))
+        if (input.MatrikkelNumber?.PropertyNumber is { } propertyNumber)
         {
-            cadastralNumber += input.MatrikkelNumber.PropertyNumber.Trim() + "/";
+            cadastralNumber.Append($"{propertyNumber}/");
         }
 
-        if (!string.IsNullOrWhiteSpace(input.MatrikkelNumber?.TitleNumber))
+        if (input.MatrikkelNumber?.TitleNumber is { } titleNumber)
         {
-            cadastralNumber += input.MatrikkelNumber.TitleNumber.Trim() + "/";
+            cadastralNumber.Append($"{titleNumber}/");
         }
 
-        if (!string.IsNullOrWhiteSpace(input.MatrikkelNumber?.LeaseNumber))
+        if (input.MatrikkelNumber?.LeaseNumber is { } leaseNumber)
         {
-            cadastralNumber += input.MatrikkelNumber.LeaseNumber.Trim() + "/";
+            cadastralNumber.Append($"{leaseNumber}/");
         }
 
-        if (!string.IsNullOrWhiteSpace(input.SubNumber))
+        if (input.SubNumber is { } subNumber)
         {
-            cadastralNumber += input.SubNumber.Trim();
+            cadastralNumber.Append($"{subNumber}");
         }
 
-        if (!string.IsNullOrEmpty(cadastralNumber))
+        while (cadastralNumber.Length > 0 && (cadastralNumber[^1] == '-' || cadastralNumber[^1] == '/'))
         {
-            addressLines.Add(cadastralNumber.TrimEnd(['-', '/']));
+            cadastralNumber.Length--;
+        }
+
+        if (cadastralNumber.Length > 0)
+        {
+            addressLines.Add(cadastralNumber.ToString());
         }
 
         if (postal.Code != "0000" && !string.IsNullOrEmpty(postal.Name))
@@ -1130,6 +1147,37 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             PostalCode = postal.Code,
             City = postal.Name,
             IsFirstLineCareOfAddress = isCoAddress,
+        };
+        return true;
+    }
+
+    /// <inheritdoc/>
+    bool IValidator<MatrikkelAddress, StreetAddressRecord>.TryValidate(
+        ref ValidationContext context,
+        MatrikkelAddress input,
+        [NotNullWhen(true)] out StreetAddressRecord? validated)
+    {
+        PostalInfo postal;
+        if (input.PostalArea is null)
+        {
+            context.AddChildProblem(StdValidationErrors.Required, path: "/poststed");
+            postal = default;
+        }
+        else
+        {
+            context.TryValidateChild(path: "/poststed", input.PostalArea, this, out postal);
+        }
+
+        if (context.HasErrors)
+        {
+            validated = default;
+            return false;
+        }
+
+        validated = new StreetAddressRecord
+        {
+            PostalCode = postal.Code,
+            City = postal.Name,
         };
         return true;
     }

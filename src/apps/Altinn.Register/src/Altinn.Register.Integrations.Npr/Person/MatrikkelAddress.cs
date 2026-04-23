@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Altinn.Authorization.ModelUtils;
 
 namespace Altinn.Register.Integrations.Npr.Person;
 
@@ -17,7 +18,7 @@ public sealed record MatrikkelAddress
     /// Gets the dwelling unit type for the cadastral address.
     /// </summary>
     [JsonPropertyName("bruksenhetstype")]
-    public string? UnitType { get; init; }
+    public NonExhaustiveEnum<MatrikkelUnitType>? UnitType { get; init; }
 
     /// <summary>
     /// Gets the cadastral number of the cadastral address.
@@ -29,7 +30,7 @@ public sealed record MatrikkelAddress
     /// Gets the sub-number of the cadastral address, if applicable.
     /// </summary>
     [JsonPropertyName("undernummer")]
-    public string? SubNumber { get; init; }
+    public long? SubNumber { get; init; }
 
     /// <summary>
     /// Gets the additional name of the cadastral address, if applicable.

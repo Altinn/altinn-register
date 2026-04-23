@@ -17,17 +17,17 @@ public sealed record MatrikkelNumber
     /// Gets the property number of the cadastral number.
     /// </summary>
     [JsonPropertyName("gaardsnummer")]
-    public string? PropertyNumber { get; init; }
+    public long? PropertyNumber { get; init; }
 
     /// <summary>
     /// Gets the section number of the cadastral number.
     /// </summary>
     [JsonPropertyName("bruksnummer")]
-    public string? TitleNumber { get; init; }
+    public long? TitleNumber { get; init; }
 
     /// <summary>
     /// Gets the sub-section number of the cadastral number.
     /// </summary>
     [JsonPropertyName("festenummer")]
-    public string? LeaseNumber { get; init; }
+    public long? LeaseNumber { get; init; }
 }

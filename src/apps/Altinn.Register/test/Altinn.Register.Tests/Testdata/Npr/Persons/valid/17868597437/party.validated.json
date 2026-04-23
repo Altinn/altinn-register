@@ -1,0 +1,31 @@
+{
+  "partyType": "person",
+  "source": "npr",
+  "firstName": "LYS",
+  "middleName": null,
+  "lastName": "BIT",
+  "shortName": "BIT LYS",
+  "address": {
+    "municipalNumber": null,
+    "municipalName": null,
+    "streetName": null,
+    "houseNumber": null,
+    "houseLetter": null,
+    "postalCode": "9980",
+    "city": "BERLEV\u00C5G"
+  },
+  "mailingAddress": {
+    "address": "5630-11/4/0/0 9980 BERLEV\u00C5G",
+    "postalCode": "9980",
+    "city": "BERLEV\u00C5G"
+  },
+  "dateOfBirth": "1985-06-17",
+  "dateOfDeath": null,
+  "ownerUuid": null,
+  "externalUrn": "urn:altinn:person:identifier-no:17868597437",
+  "displayName": "LYS BIT",
+  "personIdentifier": "17868597437",
+  "organizationIdentifier": null,
+  "isDeleted": false,
+  "deletedAt": null
+}

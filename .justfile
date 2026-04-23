@@ -51,3 +51,9 @@ set windows-shell := ["pwsh.exe", "-NoLogo", "-CommandWithArgs"]
   #!{{shebang}}
   node ./.github/scripts/generate-guardianship-code.mts > "./src/apps/Altinn.Register/src/Altinn.Register.Integrations.Npr/Guardianships.g.cs"
   node ./.github/scripts/generate-guardianship-tests.mts > "./src/apps/Altinn.Register/test/Altinn.Register.Tests/PartyImport/Npr/GuardianshipRoleMapperTests.g.cs"
+
+@fetch-tenor-id ID:
+  #!{{shebang}}
+  $null = New-Item -Type Directory -Force "src/apps/Altinn.Register/test/Altinn.Register.Tests/Testdata/Npr/Persons/valid/{{ID}}"
+  $response = Invoke-WebRequest -Uri "http://localhost:5020/register/api/v0/debug/npr/person/{{ID}}"
+  $response.Content | prettier --parser json | Out-File -FilePath "src/apps/Altinn.Register/test/Altinn.Register.Tests/Testdata/Npr/Persons/valid/{{ID}}/npr.json"
