@@ -7,13 +7,13 @@ using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core.ImportJobs;
+using Altinn.Register.Core.Npr;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.PartyImport;
 using Altinn.Register.PartyImport.A2;
-using Altinn.Register.PartyImport.Npr;
 using Altinn.Register.TestUtils.MassTransit;
 using Altinn.Register.TestUtils.TestData;
 using Altinn.Urn;
@@ -243,7 +243,7 @@ public class PartyImportFlowTests
                 }
                 """);
 
-        FakeHttpHandlers.For<NprClient>()
+        FakeHttpHandlers.For<INprClient>()
             .Expect(HttpMethod.Get, "/folkeregisteret/offentlig-med-hjemmel/api/v1/personer/{personIdentifier}")
             .WithRouteValue("personIdentifier", person.PersonIdentifier.Value!.ToString())
             .Respond(HttpStatusCode.NotFound);
@@ -404,7 +404,7 @@ public class PartyImportFlowTests
                 }
                 """);
 
-        FakeHttpHandlers.For<NprClient>()
+        FakeHttpHandlers.For<INprClient>()
             .Expect(HttpMethod.Get, "/folkeregisteret/offentlig-med-hjemmel/api/v1/personer/{personIdentifier}")
             .WithRouteValue("personIdentifier", person.PersonIdentifier.Value!.ToString())
             .Respond(
@@ -419,6 +419,39 @@ public class PartyImportFlowTests
                       "status": "iBruk",
                       "foedselsEllerDNummer": "{{person.PersonIdentifier.Value}}",
                       "identifikatortype": "foedselsnummer"
+                    }
+                  ],
+                  "status": [
+                    {
+                      "ajourholdstidspunkt": "2023-11-20T14:00:18.540646+01:00",
+                      "erGjeldende": true,
+                      "kilde": "Synutopia",
+                      "aarsak": "Vergemål",
+                      "gyldighetstidspunkt": "2021-11-28T00:00:00+01:00",
+                      "status": "bosatt"
+                    }
+                  ],
+                  "foedsel": [
+                    {
+                      "ajourholdstidspunkt": "2023-11-20T14:00:18.540646+01:00",
+                      "erGjeldende": true,
+                      "kilde": "Synutopia",
+                      "aarsak": "Vergemål",
+                      "gyldighetstidspunkt": "2021-11-28T00:00:00+01:00",
+                      "foedselsdato": "{{person.DateOfBirth.Value:yyyy-MM-dd}}"
+                    }
+                  ],
+                  "navn": [
+                    {
+                      "ajourholdstidspunkt": "2023-11-20T14:00:18.540646+01:00",
+                      "erGjeldende": true,
+                      "kilde": "Synutopia",
+                      "aarsak": "Vergemål",
+                      "gyldighetstidspunkt": "2021-11-28T00:00:00+01:00",
+                      "fornavn": "{{person.FirstName.Value}}",
+                      "mellomnavn": "{{person.MiddleName.Value}}",
+                      "etternavn": "{{person.LastName.Value}}",
+                      "forkortetNavn": "{{person.ShortName.Value}}"
                     }
                   ],
                   "vergemaalEllerFremtidsfullmakt": [

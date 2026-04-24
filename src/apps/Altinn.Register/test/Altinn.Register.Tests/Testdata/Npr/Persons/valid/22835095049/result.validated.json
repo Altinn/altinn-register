@@ -1,14 +1,14 @@
 {
-  "partyType": "person",
-  "source": "npr",
+  "personIdentifier": "22835095049",
+  "displayName": "KNUSLETE GAUPE",
   "firstName": "KNUSLETE",
   "middleName": null,
   "lastName": "GAUPE",
   "shortName": "GAUPE KNUSLETE",
   "address": {
     "municipalNumber": "4638",
-    "municipalName": "H\u00D8YANGER",
-    "streetName": "Kr\u00E5kevika",
+    "municipalName": "HØYANGER",
+    "streetName": "Kråkevika",
     "houseNumber": "15",
     "houseLetter": null,
     "postalCode": "6996",
@@ -21,11 +21,5 @@
   },
   "dateOfBirth": "1950-03-22",
   "dateOfDeath": null,
-  "ownerUuid": null,
-  "externalUrn": "urn:altinn:person:identifier-no:22835095049",
-  "displayName": "KNUSLETE GAUPE",
-  "personIdentifier": "22835095049",
-  "organizationIdentifier": null,
-  "isDeleted": false,
-  "deletedAt": null
+  "guardians": []
 }

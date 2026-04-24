@@ -5,12 +5,12 @@ using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Contracts.Parties;
+using Altinn.Register.Core.Npr;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.PartyImport.A2;
-using Altinn.Register.PartyImport.Npr;
 using Altinn.Register.TestUtils.MassTransit;
 using Altinn.Register.TestUtils.TestData;
 using Xunit.Sdk;
@@ -206,7 +206,7 @@ public class A2PartyImportConsumerTests
                 }
             }));
 
-        FakeHttpHandlers.For<NprClient>()
+        FakeHttpHandlers.For<INprClient>()
             .Expect(HttpMethod.Get, "/folkeregisteret/offentlig-med-hjemmel/api/v1/personer/{personIdentifier}")
             .WithRouteValue("personIdentifier", "25871999336")
             .Respond(HttpStatusCode.NotFound);

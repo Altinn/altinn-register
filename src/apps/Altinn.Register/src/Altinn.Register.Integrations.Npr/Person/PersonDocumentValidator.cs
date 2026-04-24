@@ -10,8 +10,9 @@ using Altinn.Authorization.ProblemDetails.Validation;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Location;
-using Altinn.Register.Core.Parties;
+using Altinn.Register.Core.Npr;
 using Altinn.Register.Core.Parties.Records;
+using Altinn.Register.Core.Utils;
 using Altinn.Register.Core.Validation;
 
 namespace Altinn.Register.Integrations.Npr.Person;
@@ -20,10 +21,9 @@ namespace Altinn.Register.Integrations.Npr.Person;
 /// Validator for validating a <see cref="PersonDocument"/>.
 /// </summary>
 public sealed class PersonDocumentValidator(ILocationLookup lookup)
-    : IValidator<PersonDocument, PersonRecord>
-    , IValidator<PersonDocument, ImmutableArray<GuardianshipInfo>>
-    , IValidator<GuardianshipOrPowerOfAttorneyElement, Optional<GuardianshipInfo>>
-    , IValidator<Guardianship, Optional<GuardianshipInfo>>
+    : IValidator<PersonDocument, NprPerson>
+    , IValidator<GuardianshipOrPowerOfAttorneyElement, Optional<NprGuardianship>>
+    , IValidator<Guardianship, Optional<NprGuardianship>>
     , IValidator<GuardianshipServiceArea, Optional<string>>
     , IValidator<PersonStatusElement, PersonStatus>
     , IValidator<IdentificationNumberElement, PersonIdentifier>
@@ -50,139 +50,7 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
     public bool TryValidate(
         ref ValidationContext context,
         PersonDocument input,
-        [NotNullWhen(true)] out ImmutableArray<GuardianshipInfo> validated)
-    {
-        if (input.GuardianshipOrPowerOfAttorney.IsDefaultOrEmpty)
-        {
-            validated = [];
-            return true;
-        }
-
-        return context.TryValidateChild(
-            path: "/vergemaalEllerFremtidsfullmakt",
-            input.GuardianshipOrPowerOfAttorney,
-            ActiveElementValidator.ArrayOfOptional<GuardianshipOrPowerOfAttorneyElement, GuardianshipInfo, PersonDocumentValidator>(this),
-            out validated);
-    }
-
-    /// <inheritdoc/>
-    public bool TryValidate(
-        ref ValidationContext context,
-        GuardianshipOrPowerOfAttorneyElement input,
-        [NotNullWhen(true)] out Optional<GuardianshipInfo> validated)
-    {
-        if (input.Guardianship is not null)
-        {
-            return context.TryValidateChild(
-                path: "/verge",
-                input.Guardianship,
-                this,
-                out validated);
-        }
-
-        // we ignore power of attorney entries
-        validated = default;
-        return true;
-    }
-
-    /// <inheritdoc/>
-    public bool TryValidate(
-        ref ValidationContext context,
-        Guardianship input,
-        [NotNullWhen(true)] out Optional<GuardianshipInfo> validated)
-    {
-        if (input.GuardianIdentifier is null || input.ServiceAreas.IsDefaultOrEmpty)
-        {
-            // ignore guardianships with no guardian or roles
-            validated = default;
-            return true;
-        }
-
-        context.TryValidateChild(
-            path: "/foedselsEllerDNummer",
-            input.GuardianIdentifier,
-            default(PersonIdentifierValidator),
-            out PersonIdentifier? guardianIdentifier);
-
-        context.TryValidateChild(
-            path: "/tjenesteomraade",
-            input.ServiceAreas.AsEnumerable(),
-            ListValidator.ForEnumerable<GuardianshipServiceArea, Optional<string>, PersonDocumentValidator>(this),
-            out IEnumerable<Optional<string>>? roles);
-
-        if (context.HasErrors)
-        {
-            validated = default;
-            return false;
-        }
-
-        Debug.Assert(guardianIdentifier is not null);
-        Debug.Assert(roles is not null);
-        validated = new GuardianshipInfo
-        {
-            Guardian = guardianIdentifier,
-            Roles = ImmutableValueSet<string>.Create(
-                roles.Where(static r => r.HasValue).Select(static r => r.Value),
-                StringComparer.Ordinal),
-        };
-        return true;
-    }
-
-    /// <inheritdoc/>
-    public bool TryValidate(
-        ref ValidationContext context,
-        GuardianshipServiceArea input,
-        [NotNullWhen(true)] out Optional<string> validated)
-    {
-        if (string.IsNullOrEmpty(input.ServiceOwner))
-        {
-            context.AddChildProblem(StdValidationErrors.Required, path: "/vergeTjenestevirksomhet");
-        }
-
-        if (string.IsNullOrEmpty(input.ServiceTask))
-        {
-            context.AddChildProblem(StdValidationErrors.Required, path: "/vergeTjenesteoppgave");
-        }
-
-        if (context.HasErrors)
-        {
-            validated = default;
-            return false;
-        }
-
-        Debug.Assert(input.ServiceOwner is not null);
-        Debug.Assert(input.ServiceTask is not null);
-        if (!GuardianshipRoleMapper.TryFindRoleByNprValues(
-            vergeTjenestevirksomhet: input.ServiceOwner,
-            vergeTjenesteoppgave: input.ServiceTask,
-            out var role))
-        {
-            context.AddChildProblem(
-                ValidationErrors.UnknownGuardianshipRole,
-                path: ["/vergeTjenestevirksomhet", "/vergeTjenesteoppgave"],
-                extensions: [new("vergeTjenestevirksomhet", input.ServiceOwner), new("vergeTjenesteoppgave", input.ServiceTask)],
-                detail: $"No guardianship role found for service owner '{input.ServiceOwner}' and service task '{input.ServiceTask}'.");
-
-            validated = default;
-            return false;
-        }
-
-        // we support some combinations of tjenestevirksomhet and tjenesteoppgave which we do not create roles for.
-        // TryFindRoleByNprValues returns true for these, while leaving the out variable as `null`.
-        validated = default;
-        if (role is not null)
-        {
-            validated = role.Identifier;
-        }
-
-        return true;
-    }
-
-    /// <inheritdoc/>
-    public bool TryValidate(
-        ref ValidationContext context,
-        PersonDocument input,
-        [NotNullWhen(true)] out PersonRecord? validated)
+        [NotNullWhen(true)] out NprPerson? validated)
     {
         context.TryValidateChild(
             path: "/identifikasjonsnummer",
@@ -250,6 +118,30 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             }
         }
 
+        ImmutableArray<NprGuardianship>.Builder? guardiansBuilder = null;
+        if (!input.GuardianshipOrPowerOfAttorney.IsDefaultOrEmpty)
+        {
+            context.TryValidateChild(
+                path: "/vergemaalEllerFremtidsfullmakt",
+                input.GuardianshipOrPowerOfAttorney,
+                ActiveElementValidator.ArrayOfOptional<GuardianshipOrPowerOfAttorneyElement, NprGuardianship, PersonDocumentValidator>(this),
+                out guardiansBuilder);
+        }
+
+        // fixup guardianships according to the requirement of NprPerson.Guardians
+        ImmutableValueArray<NprGuardianship> guardians = [];
+        if (guardiansBuilder is not null)
+        {
+            SortGuardianships(guardiansBuilder);
+
+            if (guardiansBuilder.Count > 1)
+            {
+                MergeGuardianshipsForSameGuardian(guardiansBuilder);
+            }
+
+            guardians = guardiansBuilder.DrainToImmutableValueArray();
+        }
+
         if (context.HasErrors)
         {
             validated = default;
@@ -257,34 +149,10 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         }
 
         Debug.Assert(personIdentifier is not null);
-        validated = new PersonRecord
+        validated = new NprPerson
         {
-            // We cannot know the Altinn identifiers here. They will be merged in downstream
-            PartyUuid = FieldValue.Unset,
-            PartyId = FieldValue.Unset,
-            User = FieldValue.Unset,
-
-            // Persons does not have owners and are not deleted
-            OwnerUuid = FieldValue.Null,
-            IsDeleted = false,
-            DeletedAt = FieldValue.Null,
-
             // Person identifiers
             PersonIdentifier = personIdentifier,
-            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personIdentifier),
-
-            // Not an org
-            OrganizationIdentifier = FieldValue.Null,
-
-            // Time values are set downstream
-            CreatedAt = FieldValue.Unset,
-            ModifiedAt = FieldValue.Unset,
-
-            // VersionID is set in the database
-            VersionId = FieldValue.Unset,
-
-            // Source is NPR
-            Source = PersonSource.NationalPopulationRegister,
 
             // Name components
             DisplayName = personName.DisplayName,
@@ -295,12 +163,128 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
 
             // Birth and death
             DateOfBirth = dateOfBirth,
-            DateOfDeath = FieldValue.From(death.DateOfDeath),
+            DateOfDeath = death.DateOfDeath,
 
             // Addresses
             Address = address,
             MailingAddress = mailingAddress,
+
+            // Guardianships
+            Guardians = guardians,
         };
+        return true;
+    }
+
+    /// <inheritdoc/>
+    public bool TryValidate(
+        ref ValidationContext context,
+        GuardianshipOrPowerOfAttorneyElement input,
+        [NotNullWhen(true)] out Optional<NprGuardianship> validated)
+    {
+        if (input.Guardianship is not null)
+        {
+            return context.TryValidateChild(
+                path: "/verge",
+                input.Guardianship,
+                this,
+                out validated);
+        }
+
+        // we ignore power of attorney entries
+        validated = default;
+        return true;
+    }
+
+    /// <inheritdoc/>
+    public bool TryValidate(
+        ref ValidationContext context,
+        Guardianship input,
+        [NotNullWhen(true)] out Optional<NprGuardianship> validated)
+    {
+        if (input.GuardianIdentifier is null || input.ServiceAreas.IsDefaultOrEmpty)
+        {
+            // ignore guardianships with no guardian or roles
+            validated = default;
+            return true;
+        }
+
+        context.TryValidateChild(
+            path: "/foedselsEllerDNummer",
+            input.GuardianIdentifier,
+            default(PersonIdentifierValidator),
+            out PersonIdentifier? guardianIdentifier);
+
+        context.TryValidateChild(
+            path: "/tjenesteomraade",
+            input.ServiceAreas.AsEnumerable(),
+            ListValidator.ForEnumerable<GuardianshipServiceArea, Optional<string>, PersonDocumentValidator>(this),
+            out IEnumerable<Optional<string>>? roles);
+
+        if (context.HasErrors)
+        {
+            validated = default;
+            return false;
+        }
+
+        Debug.Assert(guardianIdentifier is not null);
+        Debug.Assert(roles is not null);
+        validated = new NprGuardianship
+        {
+            Guardian = guardianIdentifier,
+            Roles = ImmutableValueSet<string>.Create(
+                roles.Where(static r => r.HasValue).Select(static r => r.Value),
+                StringComparer.Ordinal),
+        };
+        return true;
+    }
+
+    /// <inheritdoc/>
+    public bool TryValidate(
+        ref ValidationContext context,
+        GuardianshipServiceArea input,
+        [NotNullWhen(true)] out Optional<string> validated)
+    {
+        if (string.IsNullOrEmpty(input.ServiceOwner))
+        {
+            context.AddChildProblem(StdValidationErrors.Required, path: "/vergeTjenestevirksomhet");
+        }
+
+        if (string.IsNullOrEmpty(input.ServiceTask))
+        {
+            context.AddChildProblem(StdValidationErrors.Required, path: "/vergeTjenesteoppgave");
+        }
+
+        if (context.HasErrors)
+        {
+            validated = default;
+            return false;
+        }
+
+        Debug.Assert(input.ServiceOwner is not null);
+        Debug.Assert(input.ServiceTask is not null);
+        if (!GuardianshipRoleMapper.TryFindRoleByNprValues(
+            vergeTjenestevirksomhet: input.ServiceOwner,
+            vergeTjenesteoppgave: input.ServiceTask,
+            out var role))
+        {
+            context.AddChildProblem(
+                ValidationErrors.UnknownGuardianshipRole,
+                path: ["/vergeTjenestevirksomhet", "/vergeTjenesteoppgave"],
+                extensions: [new("vergeTjenestevirksomhet", input.ServiceOwner), new("vergeTjenesteoppgave", input.ServiceTask)],
+                detail: $"No guardianship role found for service owner '{input.ServiceOwner}' and service task '{input.ServiceTask}'.");
+
+            validated = default;
+            return false;
+        }
+
+        // we support some combinations of tjenestevirksomhet and tjenesteoppgave which we do not create roles for.
+        // TryFindRoleByNprValues returns true for these, while leaving the out variable as `null`.
+        validated = default;
+        if (role is not null)
+        {
+            validated = role.Identifier;
+        }
+
         return true;
     }
 
@@ -1446,5 +1430,53 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         }
 
         return $"{countryCode.Trim().ToUpperInvariant()}-{postalCode}";
+    }
+
+    private static void SortGuardianships(ImmutableArray<NprGuardianship>.Builder guardians)
+    {
+        guardians.Sort(static (g1, g2) => string.CompareOrdinal(g1.Guardian.ToString(), g2.Guardian.ToString()));
+    }
+
+    private static void MergeGuardianshipsForSameGuardian(ImmutableArray<NprGuardianship>.Builder guardians)
+    {
+        HashSet<PersonIdentifier> guardianIds = new();
+
+        var hasDuplicates = false;
+        foreach (var guardianship in guardians)
+        {
+            if (!guardianIds.Add(guardianship.Guardian))
+            {
+                hasDuplicates = true;
+                break;
+            }
+        }
+
+        if (!hasDuplicates)
+        {
+            return;
+        }
+
+        var merged = guardians
+            .GroupBy(g => g.Guardian)
+            .Select(Merge)
+            .ToList();
+
+        guardians.Clear();
+        guardians.AddRange(merged);
+        SortGuardianships(guardians);
+
+        static NprGuardianship Merge(IGrouping<PersonIdentifier, NprGuardianship> group)
+        {
+            var enumerator = group.GetEnumerator();
+            enumerator.MoveNext(); // guaranteed to have at least one element
+
+            var result = enumerator.Current;
+            while (enumerator.MoveNext())
+            {
+                result = result with { Roles = result.Roles.UnionWith(enumerator.Current.Roles) };
+            }
+
+            return result;
+        }
     }
 }

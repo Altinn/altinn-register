@@ -170,7 +170,7 @@ internal static class ActiveElementValidator
     /// <typeparam name="TValidator">The type of the validator.</typeparam>
     [EditorBrowsable(EditorBrowsableState.Never)]
     internal readonly struct ArrayOfOptionalActiveElementValidator<TIn, TOut, TValidator>
-        : IValidator<ActiveElementArray<TIn>, ImmutableArray<TOut>>
+        : IValidator<ActiveElementArray<TIn>, ImmutableArray<TOut>.Builder>
         where TOut : notnull
         where TIn : HistoricalElement
         where TValidator : IValidator<TIn, Optional<TOut>>
@@ -190,12 +190,12 @@ internal static class ActiveElementValidator
         public bool TryValidate(
             ref ValidationContext context,
             ActiveElementArray<TIn> input,
-            [NotNullWhen(true)] out ImmutableArray<TOut> validated)
+            [NotNullWhen(true)] out ImmutableArray<TOut>.Builder? validated)
         {
             if (input.IsDefault)
             {
                 context.AddProblem(StdValidationErrors.Required);
-                validated = [];
+                validated = default;
                 return false;
             }
 
@@ -213,11 +213,11 @@ internal static class ActiveElementValidator
 
             if (context.HasErrors)
             {
-                validated = [];
+                validated = default;
                 return false;
             }
 
-            validated = validatedList.DrainToImmutable();
+            validated = validatedList;
             return true;
         }
     }

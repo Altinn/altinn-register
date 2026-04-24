@@ -62,7 +62,6 @@ const lines = [
   `using Altinn.Register.Contracts;`,
   `using Altinn.Register.Contracts.ExternalRoles;`,
   `using Altinn.Register.Integrations.Npr;`,
-  `using Altinn.Register.PartyImport.Npr;`,
   `using System.Diagnostics.CodeAnalysis;`,
   ``,
   `namespace Altinn.Register.Tests.PartyImport.Npr;`,
