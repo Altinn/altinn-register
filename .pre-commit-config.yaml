@@ -5,16 +5,28 @@ repos:
   - repo: builtin
     hooks:
       - id: "trailing-whitespace"
+
       - id: "end-of-file-fixer"
+
       - id: "check-yaml"
         args: ["--allow-multiple-documents"]
+
       - id: "check-json"
 
   - repo: local
     hooks:
       - id: "dotnet-format"
-        name: Format C#
+        name: format C#
         entry: dotnet format
         files: "\\.cs$"
         language: system
         pass_filenames: false
+        priority: 20
+
+      - id: "dotnet-build-no-warnings"
+        name: check C#
+        entry: dotnet build Altinn.Register.sln --no-restore -warnaserror
+        files: "\\.(cs|csproj|props|targets|sln)$"
+        language: system
+        pass_filenames: false
+        priority: 20

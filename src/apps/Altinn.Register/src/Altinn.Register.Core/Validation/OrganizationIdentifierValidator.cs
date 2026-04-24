@@ -3,12 +3,12 @@ using Altinn.Authorization.ProblemDetails.Validation;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
 
-namespace Altinn.Register.Operations.Validation;
+namespace Altinn.Register.Core.Validation;
 
 /// <summary>
 /// Input validators for <see cref="OrganizationIdentifier"/>
 /// </summary>
-internal readonly struct OrganizationIdentifierValidator
+public readonly struct OrganizationIdentifierValidator
     : IValidator<string, OrganizationIdentifier>
     , IValidator<ReadOnlySpan<char>, OrganizationIdentifier>
 {

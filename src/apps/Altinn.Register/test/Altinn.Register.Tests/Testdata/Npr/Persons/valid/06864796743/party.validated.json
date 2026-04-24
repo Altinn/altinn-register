@@ -1,0 +1,23 @@
+{
+  "partyType": "person",
+  "source": "npr",
+  "firstName": "INTRIKAT",
+  "middleName": null,
+  "lastName": "INDREFILET",
+  "shortName": "INDREFILET INTRIKAT",
+  "address": null,
+  "mailingAddress": {
+    "address": "Testadresselinje 1 Testadresselinje 2 Moderne testby- eller stedsnavn ETIOPIA",
+    "postalCode": "Testpostkode utland 285",
+    "city": "Moderne testby- eller stedsnavn"
+  },
+  "dateOfBirth": "1947-06-06",
+  "dateOfDeath": null,
+  "ownerUuid": null,
+  "externalUrn": "urn:altinn:person:identifier-no:06864796743",
+  "displayName": "INTRIKAT INDREFILET",
+  "personIdentifier": "06864796743",
+  "organizationIdentifier": null,
+  "isDeleted": false,
+  "deletedAt": null
+}

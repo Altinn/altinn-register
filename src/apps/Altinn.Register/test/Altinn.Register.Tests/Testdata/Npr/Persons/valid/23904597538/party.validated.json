@@ -1,0 +1,31 @@
+{
+  "partyType": "person",
+  "source": "npr",
+  "firstName": "FLAT",
+  "middleName": null,
+  "lastName": "SVAMP",
+  "shortName": "SVAMP FLAT",
+  "address": {
+    "municipalNumber": "5534",
+    "municipalName": "KARLS\u00D8Y",
+    "streetName": "Nord-Fugl\u00F8yveien",
+    "houseNumber": "2108",
+    "houseLetter": null,
+    "postalCode": "9135",
+    "city": "VANNV\u00C5G"
+  },
+  "mailingAddress": {
+    "address": "c/o Empirisk Ungdom Postboks Test 165 5473 SNILSTVEIT\u00D8Y",
+    "postalCode": "5473",
+    "city": "SNILSTVEIT\u00D8Y"
+  },
+  "dateOfBirth": "1945-10-23",
+  "dateOfDeath": null,
+  "ownerUuid": null,
+  "externalUrn": "urn:altinn:person:identifier-no:23904597538",
+  "displayName": "FLAT SVAMP",
+  "personIdentifier": "23904597538",
+  "organizationIdentifier": null,
+  "isDeleted": false,
+  "deletedAt": null
+}

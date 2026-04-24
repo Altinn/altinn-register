@@ -9,6 +9,7 @@ using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core;
 using Altinn.Register.Core.Errors;
+using Altinn.Register.Integrations.Npr;
 
 namespace Altinn.Register.PartyImport.Npr;
 

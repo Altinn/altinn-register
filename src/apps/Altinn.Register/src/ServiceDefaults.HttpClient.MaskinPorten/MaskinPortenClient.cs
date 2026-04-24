@@ -119,6 +119,18 @@ internal sealed partial class MaskinPortenClient
 
         var jwtAssertion = GetJwtAssertion(key, settings);
 
+        /*
+#if DEBUG
+        _logger.LogWarning(
+            "JWT Assertion for ClientId: '{clientId}', Scope: '{scope}', Resource: '{resource}', ConsumerOrg: '{consumerOrg}': {jwtAssertion}",
+            key.ClientId,
+            key.Scope,
+            key.Resource,
+            key.ConsumerOrg,
+            jwtAssertion);
+#endif
+        */
+
         HttpStatusCode? statusCode = null;
         ErrorResponse? errorResponse = null;
         Exception? inner = null;
@@ -201,7 +213,7 @@ internal sealed partial class MaskinPortenClient
 
     private string GetJwtAssertion(MaskinPortenCacheKey key, MaskinPortenClientOptions settings)
     {
-        var now = _timeProvider.GetUtcNow();
+        var now = _timeProvider.GetUtcNow() - TimeSpan.FromSeconds(10);
         var header = new JwtHeader(new SigningCredentials(settings.Key, settings.Key!.Alg));
         var payload = new JwtPayload
         {

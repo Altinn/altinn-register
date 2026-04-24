@@ -1,0 +1,31 @@
+{
+  "partyType": "person",
+  "source": "npr",
+  "firstName": "REALISTISK",
+  "middleName": "DIAKRITISK",
+  "lastName": "GOLBMA\u010CIEHKA",
+  "shortName": "R. DIAKRITISK GOLBMA\u010CIEHKA",
+  "address": {
+    "municipalNumber": "4617",
+    "municipalName": "KVINNHERAD",
+    "streetName": "Snilstveitvegen",
+    "houseNumber": "41",
+    "houseLetter": null,
+    "postalCode": "5473",
+    "city": "SNILSTVEIT\u00D8Y"
+  },
+  "mailingAddress": {
+    "address": "Snilstveitvegen 41 5473 SNILSTVEIT\u00D8Y",
+    "postalCode": "5473",
+    "city": "SNILSTVEIT\u00D8Y"
+  },
+  "dateOfBirth": "1991-08-12",
+  "dateOfDeath": null,
+  "ownerUuid": null,
+  "externalUrn": "urn:altinn:person:identifier-no:12889197496",
+  "displayName": "REALISTISK DIAKRITISK GOLBMA\u010CIEHKA",
+  "personIdentifier": "12889197496",
+  "organizationIdentifier": null,
+  "isDeleted": false,
+  "deletedAt": null
+}

@@ -1,0 +1,23 @@
+{
+  "partyType": "person",
+  "source": "npr",
+  "firstName": "FRUKTBAR",
+  "middleName": null,
+  "lastName": "LUNSJ",
+  "shortName": "LUNSJ FRUKTBAR",
+  "address": null,
+  "mailingAddress": {
+    "address": "Jorvardeveien 7 4888 HOMBORSUND",
+    "postalCode": "4888",
+    "city": "HOMBORSUND"
+  },
+  "dateOfBirth": "1997-11-01",
+  "dateOfDeath": null,
+  "ownerUuid": null,
+  "externalUrn": "urn:altinn:person:identifier-no:41919701143",
+  "displayName": "FRUKTBAR LUNSJ",
+  "personIdentifier": "41919701143",
+  "organizationIdentifier": null,
+  "isDeleted": false,
+  "deletedAt": null
+}

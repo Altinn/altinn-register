@@ -37,6 +37,9 @@ in
     pkgs.just
     pkgs.powershell
     pkgs.nodejs
+    pkgs.xlsx2csv
+    pkgs.python3
+    pkgs.prettier
   ];
 
   languages.dotnet.enable = true;
