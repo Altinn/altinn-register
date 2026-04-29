@@ -43,6 +43,8 @@ internal sealed class LineReader
     /// <returns><see langword="true"/> if a line was read; otherwise, <see langword="false"/>.</returns>
     public async ValueTask<bool> ReadNext(CancellationToken cancellationToken = default)
     {
+        const int MaxLineLength = 4 * 1024;
+
         if (_nextLineStart is { } toAdvance)
         {
             _reader.AdvanceTo(toAdvance);
@@ -90,6 +92,12 @@ internal sealed class LineReader
             {
                 // there were no line-breaks in the available buffer,
                 // so we need to notify the reader that we need more data
+                if (buffer.Length > MaxLineLength)
+                {
+                    // Prevents unbounded buffer growth if a file has a line that's too long to process.
+                    ThrowHelper.ThrowInvalidDataException("Line is too long to process.");
+                }
+
                 _reader.AdvanceTo(consumed: buffer.Start, examined: buffer.End);
             }
         }

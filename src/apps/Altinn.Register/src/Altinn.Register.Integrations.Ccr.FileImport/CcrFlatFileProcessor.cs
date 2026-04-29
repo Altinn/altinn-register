@@ -159,6 +159,9 @@ internal sealed partial class CcrFlatFileProcessor
                     break;
             }
         }
+
+        _currentLine.Dispose();
+        _nextLine.Dispose();
     }
 
     private async ValueTask<OrganizationRecord> ParseOrganization(
