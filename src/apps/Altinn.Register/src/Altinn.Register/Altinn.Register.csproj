@@ -39,6 +39,7 @@
     <ProjectReference Include="..\ServiceDefaults.HttpClient.MaskinPorten\Altinn.Authorization.ServiceDefaults.HttpClient.MaskinPorten.csproj" />
     <ProjectReference Include="..\ServiceDefaults.Jobs\Altinn.Authorization.ServiceDefaults.Jobs.csproj" />
     <ProjectReference Include="..\ServiceDefaults.MassTransit\Altinn.Authorization.ServiceDefaults.MassTransit.csproj" />
+    <ProjectReference Include="..\Altinn.Register.Integrations.Ccr.FileImport\Altinn.Register.Integrations.Ccr.FileImport.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -11,6 +11,7 @@
     <PackageReference Include="Altinn.Swashbuckle.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Nerdbank.Streams" />
     <PackageReference Include="Polly" />
     <PackageReference Include="System.Linq.AsyncEnumerable" />
     <PackageReference Include="System.Text.RegularExpressions" />
