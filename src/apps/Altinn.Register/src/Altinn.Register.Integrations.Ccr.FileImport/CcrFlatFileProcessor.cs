@@ -386,10 +386,8 @@ internal sealed partial class CcrFlatFileProcessor
                     }
 
                 case "KAPI":
-                    {
-                        // we ignore these
-                        break;
-                    }
+                    // altinn doesn't use these, so we ignore them
+                    break;
 
                 case "FMVA":
                     {
@@ -400,24 +398,9 @@ internal sealed partial class CcrFlatFileProcessor
                     }
 
                 case "KATG":
-                    {
-                        var status = Line.Slice(ParserConsts.INFOTYPE_CHANGETYPE_OFFSET_DEFAULT, ParserConsts.INFOTYPE_CHANGETYPE_LENGTH_DEFAULT).Trim();
-                        var katgType = Line.Slice(ParserConsts.KATG_CODE_OFFSET, ParserConsts.KATG_CODE_LENGTH).Trim();
-                        var katgRanking = Line.Slice(ParserConsts.KATG_RANKING_OFFSET, ParserConsts.KATG_RANKING_LENGTH).Trim();
-
-                        writer.WriteKatg(status: status, katgType: katgType, katgRanking: katgRanking);
-                        break;
-                    }
-
-                case "TKN ": // TKN
-                    {
-                        var status = Line.Slice(ParserConsts.TKN_STATUS_OFFSET, ParserConsts.TKN_STATUS_LENGTH).Trim();
-                        var regionalEnhetOrgnNr = Line.Slice(ParserConsts.TKN_REGIONALENH_OFFSET, ParserConsts.TKN_REGIONALENH_LENGTH).Trim();
-                        var sentralEnhetOrgnNr = Line.Slice(ParserConsts.TKN_SENTRALENH_OFFSET, ParserConsts.TKN_SENTRALENH_LENGTH).Trim();
-
-                        writer.WriteTkn(status: status, regionalEnhetOrgnNr: regionalEnhetOrgnNr, sentralEnhetOrgnNr: sentralEnhetOrgnNr);
-                        break;
-                    }
+                case "TKN ":
+                    // no longer in use, so we ignore it
+                    break;
 
                 /////////////////////////////////////////////////////////////////////////////
                 // nodene med navn samendringer, altså rolle og knytninger og samendringer
