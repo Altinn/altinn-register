@@ -23,6 +23,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" />
     <PackageReference Include="Moq" />
+    <PackageReference Include="Verify.XunitV3" />
   </ItemGroup>
 
   <ItemGroup>
@@ -60,6 +61,8 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Testdata/**/*.json" />
+    <EmbeddedResource Include="Testdata/**/*.txt" />
+    <EmbeddedResource Include="Testdata/**/*.xml" />
   </ItemGroup>
 
 </Project>
