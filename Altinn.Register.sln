@@ -61,6 +61,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{CAA5ED54-2
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.Contracts.Tests", "src\pkgs\Altinn.Register.Contracts\test\Altinn.Register.Contracts.Tests\Altinn.Register.Contracts.Tests.csproj", "{DC8CFFF2-32AF-4757-838A-22F4566C7358}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altinn.Register.Integrations.Ccr.Xml", "src\apps\Altinn.Register\src\Altinn.Register.Integrations.Ccr.Xml\Altinn.Register.Integrations.Ccr.Xml.csproj", "{6CE7C552-E3F6-40E6-9475-14DC0F767BFE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -323,6 +325,18 @@ Global
 		{DC8CFFF2-32AF-4757-838A-22F4566C7358}.Release|x64.Build.0 = Release|Any CPU
 		{DC8CFFF2-32AF-4757-838A-22F4566C7358}.Release|x86.ActiveCfg = Release|Any CPU
 		{DC8CFFF2-32AF-4757-838A-22F4566C7358}.Release|x86.Build.0 = Release|Any CPU
+		{6CE7C552-E3F6-40E6-9475-14DC0F767BFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6CE7C552-E3F6-40E6-9475-14DC0F767BFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6CE7C552-E3F6-40E6-9475-14DC0F767BFE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{6CE7C552-E3F6-40E6-9475-14DC0F767BFE}.Debug|x64.Build.0 = Debug|Any CPU
+		{6CE7C552-E3F6-40E6-9475-14DC0F767BFE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6CE7C552-E3F6-40E6-9475-14DC0F767BFE}.Debug|x86.Build.0 = Debug|Any CPU
+		{6CE7C552-E3F6-40E6-9475-14DC0F767BFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6CE7C552-E3F6-40E6-9475-14DC0F767BFE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6CE7C552-E3F6-40E6-9475-14DC0F767BFE}.Release|x64.ActiveCfg = Release|Any CPU
+		{6CE7C552-E3F6-40E6-9475-14DC0F767BFE}.Release|x64.Build.0 = Release|Any CPU
+		{6CE7C552-E3F6-40E6-9475-14DC0F767BFE}.Release|x86.ActiveCfg = Release|Any CPU
+		{6CE7C552-E3F6-40E6-9475-14DC0F767BFE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -355,5 +369,6 @@ Global
 		{CDC05772-8FF8-41DA-BEFC-B8980AE02975} = {44C13623-0995-2183-17AD-382970CA8A29}
 		{CAA5ED54-2DD6-DF4F-72EB-A8CC3E326621} = {66B908F7-E4F6-163F-C477-C34BD0343C82}
 		{DC8CFFF2-32AF-4757-838A-22F4566C7358} = {CAA5ED54-2DD6-DF4F-72EB-A8CC3E326621}
+		{6CE7C552-E3F6-40E6-9475-14DC0F767BFE} = {9F856603-52D5-E1B8-657B-994E194BE88D}
 	EndGlobalSection
 EndGlobal
