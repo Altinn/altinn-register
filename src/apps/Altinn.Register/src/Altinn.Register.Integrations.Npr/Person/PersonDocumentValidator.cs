@@ -27,10 +27,10 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
     , IValidator<GuardianshipServiceArea, Optional<string>>
     , IValidator<PersonStatusElement, PersonStatus>
     , IValidator<IdentificationNumberElement, PersonIdentifier>
-    , IValidator<BirthElement, DateOnly>
+    , IValidator<BirthElement, Optional<DateOnly>>
     , IValidator<AddressProtectionElement, Optional<AddressConfidentialityLevel>>
     , IValidator<ResidentialAddressElement, Optional<StreetAddressRecord>>
-    , IValidator<NameElement, PersonDocumentValidator.PersonName>
+    , IValidator<NameElement, Optional<PersonDocumentValidator.PersonName>>
     , IValidator<DeathElement?, PersonDocumentValidator.PersonDeath>
     , IValidator<MailingAddressElement, Optional<PersonDocumentValidator.MailingAddressRecordExt>>
     , IValidator<CurrentStayAddressElement, Optional<PersonDocumentValidator.MailingAddressRecordExt>>
@@ -67,14 +67,14 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         context.TryValidateChild(
             path: "/navn",
             input.Name,
-            ActiveElementValidator.Required<NameElement, PersonName, PersonDocumentValidator>(this),
-            out PersonName personName);
+            ActiveElementValidator.Optional<NameElement, PersonName, PersonDocumentValidator>(this),
+            out Optional<PersonName> personNameOpt);
 
         context.TryValidateChild(
             path: "/foedsel",
             input.Birth,
-            ActiveElementValidator.Required<BirthElement, DateOnly, PersonDocumentValidator>(this),
-            out DateOnly dateOfBirth);
+            ActiveElementValidator.Optional<BirthElement, DateOnly, PersonDocumentValidator>(this),
+            out Optional<DateOnly> dateOfBirth);
 
         context.TryValidateChild(
             path: "/doedsfall",
@@ -87,6 +87,21 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             input.AddressProtection,
             ActiveElementValidator.Optional<AddressProtectionElement, AddressConfidentialityLevel, PersonDocumentValidator>(this),
             out Optional<AddressConfidentialityLevel> addressProtectionLevel);
+
+        PersonName personName;
+        if (personNameOpt.HasValue)
+        {
+            personName = personNameOpt.Value;
+        }
+        else
+        {
+            personName = new PersonName(
+                FirstName: "Mangler",
+                MiddleName: null,
+                LastName: "Navn",
+                DisplayName: "Mangler Navn",
+                ShortName: "Mangler Navn");
+        }
 
         MailingAddressRecordExt? mailingAddress = null;
         StreetAddressRecord? address = null;
@@ -162,7 +177,7 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             ShortName = personName.ShortName,
 
             // Birth and death
-            DateOfBirth = dateOfBirth,
+            DateOfBirth = dateOfBirth.HasValue ? dateOfBirth.Value : null,
             DateOfDeath = death.DateOfDeath,
 
             // Addresses
@@ -348,7 +363,7 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
     public bool TryValidate(
         ref ValidationContext context,
         BirthElement input,
-        [NotNullWhen(true)] out DateOnly validated)
+        [NotNullWhen(true)] out Optional<DateOnly> validated)
     {
         const string PATH = "/foedselsdato";
 
@@ -359,20 +374,22 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             return false;
         }
 
-        if (!DateOnly.TryParseExact(input.DateOfBirth, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out validated))
+        if (!DateOnly.TryParseExact(input.DateOfBirth, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var validatedDate))
         {
             context.AddChildProblem(ValidationErrors.InvalidDate, path: PATH, detail: $"The value '{input.DateOfBirth}' is not a valid date.");
+            validated = default;
             return false;
         }
 
+        validated = validatedDate;
         return true;
     }
 
     /// <inheritdoc/>
-    bool IValidator<NameElement, PersonName>.TryValidate(
+    bool IValidator<NameElement, Optional<PersonName>>.TryValidate(
         ref ValidationContext context,
         NameElement input,
-        out PersonName validated)
+        out Optional<PersonName> validated)
     {
         var firstName = input.FirstName?.Trim();
         var middleName = input.MiddleName?.Trim();
@@ -422,7 +439,7 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
 
         Debug.Assert(firstName is not null);
         Debug.Assert(lastName is not null);
-        validated = new(
+        validated = new PersonName(
             FirstName: firstName,
             MiddleName: middleName,
             LastName: lastName,
@@ -807,13 +824,8 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         FreeFormMailingAddress input,
         [NotNullWhen(true)] out MailingAddressRecordExt? validated)
     {
-        PostalInfo postalInfo;
-        if (input.PostalArea is null)
-        {
-            context.AddChildProblem(StdValidationErrors.Required, path: "/poststed");
-            postalInfo = default;
-        }
-        else
+        PostalInfo postalInfo = default;
+        if (input.PostalArea is not null)
         {
             context.TryValidateChild(path: "/poststed", input.PostalArea, this, out postalInfo);
         }
@@ -830,7 +842,7 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         }
 
         var address = string.Join(' ', input.AddressLines);
-        if (input.AddressLines.Length > 0 && !input.AddressLines[^1].StartsWith(postalInfo.Code, StringComparison.Ordinal))
+        if (input.AddressLines.Length > 0 && (postalInfo.Code is null || !input.AddressLines[^1].StartsWith(postalInfo.Code, StringComparison.Ordinal)))
         {
             address = $"{address} {postalInfo.Code} {postalInfo.Name}".Trim();
         }
@@ -852,13 +864,8 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         StreetAddress input,
         [NotNullWhen(true)] out MailingAddressRecordExt? validated)
     {
-        PostalInfo postalInfo;
-        if (input.PostalArea is null)
-        {
-            context.AddChildProblem(StdValidationErrors.Required, path: "/poststed");
-            postalInfo = default;
-        }
-        else
+        PostalInfo postalInfo = default;
+        if (input.PostalArea is not null)
         {
             context.TryValidateChild(path: "/poststed", input.PostalArea, this, out postalInfo);
         }
@@ -885,13 +892,8 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         StreetAddress input,
         [NotNullWhen(true)] out StreetAddressRecord? validated)
     {
-        PostalInfo postalInfo;
-        if (input.PostalArea is null)
-        {
-            context.AddChildProblem(StdValidationErrors.Required, path: "/poststed");
-            postalInfo = default;
-        }
-        else
+        PostalInfo postalInfo = default;
+        if (input.PostalArea is not null)
         {
             context.TryValidateChild(path: "/poststed", input.PostalArea, this, out postalInfo);
         }
@@ -923,13 +925,8 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         PostBoxAddress input,
         [NotNullWhen(true)] out MailingAddressRecordExt? validated)
     {
-        PostalInfo postalInfo;
-        if (input.PostalArea is null)
-        {
-            context.AddChildProblem(StdValidationErrors.Required, path: "/poststed");
-            postalInfo = default;
-        }
-        else
+        PostalInfo postalInfo = default;
+        if (input.PostalArea is not null)
         {
             context.TryValidateChild(path: "/poststed", input.PostalArea, this, out postalInfo);
         }
@@ -1047,15 +1044,10 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         MatrikkelAddress input,
         [NotNullWhen(true)] out MailingAddressRecordExt? validated)
     {
-        PostalInfo postal;
-        if (input.PostalArea is null)
+        PostalInfo postalInfo = default;
+        if (input.PostalArea is not null)
         {
-            context.AddChildProblem(StdValidationErrors.Required, path: "/poststed");
-            postal = default;
-        }
-        else
-        {
-            context.TryValidateChild(path: "/poststed", input.PostalArea, this, out postal);
+            context.TryValidateChild(path: "/poststed", input.PostalArea, this, out postalInfo);
         }
 
         if (context.HasErrors)
@@ -1067,9 +1059,9 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         List<string> addressLines = new List<string>();
         bool isCoAddress = false;
 
-        if (postal.Code == null)
+        if (postalInfo.Code == null)
         {
-            postal = postal with { Code = "0000" };
+            postalInfo = postalInfo with { Code = "0000" };
         }
 
         if (!string.IsNullOrWhiteSpace(input.CareOfAddressName))
@@ -1122,16 +1114,16 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             addressLines.Add(cadastralNumber.ToString());
         }
 
-        if (postal.Code != "0000" && !string.IsNullOrEmpty(postal.Name))
+        if (postalInfo.Code != "0000" && !string.IsNullOrEmpty(postalInfo.Name))
         {
-            addressLines.Add(postal.Code.Trim().PadLeft(4, '0') + " " + postal.Name.Trim());
+            addressLines.Add(postalInfo.Code.Trim().PadLeft(4, '0') + " " + postalInfo.Name.Trim());
         }
 
         validated = new MailingAddressRecordExt
         {
             Address = string.Join(' ', addressLines),
-            PostalCode = postal.Code,
-            City = postal.Name,
+            PostalCode = postalInfo.Code,
+            City = postalInfo.Name,
             IsFirstLineCareOfAddress = isCoAddress,
         };
         return true;
@@ -1143,15 +1135,10 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         MatrikkelAddress input,
         [NotNullWhen(true)] out StreetAddressRecord? validated)
     {
-        PostalInfo postal;
-        if (input.PostalArea is null)
+        PostalInfo postalInfo = default;
+        if (input.PostalArea is not null)
         {
-            context.AddChildProblem(StdValidationErrors.Required, path: "/poststed");
-            postal = default;
-        }
-        else
-        {
-            context.TryValidateChild(path: "/poststed", input.PostalArea, this, out postal);
+            context.TryValidateChild(path: "/poststed", input.PostalArea, this, out postalInfo);
         }
 
         string? municipalNumber = null;
@@ -1172,8 +1159,8 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         {
             MunicipalNumber = municipalNumber,
             MunicipalName = municipalName,
-            PostalCode = postal.Code,
-            City = postal.Name,
+            PostalCode = postalInfo.Code,
+            City = postalInfo.Name,
         };
         return true;
     }
@@ -1184,11 +1171,7 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         PostalArea input,
         out PostalInfo validated)
     {
-        if (input.PostalCode is null)
-        {
-            context.AddChildProblem(StdValidationErrors.Required, path: "/postnummer");
-        }
-        else if (!IsDigitsOnly(input.PostalCode))
+        if (input.PostalCode is not null && !IsDigitsOnly(input.PostalCode))
         {
             context.AddChildProblem(ValidationErrors.InvalidValue, path: "/postnummer", detail: $"The postal code '{input.PostalCode}' is not valid. It must contain digits only.");
         }
@@ -1199,9 +1182,8 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             return false;
         }
 
-        Debug.Assert(input.PostalCode is not null);
         validated = new(
-            Code: input.PostalCode.PadLeft(4, '0'),
+            Code: input.PostalCode?.PadLeft(4, '0'),
             Name: input.PostalName);
         return true;
     }
@@ -1216,7 +1198,7 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
     private readonly record struct PersonDeath(DateOnly? DateOfDeath);
 
     private readonly record struct PostalInfo(
-        string Code,
+        string? Code,
         string? Name);
 
     private static bool IsDigitsOnly(ReadOnlySpan<char> str)

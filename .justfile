@@ -55,7 +55,7 @@ set windows-shell := ["pwsh.exe", "-NoLogo", "-CommandWithArgs"]
 @fetch-tenor-id ID:
   #!{{shebang}}
   $null = New-Item -Type Directory -Force "src/apps/Altinn.Register/test/Altinn.Register.Tests/Testdata/Npr/Persons/valid/{{ID}}"
-  $response = Invoke-WebRequest -Uri "http://localhost:5020/register/api/v0/debug/npr/person/{{ID}}"
+  $response = Invoke-WebRequest -Uri "http://localhost:5020/register/api/v0/debug/npr/raw/{{ID}}"
   $response.Content | prettier --parser json | Out-File -FilePath "src/apps/Altinn.Register/test/Altinn.Register.Tests/Testdata/Npr/Persons/valid/{{ID}}/npr.json"
 
 @accept-npr-valid-results:
