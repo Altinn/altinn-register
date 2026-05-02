@@ -73,7 +73,7 @@ internal sealed class NprEnricher
             ShortName = nprPerson.ShortName,
             Address = nprPerson.Address,
             MailingAddress = nprPerson.MailingAddress,
-            DateOfBirth = nprPerson.DateOfBirth,
+            DateOfBirth = FieldValue.From(nprPerson.DateOfBirth),
             DateOfDeath = FieldValue.From(nprPerson.DateOfDeath),
         };
 
