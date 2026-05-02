@@ -16,17 +16,17 @@ let
           sdk_8_0
         ];
 
-      copied = pkgs.runCommand "dotnet" { } ''
-        mkdir -p "$out"/share/dotnet
-        cp -aL "${combined}"/share/dotnet/. "$out"/share/dotnet/
+      # copied = pkgs.runCommand "dotnet" { } ''
+      #   mkdir -p "$out"/share/dotnet
+      #   cp -aL "${combined}"/share/dotnet/. "$out"/share/dotnet/
 
-        cp -aL "${combined}"/nix-support "$out"/nix-support
+      #   cp -aL "${combined}"/nix-support "$out"/nix-support
 
-        mkdir -p "$out"/bin
-        ln -s "$out"/share/dotnet/dotnet "$out"/bin/dotnet
-      '';
+      #   mkdir -p "$out"/bin
+      #   ln -s "$out"/share/dotnet/dotnet "$out"/bin/dotnet
+      # '';
     in
-    copied;
+    combined;
 in
 {
   # https://devenv.sh/packages/
