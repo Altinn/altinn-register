@@ -14,4 +14,8 @@
     <InternalsVisibleTo Include="Altinn.Register.Persistence.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Altinn.Register.Core\Altinn.Register.Core.csproj" />
+  </ItemGroup>
+
 </Project>

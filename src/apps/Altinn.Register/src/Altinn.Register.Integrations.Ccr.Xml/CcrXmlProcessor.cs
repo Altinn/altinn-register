@@ -1,6 +1,9 @@
 using System.Buffers;
-using System.Runtime.CompilerServices;
 using System.Xml;
+using Altinn.Authorization.ModelUtils;
+using Altinn.Register.Contracts;
+using Altinn.Register.Core.Parties.Records;
+using CommunityToolkit.Diagnostics;
 using Nerdbank.Streams;
 
 namespace Altinn.Register.Integrations.Ccr.Xml;
@@ -23,25 +26,25 @@ public sealed class CcrXmlProcessor
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the asynchronous operation.</param>
     /// <returns>An asynchronous stream of <see cref="CcrPartyUpdate"/> objects, each representing an update for a party found in
     /// the CCR XML. The stream is empty if no parties are present.</returns>
-    public static async IAsyncEnumerable<CcrPartyUpdate> ProcessCcrXmlAsync(ReadOnlySequence<byte> xmlData, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public static IEnumerable<CcrPartyUpdate> ProcessCcrXml(ReadOnlySequence<byte> xmlData, CancellationToken cancellationToken = default)
     {
-        using var reader = XmlReader.Create(xmlData.AsStream(), new XmlReaderSettings { Async = true });
+        using var reader = XmlReader.Create(xmlData.AsStream());
 
         // 1. Read to root element <batchAjourholdXML>
-        await reader.MoveToContentAsync();
+        reader.MoveToContent();
         reader.ReadStartElement("batchAjourholdXML");
 
         // 2. Read header <head ... />
-        await reader.MoveToContentAsync();
+        reader.MoveToContent();
         var header = ReadHeader(reader);
 
         // 3. Read <enhet> nodes
-        await reader.MoveToContentAsync();
+        reader.MoveToContent();
         while (reader.NodeType == XmlNodeType.Element && reader.LocalName == "enhet")
         {
             cancellationToken.ThrowIfCancellationRequested();
             yield return ReadEnhet(reader);
-            await reader.MoveToContentAsync();
+            reader.MoveToContent();
         }
 
         // 4. Read trailer <trai ... />
@@ -81,18 +84,43 @@ public sealed class CcrXmlProcessor
     private static DateTimeOffset? ParseDate(string? value)
         => DateTimeOffset.TryParse(value, out var result) ? result : null;
 
-    private static CcrPartyUpdate ReadEnhet(XmlReader reader)
+    private static CcrOrganizationUpsertModel ReadEnhet(XmlReader reader)
     {
-        var organisasjonsnummer = reader.GetAttribute("organisasjonsnummer") ?? string.Empty;
-        var organisasjonsform = reader.GetAttribute("organisasjonsform") ?? string.Empty;
-        var hovedsakstype = reader.GetAttribute("hovedsakstype") ?? string.Empty;
-        var undersakstype = reader.GetAttribute("undersakstype") ?? string.Empty;
-        var foersteOverfoering = ParseDate(reader.GetAttribute("foersteOverfoering"));
-        var datoFoedt = ParseDate(reader.GetAttribute("datoFoedt"));
-        var datoSistEndret = ParseDate(reader.GetAttribute("datoSistEndret"));
+        var organisasjonsnummer = reader.GetAttribute("organisasjonsnummer");
+        if (string.IsNullOrEmpty(organisasjonsnummer))
+        {
+            ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required attribute 'organisasjonsnummer' in <enhet> element.");
+        }
 
-        var infotypes = new List<CcrInfoType>();
-        var samendringer = new List<CcrSamendring>();
+        var organisasjonsform = reader.GetAttribute("organisasjonsform");
+        var hovedsakstype = reader.GetAttribute("hovedsakstype");
+        var undersakstype = reader.GetAttribute("undersakstype");
+        var foersteOverfoering = reader.GetAttribute("foersteOverfoering");
+        var datoSistEndret = ParseDate(reader.GetAttribute("datoSistEndret"));
+        var isDeleted = hovedsakstype == "S";
+
+        var org = new CcrOrganizationUpsertModel
+        {
+            OrganizationIdentifier = OrganizationIdentifier.Parse(organisasjonsnummer),
+            UnitType = organisasjonsform,
+            Hovedsakstype = hovedsakstype,
+            Undersakstype = undersakstype,
+            FoersteOverfoering = foersteOverfoering == "N",
+
+            DatoSistEndret = FieldValue.From(datoSistEndret),
+            DisplayName = FieldValue.Unset,
+            BusinessAddress = FieldValue.Unset,
+            MailingAddress = FieldValue.Unset,
+            FaxNumber = FieldValue.Unset,
+            InternetAddress = FieldValue.Unset,
+            MobileNumber = FieldValue.Unset,
+            TelephoneNumber = FieldValue.Unset,
+            EmailAddress = FieldValue.Unset,
+
+            DeletedAt = isDeleted ? datoSistEndret : null,
+            IsDeleted = isDeleted,
+            Samendringer = [],
+        };
 
         if (!reader.IsEmptyElement)
         {
@@ -103,15 +131,15 @@ public sealed class CcrXmlProcessor
             {
                 if (reader.LocalName == "infotype")
                 {
-                    infotypes.Add(ReadInfoType(reader));
+                    ReadInfoType(reader, org);
                 }
                 else if (reader.LocalName == "samendringer")
                 {
-                    samendringer.Add(ReadSamendring(reader));
+                    org.Samendringer.Add(ReadSamendring(reader));
                 }
                 else
                 {
-                    reader.Skip();
+                    ThrowHelper.ThrowInvalidDataException("XmlReader: unknown element <" + reader.LocalName + "> in <enhet> element.");
                 }
 
                 reader.MoveToContent();
@@ -124,31 +152,143 @@ public sealed class CcrXmlProcessor
             reader.Read();
         }
 
-        return new CcrFullUpdate
-        {
-            Organisasjonsnummer = organisasjonsnummer,
-            Organisasjonsform = organisasjonsform,
-            Hovedsakstype = hovedsakstype,
-            Undersakstype = undersakstype,
-            FoersteOverfoering = foersteOverfoering ?? DateTimeOffset.MinValue,
-            DatoFoedt = datoFoedt ?? DateTimeOffset.MinValue,
-            DatoSistEndret = datoSistEndret ?? DateTimeOffset.MinValue,
-            Infotypes = infotypes,
-            Samendringer = samendringer,
-        };
+        return org;
     }
 
-    private static CcrInfoType ReadInfoType(XmlReader reader)
+    private static void ReadInfoType(XmlReader reader, CcrOrganizationUpsertModel org)
     {
         var felttype = reader.GetAttribute("felttype") ?? string.Empty;
         var endringstype = reader.GetAttribute("endringstype") ?? string.Empty;
-        var fields = ReadChildFields(reader, "infotype");
 
-        return new CcrInfoType
+        switch (felttype)
         {
-            FeltType = felttype,
-            EndringsType = endringstype,
-            Fields = [.. fields.Select(kvp => new CcrField { FieldName = kvp.Key.ToFieldName(), Value = kvp.Value })],
+            case "EPOS":
+                {
+                    var eposFields = ReadChildFields(reader, "infotype");
+                    if (eposFields.TryGetValue("opplysning", out var epost))
+                    {
+                        org.EmailAddress = epost;
+                    }
+
+                    break;
+                }
+
+            case "FADR":
+                {
+                    var fadrFields = ReadChildFields(reader, "infotype");
+                    org.BusinessAddress = ReadMailingAddress(fadrFields);
+                    break;
+                }
+
+            case "PADR":
+                {
+                    var fadrFields = ReadChildFields(reader, "infotype");
+                    org.MailingAddress = ReadMailingAddress(fadrFields);
+                    break;
+                }
+
+            case "IADR":
+                {
+                    var iadrFields = ReadChildFields(reader, "infotype");
+                    org.InternetAddress = iadrFields.TryGetValue("opplysning", out var internetAddress) ? internetAddress : null;
+                    break;
+                }
+
+            case "TFON":
+                {
+                    var mtlfFields = ReadChildFields(reader, "infotype");
+                    org.TelephoneNumber = mtlfFields.TryGetValue("opplysning", out var telephone) ? telephone : null;
+                    break;
+                }
+
+            case "MTLF":
+                {
+                    var mtlfFields = ReadChildFields(reader, "infotype");
+                    org.TelephoneNumber = mtlfFields.TryGetValue("opplysning", out var telephone) ? telephone : null;
+                    break;
+                }
+
+            case "FAX":
+                {
+                    var mtlfFields = ReadChildFields(reader, "infotype");
+                    org.TelephoneNumber = mtlfFields.TryGetValue("opplysning", out var telephone) ? telephone : null;
+                    break;
+                }
+
+            case "NAVN":
+                {
+                    // We assume we dont get a redigertNavn for a full insert
+                    var navnFields = ReadChildFields(reader, "infotype");
+                    org.DisplayName = ReadAndConcatName(navnFields);
+                    break;
+                }
+
+            // The following felttyper are currently not mapped to any fields in the organization record,
+            // but we want to allow them without throwing an exception, as they may be present in the XML data and we want to be able to process it without errors.
+            // If we later decide to map any of these felttyper to fields in the organization record, we can simply add the necessary code to do so.
+            case "FMVA":
+            case "UREG":
+            case "ULOV":
+            case "PAAT":
+            case "NACE":
+            case "SN25":
+                break;
+
+            default:
+                {
+                    ThrowHelper.ThrowInvalidDataException("XmlReader: unknown felttype '" + felttype + "' in <infotype> element.");
+                    break;
+                }
+        }
+    }
+
+    private static FieldValue<string> ReadAndConcatName(Dictionary<string, string> navnFields)
+    {
+        string? line1 = navnFields.TryGetValue("navn1", out var l1) ? l1 : null;
+        string? line2 = navnFields.TryGetValue("navn2", out var l2) ? l2 : null;
+        string? line3 = navnFields.TryGetValue("navn3", out var l3) ? l3 : null;
+        string? line4 = navnFields.TryGetValue("navn4", out var l4) ? l4 : null;
+        string? line5 = navnFields.TryGetValue("navn5", out var l5) ? l5 : null;
+        string name = string.Join(" ", new[] { line1, line2, line3, line4, line5 }.Where(s => !string.IsNullOrEmpty(s)));
+        return name;
+    }
+
+    private static MailingAddressRecord ReadMailingAddress(Dictionary<string, string> fadrFields)
+    {
+        string? line1 = fadrFields.TryGetValue("adresse1", out var l1) ? l1 : null;
+        string? line2 = fadrFields.TryGetValue("adresse2", out var l2) ? l2 : null;
+        string? line3 = fadrFields.TryGetValue("adresse3", out var l3) ? l3 : null;
+        string postkode = fadrFields.TryGetValue("postnr", out var pk) ? pk : "0000";
+        string? poststed = fadrFields.TryGetValue("poststed", out var ps) ? ps : null;
+
+        List<string> addressLines = [];
+        if (!string.IsNullOrEmpty(line1))
+        {
+            addressLines.Add(line1);
+        }
+
+        if (!string.IsNullOrEmpty(line2))
+        {
+            addressLines.Add(line2);
+        }
+
+        if (!string.IsNullOrEmpty(line3))
+        {
+            addressLines.Add(line3);
+        }
+
+        if (addressLines.Count > 1 && !addressLines[^1].StartsWith(postkode, StringComparison.Ordinal))
+        {
+            addressLines.Add($"{postkode} {poststed}".Trim());
+        }
+
+        string concatAddress = string.Join(" ", addressLines);
+
+        return new MailingAddressRecord
+        {
+            Address = concatAddress,
+            PostalCode = fadrFields.TryGetValue("postnr", out var postalCode) ? postalCode : null,
+            City = fadrFields.TryGetValue("poststed", out var city) ? city : null,
         };
     }
 
@@ -158,19 +298,77 @@ public sealed class CcrXmlProcessor
         var endringstype = reader.GetAttribute("endringstype") ?? string.Empty;
         var type = reader.GetAttribute("type") ?? string.Empty;
         var data = reader.GetAttribute("data") ?? string.Empty;
-        var fields = ReadChildFields(reader, "samendringer");
 
-        return new CcrSamendring
+        var rolleFields = ReadChildFields(reader, "samendringer");
+        var rolleAnsvarsandel = rolleFields.TryGetValue("rolleAnsvarsandel", out var ansv) ? ansv : null;
+        var rolleFratraadt = rolleFields.TryGetValue("rolleFratraadt", out var fratr) ? fratr : null;
+        var rolleValgtav = rolleFields.TryGetValue("rolleValgtav", out var valgt) ? valgt : null;
+        var rolleRekkefoelge = rolleFields.TryGetValue("rolleRekkefoelge", out var rek) ? rek : null;
+        var rolleFoedselsnr = rolleFields.TryGetValue("rolleFoedselsnr", out var fod) ? fod : null;
+        var fornavn = rolleFields.TryGetValue("fornavn", out var forn) ? forn : null;
+        var mellomnavn = rolleFields.TryGetValue("mellomnavn", out var mell) ? mell : null;
+        var etternavn = rolleFields.TryGetValue("slektsnavn", out var etter) ? etter : null;
+        var postnr = rolleFields.TryGetValue("postnr", out var post) ? post : null;
+        var adr1 = rolleFields.TryGetValue("adresse1", out var radr1) ? radr1 : null;
+        var adr2 = rolleFields.TryGetValue("adresse2", out var radr2) ? radr2 : null;
+        var adr3 = rolleFields.TryGetValue("adresse3", out var radr3) ? radr3 : null;
+        var rlandkode = rolleFields.TryGetValue("adresseLandkode", out var rlk) ? rlk : null;
+        var personstatus = rolleFields.TryGetValue("personstatus", out var ps) ? ps : null;
+
+        var knytningsAnsvarsdel = rolleFields.TryGetValue("knytningsAnsvarsandel", out var kan) ? kan : null;
+        var knytningsFratraadt = rolleFields.TryGetValue("knytningsFratraadt", out var kfratr) ? kfratr : null;
+        var knytningsValgtav = rolleFields.TryGetValue("knytningsValgtav", out var kvalgt) ? kvalgt : null;
+        var knytningsRekkefoelge = rolleFields.TryGetValue("knytningsRekkefoelge", out var krek) ? krek : null;
+        var knytningsOrgnr = rolleFields.TryGetValue("korrektOrganisasjonsnummer", out var kforn) ? kforn : null;
+
+        if (type == "R")
         {
-            FeltType = felttype,
-            EndringsType = endringstype,
-            Type = type,
-            Data = data,
-            Fields = [.. fields.Select(kvp => new CcrField { FieldName = kvp.Key.ToFieldName(), Value = kvp.Value })],
-        };
+            return new CcrSamendring
+            {
+                FeltType = felttype,
+                EndringsType = endringstype,
+                Type = type,
+                Data = data,
+
+                RolleAnsvarsandel = rolleAnsvarsandel,
+                RolleFratraadt = rolleFratraadt,
+                RolleValgtav = rolleValgtav,
+                RolleRekkefoelge = rolleRekkefoelge,
+                RolleFoedselsnr = rolleFoedselsnr,
+                Fornavn = fornavn,
+                Mellomnavn = mellomnavn,
+                Slektsnavn = etternavn,
+                Postnr = postnr,
+                Adresse1 = adr1,
+                Adresse2 = adr2,
+                Adresse3 = adr3,
+                AdresseLandkode = rlandkode,
+                Personstatus = personstatus
+            };
+        }
+
+        if (type == "K")
+        {
+            return new CcrSamendring
+            {
+                FeltType = felttype,
+                EndringsType = endringstype,
+                Type = type,
+                Data = data,
+
+                KnytningAnsvarsandel = knytningsAnsvarsdel,
+                KnytningFratraadt = knytningsFratraadt,
+                KnytningOrganisasjonsnummer = knytningsOrgnr,
+                KnytningValgtav = knytningsValgtav,
+                KnytningRekkefoelge = knytningsRekkefoelge
+            };
+        }
+
+        ThrowHelper.ThrowArgumentException("XmlReader: unknown samendring type '" + type + "' in <samendringer> element.");
+        return null;
     }
 
-    private static IReadOnlyDictionary<string, string> ReadChildFields(XmlReader reader, string parentElement)
+    private static Dictionary<string, string> ReadChildFields(XmlReader reader, string parentElement)
     {
         var fields = new Dictionary<string, string>();
 
