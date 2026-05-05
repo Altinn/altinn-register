@@ -30,6 +30,8 @@ public sealed class CcrXmlProcessor : ICcrXmlProcessor
     public IEnumerable<CcrOrganizationUpdate> ProcessCcrXml(ReadOnlySequence<byte> xmlData, CancellationToken cancellationToken = default)
     {
         using var reader = XmlReader.Create(xmlData.AsStream());
+        int enhet = 0;
+        CcrBatchTrailer? trailer = null;
 
         // 1. Read to root element <batchAjourholdXML>
         reader.MoveToContent();
@@ -43,6 +45,7 @@ public sealed class CcrXmlProcessor : ICcrXmlProcessor
         reader.MoveToContent();
         while (reader.NodeType == XmlNodeType.Element && reader.LocalName == "enhet")
         {
+            enhet++;
             cancellationToken.ThrowIfCancellationRequested();
             yield return ReadEnhet(reader);
             reader.MoveToContent();
@@ -51,12 +54,27 @@ public sealed class CcrXmlProcessor : ICcrXmlProcessor
         // 4. Read trailer <trai ... />
         if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "trai")
         {
-            var trailer = ReadTrailer(reader);
+            trailer = ReadTrailer(reader);
+        }
+
+        if (enhet == 0)
+        {
+            ThrowHelper.ThrowInvalidDataException("XmlReader: No <enhet> elements found in the document.");
+        }
+
+        if (enhet != trailer?.AntallEnheter)
+        {
+            ThrowHelper.ThrowInvalidDataException($"XmlReader: The number of <enhet> elements read ({enhet}) does not match the 'antallEnheter' attribute in the trailer ({trailer?.AntallEnheter}).");
         }
     }
 
     private static CcrBatchHeader ReadHeader(XmlReader reader)
     {
+        if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "head")
+        {
+            ThrowHelper.ThrowInvalidDataException("XmlReader: Expected <head> element at the beginning of the document.");
+        }
+
         var header = new CcrBatchHeader
         {
             Avsender = reader.GetAttribute("avsender") ?? string.Empty,
@@ -227,14 +245,14 @@ public sealed class CcrXmlProcessor : ICcrXmlProcessor
             case "MTLF":
                 {
                     var mtlfFields = ReadChildFields(reader, "infotype");
-                    org.TelephoneNumber = mtlfFields.TryGetValue("opplysning", out var telephone) ? telephone : null;
+                    org.MobileNumber = mtlfFields.TryGetValue("opplysning", out var telephone) ? telephone : null;
                     break;
                 }
 
             case "FAX":
                 {
                     var mtlfFields = ReadChildFields(reader, "infotype");
-                    org.TelephoneNumber = mtlfFields.TryGetValue("opplysning", out var telephone) ? telephone : null;
+                    org.FaxNumber = mtlfFields.TryGetValue("opplysning", out var telephone) ? telephone : null;
                     break;
                 }
 
@@ -281,7 +299,7 @@ public sealed class CcrXmlProcessor : ICcrXmlProcessor
         string? line1 = fadrFields.TryGetValue("adresse1", out var l1) ? l1 : null;
         string? line2 = fadrFields.TryGetValue("adresse2", out var l2) ? l2 : null;
         string? line3 = fadrFields.TryGetValue("adresse3", out var l3) ? l3 : null;
-        string postkode = fadrFields.TryGetValue("postnr", out var pk) ? pk : "0000";
+        string? postkode = fadrFields.TryGetValue("postnr", out var pk) ? pk : null;
         string? poststed = fadrFields.TryGetValue("poststed", out var ps) ? ps : null;
 
         List<string> addressLines = [];
@@ -300,7 +318,7 @@ public sealed class CcrXmlProcessor : ICcrXmlProcessor
             addressLines.Add(line3);
         }
 
-        if (addressLines.Count > 1 && !addressLines[^1].StartsWith(postkode, StringComparison.Ordinal))
+        if (addressLines.Count > 1 && postkode is not null && !addressLines[^1].StartsWith(postkode, StringComparison.Ordinal))
         {
             addressLines.Add($"{postkode} {poststed}".Trim());
         }

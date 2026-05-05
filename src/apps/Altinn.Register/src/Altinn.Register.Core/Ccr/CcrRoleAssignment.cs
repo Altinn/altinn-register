@@ -96,7 +96,7 @@ public sealed class CcrRoleAssignment
     /// subject.</returns>
     public static CcrRoleAssignment CreateBulkRoleAssignmentRemoval(string code)
     {
-        if (!string.IsNullOrWhiteSpace(code))
+        if (string.IsNullOrWhiteSpace(code))
         {
             ThrowHelper.ThrowArgumentException("Role code cannot be null or whitespace.", nameof(code));
         }
@@ -117,7 +117,7 @@ public sealed class CcrRoleAssignment
     /// <returns>A new instance of <see cref="CcrRoleAssignment"/> representing the personal role assignment.</returns>
     public static CcrRoleAssignment CreatePersonalRoleAssignment(string code, string pid)
     {
-        if (!string.IsNullOrWhiteSpace(code))
+        if (string.IsNullOrWhiteSpace(code))
         {
             ThrowHelper.ThrowArgumentException("Role code cannot be null or whitespace.", nameof(code));
         }
@@ -278,7 +278,7 @@ public sealed class CcrRoleAssignment
     /// <returns>A new instance of <see cref="CcrRoleAssignment"/> representing the connection role assignment.</returns>
     public static CcrRoleAssignment CreateConnection(string code, string? org = default)
     {
-        if (!string.IsNullOrWhiteSpace(code))
+        if (string.IsNullOrWhiteSpace(code))
         {
             ThrowHelper.ThrowArgumentException("Connection code cannot be null or whitespace.", nameof(code));
         }
