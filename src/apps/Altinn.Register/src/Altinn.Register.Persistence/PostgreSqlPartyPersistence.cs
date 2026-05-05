@@ -755,6 +755,35 @@ internal partial class PostgreSqlPartyPersistence
         return enumerable.WrapExceptions(ex => new UpsertExternalRolesFromPartyBySourceException(commandId, partyUuid, roleSource, assignments, ex), cancellationToken);
     }
 
+    /// <inheritdoc/>
+    public IAsyncSideEffectEnumerable<ExternalRoleAssignmentEvent> UpsertExternalRolesFromPartyBySource(
+        Guid commandId,
+        Guid partyUuid,
+        ExternalRoleSource roleSource,
+        PartyExternalRoleAssignmentsUpdate update,
+        CancellationToken cancellationToken = default)
+    {
+        _handle.ThrowIfCompleted();
+        Guard.IsNotNull(update);
+        Guard.IsNotDefault(commandId);
+
+        NpgsqlAsyncSideEffectEnumerable<ExternalRoleAssignmentEvent> enumerable;
+        if (update.TryGetValue(out PartyExternalRoleAssignmentsUpdate.Full? full))
+        {
+            enumerable = null!;
+        }
+        else if (update.TryGetValue(out PartyExternalRoleAssignmentsUpdate.Delta? delta))
+        {
+            enumerable = null!;
+        }
+        else
+        {
+            throw new UnreachableException("Unknown update type");
+        }
+
+        return enumerable.WrapExceptions(ex => new UpsertExternalRolesFromPartyBySourceException(commandId, partyUuid, roleSource, update, ex), cancellationToken);
+    }
+
     private sealed class UpsertExternalRolesFromPartyBySourceAsyncSideEffectEnumerable(
         NpgsqlConnection connection,
         Guid commandId,
