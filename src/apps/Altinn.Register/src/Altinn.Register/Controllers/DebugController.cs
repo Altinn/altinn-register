@@ -9,6 +9,7 @@ using Altinn.Register.Contracts;
 using Altinn.Register.Conventions;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Npr;
+using Altinn.Register.Core.Sire;
 using Altinn.Register.PartyImport.A2;
 using Asp.Versioning;
 using CommunityToolkit.Diagnostics;
@@ -109,6 +110,80 @@ public class DebugController
         Debug.Assert(personIdentifier is not null);
         var client = HttpContext.RequestServices.GetRequiredService<INprClient>();
         var response = await client.GetPerson(personIdentifier!, cancellationToken);
+        if (response.IsProblem)
+        {
+            return response.Problem.ToActionResult();
+        }
+
+        return Ok(response.Value);
+    }
+
+    /// <summary>
+    /// Temp test
+    /// </summary>
+    [HttpGet("sire/raw/{orgNo}")]
+    [Authorize(Policy = "Debug")]
+    public async Task<IActionResult> GetSireRaw(
+        [FromServices] IHttpClientFactory httpClientFactory,
+        string orgNo,
+        CancellationToken cancellationToken = default)
+    {
+        ValidationProblemBuilder builder = default;
+        OrganizationIdentifier? organizationIdentifier = null;
+        if (string.IsNullOrWhiteSpace(orgNo))
+        {
+            builder.Add(StdValidationErrors.Required, "/$PATH/orgNo");
+        }
+        else if (!OrganizationIdentifier.TryParse(orgNo, provider: null, out organizationIdentifier))
+        {
+            builder.Add(ValidationErrors.InvalidOrganizationNumber, "/$PATH/orgNo");
+        }
+
+        if (builder.TryBuild(out var error))
+        {
+            return error.ToActionResult();
+        }
+
+        Debug.Assert(organizationIdentifier is not null);
+        using var client = httpClientFactory.CreateClient(nameof(ISireClient));
+        using var response = await client.GetAsync($"v1/digdir/{organizationIdentifier!}", cancellationToken);
+
+        Response.StatusCode = (int)response.StatusCode;
+        HttpProxyResult.CopyHeaders(response.Headers, Response);
+        HttpProxyResult.CopyHeaders(response.Content.Headers, Response);
+        await response.Content.CopyToAsync(Response.Body, cancellationToken);
+
+        return new EmptyResult();
+    }
+
+    /// <summary>
+    /// Temp test
+    /// </summary>
+    [HttpGet("sire/org/{orgNo}")]
+    [Authorize(Policy = "Debug")]
+    public async Task<IActionResult> GetSireOrg(
+        string orgNo,
+        CancellationToken cancellationToken = default)
+    {
+        ValidationProblemBuilder builder = default;
+        OrganizationIdentifier? organizationIdentifier = null;
+        if (string.IsNullOrWhiteSpace(orgNo))
+        {
+            builder.Add(StdValidationErrors.Required, "/$PATH/orgNo");
+        }
+        else if (!OrganizationIdentifier.TryParse(orgNo, provider: null, out organizationIdentifier))
+        {
+            builder.Add(ValidationErrors.InvalidOrganizationNumber, "/$PATH/orgNo");
+        }
+
+        if (builder.TryBuild(out var error))
+        {
+            return error.ToActionResult();
+        }
+
+        Debug.Assert(organizationIdentifier is not null);
+        var client = HttpContext.RequestServices.GetRequiredService<ISireClient>();
+        var response = await client.GetPerson(organizationIdentifier, cancellationToken);
         if (response.IsProblem)
         {
             return response.Problem.ToActionResult();
