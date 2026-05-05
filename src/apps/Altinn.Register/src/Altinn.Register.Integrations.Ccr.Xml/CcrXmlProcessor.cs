@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Xml;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
+using Altinn.Register.Core.Ccr;
 using Altinn.Register.Core.Parties.Records;
 using CommunityToolkit.Diagnostics;
 using Nerdbank.Streams;
@@ -12,7 +13,7 @@ namespace Altinn.Register.Integrations.Ccr.Xml;
 /// XML processor for CCR (Customer Contact Register) data. This class provides functionality to read and process CCR XML data,
 /// yielding updates as CcrPartyUpdate instances. The processing is done in an asynchronous manner, allowing for efficient handling of large XML data streams.
 /// </summary>
-public sealed class CcrXmlProcessor
+public sealed class CcrXmlProcessor : ICcrXmlProcessor
 {
     /// <summary>
     /// Parses a CCR XML data stream and asynchronously yields updates for each party found in the document.
@@ -24,9 +25,9 @@ public sealed class CcrXmlProcessor
     /// <param name="xmlData">A read-only sequence of bytes containing the CCR XML data to process. The data must be a well-formed XML
     /// document in the expected CCR format.</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the asynchronous operation.</param>
-    /// <returns>An asynchronous stream of <see cref="CcrPartyUpdate"/> objects, each representing an update for a party found in
+    /// <returns>An asynchronous stream of <see cref="CcrOrganizationUpdate"/> objects, each representing an update for a party found in
     /// the CCR XML. The stream is empty if no parties are present.</returns>
-    public static IEnumerable<CcrPartyUpdate> ProcessCcrXml(ReadOnlySequence<byte> xmlData, CancellationToken cancellationToken = default)
+    public IEnumerable<CcrOrganizationUpdate> ProcessCcrXml(ReadOnlySequence<byte> xmlData, CancellationToken cancellationToken = default)
     {
         using var reader = XmlReader.Create(xmlData.AsStream());
 
@@ -84,7 +85,7 @@ public sealed class CcrXmlProcessor
     private static DateTimeOffset? ParseDate(string? value)
         => DateTimeOffset.TryParse(value, out var result) ? result : null;
 
-    private static CcrOrganizationUpsertModel ReadEnhet(XmlReader reader)
+    private static CcrOrganizationUpdate ReadEnhet(XmlReader reader)
     {
         var organisasjonsnummer = reader.GetAttribute("organisasjonsnummer");
         if (string.IsNullOrEmpty(organisasjonsnummer))
@@ -99,13 +100,10 @@ public sealed class CcrXmlProcessor
         var datoSistEndret = ParseDate(reader.GetAttribute("datoSistEndret"));
         var isDeleted = hovedsakstype == "S";
 
-        var org = new CcrOrganizationUpsertModel
+        var org = new CcrOrganizationUpdate
         {
             OrganizationIdentifier = OrganizationIdentifier.Parse(organisasjonsnummer),
             UnitType = organisasjonsform,
-            Hovedsakstype = hovedsakstype,
-            Undersakstype = undersakstype,
-            FoersteOverfoering = foersteOverfoering == "N",
 
             DatoSistEndret = FieldValue.From(datoSistEndret),
             DisplayName = FieldValue.Unset,
@@ -119,7 +117,7 @@ public sealed class CcrXmlProcessor
 
             DeletedAt = isDeleted ? datoSistEndret : null,
             IsDeleted = isDeleted,
-            Samendringer = [],
+            RoleUpdates = null,
         };
 
         if (!reader.IsEmptyElement)
@@ -135,7 +133,17 @@ public sealed class CcrXmlProcessor
                 }
                 else if (reader.LocalName == "samendringer")
                 {
-                    org.Samendringer.Add(ReadSamendring(reader));
+                    org.RoleUpdates ??= new();
+                    org.RoleUpdates.RoleAssignments.Add(ReadSamendring(reader));
+                }
+                else if (reader.LocalName == "status")
+                {
+                    ReadStatus(reader, org);
+                }
+                else if (reader.LocalName == "samendringUtgaar")
+                {
+                    org.RoleUpdates ??= new();
+                    org.RoleUpdates.BulkRemoveRoleAssignments.Add(ReadSamu(reader));
                 }
                 else
                 {
@@ -155,7 +163,22 @@ public sealed class CcrXmlProcessor
         return org;
     }
 
-    private static void ReadInfoType(XmlReader reader, CcrOrganizationUpsertModel org)
+    private static void ReadStatus(XmlReader reader, CcrOrganizationUpdate org)
+    {
+        var felttype = reader.GetAttribute("felttype") ?? string.Empty;
+        var endringstype = reader.GetAttribute("endringstype") ?? string.Empty;
+        if (felttype is "KONK" && endringstype is "N")
+        {
+            var statusFields = ReadChildFields(reader, "status");
+            if (statusFields.TryGetValue("kjennelsesdato", out var kdato))
+            {
+            }
+        }
+
+        org.UnitStatus = felttype;
+    }
+
+    private static void ReadInfoType(XmlReader reader, CcrOrganizationUpdate org)
     {
         var felttype = reader.GetAttribute("felttype") ?? string.Empty;
         var endringstype = reader.GetAttribute("endringstype") ?? string.Empty;
@@ -292,7 +315,21 @@ public sealed class CcrXmlProcessor
         };
     }
 
-    private static CcrSamendring ReadSamendring(XmlReader reader)
+    private static CcrRoleAssignment ReadSamu(XmlReader reader)
+    {
+        var samuFields = ReadChildFields(reader, "samendringUtgaar");
+        samuFields.TryGetValue("samendringstype", out var samuType);
+
+        if (string.IsNullOrEmpty(samuType))
+        {
+            ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required field 'samendringstype' in <samendringUtgaar> element.");
+        }
+
+        var samu = CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(samuType);
+        return samu;
+    }
+
+    private static CcrRoleAssignment ReadSamendring(XmlReader reader)
     {
         var felttype = reader.GetAttribute("felttype") ?? string.Empty;
         var endringstype = reader.GetAttribute("endringstype") ?? string.Empty;
@@ -300,6 +337,7 @@ public sealed class CcrXmlProcessor
         var data = reader.GetAttribute("data") ?? string.Empty;
 
         var rolleFields = ReadChildFields(reader, "samendringer");
+
         var rolleAnsvarsandel = rolleFields.TryGetValue("rolleAnsvarsandel", out var ansv) ? ansv : null;
         var rolleFratraadt = rolleFields.TryGetValue("rolleFratraadt", out var fratr) ? fratr : null;
         var rolleValgtav = rolleFields.TryGetValue("rolleValgtav", out var valgt) ? valgt : null;
@@ -314,58 +352,122 @@ public sealed class CcrXmlProcessor
         var adr3 = rolleFields.TryGetValue("adresse3", out var radr3) ? radr3 : null;
         var rlandkode = rolleFields.TryGetValue("adresseLandkode", out var rlk) ? rlk : null;
         var personstatus = rolleFields.TryGetValue("personstatus", out var ps) ? ps : null;
+        var location = rolleFields.TryGetValue("plassering", out var loc) ? loc : null;
+        var fritekst = rolleFields.TryGetValue("samendringfritTekstlinje", out var ft) ? ft : null;
+        var rollefritFoedselsnr = rolleFields.TryGetValue("rollefritFoedselsnr", out var rff) ? rff : null;
+        var rollefritTekstlinje = rolleFields.TryGetValue("rollefritTekstlinje", out var rft) ? rft : null;
 
         var knytningsAnsvarsdel = rolleFields.TryGetValue("knytningsAnsvarsandel", out var kan) ? kan : null;
         var knytningsFratraadt = rolleFields.TryGetValue("knytningsFratraadt", out var kfratr) ? kfratr : null;
         var knytningsValgtav = rolleFields.TryGetValue("knytningsValgtav", out var kvalgt) ? kvalgt : null;
         var knytningsRekkefoelge = rolleFields.TryGetValue("knytningsRekkefoelge", out var krek) ? krek : null;
         var knytningsOrgnr = rolleFields.TryGetValue("korrektOrganisasjonsnummer", out var kforn) ? kforn : null;
+        var knytningfritOrganisasjonsnummer = rolleFields.TryGetValue("knytningfritOrganisasjonsnummer", out var kforn2) ? kforn2 : null;
+        var knytningfritTekstlinje = rolleFields.TryGetValue("knytningfritTekstlinje", out var kftl) ? kftl : null;
+        var korrektOrganisasjonsnummer = rolleFields.TryGetValue("korrektOrganisasjonsnummer", out var korg) ? korg : null;
 
         if (type == "R")
         {
-            return new CcrSamendring
+            var fnr = GetFnr(rolleFoedselsnr, rollefritFoedselsnr, rollefritTekstlinje);
+            if (string.IsNullOrEmpty(fnr))
             {
-                FeltType = felttype,
-                EndringsType = endringstype,
-                Type = type,
-                Data = data,
+                ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required field 'rolleFoedselsnr' for role assignment in <samendringer> element.");
+            }
 
-                RolleAnsvarsandel = rolleAnsvarsandel,
-                RolleFratraadt = rolleFratraadt,
-                RolleValgtav = rolleValgtav,
-                RolleRekkefoelge = rolleRekkefoelge,
-                RolleFoedselsnr = rolleFoedselsnr,
-                Fornavn = fornavn,
-                Mellomnavn = mellomnavn,
-                Slektsnavn = etternavn,
-                Postnr = postnr,
-                Adresse1 = adr1,
-                Adresse2 = adr2,
-                Adresse3 = adr3,
-                AdresseLandkode = rlandkode,
-                Personstatus = personstatus
-            };
+            var addRole = CcrRoleAssignment.CreatePersonalRoleAssignment(felttype, fnr);
+            addRole.SetRoleAssignmentFields(
+                rolleAnsvarsDel: rolleAnsvarsandel,
+                rolleFratraadt: rolleFratraadt,
+                rolleValgtav: rolleValgtav,
+                rolleRekkefoelge: rolleRekkefoelge,
+                rolleFoedselsnr: rolleFoedselsnr,
+                fornavn: fornavn,
+                mellomnavn: mellomnavn,
+                slektsnavn: etternavn,
+                postnr: postnr,
+                adr1: adr1,
+                adr2: adr2,
+                adr3: adr3,
+                location: location,
+                freeTextLine: fritekst,
+                freeTextRole: rollefritTekstlinje,
+                countryCode: rlandkode,
+                personStatus: personstatus);
+            return addRole;
         }
 
         if (type == "K")
         {
-            return new CcrSamendring
-            {
-                FeltType = felttype,
-                EndringsType = endringstype,
-                Type = type,
-                Data = data,
-
-                KnytningAnsvarsandel = knytningsAnsvarsdel,
-                KnytningFratraadt = knytningsFratraadt,
-                KnytningOrganisasjonsnummer = knytningsOrgnr,
-                KnytningValgtav = knytningsValgtav,
-                KnytningRekkefoelge = knytningsRekkefoelge
-            };
+            var orgnr = GetOrgNr(knytningsOrgnr, knytningfritOrganisasjonsnummer, korrektOrganisasjonsnummer, knytningfritTekstlinje);
+            var addConnection = CcrRoleAssignment.CreateConnection(felttype, orgnr);
+            addConnection.SetConnectionFields(
+                knytningAnsvarsandel: knytningsAnsvarsdel,
+                knytningFratraadt: knytningsFratraadt,
+                knytningValgtav: knytningsValgtav,
+                knytningRekkefoelge: knytningsRekkefoelge,
+                knytningfritTekstLinje: knytningfritTekstlinje);
+            return addConnection;
         }
 
         ThrowHelper.ThrowArgumentException("XmlReader: unknown samendring type '" + type + "' in <samendringer> element.");
         return null;
+    }
+
+    private static string? GetFnr(string? rolleFoedselsnr, string? rollefritFoedselsnr, string? rollefritTekstlinje)
+    {
+        if (ValidateFnr(rolleFoedselsnr))
+        {
+            return rolleFoedselsnr!;
+        }
+
+        if (ValidateFnr(rollefritFoedselsnr))
+        {
+            return rollefritFoedselsnr!;
+        }
+
+        if (ValidateFnr(rollefritTekstlinje))
+        {
+            return rollefritTekstlinje!;
+        }
+
+        ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required field 'rolleFoedselsnr' for role assignment in <samendringer> element.");
+        return null;
+    }
+
+    private static bool ValidateFnr(string? rolleFoedselsnr)
+    {
+        return PersonIdentifier.TryParse(rolleFoedselsnr, null, out var _);
+    }
+
+    private static string GetOrgNr(string? knytningsOrgnr, string? knytningfritOrganisasjonsnummer, string? korrektOrganisasjonsnummer, string? knytningfritTekstlinje)
+    {
+        if (ValidateOrgNr(korrektOrganisasjonsnummer))
+        {
+            return korrektOrganisasjonsnummer!;
+        }
+
+        if (ValidateOrgNr(knytningsOrgnr))
+        {
+            return knytningsOrgnr!;
+        }
+
+        if (ValidateOrgNr(knytningfritOrganisasjonsnummer))
+        {
+            return knytningfritOrganisasjonsnummer!;
+        }
+
+        if (ValidateOrgNr(knytningfritTekstlinje))
+        {
+            return knytningfritTekstlinje!;
+        }
+
+        ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required organizational number for connection assignment in <samendringer> element.");
+        return null;
+    }
+
+    private static bool ValidateOrgNr(string? orgNr)
+    {
+        return OrganizationIdentifier.TryParse(orgNr, null, out var _);
     }
 
     private static Dictionary<string, string> ReadChildFields(XmlReader reader, string parentElement)

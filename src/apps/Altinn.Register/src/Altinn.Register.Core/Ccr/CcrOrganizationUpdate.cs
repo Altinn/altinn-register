@@ -2,16 +2,18 @@ using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties.Records;
 
-namespace Altinn.Register.Integrations.Ccr.Xml;
+namespace Altinn.Register.Core.Ccr;
 
 /// <summary>
-/// Represents a full update to a Norwegian Central Coordinating Register for Legal Entities (CCR) (Enhetsregisteret ER) party,
-/// including all relevant party information.
+/// Represents a full or partial update to a Norwegian Central Coordinating Register for Legal Entities (CCR) (Enhetsregisteret ER) party,
+/// including all relevant party information, and lists of co-changes to roles and connections.
 /// </summary>
-/// <remarks> Use this class when a complete replacement of the party's data is required, rather than a partial update.
-/// Inherits from CcrPartyUpdate, which provides base update functionality.</remarks>
-public sealed class CcrOrganizationUpsertModel
-    : CcrPartyUpdate
+/// <remarks>Can be either a full update, where all fields are intended to replace existing data, or a partial update, where only specified fields should be updated.
+/// Those fields that are implemented as <see cref="FieldValue{T}"/> can be used for both full and partial updates,
+/// as they allow for distinguishing between "no change" and "set to null" scenarios. FieldValue.Unset indicate a partial update where the field should not be modified,
+/// while FieldValue.Set(null) indicates that the field should be explicitly set to null.
+/// </remarks>
+public sealed class CcrOrganizationUpdate
 {
     /// <summary>
     /// Gets the organization identifier of the party, or <see langword="null"/> if the party is not an organization.
@@ -39,24 +41,9 @@ public sealed class CcrOrganizationUpsertModel
     public FieldValue<string> UnitType { get; set; }
 
     /// <summary>
-    /// Gets or sets the main case type.
+    /// Gets or sets the status of the unit as extracted from the field value.
     /// </summary>
-    public FieldValue<string> Hovedsakstype { get; set; }
-
-    /// <summary>
-    /// Gets or sets the sub case type.
-    /// </summary>
-    public FieldValue<string> Undersakstype { get; set; }
-
-    /// <summary>
-    /// Gets or sets the first transfer date.
-    /// </summary>
-    public bool FoersteOverfoering { get; set; }
-
-    /// <summary>
-    /// Gets or sets the date of birth.
-    /// </summary>
-    public FieldValue<DateTimeOffset> DatoFoedt { get; set; }
+    public FieldValue<string> UnitStatus { get; set; }
 
     /// <summary>
     /// Gets or sets the date last changed.
@@ -101,5 +88,5 @@ public sealed class CcrOrganizationUpsertModel
     /// <summary>
     /// Gets or sets the co-changes.
     /// </summary>
-    public List<CcrSamendring> Samendringer { get; set; } = [];
+    public CcrRoleAssignmentsUpdate? RoleUpdates { get; set; }
 }
