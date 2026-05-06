@@ -27,8 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference
-      Include="..\..\src\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Altinn.Register\Altinn.Register.csproj" />
     <ProjectReference Include="..\Altinn.Register.TestUtils.V3\Altinn.Register.TestUtils.V3.csproj" />
   </ItemGroup>
@@ -63,6 +62,10 @@
     <EmbeddedResource Include="Testdata/**/*.json" />
     <EmbeddedResource Include="Testdata/**/*.txt" />
     <EmbeddedResource Include="Testdata/**/*.xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="Testdata\Ccr\Xml\Scenario1.xml" />
   </ItemGroup>
 
 </Project>
