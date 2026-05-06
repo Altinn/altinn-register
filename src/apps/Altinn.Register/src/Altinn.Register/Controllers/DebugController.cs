@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Net.Http.Headers;
+using System.Text.Json.Serialization;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Configuration;
@@ -159,37 +160,34 @@ public class DebugController
     /// <summary>
     /// Temp test
     /// </summary>
-    [HttpGet("sire/org/{orgNo}")]
+    [HttpGet("sire/raw/events")]
     [Authorize(Policy = "Debug")]
-    public async Task<IActionResult> GetSireOrg(
-        string orgNo,
+    public async Task<IActionResult> GetSireEvents(
+        [FromServices] IHttpClientFactory httpClientFactory,
+        [FromQuery(Name = "from")] uint sequenceNumber = 0,
         CancellationToken cancellationToken = default)
     {
-        ValidationProblemBuilder builder = default;
-        OrganizationIdentifier? organizationIdentifier = null;
-        if (string.IsNullOrWhiteSpace(orgNo))
+        using var client = httpClientFactory.CreateClient(nameof(ISireClient));
+        if (sequenceNumber == 0)
         {
-            builder.Add(StdValidationErrors.Required, "/$PATH/orgNo");
-        }
-        else if (!OrganizationIdentifier.TryParse(orgNo, provider: null, out organizationIdentifier))
-        {
-            builder.Add(ValidationErrors.InvalidOrganizationNumber, "/$PATH/orgNo");
+            var startResponse = await client.GetFromJsonAsync<SireStartModel>("https://sire-events/v1/hendelser/start", cancellationToken);
+            sequenceNumber = startResponse!.SequenceNumber;
         }
 
-        if (builder.TryBuild(out var error))
-        {
-            return error.ToActionResult();
-        }
+        using var response = await client.GetAsync($"https://sire-events/v1/hendelser?fraSekvensnummer={sequenceNumber}&antall=10", cancellationToken);
 
-        Debug.Assert(organizationIdentifier is not null);
-        var client = HttpContext.RequestServices.GetRequiredService<ISireClient>();
-        var response = await client.GetPerson(organizationIdentifier, cancellationToken);
-        if (response.IsProblem)
-        {
-            return response.Problem.ToActionResult();
-        }
+        Response.StatusCode = (int)response.StatusCode;
+        HttpProxyResult.CopyHeaders(response.Headers, Response);
+        HttpProxyResult.CopyHeaders(response.Content.Headers, Response);
+        await response.Content.CopyToAsync(Response.Body, cancellationToken);
 
-        return Ok(response.Value);
+        return new EmptyResult();
+    }
+
+    private sealed record SireStartModel
+    {
+        [JsonPropertyName("sekvensnummer")]
+        public required uint SequenceNumber { get; init; }
     }
 
     /// <summary>
