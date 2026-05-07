@@ -100,12 +100,28 @@ public interface IPartyExternalRolePersistence
     /// <param name="roleSource">The source of the external roles.</param>
     /// <param name="assignments">The new role-assignments.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
-    /// <returns></returns>
+    /// <returns>A set of changes performed by this upsert.</returns>
     public IAsyncSideEffectEnumerable<ExternalRoleAssignmentEvent> UpsertExternalRolesFromPartyBySource(
         Guid commandId,
         Guid partyUuid,
         ExternalRoleSource roleSource,
         IEnumerable<UpsertExternalRoleAssignment> assignments,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Upserts all external roles from <paramref name="partyUuid"/> by <paramref name="roleSource"/>.
+    /// </summary>
+    /// <param name="commandId">The command ID.</param>
+    /// <param name="partyUuid">The party to upsert external roles from.</param>
+    /// <param name="roleSource">The source of the external roles.</param>
+    /// <param name="update">The update to apply to the external roles.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>A set of changes performed by this upsert.</returns>
+    public IAsyncSideEffectEnumerable<ExternalRoleAssignmentEvent> UpsertExternalRolesFromPartyBySource(
+        Guid commandId,
+        Guid partyUuid,
+        ExternalRoleSource roleSource,
+        PartyExternalRoleAssignmentsUpdate update,
         CancellationToken cancellationToken = default);
 
     /// <summary>

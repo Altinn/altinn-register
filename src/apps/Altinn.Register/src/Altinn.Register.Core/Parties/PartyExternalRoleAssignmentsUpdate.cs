@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
 
@@ -7,10 +8,10 @@ namespace Altinn.Register.Core.Parties;
 /// Base class for updates to party external role assignments.
 /// This is a union between a <see cref="Full"/> and a <see cref="Delta"/>.
 /// </summary>
-public abstract record PartyExternalRolesAssignmentUpdate
+public abstract record PartyExternalRoleAssignmentsUpdate
 {
     // Prevents extending this record outside of this class.
-    private PartyExternalRolesAssignmentUpdate()
+    private PartyExternalRoleAssignmentsUpdate()
     {
     }
 
@@ -20,12 +21,51 @@ public abstract record PartyExternalRolesAssignmentUpdate
     public ExternalRoleSource RoleSource { get; init; }
 
     /// <summary>
+    /// Gets the update as a full update if this is a <see cref="Full"/> update.
+    /// </summary>
+    /// <param name="full">The full update if this is a <see cref="Full"/> update; otherwise, <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> if this is a <see cref="Full"/> update; otherwise, <see langword="false"/>.</returns>
+    public bool TryGetValue([NotNullWhen(true)] out Full? full)
+    {
+        if (this is Full f)
+        {
+            full = f;
+            return true;
+        }
+
+        full = null;
+        return false;
+    }
+
+    /// <summary>
+    /// Gets the update as a delta update if this is a <see cref="Delta"/> update.
+    /// </summary>
+    /// <param name="delta">The delta update if this is a <see cref="Delta"/> update; otherwise, <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> if this is a <see cref="Delta"/> update; otherwise, <see langword="false"/>.</returns>
+    public bool TryGetValue([NotNullWhen(true)] out Delta? delta)
+    {
+        if (this is Delta d)
+        {
+            delta = d;
+            return true;
+        }
+
+        delta = null;
+        return false;
+    }
+
+    /// <summary>
     /// Represents a full update of party external role assignments, where the provided list of assignments
     /// is the complete and authoritative list of assignments for the party from the source.
     /// </summary>
     public sealed record Full
-        : PartyExternalRolesAssignmentUpdate
+        : PartyExternalRoleAssignmentsUpdate
     {
+        /// <summary>
+        /// Gets an empty full update, where the list of assignments is empty, indicating that there are no role assignments for the party from the source.
+        /// </summary>
+        public static Full Empty { get; } = new() { Assignments = [] };
+
         /// <summary>
         /// Gets the complete list of party external role assignments for the party from the source.
         /// </summary>
@@ -37,7 +77,7 @@ public abstract record PartyExternalRolesAssignmentUpdate
     /// are applied as changes to the existing assignments for the party from the source.
     /// </summary>
     public sealed record Delta
-        : PartyExternalRolesAssignmentUpdate
+        : PartyExternalRoleAssignmentsUpdate
     {
         /// <summary>
         /// Gets the list of party external role assignments to remove by identifier,

@@ -351,3 +351,6 @@ MigrationBackup/
 # Devenv
 .devenv/
 devenv.lock
+
+# Codex
+.codex

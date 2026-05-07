@@ -1,4 +1,5 @@
 using System.Data;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Altinn.Authorization.ModelUtils;
@@ -892,6 +893,20 @@ internal partial class PostgreSqlPartyPersistence
             RoleSource = source;
         }
 
+        // Note: We're explicitly not keeping the inner exception here, because the resulting exception is too long and causes issues in logging
+        public UpsertExternalRolesFromPartyBySourceException(
+            Guid commandId,
+            Guid fromParty,
+            ExternalRoleSource source,
+            PartyExternalRoleAssignmentsUpdate update,
+            Exception innerException)
+            : base(CreateMessage(commandId, fromParty, source, update, innerException))
+        {
+            CommandId = commandId;
+            FromParty = fromParty;
+            RoleSource = source;
+        }
+
         private static string CreateMessage(
             Guid commandId,
             Guid fromParty,
@@ -910,6 +925,88 @@ internal partial class PostgreSqlPartyPersistence
             }
 
             return sb.ToString();
+        }
+
+        private static string CreateMessage(
+            Guid commandId,
+            Guid fromParty,
+            ExternalRoleSource source,
+            PartyExternalRoleAssignmentsUpdate update,
+            Exception innerException)
+        {
+            if (update.TryGetValue(out PartyExternalRoleAssignmentsUpdate.Full? full))
+            {
+                return CreateMessage(commandId, fromParty, source, full, innerException);
+            }
+            else if (update.TryGetValue(out PartyExternalRoleAssignmentsUpdate.Delta? delta))
+            {
+                return CreateMessage(commandId, fromParty, source, delta, innerException);
+            }
+            else
+            {
+                throw new UnreachableException("Unknown update type");
+            }
+        }
+
+        private static string CreateMessage(
+            Guid commandId,
+            Guid fromParty,
+            ExternalRoleSource source,
+            PartyExternalRoleAssignmentsUpdate.Full full,
+            Exception innerException)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"Failed to upsert external role-assignments from party '{fromParty}' for source '{source}';");
+            sb.AppendLine($"Cause By: {innerException.Message}");
+            sb.AppendLine($"CommandId: {{{commandId}}}");
+
+            foreach (var assignment in full.Assignments)
+            {
+                sb.AppendLine($"  {assignment.ExternalRoleIdentifier} -> {LogSafe(assignment.ToParty)}");
+            }
+
+            return sb.ToString();
+        }
+
+        private static string CreateMessage(
+            Guid commandId,
+            Guid fromParty,
+            ExternalRoleSource source,
+            PartyExternalRoleAssignmentsUpdate.Delta delta,
+            Exception innerException)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"Failed to update external role-assignments from party '{fromParty}' for source '{source}';");
+            sb.AppendLine($"Cause By: {innerException.Message}");
+            sb.AppendLine($"CommandId: {{{commandId}}}");
+
+            foreach (var bulk in delta.ToBulkRemove)
+            {
+                sb.AppendLine($"  REMOVE ALL: {bulk.ExternalRoleIdentifier}");
+            }
+
+            foreach (var rem in delta.ToRemove)
+            {
+                sb.AppendLine($"  REMOVE: {rem.ExternalRoleIdentifier} -> {LogSafe(rem.ToParty)}");
+            }
+
+            foreach (var add in delta.ToAdd)
+            {
+                sb.AppendLine($"  ADD: {add.ExternalRoleIdentifier} -> {LogSafe(add.ToParty)}");
+            }
+
+            return sb.ToString();
+        }
+
+        private static string LogSafe(PartyExternalRoleAssignmentPartyRef partyRef)
+        {
+            return partyRef switch
+            {
+                PartyExternalRoleAssignmentPartyRef.PartyUuid p => p.Uuid.ToString(),
+                PartyExternalRoleAssignmentPartyRef.Organization o => o.OrganizationIdentifier.ToString(),
+                PartyExternalRoleAssignmentPartyRef.Person => "REDACTED_PERSON_ID",
+                _ => "UNKNOWN_PARTY_REF",
+            };
         }
     }
 }
