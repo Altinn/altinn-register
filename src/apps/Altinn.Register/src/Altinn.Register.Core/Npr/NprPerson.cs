@@ -52,7 +52,7 @@ public sealed record NprPerson
     /// <summary>
     /// Gets the date of birth of the person.
     /// </summary>
-    public required DateOnly DateOfBirth { get; init; }
+    public required DateOnly? DateOfBirth { get; init; }
 
     /// <summary>
     /// Gets the (optional) date of death of the person.

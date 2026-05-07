@@ -27,8 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference
-      Include="..\..\src\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Altinn.Register\Altinn.Register.csproj" />
     <ProjectReference Include="..\Altinn.Register.TestUtils.V3\Altinn.Register.TestUtils.V3.csproj" />
   </ItemGroup>

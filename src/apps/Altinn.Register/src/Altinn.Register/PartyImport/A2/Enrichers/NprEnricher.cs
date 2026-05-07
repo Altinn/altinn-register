@@ -57,8 +57,10 @@ internal sealed class NprEnricher
 
         if (nprPerson.PersonIdentifier != context.Party.PersonIdentifier.Value)
         {
-            // This should never happen, but if it does, it indicates a serious problem with the NPR client or the data in NPR, so we want to fail rather than risk importing incorrect data.
-            throw new InvalidOperationException($"NPR returned a different person-identifier than requested.");
+            // This happens if a person has ever changed their person-identifier and we used the old one to look them up.
+            // NPR will return the correct person with the current person-identifier. But since we have a separate party
+            // for each person-identifier, we need to save the data we get on the old party here.
+            nprPerson = nprPerson with { PersonIdentifier = context.Party.PersonIdentifier.Value };
         }
 
         context.Party = ((PersonRecord)context.Party) with
@@ -71,7 +73,7 @@ internal sealed class NprEnricher
             ShortName = nprPerson.ShortName,
             Address = nprPerson.Address,
             MailingAddress = nprPerson.MailingAddress,
-            DateOfBirth = nprPerson.DateOfBirth,
+            DateOfBirth = FieldValue.From(nprPerson.DateOfBirth),
             DateOfDeath = FieldValue.From(nprPerson.DateOfDeath),
         };
 
