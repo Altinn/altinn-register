@@ -465,9 +465,8 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
 
         if (string.IsNullOrEmpty(input.DateOfDeath))
         {
-            context.AddChildProblem(StdValidationErrors.Required, path: PATH);
             validated = default;
-            return false;
+            return true;
         }
 
         if (!DateOnly.TryParseExact(input.DateOfDeath, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
@@ -571,12 +570,8 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             return false;
         }
 
-        context.AddChildProblem(
-            StdValidationErrors.Required,
-            path: ["/postadresseIFrittFormat", "/vegadresse", "/postboksadresse"]);
-
         validated = default;
-        return false;
+        return true;
     }
 
     /// <inheritdoc/>
@@ -639,12 +634,8 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             return false;
         }
 
-        context.AddChildProblem(
-            StdValidationErrors.Required,
-            path: ["/matrikkeladresse", "/vegadresse", "/utenlandskAdresse"]);
-
         validated = default;
-        return false;
+        return true;
     }
 
     /// <inheritdoc/>
@@ -701,12 +692,8 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             return false;
         }
 
-        context.AddChildProblem(
-            StdValidationErrors.Required,
-            path: ["/ukjentBosted", "/vegadresse", "/matrikkeladresse"]);
-
         validated = default;
-        return false;
+        return true;
     }
 
     /// <inheritdoc/>
@@ -760,12 +747,8 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             return false;
         }
 
-        context.AddChildProblem(
-            StdValidationErrors.Required,
-            path: ["/ukjentBosted", "/vegadresse", "/matrikkeladresse"]);
-
         validated = default;
-        return false;
+        return true;
     }
 
     /// <inheritdoc/>
@@ -810,12 +793,8 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             return false;
         }
 
-        context.AddChildProblem(
-            StdValidationErrors.Required,
-            path: ["/utenlandskAdresseIFrittFormat", "/utenlandskAdresse"]);
-
         validated = default;
-        return false;
+        return true;
     }
 
     /// <inheritdoc/>
@@ -830,23 +809,28 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             context.TryValidateChild(path: "/poststed", input.PostalArea, this, out postalInfo);
         }
 
-        if (input.AddressLines.IsDefaultOrEmpty)
-        {
-            context.AddChildProblem(StdValidationErrors.Required, path: "/adresselinje");
-        }
-
         if (context.HasErrors)
         {
             validated = default;
             return false;
         }
 
-        var address = string.Join(' ', input.AddressLines);
-        if (input.AddressLines.Length > 0 && (postalInfo.Code is null || !input.AddressLines[^1].StartsWith(postalInfo.Code, StringComparison.Ordinal)))
+        List<string> addressLines;
+        if (input.AddressLines.IsDefaultOrEmpty)
         {
-            address = $"{address} {postalInfo.Code} {postalInfo.Name}".Trim();
+            addressLines = [];
+        }
+        else
+        {
+            addressLines = [.. input.AddressLines];
         }
 
+        if (addressLines.Count > 0 && (postalInfo.Code is null || !addressLines[^1].StartsWith(postalInfo.Code, StringComparison.Ordinal)))
+        {
+            addressLines.Add($"{postalInfo.Code} {postalInfo.Name}".Trim());
+        }
+
+        var address = string.Join(' ', addressLines).Trim();
         validated = new MailingAddressRecordExt
         {
             Address = address,
@@ -950,16 +934,17 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         InternationalFreeFormMailingAddress input,
         [NotNullWhen(true)] out MailingAddressRecordExt? validated)
     {
+        List<string> addressLines;
         if (input.AddressLines.IsDefaultOrEmpty)
         {
-            context.AddChildProblem(StdValidationErrors.Required, path: "/adresselinje");
-            validated = default;
-            return false;
+            addressLines = [];
+        }
+        else
+        {
+            addressLines = [.. input.AddressLines];
         }
 
         TryLookupCountryName(input.CountryCode, out string? countryDisplay);
-
-        List<string> addressLines = [.. input.AddressLines];
 
         var cityOrPlaceName = input.CityOrPlaceName?.Trim();
         if (!string.IsNullOrEmpty(cityOrPlaceName)
