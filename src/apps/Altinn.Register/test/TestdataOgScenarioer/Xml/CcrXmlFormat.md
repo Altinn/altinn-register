@@ -2,7 +2,7 @@
 
 This document describes the structure and semantics of the
 `batchAjourholdXML` documents that the CCR flat-file processor
-([`CcrFlatFileProcessor`](../../../../../src/Altinn.Register.Integrations.Ccr.FileImport/CcrFlatFileProcessor.cs))
+([`CcrFlatFileProcessor`](../../../src/Altinn.Register.Integrations.Ccr.FileImport/CcrFlatFileProcessor.cs))
 emits. One document is produced per Norwegian organization (`<enhet>`)
 that appears in a CCR (Central Coordinating Register / Enhetsregisteret
 + Foretaksregisteret) batch update file. Each `ScenarioN.xml` in this
@@ -386,7 +386,7 @@ from the test corpus.
   <rolleFratraadt>N</rolleFratraadt>               <!-- N = currently active, F = fratraadt / stepped down -->
   <rolleValgtav>...</rolleValgtav>                 <!-- elected by -->
   <rolleRekkefoelge>1</rolleRekkefoelge>           <!-- ordinal in role list -->
-  <rolleFoedselsnr>42095823496</rolleFoedselsnr>   <!-- 11-digit Norwegian fødselsnummer -->
+  <rolleFoedselsnr>02895823468</rolleFoedselsnr>   <!-- 11-digit Norwegian fødselsnummer -->
   <fornavn>Anne</fornavn>
   <mellomnavn>Test</mellomnavn>                    <!-- middle name, often absent -->
   <slektsnavn>Testperson</slektsnavn>
@@ -425,7 +425,7 @@ The parser knows ~50 different role-codes that all flow through the
 same code path (e.g. `STYR`, `PROK`, `REVI`, `SIGN`, `KOMP`, `KONT`,
 `NEST`, `BEST`, `OBS`, `HLED`, `HMDL`, `HNST`, `HVAR`, `FFØR`, `FGRP`,
 `HFOR`, `HLSE`, `KIRK`, `KMOR`, `STFT`, `READ`, `REPR`, …). The list
-of recognized codes lives in [`CcrFlatFileProcessor.cs`](../../../../../src/Altinn.Register.Integrations.Ccr.FileImport/CcrFlatFileProcessor.cs)
+of recognized codes lives in [`CcrFlatFileProcessor.cs`](../../../src/Altinn.Register.Integrations.Ccr.FileImport/CcrFlatFileProcessor.cs)
 and matches BR's standard role catalog.
 
 #### `data="D" type="K"` — knytning (org-to-org connection)

@@ -24,7 +24,7 @@
     <samendringer data="D" felttype="LEDE" endringstype="N" type="R">
       <rolleFratraadt>N</rolleFratraadt>
       <rolleRekkefoelge>4</rolleRekkefoelge>
-      <rolleFoedselsnr>62037242328</rolleFoedselsnr>
+      <rolleFoedselsnr>22837242561</rolleFoedselsnr>
       <fornavn>Berit</fornavn>
       <slektsnavn>Testperson</slektsnavn>
       <postnr>1234</postnr>
@@ -35,7 +35,7 @@
     <samendringer data="D" felttype="MEDL" endringstype="N" type="R">
       <rolleFratraadt>N</rolleFratraadt>
       <rolleRekkefoelge>3</rolleRekkefoelge>
-      <rolleFoedselsnr>43050672450</rolleFoedselsnr>
+      <rolleFoedselsnr>03850672341</rolleFoedselsnr>
       <fornavn>Bjørn</fornavn>
       <mellomnavn>Test</mellomnavn>
       <slektsnavn>Testperson</slektsnavn>
@@ -47,7 +47,7 @@
     <samendringer data="D" felttype="MEDL" endringstype="N" type="R">
       <rolleFratraadt>N</rolleFratraadt>
       <rolleRekkefoelge>2</rolleRekkefoelge>
-      <rolleFoedselsnr>55037924880</rolleFoedselsnr>
+      <rolleFoedselsnr>15837924771</rolleFoedselsnr>
       <fornavn>Geir</fornavn>
       <slektsnavn>Testperson</slektsnavn>
       <postnr>5678</postnr>
@@ -58,7 +58,7 @@
     <samendringer data="D" felttype="MEDL" endringstype="N" type="R">
       <rolleFratraadt>N</rolleFratraadt>
       <rolleRekkefoelge>1</rolleRekkefoelge>
-      <rolleFoedselsnr>62080761517</rolleFoedselsnr>
+      <rolleFoedselsnr>22880761599</rolleFoedselsnr>
       <fornavn>Birk</fornavn>
       <mellomnavn>Test</mellomnavn>
       <slektsnavn>Testperson</slektsnavn>

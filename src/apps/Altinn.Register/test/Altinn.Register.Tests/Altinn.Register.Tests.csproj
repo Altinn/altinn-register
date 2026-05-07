@@ -64,8 +64,4 @@
     <EmbeddedResource Include="Testdata/**/*.xml" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Remove="Testdata\Ccr\Xml\Scenario1.xml" />
-  </ItemGroup>
-
 </Project>

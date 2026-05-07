@@ -5,7 +5,7 @@
     <samendringer data="D" felttype="LEDE" endringstype="N" type="R">
       <rolleFratraadt>N</rolleFratraadt>
       <rolleRekkefoelge>1</rolleRekkefoelge>
-      <rolleFoedselsnr>42095823496</rolleFoedselsnr>
+      <rolleFoedselsnr>02895823468</rolleFoedselsnr>
       <fornavn>Anne</fornavn>
       <slektsnavn>Testperson</slektsnavn>
       <postnr>1234</postnr>
@@ -14,15 +14,15 @@
       <personstatus>L</personstatus>
     </samendringer>
     <samendringer data="D" felttype="LEDE" endringstype="U" type="R">
-      <rolleFoedselsnr>68025934532</rolleFoedselsnr>
+      <rolleFoedselsnr>28825934504</rolleFoedselsnr>
     </samendringer>
     <samendringer data="D" felttype="MEDL" endringstype="U" type="R">
-      <rolleFoedselsnr>42095823496</rolleFoedselsnr>
+      <rolleFoedselsnr>02895823468</rolleFoedselsnr>
     </samendringer>
     <samendringer data="D" felttype="MEDL" endringstype="N" type="R">
       <rolleFratraadt>N</rolleFratraadt>
       <rolleRekkefoelge>3</rolleRekkefoelge>
-      <rolleFoedselsnr>47055812817</rolleFoedselsnr>
+      <rolleFoedselsnr>07855812899</rolleFoedselsnr>
       <fornavn>Ola Test</fornavn>
       <slektsnavn>Testperson</slektsnavn>
       <postnr>1234</postnr>
@@ -31,11 +31,11 @@
       <personstatus>L</personstatus>
     </samendringer>
     <samendringer data="D" felttype="MEDL" endringstype="U" type="R">
-      <rolleFoedselsnr>50077345679</rolleFoedselsnr>
+      <rolleFoedselsnr>10877345640</rolleFoedselsnr>
     </samendringer>
     <samendringer data="D" felttype="MEDL" endringstype="N" type="R">
       <rolleFratraadt>N</rolleFratraadt>
-      <rolleFoedselsnr>50086039122</rolleFoedselsnr>
+      <rolleFoedselsnr>10886039447</rolleFoedselsnr>
       <fornavn>Kari Marit</fornavn>
       <slektsnavn>Testperson</slektsnavn>
       <postnr>5678</postnr>
@@ -46,7 +46,7 @@
     <samendringer data="D" felttype="MEDL" endringstype="N" type="R">
       <rolleFratraadt>N</rolleFratraadt>
       <rolleRekkefoelge>2</rolleRekkefoelge>
-      <rolleFoedselsnr>55017928731</rolleFoedselsnr>
+      <rolleFoedselsnr>15817928703</rolleFoedselsnr>
       <fornavn>Per</fornavn>
       <slektsnavn>Testperson</slektsnavn>
       <postnr>1234</postnr>
@@ -55,7 +55,7 @@
       <personstatus>L</personstatus>
     </samendringer>
     <samendringer data="D" felttype="VARA" endringstype="U" type="R">
-      <rolleFoedselsnr>55017928731</rolleFoedselsnr>
+      <rolleFoedselsnr>15817928703</rolleFoedselsnr>
     </samendringer>
   </enhet>
   <trai antallEnheter="1" avsender="ER" />

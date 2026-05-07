@@ -12,11 +12,16 @@ real format:
 - **Org numbers** are 9-digit Norwegian organisasjonsnummer with a valid mod-11
   check digit. They are picked from the `316289xxx` synthetic test range that
   the rest of the test corpus already uses.
-- **Person SSNs** (when present) are 11-digit Norwegian fødselsnummer using
-  the Tenor-style synthetic convention: day-of-month is incremented by 40
-  (so DD becomes 41–71), the month and 2-digit year are kept, the
-  individual number is **fully randomized**, and K1/K2 are recomputed to be
-  mod-11 valid.
+- **Person SSNs** (when present) are 11-digit Norwegian fødselsnummer
+  generated using the **Skatteetaten Tenor synthetic convention**: the
+  month part has **80 added** (so MM becomes 81–92, an invalid real
+  month → unambiguously synthetic). Day and 2-digit year are kept, the
+  individual number is fully randomized inside the year-appropriate
+  range (000–499 / 900–999 for years 1900–1999, 500–999 for years
+  2000–2039), and K1/K2 are recomputed to be mod-11 valid. **Note:**
+  this is *not* the day+40 convention — day+40 produces real D-numbers
+  (Dummernummer, used for foreign workers without a permanent ID), not
+  synthetic test data.
 - **Names** (organization and person) are obviously fake test names. When
   the original carried a multi-word `fornavn`, the synthetic name keeps a
   multi-word `fornavn` so that branch stays covered.
@@ -76,14 +81,14 @@ The eight `samendringer` records (in the original order) are:
 
 | # | Felttype | endringstype | Subject | Notes |
 | --- | --- | --- | --- | --- |
-| 1 | `LEDE` | `N` (new) | Anne Testperson (`42095823496`) | New chair (`rolleRekkefoelge=1`) |
-| 2 | `LEDE` | `U` (utgår) | SSN `68025934532` only | Outgoing chair, identifier-only record |
-| 3 | `MEDL` | `U` | SSN `42095823496` only | Same person as #1 — vacates her old MEDL seat to become LEDE |
-| 4 | `MEDL` | `N` | Ola Test Testperson (`47055812817`) | New member (`rolleRekkefoelge=3`); two-word `fornavn` |
-| 5 | `MEDL` | `U` | SSN `50077345679` only | Outgoing member |
-| 6 | `MEDL` | `N` | Kari Marit Testperson (`50086039122`) | New member, **no `rolleRekkefoelge`**; two-word `fornavn`; different address |
-| 7 | `MEDL` | `N` | Per Testperson (`55017928731`) | New member (`rolleRekkefoelge=2`) |
-| 8 | `VARA` | `U` | SSN `55017928731` only | Same person as #7 — vacates deputy seat to become MEDL |
+| 1 | `LEDE` | `N` (new) | Anne Testperson (`02895823468`) | New chair (`rolleRekkefoelge=1`) |
+| 2 | `LEDE` | `U` (utgår) | SSN `28825934504` only | Outgoing chair, identifier-only record |
+| 3 | `MEDL` | `U` | SSN `02895823468` only | Same person as #1 — vacates her old MEDL seat to become LEDE |
+| 4 | `MEDL` | `N` | Ola Test Testperson (`07855812899`) | New member (`rolleRekkefoelge=3`); two-word `fornavn` |
+| 5 | `MEDL` | `U` | SSN `10877345640` only | Outgoing member |
+| 6 | `MEDL` | `N` | Kari Marit Testperson (`10886039447`) | New member, **no `rolleRekkefoelge`**; two-word `fornavn`; different address |
+| 7 | `MEDL` | `N` | Per Testperson (`15817928703`) | New member (`rolleRekkefoelge=2`) |
+| 8 | `VARA` | `U` | SSN `15817928703` only | Same person as #7 — vacates deputy seat to become MEDL |
 
 **Subject organization:** ESEK (eierseksjonssameie / condominium owners'
 association) `316289118`, founded 2013-04-13, not first transfer.
@@ -92,14 +97,14 @@ association) `316289118`, founded 2013-04-13, not first transfer.
 
 | # | Synthetic SSN | Synthetic name | Born (from SSN) | Roles in this update |
 | --- | --- | --- | --- | --- |
-| P1 | `42095823496` | Anne Testperson | 1958-09-02¹ | LEDE-N, MEDL-U (promotion to chair) |
-| P2 | `68025934532` | _(name not supplied)_ | 1959-02-28¹ | LEDE-U |
-| P3 | `47055812817` | Ola Test Testperson | 1958-05-07¹ | MEDL-N |
-| P4 | `50077345679` | _(name not supplied)_ | 1973-07-10¹ | MEDL-U |
-| P5 | `50086039122` | Kari Marit Testperson | 1960-08-10¹ | MEDL-N |
-| P6 | `55017928731` | Per Testperson | 1979-01-15¹ | MEDL-N, VARA-U (promotion to member) |
+| P1 | `02895823468` | Anne Testperson | 1958-09-02¹ | LEDE-N, MEDL-U (promotion to chair) |
+| P2 | `28825934504` | _(name not supplied)_ | 1959-02-28¹ | LEDE-U |
+| P3 | `07855812899` | Ola Test Testperson | 1958-05-07¹ | MEDL-N |
+| P4 | `10877345640` | _(name not supplied)_ | 1973-07-10¹ | MEDL-U |
+| P5 | `10886039447` | Kari Marit Testperson | 1960-08-10¹ | MEDL-N |
+| P6 | `15817928703` | Per Testperson | 1979-01-15¹ | MEDL-N, VARA-U (promotion to member) |
 
-¹ Day-of-month decoded from `DD - 40` (Tenor synthetic convention).
+¹ Day-of-month decoded from `DD` directly (Tenor synthetic convention adjusts the *month* by +80, not the day).
 
 All persons have `personstatus="L"` (Levende/alive). All `N` records carry
 `rolleFratraadt="N"` (the new role is currently active).
@@ -367,12 +372,12 @@ edited to remove the real lighthouse name (`Hellisøy fyrstasjon` →
 
 | # | Synthetic SSN | Synthetic name | Born (from SSN) | Notes |
 | --- | --- | --- | --- | --- |
-| P1 | `62037242328` | Berit Testperson | 1972-03-22¹ | Chair (LEDE), `rolleRekkefoelge=4`. Also referenced in FADR `c/o`. |
-| P2 | `43050672450` | Bjørn Test Testperson | 2006-05-03¹ | MEDL, `rolleRekkefoelge=3`. Has `<mellomnavn>`. Sibling of P4. |
-| P3 | `55037924880` | Geir Testperson | 1979-03-15¹ | MEDL, `rolleRekkefoelge=2`. Lives separately. |
-| P4 | `62080761517` | Birk Test Testperson | 2007-08-22¹ | MEDL, `rolleRekkefoelge=1`. Has `<mellomnavn>`. Sibling of P2. |
+| P1 | `22837242561` | Berit Testperson | 1972-03-22¹ | Chair (LEDE), `rolleRekkefoelge=4`. Also referenced in FADR `c/o`. |
+| P2 | `03850672341` | Bjørn Test Testperson | 2006-05-03¹ | MEDL, `rolleRekkefoelge=3`. Has `<mellomnavn>`. Sibling of P4. |
+| P3 | `15837924771` | Geir Testperson | 1979-03-15¹ | MEDL, `rolleRekkefoelge=2`. Lives separately. |
+| P4 | `22880761599` | Birk Test Testperson | 2007-08-22¹ | MEDL, `rolleRekkefoelge=1`. Has `<mellomnavn>`. Sibling of P2. |
 
-¹ Day-of-month decoded from `DD - 40` (Tenor synthetic convention).
+¹ Day-of-month decoded from `DD` directly (Tenor synthetic convention adjusts the *month* by +80, not the day).
 
 The sibling structure (P2 + P4) is preserved by giving them the same
 `<mellomnavn>`, the same `<slektsnavn>`, and the same address.
@@ -598,9 +603,9 @@ The three records:
 | Role | Type | Identifier | Note |
 | --- | --- | --- | --- |
 | Subject organization | AS | `316289444` | `undersakstype="OPPL"` (only scenario in the corpus to use this undersakstype value) |
-| Outgoing daglig leder | Person (DAGL-U) | SSN `42045328761` only | Born 1953-04-02¹; identifier-only record (no name, no address) |
+| Outgoing daglig leder | Person (DAGL-U) | SSN `02845328733` only | Born 1953-04-02¹; identifier-only record (no name, no address) |
 
-¹ Day-of-month decoded from `DD - 40` (Tenor synthetic convention).
+¹ Day-of-month decoded from `DD` directly (Tenor synthetic convention adjusts the *month* by +80, not the day).
 
 **Coverage value (very high):** closes two prominent gaps from the
 audit:
@@ -795,9 +800,9 @@ The nine records (in order):
 | --- | --- | --- | --- |
 | Subject organization (the konkursbo) | KBO (Konkursbo) | `316289192` | Registered today |
 | Bankrupt AS (KDEB target) | Organization (KDEB connection) | `316289185` | Same number as Scenario 21's enhet org |
-| Bobestyrer / trustee (BOBE) | Person | SSN `68016327488`, born 1963-01-28¹, `Frida Test Testperson` | Same person also referenced by name in PADR `adresse1` |
+| Bobestyrer / trustee (BOBE) | Person | SSN `28816327530`, born 1963-01-28¹, `Frida Test Testperson` | Same person also referenced by name in PADR `adresse1` |
 
-¹ Day-of-month decoded from `DD - 40` (Tenor synthetic convention).
+¹ Day-of-month decoded from `DD` directly (Tenor synthetic convention adjusts the *month* by +80, not the day).
 
 **Synthetic name:** `TESTSELSKAP AS KONKURSBO` (replaces a real
 BR-registered name; preserves the canonical `[bankrupt-AS-name] KONKURSBO`
@@ -935,10 +940,10 @@ The seven records (in order):
 | Role | Type | Identifier | Note |
 | --- | --- | --- | --- |
 | Subject organization | ENK (Enkeltpersonforetak) | `316289649` | Founded 2008-01-02 |
-| Daglig leder | Person (DAGL) | SSN `66117031544`, born 1970-11-26¹, `Erik Test Testperson` (with `<mellomnavn>`) | Lives at `Testveien 9`, postnr `1234` |
-| Innehaver / proprietor | Person (INNH) | SSN `52064421808`, born 1944-06-12¹, `Elise Testperson` | Lives at `Testveien 29`, postnr `1234`. Same surname as the daglig leder (sibling/relative — ENK with family member as DAGL) |
+| Daglig leder | Person (DAGL) | SSN `26917031273`, born 1970-11-26¹, `Erik Test Testperson` (with `<mellomnavn>`) | Lives at `Testveien 9`, postnr `1234` |
+| Innehaver / proprietor | Person (INNH) | SSN `12864421537`, born 1944-06-12¹, `Elise Testperson` | Lives at `Testveien 29`, postnr `1234`. Same surname as the daglig leder (sibling/relative — ENK with family member as DAGL) |
 
-¹ Day-of-month decoded from `DD - 40` (Tenor synthetic convention).
+¹ Day-of-month decoded from `DD` directly (Tenor synthetic convention adjusts the *month* by +80, not the day).
 
 The two persons share `Testperson` surname and the same postcode +
 street name (different house numbers `9` and `29`) — preserves the
