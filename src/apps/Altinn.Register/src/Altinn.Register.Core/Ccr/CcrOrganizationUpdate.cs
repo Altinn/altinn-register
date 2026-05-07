@@ -10,8 +10,9 @@ namespace Altinn.Register.Core.Ccr;
 /// </summary>
 /// <remarks>Can be either a full update, where all fields are intended to replace existing data, or a partial update, where only specified fields should be updated.
 /// Those fields that are implemented as <see cref="FieldValue{T}"/> can be used for both full and partial updates,
-/// as they allow for distinguishing between "no change" and "set to null" scenarios. FieldValue.Unset indicate a partial update where the field should not be modified,
-/// while FieldValue.Set(null) indicates that the field should be explicitly set to null.
+/// as they allow for distinguishing between "no change" and "set to null" scenarios. FieldValue.Unset indicate a partial update where the field should NOT be modified,
+/// while FieldValue.Null indicates that the field should be explicitly set to null. FieldValue with a value indicates that the field should be updated to the specified value.
+/// The RoleUpdates property can also be used for both full and partial updates, with the same logic for the fields within each <see cref="CcrRoleAssignment"/>.
 /// </remarks>
 public sealed class CcrOrganizationUpdate
 {
@@ -19,6 +20,11 @@ public sealed class CcrOrganizationUpdate
     /// Gets the organization identifier of the party, or <see langword="null"/> if the party is not an organization.
     /// </summary>
     public required OrganizationIdentifier OrganizationIdentifier { get; init; }
+
+    /// <summary>
+    /// Gets whether this is the first registration for the entity.
+    /// </summary>
+    public required bool IsFirstRegistration { get; init; }
 
     /// <summary>
     /// Gets the display-name of the party.

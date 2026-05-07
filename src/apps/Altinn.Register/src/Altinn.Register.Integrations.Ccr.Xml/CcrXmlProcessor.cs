@@ -105,6 +105,8 @@ public sealed class CcrXmlProcessor : ICcrXmlProcessor
 
     private static CcrOrganizationUpdate ReadEnhet(XmlReader reader)
     {
+        CcrOrganizationUpdate org;
+
         var organisasjonsnummer = reader.GetAttribute("organisasjonsnummer");
         if (string.IsNullOrEmpty(organisasjonsnummer))
         {
@@ -118,25 +120,55 @@ public sealed class CcrXmlProcessor : ICcrXmlProcessor
         var datoSistEndret = ParseDate(reader.GetAttribute("datoSistEndret"));
         var isDeleted = hovedsakstype == "S";
 
-        var org = new CcrOrganizationUpdate
+        // If a first transfer, fields are explicitly set to null if missing from xml
+        if (foersteOverfoering is not null && foersteOverfoering == "J")
         {
-            OrganizationIdentifier = OrganizationIdentifier.Parse(organisasjonsnummer),
-            UnitType = organisasjonsform,
+            org = new()
+            {
+                IsFirstRegistration = true,
+                OrganizationIdentifier = OrganizationIdentifier.Parse(organisasjonsnummer),
+                UnitType = organisasjonsform,
 
-            DatoSistEndret = FieldValue.From(datoSistEndret),
-            DisplayName = FieldValue.Unset,
-            BusinessAddress = FieldValue.Unset,
-            MailingAddress = FieldValue.Unset,
-            FaxNumber = FieldValue.Unset,
-            InternetAddress = FieldValue.Unset,
-            MobileNumber = FieldValue.Unset,
-            TelephoneNumber = FieldValue.Unset,
-            EmailAddress = FieldValue.Unset,
+                DatoSistEndret = FieldValue.From(datoSistEndret),
+                DisplayName = FieldValue.Null,
+                BusinessAddress = FieldValue.Null,
+                MailingAddress = FieldValue.Null,
+                FaxNumber = FieldValue.Null,
+                InternetAddress = FieldValue.Null,
+                MobileNumber = FieldValue.Null,
+                TelephoneNumber = FieldValue.Null,
+                EmailAddress = FieldValue.Null,
 
-            DeletedAt = isDeleted ? datoSistEndret : null,
-            IsDeleted = isDeleted,
-            RoleUpdates = null,
-        };
+                DeletedAt = isDeleted ? datoSistEndret : null,
+                IsDeleted = isDeleted,
+                RoleUpdates = null
+            };
+        }
+
+        // On updates we set fields to Unset, and leave them as is in the Register db
+        else
+        {
+            org = new()
+            {
+                IsFirstRegistration = false,
+                OrganizationIdentifier = OrganizationIdentifier.Parse(organisasjonsnummer),
+                UnitType = organisasjonsform,
+
+                DatoSistEndret = FieldValue.From(datoSistEndret),
+                DisplayName = FieldValue.Unset,
+                BusinessAddress = FieldValue.Unset,
+                MailingAddress = FieldValue.Unset,
+                FaxNumber = FieldValue.Unset,
+                InternetAddress = FieldValue.Unset,
+                MobileNumber = FieldValue.Unset,
+                TelephoneNumber = FieldValue.Unset,
+                EmailAddress = FieldValue.Unset,
+
+                DeletedAt = isDeleted ? datoSistEndret : null,
+                IsDeleted = isDeleted,
+                RoleUpdates = null
+            };
+        }
 
         if (!reader.IsEmptyElement)
         {
@@ -294,6 +326,11 @@ public sealed class CcrXmlProcessor : ICcrXmlProcessor
         return name;
     }
 
+    /// <summary>
+    /// Used for organisations
+    /// </summary>
+    /// <param name="fadrFields">the fields from the xml</param>
+    /// <returns></returns>
     private static MailingAddressRecord ReadMailingAddress(Dictionary<string, string> fadrFields)
     {
         string? line1 = fadrFields.TryGetValue("adresse1", out var l1) ? l1 : null;
@@ -356,74 +393,43 @@ public sealed class CcrXmlProcessor : ICcrXmlProcessor
 
         var rolleFields = ReadChildFields(reader, "samendringer");
 
-        var rolleAnsvarsandel = rolleFields.TryGetValue("rolleAnsvarsandel", out var ansv) ? ansv : null;
-        var rolleFratraadt = rolleFields.TryGetValue("rolleFratraadt", out var fratr) ? fratr : null;
-        var rolleValgtav = rolleFields.TryGetValue("rolleValgtav", out var valgt) ? valgt : null;
-        var rolleRekkefoelge = rolleFields.TryGetValue("rolleRekkefoelge", out var rek) ? rek : null;
-        var rolleFoedselsnr = rolleFields.TryGetValue("rolleFoedselsnr", out var fod) ? fod : null;
-        var fornavn = rolleFields.TryGetValue("fornavn", out var forn) ? forn : null;
-        var mellomnavn = rolleFields.TryGetValue("mellomnavn", out var mell) ? mell : null;
-        var etternavn = rolleFields.TryGetValue("slektsnavn", out var etter) ? etter : null;
-        var postnr = rolleFields.TryGetValue("postnr", out var post) ? post : null;
-        var adr1 = rolleFields.TryGetValue("adresse1", out var radr1) ? radr1 : null;
-        var adr2 = rolleFields.TryGetValue("adresse2", out var radr2) ? radr2 : null;
-        var adr3 = rolleFields.TryGetValue("adresse3", out var radr3) ? radr3 : null;
-        var rlandkode = rolleFields.TryGetValue("adresseLandkode", out var rlk) ? rlk : null;
-        var personstatus = rolleFields.TryGetValue("personstatus", out var ps) ? ps : null;
-        var location = rolleFields.TryGetValue("plassering", out var loc) ? loc : null;
-        var fritekst = rolleFields.TryGetValue("samendringfritTekstlinje", out var ft) ? ft : null;
-        var rollefritFoedselsnr = rolleFields.TryGetValue("rollefritFoedselsnr", out var rff) ? rff : null;
-        var rollefritTekstlinje = rolleFields.TryGetValue("rollefritTekstlinje", out var rft) ? rft : null;
-
-        var knytningsAnsvarsdel = rolleFields.TryGetValue("knytningsAnsvarsandel", out var kan) ? kan : null;
-        var knytningsFratraadt = rolleFields.TryGetValue("knytningsFratraadt", out var kfratr) ? kfratr : null;
-        var knytningsValgtav = rolleFields.TryGetValue("knytningsValgtav", out var kvalgt) ? kvalgt : null;
-        var knytningsRekkefoelge = rolleFields.TryGetValue("knytningsRekkefoelge", out var krek) ? krek : null;
-        var knytningsOrgnr = rolleFields.TryGetValue("korrektOrganisasjonsnummer", out var kforn) ? kforn : null;
-        var knytningfritOrganisasjonsnummer = rolleFields.TryGetValue("knytningfritOrganisasjonsnummer", out var kforn2) ? kforn2 : null;
-        var knytningfritTekstlinje = rolleFields.TryGetValue("knytningfritTekstlinje", out var kftl) ? kftl : null;
-        var korrektOrganisasjonsnummer = rolleFields.TryGetValue("korrektOrganisasjonsnummer", out var korg) ? korg : null;
-
-        if (type == "R")
+        if (type == "R" && data == "D")
         {
-            var fnr = GetFnr(rolleFoedselsnr, rollefritFoedselsnr, rollefritTekstlinje);
-            if (string.IsNullOrEmpty(fnr))
+            var rolleFoedselsnr = rolleFields.TryGetValue("rolleFoedselsnr", out var fod) ? fod : null;
+            var fornavn = rolleFields.TryGetValue("fornavn", out var forn) ? forn : null;
+            var mellomnavn = rolleFields.TryGetValue("mellomnavn", out var mell) ? mell : null;
+            var etternavn = rolleFields.TryGetValue("slektsnavn", out var etter) ? etter : null;
+            var postnr = rolleFields.TryGetValue("postnr", out var post) ? post : null;
+            var adr1 = rolleFields.TryGetValue("adresse1", out var radr1) ? radr1 : null;
+            var adr2 = rolleFields.TryGetValue("adresse2", out var radr2) ? radr2 : null;
+            var adr3 = rolleFields.TryGetValue("adresse3", out var radr3) ? radr3 : null;
+            var rlandkode = rolleFields.TryGetValue("adresseLandkode", out var rlk) ? rlk : null;
+
+            var validatedRolleFnr = PersonIdentifier.TryParse(rolleFoedselsnr, null, out var fnr) ? fnr.ToString() : null;
+            if (string.IsNullOrEmpty(validatedRolleFnr))
             {
                 ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required field 'rolleFoedselsnr' for role assignment in <samendringer> element.");
             }
 
-            var addRole = CcrRoleAssignment.CreatePersonalRoleAssignment(felttype, fnr);
-            addRole.SetRoleAssignmentFields(
-                rolleAnsvarsDel: rolleAnsvarsandel,
-                rolleFratraadt: rolleFratraadt,
-                rolleValgtav: rolleValgtav,
-                rolleRekkefoelge: rolleRekkefoelge,
-                rolleFoedselsnr: rolleFoedselsnr,
-                fornavn: fornavn,
-                mellomnavn: mellomnavn,
-                slektsnavn: etternavn,
-                postnr: postnr,
-                adr1: adr1,
-                adr2: adr2,
-                adr3: adr3,
-                location: location,
-                freeTextLine: fritekst,
-                freeTextRole: rollefritTekstlinje,
-                countryCode: rlandkode,
-                personStatus: personstatus);
-            return addRole;
+            return CcrRoleAssignment.CreatePersonalRoleAssignment(
+                felttype,
+                validatedRolleFnr,
+                string.Join(" ", new[] { fornavn, mellomnavn }.Where(s => !string.IsNullOrEmpty(s))),
+                etternavn,
+                ReadRoleAddress(adr1, adr2, adr3, rlandkode, postnr));
         }
 
-        if (type == "K")
+        if (type == "K" && data == "D")
         {
-            var orgnr = GetOrgNr(knytningsOrgnr, knytningfritOrganisasjonsnummer, korrektOrganisasjonsnummer, knytningfritTekstlinje);
+            var knytningsOrgnr = rolleFields.TryGetValue("korrektOrganisasjonsnummer", out var kforn) ? kforn : null;
+
+            if (string.IsNullOrEmpty(knytningsOrgnr))
+            {
+                ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required field 'korrektOrganisasjonsnummer' for organizational role assignment in <samendringer> element.");
+            }
+
+            var orgnr = OrganizationIdentifier.TryParse(knytningsOrgnr, null, out var temporg) ? temporg.ToString() : null;
             var addConnection = CcrRoleAssignment.CreateConnection(felttype, orgnr);
-            addConnection.SetConnectionFields(
-                knytningAnsvarsandel: knytningsAnsvarsdel,
-                knytningFratraadt: knytningsFratraadt,
-                knytningValgtav: knytningsValgtav,
-                knytningRekkefoelge: knytningsRekkefoelge,
-                knytningfritTekstLinje: knytningfritTekstlinje);
             return addConnection;
         }
 
@@ -431,61 +437,36 @@ public sealed class CcrXmlProcessor : ICcrXmlProcessor
         return null;
     }
 
-    private static string? GetFnr(string? rolleFoedselsnr, string? rollefritFoedselsnr, string? rollefritTekstlinje)
+    private static MailingAddressRecord ReadRoleAddress(string? adr1, string? adr2, string? adr3, string? land, string? postnr)
     {
-        if (ValidateFnr(rolleFoedselsnr))
+        List<string> addressLines = [];
+        if (!string.IsNullOrEmpty(adr1))
         {
-            return rolleFoedselsnr!;
+            addressLines.Add(adr1);
         }
 
-        if (ValidateFnr(rollefritFoedselsnr))
+        if (!string.IsNullOrEmpty(adr2))
         {
-            return rollefritFoedselsnr!;
+            addressLines.Add(adr2);
         }
 
-        if (ValidateFnr(rollefritTekstlinje))
+        if (!string.IsNullOrEmpty(adr3))
         {
-            return rollefritTekstlinje!;
+            addressLines.Add(adr3);
         }
 
-        ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required field 'rolleFoedselsnr' for role assignment in <samendringer> element.");
-        return null;
-    }
-
-    private static bool ValidateFnr(string? rolleFoedselsnr)
-    {
-        return PersonIdentifier.TryParse(rolleFoedselsnr, null, out var _);
-    }
-
-    private static string GetOrgNr(string? knytningsOrgnr, string? knytningfritOrganisasjonsnummer, string? korrektOrganisasjonsnummer, string? knytningfritTekstlinje)
-    {
-        if (ValidateOrgNr(korrektOrganisasjonsnummer))
+        if (addressLines.Count > 1 && postnr is not null && !addressLines[^1].StartsWith(postnr, StringComparison.Ordinal))
         {
-            return korrektOrganisasjonsnummer!;
+            addressLines.Add($"{postnr}".Trim());
         }
 
-        if (ValidateOrgNr(knytningsOrgnr))
+        string concatAddress = string.Join(" ", addressLines);
+        return new MailingAddressRecord
         {
-            return knytningsOrgnr!;
-        }
-
-        if (ValidateOrgNr(knytningfritOrganisasjonsnummer))
-        {
-            return knytningfritOrganisasjonsnummer!;
-        }
-
-        if (ValidateOrgNr(knytningfritTekstlinje))
-        {
-            return knytningfritTekstlinje!;
-        }
-
-        ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required organizational number for connection assignment in <samendringer> element.");
-        return null;
-    }
-
-    private static bool ValidateOrgNr(string? orgNr)
-    {
-        return OrganizationIdentifier.TryParse(orgNr, null, out var _);
+            Address = concatAddress,
+            PostalCode = postnr is not null ? postnr : null,
+            City = null,
+        };
     }
 
     private static Dictionary<string, string> ReadChildFields(XmlReader reader, string parentElement)
