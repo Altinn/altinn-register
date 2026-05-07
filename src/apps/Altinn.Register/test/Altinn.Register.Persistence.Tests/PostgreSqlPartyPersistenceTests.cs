@@ -698,6 +698,49 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task UpsertParty_Org_NoPartyIds_Inserts_New_Org()
+    {
+        var orgNo = await UoW.GetNewOrgNumber(CancellationToken);
+
+        var toInsert = new OrganizationRecord
+        {
+            PartyUuid = FieldValue.Unset,
+            PartyId = FieldValue.Unset,
+            ExternalUrn = PartyExternalRefUrn.OrganizationId.Create(orgNo),
+            DisplayName = "Test",
+            PersonIdentifier = null,
+            OrganizationIdentifier = orgNo,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            DeletedAt = FieldValue.Null,
+            User = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
+            Source = orgNo.ToString().StartsWith('0') ? OrganizationSource.BusinessAssessedPartnerships : OrganizationSource.CentralCoordinatingRegister,
+            UnitStatus = "N",
+            UnitType = "AS",
+            TelephoneNumber = null,
+            MobileNumber = null,
+            FaxNumber = null,
+            EmailAddress = null,
+            InternetAddress = null,
+            MailingAddress = null,
+            BusinessAddress = null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        var inserted = result.ShouldHaveValue().ShouldBeOfType<OrganizationRecord>();
+        inserted.PartyUuid.ShouldHaveValue();
+        inserted.PartyId.ShouldHaveValue();
+        inserted.PartyId.Value.ShouldBeGreaterThan(1_000_000_000U);
+        inserted.ShouldBeEquivalentTo(toInsert with { PartyId = inserted.PartyId, PartyUuid = inserted.PartyUuid, VersionId = inserted.VersionId });
+
+        var fromDb = await Persistence.GetPartyById(inserted.PartyUuid.Value, PartyFieldIncludes.Party | PartyFieldIncludes.Organization, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(toInsert with { PartyId = inserted.PartyId, PartyUuid = inserted.PartyUuid, VersionId = fromDb.VersionId });
+    }
+
+    [Fact]
     public async Task UpsertParty_Org_Updates_Name_And_Updated_And_OrgProps()
     {
         var id = await UoW.GetNextPartyId(CancellationToken);
@@ -765,6 +808,78 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
         fromDb.ShouldBeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+    }
+
+    [Fact]
+    public async Task UpsertParty_Org_NoPartyIds_Updates_Name_And_Updated_And_OrgProps()
+    {
+        var orgNo = await UoW.GetNewOrgNumber(CancellationToken);
+
+        var toInsert = new OrganizationRecord
+        {
+            PartyUuid = FieldValue.Unset,
+            PartyId = FieldValue.Unset,
+            ExternalUrn = PartyExternalRefUrn.OrganizationId.Create(orgNo),
+            DisplayName = "Test",
+            PersonIdentifier = null,
+            OrganizationIdentifier = orgNo,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            DeletedAt = FieldValue.Null,
+            User = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
+            Source = orgNo.ToString().StartsWith('0') ? OrganizationSource.BusinessAssessedPartnerships : OrganizationSource.CentralCoordinatingRegister,
+            UnitStatus = "N",
+            UnitType = "AS",
+            TelephoneNumber = null,
+            MobileNumber = null,
+            FaxNumber = null,
+            EmailAddress = null,
+            InternetAddress = null,
+            MailingAddress = null,
+            BusinessAddress = null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
+        var inserted = result.Value!;
+        inserted.PartyUuid.ShouldHaveValue();
+        inserted.PartyId.ShouldHaveValue();
+        inserted.PartyId.Value.ShouldBeGreaterThan(1_000_000_000U);
+
+        TimeProvider.Advance(TimeSpan.FromDays(30));
+
+        var toUpdate = toInsert with
+        {
+            DisplayName = "Test Updated",
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            UnitStatus = "U",
+            UnitType = "hovedenhet",
+            TelephoneNumber = "tel",
+            MobileNumber = "mob",
+            FaxNumber = "fax",
+            EmailAddress = "email",
+            InternetAddress = "internet",
+            MailingAddress = new MailingAddressRecord { Address = "mailing", City = "mailing city", PostalCode = "0123" },
+            BusinessAddress = new MailingAddressRecord { Address = "business", City = "business city", PostalCode = "0123" },
+        };
+
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
+
+        var expected = toUpdate with
+        {
+            CreatedAt = toInsert.CreatedAt, // created at should not change
+        };
+
+        var updated = result.Value.ShouldBeOfType<OrganizationRecord>();
+        updated.ShouldBeEquivalentTo(expected with { PartyId = inserted.PartyId, PartyUuid = inserted.PartyUuid, VersionId = updated.VersionId });
+
+        var fromDb = await Persistence.GetPartyById(inserted.PartyUuid.Value, PartyFieldIncludes.Party | PartyFieldIncludes.Organization, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(expected with { PartyId = inserted.PartyId, PartyUuid = inserted.PartyUuid, VersionId = fromDb.VersionId });
     }
 
     [Fact]
@@ -998,6 +1113,63 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task UpsertParty_Person_NoPartyIds_Inserts_New_Person()
+    {
+        var birthDate = UoW.GetRandomBirthDate();
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber, CancellationToken);
+
+        var toInsert = new PersonRecord
+        {
+            PartyUuid = FieldValue.Unset,
+            PartyId = FieldValue.Unset,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personId),
+            DisplayName = "Test Mid Testson",
+            PersonIdentifier = personId,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            DeletedAt = FieldValue.Null,
+            User = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
+            Source = PersonSource.NationalPopulationRegister,
+            FirstName = "Test",
+            MiddleName = "Mid",
+            LastName = "Testson",
+            ShortName = "TESTSON Test Mid",
+            Address = null,
+            MailingAddress = null,
+            DateOfBirth = birthDate,
+            DateOfDeath = FieldValue.Null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        var inserted = result.ShouldHaveValue().ShouldBeOfType<PersonRecord>();
+        inserted.PartyUuid.ShouldHaveValue();
+        inserted.PartyId.ShouldHaveValue();
+        inserted.PartyId.Value.ShouldBeGreaterThan(1_000_000_000U);
+        inserted.User.ShouldHaveValue().UserId.ShouldHaveValue().ShouldBe(inserted.PartyId.Value);
+        inserted.ShouldBeEquivalentTo(toInsert with
+        {
+            PartyId = inserted.PartyId,
+            PartyUuid = inserted.PartyUuid,
+            User = new PartyUserRecord(inserted.PartyId.Value, FieldValue.Null),
+            VersionId = inserted.VersionId,
+        });
+
+        var fromDb = await Persistence.GetPartyById(inserted.PartyUuid.Value, PartyFieldIncludes.Party | PartyFieldIncludes.Person | PartyFieldIncludes.User, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(toInsert with
+        {
+            PartyId = inserted.PartyId,
+            PartyUuid = inserted.PartyUuid,
+            User = new PartyUserRecord(inserted.PartyId.Value, FieldValue.Null),
+            VersionId = inserted.VersionId,
+        });
+    }
+
+    [Fact]
     public async Task UpsertParty_Person_Updates_Name_And_Updated_And_PersonProps()
     {
         var id = await UoW.GetNextPartyId(CancellationToken);
@@ -1074,6 +1246,99 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
         fromDb.ShouldBeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+    }
+
+    [Fact]
+    public async Task UpsertParty_Person_NoPartyIds_Updates_Name_And_Updated_And_PersonProps()
+    {
+        var birthDate = UoW.GetRandomBirthDate();
+        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
+        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber, CancellationToken);
+
+        var toInsert = new PersonRecord
+        {
+            PartyUuid = FieldValue.Unset,
+            PartyId = FieldValue.Unset,
+            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personId),
+            DisplayName = "Test Mid Testson",
+            PersonIdentifier = personId,
+            OrganizationIdentifier = null,
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            IsDeleted = false,
+            DeletedAt = FieldValue.Null,
+            User = FieldValue.Unset,
+            VersionId = FieldValue.Unset,
+            OwnerUuid = FieldValue.Null,
+            Source = PersonSource.NationalPopulationRegister,
+            FirstName = "Test",
+            MiddleName = "Mid",
+            LastName = "Testson",
+            ShortName = "TESTSON Test Mid",
+            Address = null,
+            MailingAddress = null,
+            DateOfBirth = birthDate,
+            DateOfDeath = FieldValue.Null,
+        };
+
+        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
+        var inserted = result.Value!;
+        inserted.PartyUuid.ShouldHaveValue();
+        inserted.PartyId.ShouldHaveValue();
+        inserted.PartyId.Value.ShouldBeGreaterThan(1_000_000_000U);
+
+        TimeProvider.Advance(TimeSpan.FromDays(30));
+
+        var toUpdate = toInsert with
+        {
+            DisplayName = "Test Updated",
+            CreatedAt = TimeProvider.GetUtcNow(),
+            ModifiedAt = TimeProvider.GetUtcNow(),
+            FirstName = "Test Updated",
+            MiddleName = "Mid Updated",
+            LastName = "Testson Updated",
+            ShortName = "TESTSON Updated Test Mid",
+            Address = new StreetAddressRecord
+            {
+                MunicipalName = "mn",
+                MunicipalNumber = "00",
+                HouseNumber = "50",
+                HouseLetter = "L",
+                City = "s",
+                PostalCode = "pc",
+                StreetName = "sn",
+            },
+            MailingAddress = new MailingAddressRecord { Address = "mailing", City = "mailing city", PostalCode = "mailing postal code" },
+            DateOfBirth = birthDate.AddDays(10),
+            DateOfDeath = birthDate.AddDays(30),
+        };
+
+        result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
+        result.ShouldHaveValue();
+
+        var expected = toUpdate with
+        {
+            CreatedAt = toInsert.CreatedAt, // created at should not change
+        };
+
+        var updated = result.Value.ShouldBeOfType<PersonRecord>();
+        updated.ShouldBeEquivalentTo(expected with
+        {
+            PartyId = inserted.PartyId,
+            PartyUuid = inserted.PartyUuid,
+            User = FieldValue.Unset, // user-id is not returned unless updated explicitly
+            VersionId = updated.VersionId,
+        });
+
+        var fromDb = await Persistence.GetPartyById(inserted.PartyUuid.Value, PartyFieldIncludes.Party | PartyFieldIncludes.Person | PartyFieldIncludes.User, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        fromDb.ShouldBeEquivalentTo(expected with
+        {
+            PartyId = inserted.PartyId,
+            PartyUuid = inserted.PartyUuid,
+            User = new PartyUserRecord(inserted.PartyId.Value, FieldValue.Null),
+            VersionId = updated.VersionId,
+        });
     }
 
     [Fact]

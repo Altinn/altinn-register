@@ -12,6 +12,7 @@ using Altinn.Register.Core.Utils;
 using Altinn.Register.Persistence.AsyncEnumerables;
 using Altinn.Register.Persistence.DbArgTypes;
 using CommunityToolkit.Diagnostics;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using NpgsqlTypes;
@@ -27,6 +28,7 @@ internal partial class PostgreSqlPartyPersistence
 {
     private readonly IUnitOfWorkHandle _handle;
     private readonly NpgsqlConnection _connection;
+    private readonly PersistenceFeatureFlag[] _flags;
     private readonly ILogger<PostgreSqlPartyPersistence> _logger;
 
     /// <summary>
@@ -35,11 +37,46 @@ internal partial class PostgreSqlPartyPersistence
     public PostgreSqlPartyPersistence(
         IUnitOfWorkHandle handle,
         NpgsqlConnection connection,
+        IConfiguration configuration,
         ILogger<PostgreSqlPartyPersistence> logger)
     {
         _handle = handle;
         _connection = connection;
         _logger = logger;
+
+        _flags = CreateFlags([
+            KeyValuePair.Create(PersistenceFeatureFlag.CreatePartyId, configuration.GetValue("Altinn:register:Party:CreatePartyId", defaultValue: false)),
+        ]);
+
+        static PersistenceFeatureFlag[] CreateFlags(params ReadOnlySpan<KeyValuePair<PersistenceFeatureFlag, bool>> flags)
+        {
+            var enabledCount = 0;
+            foreach (var kvp in flags)
+            {
+                if (kvp.Value)
+                {
+                    enabledCount++;
+                }
+            }
+
+            if (enabledCount == 0)
+            {
+                return [];
+            }
+
+            var result = new PersistenceFeatureFlag[enabledCount];
+            var index = 0;
+
+            foreach (var kvp in flags)
+            {
+                if (kvp.Value)
+                {
+                    result[index++] = kvp.Key;
+                }
+            }
+
+            return result;
+        }
     }
 
     #region Party
@@ -412,7 +449,7 @@ internal partial class PostgreSqlPartyPersistence
     {
         _handle.ThrowIfCompleted();
 
-        return UpsertPartyQuery.UpsertParty(_connection, party, cancellationToken).AsTask();
+        return UpsertPartyQuery.UpsertParty(_connection, party, _flags, cancellationToken).AsTask();
     }
 
     /// <inheritdoc/>
@@ -422,7 +459,7 @@ internal partial class PostgreSqlPartyPersistence
     {
         _handle.ThrowIfCompleted();
 
-        return UpsertPartyQuery.UpsertParties(_connection, parties, cancellationToken);
+        return UpsertPartyQuery.UpsertParties(_connection, parties, _flags, cancellationToken);
     }
 
     /// <inheritdoc/>

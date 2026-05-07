@@ -182,6 +182,27 @@ public class DataSourceMappingsTests
     }
 
     [Theory]
+    [EnumMembersData<PersistenceFeatureFlag>]
+    public async Task MapDbFeatureFlag(PersistenceFeatureFlag flag)
+    {
+        var source = GetRequiredService<NpgsqlDataSource>();
+        await using var conn = await source.OpenConnectionAsync(CancellationToken);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = /*strpsql*/"SELECT @p::register.db_feature_flag";
+
+        var param = cmd.Parameters.Add<PersistenceFeatureFlag>("p");
+        param.TypedValue = flag;
+
+        await cmd.PrepareAsync(CancellationToken);
+
+        await using var reader = await cmd.ExecuteReaderAsync(CancellationToken);
+        (await reader.ReadAsync(CancellationToken)).ShouldBeTrue();
+
+        var result = await reader.GetFieldValueAsync<PersistenceFeatureFlag>(0, CancellationToken);
+        result.ShouldBe(flag);
+    }
+
+    [Theory]
     [MemberData(nameof(MailingAddresses))]
     public async Task MapsMailingAddress(SerializableMailingAddress? address)
     {
