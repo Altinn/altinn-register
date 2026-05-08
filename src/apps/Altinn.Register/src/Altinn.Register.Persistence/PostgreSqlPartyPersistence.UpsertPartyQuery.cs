@@ -37,13 +37,15 @@ internal partial class PostgreSqlPartyPersistence
         /// </summary>
         /// <param name="conn">The connection.</param>
         /// <param name="party">The party.</param>
+        /// <param name="flags">The persistence feature-flags to use for this operation.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
         /// <returns>The updated party.</returns>
         public static ValueTask<Result<PartyRecord>> UpsertParty(
             NpgsqlConnection conn,
             PartyRecord party,
+            PersistenceFeatureFlag[] flags,
             CancellationToken cancellationToken)
-            => UpsertParties(conn, new AsyncSingleton(party), cancellationToken)
+            => UpsertParties(conn, new AsyncSingleton(party), flags, cancellationToken)
                 .FirstAsync(cancellationToken);
 
         /// <summary>
@@ -51,11 +53,13 @@ internal partial class PostgreSqlPartyPersistence
         /// </summary>
         /// <param name="connection">The connection.</param>
         /// <param name="parties">The parties.</param>
+        /// <param name="flags">The persistence feature-flags to use for this operation.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
         /// <returns>The updated parties.</returns>
         public static async IAsyncEnumerable<Result<PartyRecord>> UpsertParties(
             NpgsqlConnection connection,
             IAsyncEnumerable<PartyRecord> parties,
+            PersistenceFeatureFlag[] flags,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             var batch = connection.CreateBatch();
@@ -67,23 +71,23 @@ internal partial class PostgreSqlPartyPersistence
                     switch (party)
                     {
                         case PersonRecord person:
-                            _person.EnqueuePartyUpsert(batch, person);
+                            _person.EnqueuePartyUpsert(batch, person, flags);
                             break;
 
                         case OrganizationRecord org:
-                            _org.EnqueuePartyUpsert(batch, org);
+                            _org.EnqueuePartyUpsert(batch, org, flags);
                             break;
 
                         case SelfIdentifiedUserRecord siu:
-                            _si.EnqueuePartyUpsert(batch, siu);
+                            _si.EnqueuePartyUpsert(batch, siu, flags);
                             break;
 
                         case SystemUserRecord su:
-                            _su.EnqueuePartyUpsert(batch, su);
+                            _su.EnqueuePartyUpsert(batch, su, flags);
                             break;
 
                         case EnterpriseUserRecord eu:
-                            _eu.EnqueuePartyUpsert(batch, eu);
+                            _eu.EnqueuePartyUpsert(batch, eu, flags);
                             break;
 
                         default:
@@ -298,13 +302,14 @@ internal partial class PostgreSqlPartyPersistence
             /*strpsql*/"""
             SELECT *
             FROM register.upsert_party(
-                @uuid,
-                @id,
+                @flags,
+                @set_uuid, @uuid,
+                @set_id, @id,
                 @ext_urn,
                 @user_ids,
                 @set_username, @username,
                 @party_type,
-                @display_name,
+                @set_display_name, @display_name,
                 @person_id,
                 @org_id,
                 @created_at,
@@ -365,11 +370,11 @@ internal partial class PostgreSqlPartyPersistence
             protected virtual string GetQuery(T party)
                 => DEFAULT_QUERY;
 
-            protected virtual void ValidateFields(T party)
+            protected virtual void ValidateFields(T party, PersistenceFeatureFlag[] flags)
             {
                 var userIds = party.User.SelectFieldValue(static u => u.UserIds);
 
-                Debug.Assert(party.PartyUuid.HasValue);
+                Debug.Assert(flags.Contains(PersistenceFeatureFlag.CreatePartyId) || party.PartyUuid.HasValue);
                 Debug.Assert(party.ExternalUrn.IsSet);
                 Debug.Assert(party.User.IsUnset || (userIds.HasValue && !userIds.Value.IsDefaultOrEmpty));
                 Debug.Assert(party.PartyType.HasValue && party.PartyType.Value == type);
@@ -383,7 +388,7 @@ internal partial class PostgreSqlPartyPersistence
 
                 if (type is PartyRecordType.Person or PartyRecordType.Organization or PartyRecordType.SelfIdentifiedUser)
                 {
-                    Debug.Assert(party.PartyId.HasValue);
+                    Debug.Assert(flags.Contains(PersistenceFeatureFlag.CreatePartyId) || party.PartyId.HasValue);
                 }
                 else
                 {
@@ -391,7 +396,7 @@ internal partial class PostgreSqlPartyPersistence
                 }
             }
 
-            protected virtual void AddPartyParameters(NpgsqlParameterCollection parameters, T party)
+            protected virtual void AddPartyParameters(NpgsqlParameterCollection parameters, T party, PersistenceFeatureFlag[] flags)
             {
                 var userIds = party.User
                     .SelectFieldValue(static u => u.UserIds)
@@ -399,13 +404,14 @@ internal partial class PostgreSqlPartyPersistence
 
                 var username = party.User.SelectFieldValue(static u => u.Username);
 
-                parameters.Add<Guid>("uuid", NpgsqlDbType.Uuid).TypedValue = party.PartyUuid.Value;
-                parameters.Add<int?>("id", NpgsqlDbType.Bigint).TypedValue = party.PartyId.IsNull ? null : checked((int)party.PartyId.Value);
+                parameters.Add<PersistenceFeatureFlag[]>("flags").TypedValue = flags;
+                parameters.AddOptional("set_uuid", "uuid", NpgsqlDbType.Uuid, party.PartyUuid);
+                parameters.AddOptional("set_id", "id", NpgsqlDbType.Bigint, party.PartyId.Select(static id => checked((long)id)));
                 parameters.Add<string?>("ext_urn", NpgsqlDbType.Text).TypedValue = party.ExternalUrn.Value?.Urn;
                 parameters.Add<int[]?>("user_ids", NpgsqlDbType.Bigint | NpgsqlDbType.Array).TypedValue = userIds.OrDefault();
                 parameters.AddOptional("set_username", "username", NpgsqlDbType.Text, username);
                 parameters.Add<PartyRecordType>("party_type").TypedValue = party.PartyType.Value;
-                parameters.Add<string>("display_name", NpgsqlDbType.Text).TypedValue = party.DisplayName.Value;
+                parameters.AddOptional("set_display_name", "display_name", NpgsqlDbType.Text, party.DisplayName);
                 parameters.Add<string>("person_id", NpgsqlDbType.Text).TypedValue = party.PersonIdentifier.IsNull ? null : party.PersonIdentifier.Value!.ToString();
                 parameters.Add<string>("org_id", NpgsqlDbType.Text).TypedValue = party.OrganizationIdentifier.IsNull ? null : party.OrganizationIdentifier.Value!.ToString();
                 parameters.Add<DateTimeOffset>("created_at", NpgsqlDbType.TimestampTz).TypedValue = party.CreatedAt.Value.ToUniversalTime();
@@ -417,12 +423,12 @@ internal partial class PostgreSqlPartyPersistence
 
             public abstract Task<T> ReadResult(NpgsqlDataReader reader, CancellationToken cancellationToken);
 
-            public void EnqueuePartyUpsert(NpgsqlBatch batch, T party)
+            public void EnqueuePartyUpsert(NpgsqlBatch batch, T party, PersistenceFeatureFlag[] flags)
             {
-                ValidateFields(party);
+                ValidateFields(party, flags);
 
                 var cmd = batch.CreateBatchCommand(GetQuery(party));
-                AddPartyParameters(cmd.Parameters, party);
+                AddPartyParameters(cmd.Parameters, party, flags);
             }
         }
 
@@ -433,13 +439,14 @@ internal partial class PostgreSqlPartyPersistence
                 /*strpsql*/"""
                 SELECT *
                 FROM register.upsert_party_pers(
-                    @uuid,
-                    @id,
+                    @flags,
+                    @set_uuid, @uuid,
+                    @set_id, @id,
                     @ext_urn,
                     @user_ids,
                     @set_username, @username,
                     @party_type,
-                    @display_name,
+                    @set_display_name, @display_name,
                     @person_id,
                     @org_id,
                     @created_at,
@@ -447,23 +454,23 @@ internal partial class PostgreSqlPartyPersistence
                     @set_is_deleted, @is_deleted,
                     @set_deleted_at, @deleted_at,
                     @set_owner, @owner,
-                    @first_name,
-                    @middle_name,
-                    @last_name,
-                    @short_name,
-                    @date_of_birth,
-                    @date_of_death,
-                    @address,
-                    @mailing_address,
+                    @set_first_name, @first_name,
+                    @set_middle_name, @middle_name,
+                    @set_last_name, @last_name,
+                    @set_short_name, @short_name,
+                    @set_date_of_birth, @date_of_birth,
+                    @set_date_of_death, @date_of_death,
+                    @set_address, @address,
+                    @set_mailing_address, @mailing_address,
                     @set_source, @source)
                 """;
 
             protected override string GetQuery(PersonRecord party)
                 => QUERY;
 
-            protected override void ValidateFields(PersonRecord party)
+            protected override void ValidateFields(PersonRecord party, PersistenceFeatureFlag[] flags)
             {
-                base.ValidateFields(party);
+                base.ValidateFields(party, flags);
                 Debug.Assert(!party.Source.IsNull, "person cannot have source = null");
                 Debug.Assert(party.FirstName.HasValue, "person must have FirstName set");
                 Debug.Assert(party.MiddleName.IsSet, "person must have MiddleName set");
@@ -476,17 +483,17 @@ internal partial class PostgreSqlPartyPersistence
                 Debug.Assert(!party.OwnerUuid.HasValue, "person cannot have OwnerUuid set");
             }
 
-            protected override void AddPartyParameters(NpgsqlParameterCollection parameters, PersonRecord party)
+            protected override void AddPartyParameters(NpgsqlParameterCollection parameters, PersonRecord party, PersistenceFeatureFlag[] flags)
             {
-                base.AddPartyParameters(parameters, party);
-                parameters.Add<string>("first_name", NpgsqlDbType.Text).TypedValue = party.FirstName.Value;
-                parameters.Add<string?>("middle_name", NpgsqlDbType.Text).TypedValue = party.MiddleName.IsNull ? null : party.MiddleName.Value;
-                parameters.Add<string>("last_name", NpgsqlDbType.Text).TypedValue = party.LastName.Value;
-                parameters.Add<string>("short_name", NpgsqlDbType.Text).TypedValue = party.ShortName.Value;
-                parameters.Add<DateOnly>("date_of_birth").TypedValue = party.DateOfBirth.Value;
-                parameters.Add<DateOnly?>("date_of_death").TypedValue = party.DateOfDeath.IsNull ? null : party.DateOfDeath.Value;
-                parameters.Add<StreetAddressRecord>("address").TypedValue = party.Address.Value;
-                parameters.Add<MailingAddressRecord>("mailing_address").TypedValue = party.MailingAddress.Value;
+                base.AddPartyParameters(parameters, party, flags);
+                parameters.AddOptional("set_first_name", "first_name", NpgsqlDbType.Text, party.FirstName);
+                parameters.AddOptional("set_middle_name", "middle_name", NpgsqlDbType.Text, party.MiddleName);
+                parameters.AddOptional("set_last_name", "last_name", NpgsqlDbType.Text, party.LastName);
+                parameters.AddOptional("set_short_name", "short_name", NpgsqlDbType.Text, party.ShortName);
+                parameters.AddOptional("set_date_of_birth", "date_of_birth", party.DateOfBirth);
+                parameters.AddOptional("set_date_of_death", "date_of_death", party.DateOfDeath);
+                parameters.AddOptional("set_address", "address", party.Address);
+                parameters.AddOptional("set_mailing_address", "mailing_address", party.MailingAddress);
                 parameters.AddOptional("set_source", "source", party.Source);
             }
 
@@ -528,13 +535,14 @@ internal partial class PostgreSqlPartyPersistence
                 /*strpsql*/"""
                 SELECT *
                 FROM register.upsert_party_org(
-                    @uuid,
-                    @id,
+                    @flags,
+                    @set_uuid, @uuid,
+                    @set_id, @id,
                     @ext_urn,
                     @user_ids,
                     @set_username, @username,
                     @party_type,
-                    @display_name,
+                    @set_display_name, @display_name,
                     @person_id,
                     @org_id,
                     @created_at,
@@ -542,24 +550,24 @@ internal partial class PostgreSqlPartyPersistence
                     @set_is_deleted, @is_deleted,
                     @set_deleted_at, @deleted_at,
                     @set_owner, @owner,
-                    @unit_status,
-                    @unit_type,
-                    @telephone_number,
-                    @mobile_number,
-                    @fax_number,
-                    @email_address,
-                    @internet_address,
-                    @mailing_address,
-                    @business_address,
+                    @set_unit_status, @unit_status,
+                    @set_unit_type, @unit_type,
+                    @set_telephone_number, @telephone_number,
+                    @set_mobile_number, @mobile_number,
+                    @set_fax_number, @fax_number,
+                    @set_email_address, @email_address,
+                    @set_internet_address, @internet_address,
+                    @set_mailing_address, @mailing_address,
+                    @set_business_address, @business_address,
                     @set_source, @source)
                 """;
 
             protected override string GetQuery(OrganizationRecord party)
                 => QUERY;
 
-            protected override void ValidateFields(OrganizationRecord party)
+            protected override void ValidateFields(OrganizationRecord party, PersistenceFeatureFlag[] flags)
             {
-                base.ValidateFields(party);
+                base.ValidateFields(party, flags);
                 Debug.Assert(party.UnitStatus.HasValue);
                 Debug.Assert(party.UnitType.HasValue);
                 Debug.Assert(party.TelephoneNumber.IsSet);
@@ -572,18 +580,18 @@ internal partial class PostgreSqlPartyPersistence
                 Debug.Assert(!party.OwnerUuid.HasValue, "organization cannot have OwnerUuid set");
             }
 
-            protected override void AddPartyParameters(NpgsqlParameterCollection parameters, OrganizationRecord party)
+            protected override void AddPartyParameters(NpgsqlParameterCollection parameters, OrganizationRecord party, PersistenceFeatureFlag[] flags)
             {
-                base.AddPartyParameters(parameters, party);
-                parameters.Add<string>("unit_status", NpgsqlDbType.Text).TypedValue = party.UnitStatus.Value;
-                parameters.Add<string>("unit_type", NpgsqlDbType.Text).TypedValue = party.UnitType.Value;
-                parameters.Add<string>("telephone_number", NpgsqlDbType.Text).TypedValue = party.TelephoneNumber.Value;
-                parameters.Add<string>("mobile_number", NpgsqlDbType.Text).TypedValue = party.MobileNumber.Value;
-                parameters.Add<string>("fax_number", NpgsqlDbType.Text).TypedValue = party.FaxNumber.Value;
-                parameters.Add<string>("email_address", NpgsqlDbType.Text).TypedValue = party.EmailAddress.Value;
-                parameters.Add<string>("internet_address", NpgsqlDbType.Text).TypedValue = party.InternetAddress.Value;
-                parameters.Add<MailingAddressRecord>("mailing_address").TypedValue = party.MailingAddress.Value;
-                parameters.Add<MailingAddressRecord>("business_address").TypedValue = party.BusinessAddress.Value;
+                base.AddPartyParameters(parameters, party, flags);
+                parameters.AddOptional("set_unit_status", "unit_status", NpgsqlDbType.Text, party.UnitStatus);
+                parameters.AddOptional("set_unit_type", "unit_type", NpgsqlDbType.Text, party.UnitType);
+                parameters.AddOptional("set_telephone_number", "telephone_number", NpgsqlDbType.Text, party.TelephoneNumber);
+                parameters.AddOptional("set_mobile_number", "mobile_number", NpgsqlDbType.Text, party.MobileNumber);
+                parameters.AddOptional("set_fax_number", "fax_number", NpgsqlDbType.Text, party.FaxNumber);
+                parameters.AddOptional("set_email_address", "email_address", NpgsqlDbType.Text, party.EmailAddress);
+                parameters.AddOptional("set_internet_address", "internet_address", NpgsqlDbType.Text, party.InternetAddress);
+                parameters.AddOptional("set_mailing_address", "mailing_address", party.MailingAddress);
+                parameters.AddOptional("set_business_address", "business_address", party.BusinessAddress);
                 parameters.AddOptional("set_source", "source", party.Source);
             }
 
@@ -628,13 +636,14 @@ internal partial class PostgreSqlPartyPersistence
                 /*strpsql*/"""
                 SELECT *
                 FROM register.upsert_self_identified_user(
-                    @uuid,
-                    @id,
+                    @flags,
+                    @set_uuid, @uuid,
+                    @set_id, @id,
                     @ext_urn,
                     @user_ids,
                     @set_username, @username,
                     @party_type,
-                    @display_name,
+                    @set_display_name, @display_name,
                     @person_id,
                     @org_id,
                     @created_at,
@@ -657,9 +666,9 @@ internal partial class PostgreSqlPartyPersistence
                 return base.GetQuery(party);
             }
 
-            protected override void ValidateFields(SelfIdentifiedUserRecord party)
+            protected override void ValidateFields(SelfIdentifiedUserRecord party, PersistenceFeatureFlag[] flags)
             {
-                base.ValidateFields(party);
+                base.ValidateFields(party, flags);
                 Debug.Assert(party.SelfIdentifiedUserType.IsSet);
 
                 if (party.SelfIdentifiedUserType.HasValue)
@@ -691,9 +700,9 @@ internal partial class PostgreSqlPartyPersistence
                 }
             }
 
-            protected override void AddPartyParameters(NpgsqlParameterCollection parameters, SelfIdentifiedUserRecord party)
+            protected override void AddPartyParameters(NpgsqlParameterCollection parameters, SelfIdentifiedUserRecord party, PersistenceFeatureFlag[] flags)
             {
-                base.AddPartyParameters(parameters, party);
+                base.AddPartyParameters(parameters, party, flags);
 
                 if (party.SelfIdentifiedUserType.HasValue)
                 {
@@ -747,13 +756,14 @@ internal partial class PostgreSqlPartyPersistence
                 /*strpsql*/"""
                 SELECT *
                 FROM register.upsert_system_user(
-                    @uuid,
-                    @id,
+                    @flags,
+                    @set_uuid, @uuid,
+                    @set_id, @id,
                     @ext_urn,
                     @user_ids,
                     @set_username, @username,
                     @party_type,
-                    @display_name,
+                    @set_display_name, @display_name,
                     @person_id,
                     @org_id,
                     @created_at,
@@ -767,16 +777,16 @@ internal partial class PostgreSqlPartyPersistence
             protected override string GetQuery(SystemUserRecord party)
                 => QUERY;
 
-            protected override void ValidateFields(SystemUserRecord party)
+            protected override void ValidateFields(SystemUserRecord party, PersistenceFeatureFlag[] flags)
             {
-                base.ValidateFields(party);
+                base.ValidateFields(party, flags);
 
                 Debug.Assert(party.SystemUserType.HasValue, "system user must have SystemUserType set");
             }
 
-            protected override void AddPartyParameters(NpgsqlParameterCollection parameters, SystemUserRecord party)
+            protected override void AddPartyParameters(NpgsqlParameterCollection parameters, SystemUserRecord party, PersistenceFeatureFlag[] flags)
             {
-                base.AddPartyParameters(parameters, party);
+                base.AddPartyParameters(parameters, party, flags);
 
                 parameters.Add<SystemUserRecordType>("system_user_type").TypedValue = party.SystemUserType.Value;
             }
