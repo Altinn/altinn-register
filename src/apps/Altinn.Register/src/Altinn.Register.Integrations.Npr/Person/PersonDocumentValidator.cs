@@ -11,6 +11,7 @@ using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Location;
 using Altinn.Register.Core.Npr;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.Utils;
 using Altinn.Register.Core.Validation;
@@ -30,7 +31,7 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
     , IValidator<BirthElement, Optional<DateOnly>>
     , IValidator<AddressProtectionElement, Optional<AddressConfidentialityLevel>>
     , IValidator<ResidentialAddressElement, Optional<StreetAddressRecord>>
-    , IValidator<NameElement, Optional<PersonDocumentValidator.PersonName>>
+    , IValidator<NameElement, Optional<PersonName>>
     , IValidator<DeathElement?, PersonDocumentValidator.PersonDeath>
     , IValidator<MailingAddressElement, Optional<PersonDocumentValidator.MailingAddressRecordExt>>
     , IValidator<CurrentStayAddressElement, Optional<PersonDocumentValidator.MailingAddressRecordExt>>
@@ -95,12 +96,7 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         }
         else
         {
-            personName = new PersonName(
-                FirstName: "Mangler",
-                MiddleName: null,
-                LastName: "Navn",
-                DisplayName: "Mangler Navn",
-                ShortName: "Mangler Navn");
+            personName = PersonName.Missing;
         }
 
         MailingAddressRecordExt? mailingAddress = null;
@@ -412,39 +408,14 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         }
 
         var shortName = input.ShortName;
-        if (shortName is null)
-        {
-            var sb = new StringBuilder(lastName);
-
-            sb.Append(' ').Append(firstName);
-
-            if (middleName is not null)
-            {
-                sb.Append(' ').Append(middleName);
-            }
-
-            shortName = sb.ToString();
-        }
-
-        var dn = new StringBuilder(firstName);
-
-        if (middleName is not null)
-        {
-            dn.Append(' ').Append(middleName);
-        }
-
-        dn.Append(' ').Append(lastName);
-
-        var displayName = dn.ToString();
 
         Debug.Assert(firstName is not null);
         Debug.Assert(lastName is not null);
-        validated = new PersonName(
-            FirstName: firstName,
-            MiddleName: middleName,
-            LastName: lastName,
-            ShortName: shortName,
-            DisplayName: displayName);
+        validated = PersonName.Create(
+            firstName: firstName,
+            middleName: middleName,
+            lastName: lastName,
+            shortName: shortName);
 
         return true;
     }
@@ -1172,13 +1143,6 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             Name: input.PostalName);
         return true;
     }
-
-    private readonly record struct PersonName(
-        string FirstName,
-        string? MiddleName,
-        string LastName,
-        string ShortName,
-        string DisplayName);
 
     private readonly record struct PersonDeath(DateOnly? DateOfDeath);
 

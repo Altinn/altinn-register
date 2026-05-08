@@ -13,6 +13,11 @@ public class MockExternalRoleDefinitionPersistence
         throw new NotImplementedException();
     }
 
+    public ValueTask<IExternalRoleDefinitionLookup> GetRoleDefinitionLookup(CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
     public ValueTask<ExternalRoleDefinition?> TryGetRoleDefinition(ExternalRoleSource source, string identifier, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
