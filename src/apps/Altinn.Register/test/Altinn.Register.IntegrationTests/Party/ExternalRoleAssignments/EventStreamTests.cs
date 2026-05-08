@@ -43,18 +43,10 @@ public class EventStreamTests
                 commandId: Guid.CreateVersion7(),
                 partyUuid: orgs[0].PartyUuid.Value,
                 roleSource: ExternalRoleSource.CentralCoordinatingRegister,
-                assignments: [
-                    new()
-                    {
-                        RoleIdentifier = roles[0].Identifier,
-                        ToParty = orgs[1].PartyUuid.Value,
-                    },
-                    new()
-                    {
-                        RoleIdentifier = roles[1].Identifier,
-                        ToParty = orgs[1].PartyUuid.Value,
-                    },
-                ],
+                update: PartyExternalRoleAssignmentsUpdate.CreateFull([
+                    new(roles[0].Identifier, orgs[1].PartyUuid.Value),
+                    new(roles[1].Identifier, orgs[1].PartyUuid.Value),
+                ]),
                 ct)
                 .ToListAsync(ct);
         });
@@ -99,18 +91,14 @@ public class EventStreamTests
             {
                 foreach (var (source, roles) in allRoles)
                 {
-                    var assignments = RandomSubset(roles).Select(roles => new IPartyExternalRolePersistence.UpsertExternalRoleAssignment()
-                    {
-                        RoleIdentifier = roles.Identifier,
-                        ToParty = orgs[1].PartyUuid.Value,
-                    });
+                    var assignments = RandomSubset(roles).Select(roles => KeyValuePair.Create(roles.Identifier, orgs[1].PartyUuid.Value));
 
                     evts.AddRange(
                         await uow.GetPartyExternalRolePersistence().UpsertExternalRolesFromPartyBySource(
                             commandId: Guid.CreateVersion7(),
                             partyUuid: orgs[0].PartyUuid.Value,
                             roleSource: source,
-                            assignments: assignments,
+                            update: PartyExternalRoleAssignmentsUpdate.CreateFull(assignments),
                             ct)
                             .ToListAsync(ct));
                 }

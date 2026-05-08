@@ -1,15 +1,72 @@
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
+using Altinn.Register.Core.Parties.Records;
 
 namespace Altinn.Register.Core.Parties;
 
 /// <summary>
 /// Base class for updates to party external role assignments.
-/// This is a union between a <see cref="Full"/> and a <see cref="Delta"/>.
+/// This is a union between a <see cref="Full"/> and a <see cref="Patch"/>.
 /// </summary>
 public abstract record PartyExternalRoleAssignmentsUpdate
 {
+    /// <summary>
+    /// Utility method to create a full update from a list of external role assignments, where each assignment is represented as a key-value pair of external role identifier and party UUID.
+    /// </summary>
+    /// <param name="assignments">The assignments.</param>
+    /// <returns>A full update containing the provided assignments.</returns>
+    public static PartyExternalRoleAssignmentsUpdate CreateFull(ReadOnlySpan<KeyValuePair<string, Guid>> assignments)
+    {
+        var builder = ImmutableArray.CreateBuilder<PartyExternalRoleAssignment>(assignments.Length);
+        foreach (var kv in assignments)
+        {
+            builder.Add(new PartyExternalRoleAssignment
+            {
+                ToParty = new PartyExternalRoleAssignmentPartyRef.PartyUuid { Uuid = kv.Value },
+                ExternalRoleIdentifier = kv.Key,
+            });
+        }
+
+        return new Full
+        {
+            Assignments = builder.DrainToImmutableValueArray(),
+        };
+    }
+
+    /// <summary>
+    /// Utility method to create a full update from a list of external role assignments, where each assignment is represented as a key-value pair of external role identifier and party UUID.
+    /// </summary>
+    /// <param name="assignments">The assignments.</param>
+    /// <returns>A full update containing the provided assignments.</returns>
+    public static PartyExternalRoleAssignmentsUpdate CreateFull(IEnumerable<KeyValuePair<string, Guid>> assignments)
+    {
+        ImmutableArray<PartyExternalRoleAssignment>.Builder builder;
+        if (assignments.TryGetNonEnumeratedCount(out var length))
+        {
+            builder = ImmutableArray.CreateBuilder<PartyExternalRoleAssignment>(length);
+        }
+        else
+        {
+            builder = ImmutableArray.CreateBuilder<PartyExternalRoleAssignment>();
+        }
+
+        foreach (var kv in assignments)
+        {
+            builder.Add(new PartyExternalRoleAssignment
+            {
+                ToParty = new PartyExternalRoleAssignmentPartyRef.PartyUuid { Uuid = kv.Value },
+                ExternalRoleIdentifier = kv.Key,
+            });
+        }
+
+        return new Full
+        {
+            Assignments = builder.DrainToImmutableValueArray(),
+        };
+    }
+
     // Prevents extending this record outside of this class.
     private PartyExternalRoleAssignmentsUpdate()
     {
@@ -38,13 +95,13 @@ public abstract record PartyExternalRoleAssignmentsUpdate
     }
 
     /// <summary>
-    /// Gets the update as a delta update if this is a <see cref="Delta"/> update.
+    /// Gets the update as a delta update if this is a <see cref="Patch"/> update.
     /// </summary>
-    /// <param name="delta">The delta update if this is a <see cref="Delta"/> update; otherwise, <see langword="null"/>.</param>
-    /// <returns><see langword="true"/> if this is a <see cref="Delta"/> update; otherwise, <see langword="false"/>.</returns>
-    public bool TryGetValue([NotNullWhen(true)] out Delta? delta)
+    /// <param name="delta">The delta update if this is a <see cref="Patch"/> update; otherwise, <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> if this is a <see cref="Patch"/> update; otherwise, <see langword="false"/>.</returns>
+    public bool TryGetValue([NotNullWhen(true)] out Patch? delta)
     {
-        if (this is Delta d)
+        if (this is Patch d)
         {
             delta = d;
             return true;
@@ -76,26 +133,32 @@ public abstract record PartyExternalRoleAssignmentsUpdate
     /// Represents a delta update of party external role assignments, where the provided lists of assignments to add and remove
     /// are applied as changes to the existing assignments for the party from the source.
     /// </summary>
-    public sealed record Delta
+    /// <remarks>
+    /// The absent assignments are removed before the present assignments are added,
+    /// as such, if an assignment is present in both the absent and present lists,
+    /// the assignment is first removed then re-added.
+    /// </remarks>
+    public sealed record Patch
         : PartyExternalRoleAssignmentsUpdate
     {
         /// <summary>
-        /// Gets the list of party external role assignments to remove by identifier,
-        /// where each item identifies an assignment to remove by its external role identifier.
+        /// Gets the list of external-role-identifiers for which all assignments will be removed.
         /// </summary>
-        public required ImmutableValueArray<PartyExternalRoleByIdentifierBulkRemoval> ToBulkRemove { get; init; }
+        public required ImmutableValueArray<string> AbsentByIdentifier { get; init; }
 
         /// <summary>
-        /// Gets the list of party external role assignments to remove by reference,
-        /// where each item identifies an assignment to remove by its reference.
+        /// Gets the list of party external role assignments to remove,
+        /// where each item identifies an assignment to remove by its external role identifier and the party
+        /// referenced.
         /// </summary>
-        public required ImmutableValueArray<PartyExternalRoleRemoval> ToRemove { get; init; }
+        public required ImmutableValueArray<PartyExternalRoleAssignment> Absent { get; init; }
 
         /// <summary>
         /// Gets the list of party external role assignments to add,
-        /// where each item identifies an assignment to add by its external role identifier.
+        /// where each item identifies an assignment to add by its external role identifier and the party
+        /// referenced.
         /// </summary>
-        public required ImmutableValueArray<PartyExternalRoleAssignment> ToAdd { get; init; }
+        public required ImmutableValueArray<PartyExternalRoleAssignment> Present { get; init; }
     }
 }
 
@@ -131,7 +194,15 @@ public abstract record PartyExternalRoleAssignmentPartyRef
         /// </summary>
         public required PersonIdentifier PersonIdentifier { get; init; }
 
-        // TODO: name and address and stuff
+        /// <summary>
+        /// Gets the name of the person.
+        /// </summary>
+        public required PersonName? Name { get; init; }
+
+        /// <summary>
+        /// Gets the mailing address of the person.
+        /// </summary>
+        public required MailingAddressRecord? MailingAddress { get; init; }
     }
 
     /// <summary>
@@ -159,33 +230,6 @@ public sealed record PartyExternalRoleAssignment
 
     /// <summary>
     /// Gets the identifier of the external role to assign to the party.
-    /// </summary>
-    public required string ExternalRoleIdentifier { get; init; }
-}
-
-/// <summary>
-/// Represents a removal of an external role assignment from a party, where the party is identified by a reference and the role is identified by its external role identifier.
-/// </summary>
-public sealed record PartyExternalRoleRemoval
-{
-    /// <summary>
-    /// Gets the reference to the party to which the external role is assigned.
-    /// </summary>
-    public required PartyExternalRoleAssignmentPartyRef ToParty { get; init; }
-
-    /// <summary>
-    /// Gets the identifier of the external role to remove from the party.
-    /// </summary>
-    public required string ExternalRoleIdentifier { get; init; }
-}
-
-/// <summary>
-/// Represents a removal of an external role assignment from a party, where the assignment to remove is identified by its external role identifier.
-/// </summary>
-public sealed record PartyExternalRoleByIdentifierBulkRemoval
-{
-    /// <summary>
-    /// Gets the identifier of the external role to remove in bulk.
     /// </summary>
     public required string ExternalRoleIdentifier { get; init; }
 }

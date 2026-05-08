@@ -603,28 +603,28 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             commandId: Guid.CreateVersion7(),
             partyUuid: org2.PartyUuid.Value,
             roleSource: ExternalRoleSource.CentralCoordinatingRegister,
-            assignments: [
+            update: PartyExternalRoleAssignmentsUpdate.CreateFull([
                 new(role1.Identifier, org1.PartyUuid.Value),
                 new(role2.Identifier, org1.PartyUuid.Value),
-            ],
+            ]),
             cancellationToken: CancellationToken);
 
         await Persistence.UpsertExternalRolesFromPartyBySource(
             commandId: Guid.CreateVersion7(),
             partyUuid: org3.PartyUuid.Value,
             roleSource: ExternalRoleSource.CentralCoordinatingRegister,
-            assignments: [
+            update: PartyExternalRoleAssignmentsUpdate.CreateFull([
                 new(role1.Identifier, org1.PartyUuid.Value),
-            ],
+            ]),
             cancellationToken: CancellationToken);
 
         await Persistence.UpsertExternalRolesFromPartyBySource(
             commandId: Guid.CreateVersion7(),
             partyUuid: org4.PartyUuid.Value,
             roleSource: ExternalRoleSource.CentralCoordinatingRegister,
-            assignments: [
+            update: PartyExternalRoleAssignmentsUpdate.CreateFull([
                 new(role2.Identifier, org1.PartyUuid.Value),
-            ],
+            ]),
             cancellationToken: CancellationToken);
 
         var roles = await Persistence.GetExternalRoleAssignmentsToParty(
@@ -2406,7 +2406,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     private async Task CheckUpsertExternalRolesFromPartyBySource(
         Guid fromParty,
         ExternalRoleSource source,
-        IReadOnlyList<IPartyExternalRolePersistence.UpsertExternalRoleAssignment> assignments,
+        IReadOnlyList<KeyValuePair<string, Guid>> assignments,
         IReadOnlyList<CheckUpsertExternalRolesFromPartyBySourceExpectedEvent> expectedEvents)
     {
         var cmdId = Guid.CreateVersion7();
@@ -2415,7 +2415,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
                 cmdId,
                 fromParty,
                 source,
-                assignments,
+                update: PartyExternalRoleAssignmentsUpdate.CreateFull(assignments),
                 cancellationToken: CancellationToken)
             .Select(static e => new CheckUpsertExternalRolesFromPartyBySourceExpectedEvent(e.Type, e.RoleIdentifier, e.ToParty))
             .ToListAsync(CancellationToken);
@@ -2432,7 +2432,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
                 cmdId,
                 fromParty,
                 source,
-                assignments,
+                update: PartyExternalRoleAssignmentsUpdate.CreateFull(assignments),
                 cancellationToken: CancellationToken)
             .Select(static e => new CheckUpsertExternalRolesFromPartyBySourceExpectedEvent(e.Type, e.RoleIdentifier, e.ToParty))
             .ToListAsync(CancellationToken);
@@ -2448,7 +2448,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         roles.Count.ShouldBe(assignments.Count);
         foreach (var assignment in assignments)
         {
-            roles.Where(r => r.Identifier == assignment.RoleIdentifier && r.ToParty == assignment.ToParty).ShouldHaveSingleItem();
+            roles.Where(r => r.Identifier == assignment.Key && r.ToParty == assignment.Value).ShouldHaveSingleItem();
         }
     }
 
