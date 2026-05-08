@@ -5,6 +5,7 @@ using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Clients.Interfaces;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Operations;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.RateLimiting;
 using Altinn.Register.Models;
 using Altinn.Register.Services;

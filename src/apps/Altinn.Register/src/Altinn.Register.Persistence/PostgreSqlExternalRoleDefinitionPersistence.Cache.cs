@@ -1,8 +1,10 @@
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Altinn.Register.Contracts;
+using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.Utils;
 using Microsoft.Extensions.Hosting;
@@ -78,6 +80,16 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
         public ValueTask<ExternalRoleDefinition?> TryGetRoleDefinitionByRoleCode(string roleCode, CancellationToken cancellationToken)
         {
             return WithState(roleCode, static (state, roleCode) => state.TryGetRoleDefinitionByRoleCode(roleCode), cancellationToken);
+        }
+
+        /// <summary>
+        /// Asynchronously retrieves a lookup service for external role definitions, allowing retrieval of role definitions by source/identifier or role-code without asynchronous operations.
+        /// </summary>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+        /// <returns>A lookup service for external role definitions.</returns>
+        public ValueTask<IExternalRoleDefinitionLookup> GetRoleDefinitionLookup(CancellationToken cancellationToken = default)
+        {
+            return WithState(null, static (State state, object? _) => (IExternalRoleDefinitionLookup)state, cancellationToken);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -243,6 +255,7 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
         private readonly record struct RoleKey(ExternalRoleSource Source, string Identifier);
 
         private sealed class State
+            : IExternalRoleDefinitionLookup
         {
             private readonly ImmutableArray<ExternalRoleDefinition> _all;
             private readonly FrozenDictionary<RoleKey, ExternalRoleDefinition> _byRoleKey;
@@ -257,6 +270,7 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
                 _byRoleCode = byRoleCode.ToFrozenDictionary(byRoleCode.Comparer);
             }
 
+            /// <inheritdoc/>
             public ImmutableArray<ExternalRoleDefinition> AllRoleDefinitions
                 => _all;
 
@@ -265,6 +279,14 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
 
             public ExternalRoleDefinition? TryGetRoleDefinitionByRoleCode(string roleCode)
                 => _byRoleCode.TryGetValue(roleCode, out var value) ? value : null;
+
+            /// <inheritdoc/>
+            bool IExternalRoleDefinitionLookup.TryGetRoleDefinition(ExternalRoleSource source, string identifier, [NotNullWhen(true)] out ExternalRoleDefinition? roleDefinition)
+                => _byRoleKey.TryGetValue(new(source, identifier), out roleDefinition);
+
+            /// <inheritdoc/>
+            bool IExternalRoleDefinitionLookup.TryGetRoleDefinitionByRoleCode(string roleCode, [NotNullWhen(true)] out ExternalRoleDefinition? roleDefinition)
+                => _byRoleCode.TryGetValue(roleCode, out roleDefinition);
         }
 
         private static partial class Log

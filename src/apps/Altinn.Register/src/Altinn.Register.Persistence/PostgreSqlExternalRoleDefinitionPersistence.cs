@@ -32,4 +32,8 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
     /// <inheritdoc/>
     public ValueTask<ExternalRoleDefinition?> TryGetRoleDefinitionByRoleCode(string roleCode, CancellationToken cancellationToken = default)
         => _cache.TryGetRoleDefinitionByRoleCode(roleCode, cancellationToken);
+
+    /// <inheritdoc/>
+    public ValueTask<IExternalRoleDefinitionLookup> GetRoleDefinitionLookup(CancellationToken cancellationToken = default)
+        => _cache.GetRoleDefinitionLookup(cancellationToken);
 }
