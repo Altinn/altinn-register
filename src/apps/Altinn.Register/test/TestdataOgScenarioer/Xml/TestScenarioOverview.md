@@ -3,7 +3,10 @@
 Each `ScenarioN.xml` is a `batchAjourholdXML` document (the format the CCR
 flat-file processor emits per organization). For a detailed description of
 the XML format itself — element catalog, field semantics, and what kinds of
-data the documents carry — see [CcrXmlFormat.md](./CcrXmlFormat.md).
+data the documents carry — see [CcrXmlFormat.md](./CcrXmlFormat.md). The
+authoritative source for the underlying flat-file format is BR's own spec,
+[`batch-ajourhold - formatbeskrivelse pr.25.04.2025.doc`](./batch-ajourhold%20-%20formatbeskrivelse%20pr.25.04.2025.doc),
+shipped alongside this directory.
 
 The XML is derived from real production samples; identifying data has been
 replaced with synthetic values that follow the same validation rules as the
@@ -988,11 +991,17 @@ Also adds:
 - A second instance of the relative/sibling structural pattern (after
   S11's Bjørn + Birk siblings on the same address).
 
-## Scenario 25 — Isolated R-FV (FR-registration status) on an FLI
+## Scenario 25 — Isolated R-FV (Frivillighetsregisteret-status) on an FLI
 
 **Change type:** A single `<infotype felttype="R-FV" endringstype="N">`
-on an FLI, carrying a single-character flag value `<opplysning>J</opplysning>`
-(`J` = Ja / Yes — registered in Foretaksregisteret).
+on an FLI (forening), carrying a single-character flag value
+`<opplysning>J</opplysning>` (`J` = Ja / Yes — registered in
+**Frivillighetsregisteret**, the Norwegian register of voluntary
+organizations). `R-FV` is the Frivillighetsregister-flag — distinct
+from `R-FR` (Foretaksregisteret), `R-MV` (MVA-registeret), and `R-SR`
+(Stiftelsesregisteret) which all have their own felttype codes. `R-FV`
+naturally appears on FLI subjects since FLIs are the form most
+commonly registered in Frivillighetsregisteret.
 
 **Parties:**
 
@@ -1148,7 +1157,7 @@ parser does not branch on form, so this is documentary coverage only.
 | --- | --- | --- |
 | `N` | Ny / new | ✅ covered |
 | `U` | Utgår / expired | ✅ covered |
-| `K` | Korrektur / correction | ❌ **uncovered** — controls the `IsNewOrUpdateChange` guard inside NACE / PAAT / ULOV / UREG cases (returns true). The `IsNewOrUpdateChange("K")` branch has never been hit by a scenario |
+| `K` | Kopi av tidligere sendt opplysning / retransmission of previously-sent record | ❌ **uncovered** — controls the `IsNewOrUpdateChange` guard inside NACE / PAAT / ULOV / UREG cases (returns true). Used in full-snapshot deliveries where every current record is re-sent as a "copy"; payload-wise identical to `N`. The `IsNewOrUpdateChange("K")` branch has never been hit by a scenario |
 
 ## Cross-record / cross-scenario structural coverage
 
@@ -1191,10 +1200,11 @@ parser does not branch on form, so this is documentary coverage only.
 3. **`<infotype felttype="paategning">` with content** — exercises
    the populated form of `WritePaategning` (`<infotype>`, `<register>`,
    three `<tekstlinje>`s). The empty/U form is in S24.
-4. **`endringstype="K"` (Korrektur / correction)** — gates the
+4. **`endringstype="K"` (Kopi av tidligere sendt opplysning)** — used
+   for full-snapshot retransmissions; payload-wise identical to `N`,
+   but exercises the second arm of `IsNewOrUpdateChange`. Gates the
    conditional optional-field reads inside NACE / PAAT / ULOV / UREG
-   parser cases. None of the existing scenarios exercises a
-   correction record.
+   parser cases. No existing scenario carries a `K` record.
 5. **`<infotype felttype="TFAX">`** — telefax. Same writer family as
    TFON / EPOS / etc.; only the dedicated parser case is missing.
 6. **Multiple `<enhet>` records in a single batch file** — the
@@ -1208,14 +1218,39 @@ parser does not branch on form, so this is documentary coverage only.
    covered for `EDAT` (S10); the same code path applies to BDAT and
    NDAT.
 
-Lower-priority gaps (parser-ignored or dead code in current
-implementation):
+### Record types the parser skips (de-facto out of scope for DB-import tests)
 
-- `KATG` / `TKN ` records — parser ignores them; `WriteKatg` /
-  `WriteTkn` are dead code.
-- `KAPI` records — parser ignores them.
-- Fullmaktsnoder (`FMKA`, `FMAK`, `FMAP`, `FMKL`, `FMUU`, `FSTR`,
-  `TRAK`, `KLAN`) — parser ignores them.
+The parser is a port of an older Altinn-2 implementation, and several
+record families have been ignored at the parser switch *for many
+years*. These are not active TODOs — Altinn-register has never made
+use of them — but knowing the list is useful because the
+parser+XML-conversion silently drops these records before any DB code
+sees them. **A scenario that "exercises" one of these records cannot
+meaningfully assert anything on the DB side**, so they're effectively
+out of scope for `CcrPartialXmlUpdateTests` and the DB-import flow as
+it stands.
 
-These don't add coverage today but a fixture per family would catch a
-future "remove the ignore" change.
+Treat the list as a signal of which BR record types are *not relevant*
+to test against the import pipeline:
+
+| Record type | Status | Purpose in BR spec |
+| --- | --- | --- |
+| `KAPI` | parser explicit `// altinn doesn't use these, so we ignore them` | Kapital opplysninger (currency, paid-in / bound capital, free-text descriptions, up to 4×70 chars) |
+| `KATG` / `TKN ` | parser explicit `// no longer in use, so we ignore it`; `WriteKatg` / `WriteTkn` writer methods exist but are dead code | Legacy categorization records |
+| `FMKA`, `FMAK`, `FMAP`, `FMKL`, `FMUU`, `FSTR`, `TRAK`, `KLAN` | parser explicit `// not in use, ignored` | Fullmaktsnoder — capital-related authorizations (kapitalforhøyelse, egne aksjer, avtalepant, konvertibelt lån, utbytte, finansielle instrumenter, klausuler) |
+| `INST` | not in parser switch | Sektorkode (3-char) — officially deprecated in the BR spec (`Utgår 1.1.2012. Erstattes av ISEK`); ISEK (4-char, handled) is the replacement |
+| `MANR` | not in parser switch | Matrikkelnummer-records (one per registered cadastral parcel) |
+| `INSO` | not in parser switch | "Under insolvensbehandling" — recently-added insolvency status |
+
+If at any point Altinn-register decides to take in (for example)
+`INSO` insolvency status, the work is to add the parser case + writer
+method first; only then can XML-driven scenarios meaningfully test
+the downstream DB behavior. A fixture without parser support will
+just silently get dropped at parse time.
+
+The same logic applies to the per-record fields the parser drops on
+records it *does* handle (`Endret av`, `Korrekt orgnr`, `Type
+overføring`, `Linjenummer` / `Vegadresseid` on addresses, `Dato reg.
+i MVA` on R-MV records, `Antall records` on the trailer) — see the
+[Felter parser-en ikke beholder](./CcrXmlFormat.md#felter-parser-en-ikke-beholder-i-xml-en)
+section in the format spec for the full inventory.

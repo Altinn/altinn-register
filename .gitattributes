@@ -3,3 +3,14 @@
 
 # Declare files that will always have CRLF line endings on checkout.
 *.sln text eol=crlf
+
+# Binary files — never apply text/EOL conversion.
+*.doc binary
+*.docx binary
+*.pdf binary
+*.xlsx binary
+*.pfx binary
+*.cer binary
+*.png binary
+*.jpg binary
+*.gif binary
