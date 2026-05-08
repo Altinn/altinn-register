@@ -8,6 +8,15 @@ that appears in a CCR (Central Coordinating Register / Enhetsregisteret
 + Foretaksregisteret) batch update file. Each `ScenarioN.xml` in this
 directory is one such document.
 
+> **Authoritative source.** The canonical reference for the flat-file
+> format is BR's own spec, shipped alongside this directory as
+> [`batch-ajourhold - formatbeskrivelse pr.25.04.2025.doc`](./batch-ajourhold%20-%20formatbeskrivelse%20pr.25.04.2025.doc)
+> (Brønnøysundregistrene, "Formatbeskrivelse for batch ajourhold fra
+> Enhetsregisteret", 2025-04-25). When this document and the BR spec
+> disagree, the BR spec wins. Discrepancies between the BR spec and
+> our parser implementation are noted inline (see "Spec discrepancy"
+> callouts and the [Felter parser-en ikke beholder](#felter-parser-en-ikke-beholder-i-xml-en) section).
+
 > **Source format.** The XML is *output* from the parser, not input.
 > The actual transport format from Brønnøysundregistrene (BR) is a
 > Latin-9 encoded fixed-width flat-file with one record per line. Each
@@ -58,7 +67,7 @@ Self-closing element. All five attributes are always present.
 | `dato` | 8 | Batch transmission date | `YYYYMMDD` |
 | `kjoerenr` | 5 | Run / job number for the day | `05783` (zero-padded counter) |
 | `mottaker` | 3 | Receiver code | `ALT` (Altinn) |
-| `type` | 1 | Batch type | `A` (Ajourhold — incremental update). Other values exist in the format spec (e.g. full dump) but the parser doesn't switch on this attribute and the corpus only contains `A` |
+| `type` | 1 | Batch type | **`A`** = Ordinær ajourholdsdata-utveksling (incremental update — every batch in the test corpus is type `A`). **`S`** = Data bestilt via "SKD-knappen" (manual one-off export, with several ENH-fields blanked out — see "Felter parser-en ikke beholder" below). **`K`** = Knytningsfil med begrensede enhetsdata (separate file for receivers that don't have all entities, containing only `HEAD + ENH + NAVN + FADR + PADR + TRAI`). The parser doesn't switch on this attribute |
 
 The flat-file parser:
 
@@ -84,9 +93,9 @@ The flat-file parser:
 | --- | --- | --- | --- |
 | `organisasjonsnummer` | 9 | Norwegian org-number | mod-11 valid, the unique identifier in BR |
 | `organisasjonsform` | 4 | Organization-form code | See [Organization forms](#organization-forms) below. The parser does not branch on this attribute |
-| `hovedsakstype` | 1 | Main case type | `E` = Endring (change), `N` = Ny / nyregistrering (new registration). See [Case types](#case-types) |
-| `undersakstype` | 4 | Sub case type | E.g. `EN`, `EBTC`, `OPPL`, `KORR`, `NY`. Free-text field, parser does not switch on it |
-| `foersteOverfoering` | 1 | First transfer flag | `J` = first transfer (initial registration of this org to Altinn — typical when the org is brand new), `N` = not first transfer (incremental update on an existing org) |
+| `hovedsakstype` | 1 | Main case type | **`N`** = Ny enhet, **`E`** = Endring på enhet, **`S`** = Sletting av enhet, **`L`** = Slettet enhet vekket til live. See [Case types](#case-types) |
+| `undersakstype` | 4 | Sub case type | E.g. `EN`, `EBTC`, `OPPL`, `KORR`, `NY`. Free-text field, parser does not switch on it. Special values: `ETYP` or `OMDA` indicates the enhetstype itself changed (only on `hovedsakstype="E"`); `DUBL` / `SMSL` indicates this enhet is being deleted as a duplicate / merged — see "Korrekt orgnr" under [Felter parser-en ikke beholder](#felter-parser-en-ikke-beholder-i-xml-en) below |
+| `foersteOverfoering` | 1 | First transfer flag | **`J`** = first transfer (initial registration of this org to Altinn), **`N`** = not first transfer (incremental update), **`L`** = was deleted, now revived (used when an entity that was previously deleted is "vekket til live" — the parser doesn't branch on this) |
 | `datoFoedt` | 8 | Founded / established date | `YYYYMMDD`. For initial registrations this often matches `head/@dato`; for older orgs being updated, it's the historical founding date |
 | `datoSistEndret` | 8 | Last-changed date | `YYYYMMDD`. Usually equal to `head/@dato` but can be earlier if BR processed the change on a previous day |
 
@@ -114,7 +123,7 @@ same attribute structure.
 ### Case types
 
 The combination of `hovedsakstype` + `undersakstype` indicates *what
-kind* of change this enhet update represents. The fixtures cover:
+kind* of change this enhet update represents. Fixtures cover:
 
 | `hovedsakstype` | `undersakstype` | Pattern |
 | --- | --- | --- |
@@ -124,8 +133,69 @@ kind* of change this enhet update represents. The fixtures cover:
 | `E` | `KORR` | Korreksjon av tidligere overført data / correction of previously transferred data |
 | `N` | `NY` | Nyregistrering (used together with `foersteOverfoering="J"` — initial registration of a new org) |
 
+`hovedsakstype` can also be `S` (Sletting av enhet) or `L` (Slettet
+enhet vekket til live) per the BR spec. Neither appears in the test
+corpus but both are documented in `batch-ajourhold - formatbeskrivelse pr.25.04.2025.doc`.
+On `S`-deletion of a `BEDR` (sub-enterprise), the format spec mandates
+that an `NDAT` record (with the closing date) is sent alongside the
+`<enhet>` — the parser handles `NDAT` via the simple-default-length
+date-only branch.
+
 The parser does not branch on these values; they are documentary
 metadata that downstream consumers can use to classify the event.
+
+## Samendret / atomic-replacement semantics
+
+The BR format spec defines a **samendring rule**: certain
+multi-component opplysninger are sent as a *complete set* whenever any
+single component changes. Receivers must therefore replace the entire
+set on `endringstype="N"` records, not merge field-by-field.
+
+**Multi-field opplysninger that follow the samendring rule:**
+
+| Opplysning | Behavior on change |
+| --- | --- |
+| Forretningsadresse (`FADR`) | One record carrying all sub-fields (postnr, landkode, kommunenr, poststed, adresse1, adresse2, adresse3) — when any sub-field changes, the whole record is re-sent |
+| Postadresse (`PADR`) | Same as FADR |
+| Navn (`NAVN`) | One record carrying all five `navn1..navn5` lines + `rednavn` — long names spill over and the entire set is re-sent on any name change |
+| Kapital (`KAPI`) | Up to 4 records (one per text line) re-sent in order on any change. Parser ignores KAPI |
+| Næringskode (`NACE` / `SN25`) | When any næringskode changes, **all current næringskoder are re-sent**. Receiver should delete existing and replace with the new set |
+| Formål (`FORM`) | Multi-line text (up to N records, 70 chars each) — when any line changes, the entire text is re-sent. Same applies to `VFOR` (vedtektsfestet formål) |
+| Påtegning (`PAAT`) | When any påtegning is added/changed/removed, **all current påtegninger are re-sent**. Removal of all påtegninger is signalled with a single `PAAT U` |
+
+**Role/connection families that follow the samendring rule** (when one
+record in the family changes, the entire family is replaced —
+historical entries go to BR's history, not to the batch):
+
+| Samendringstype | Member roles/connections |
+| --- | --- |
+| `STYR` (Styre / board) | `LEDE` (Leder), `NEST` (Nestleder), `MEDL` (Medlem), `OBS ` (Observatør) |
+| `DELT` (Deltakere) | `DTSO` (Deltaker med solidarisk ansvar), `DTPR` (Deltaker med proratarisk ansvar) |
+| `SIGN` (Signatur) | `SIGN`, `SIFE` (signatur i fellesskap), `SIHV` (signatur hver for seg) |
+| `PROK` (Prokura) | `PROK`, `KENK` (eneprokura), `KGRL` (felles-/grupperprokura) |
+
+The full samendringstype-to-rolletype map is defined in BR's
+"kodeoversikt" (not shipped with the format spec).
+
+**Why this matters for testing:**
+
+- A scenario showing a single `LEDE-N` (new chair) implies the spec
+  expects every other member of `STYR` (Nestleder, Medlem, Observatør)
+  to be re-sent in the same batch — fixtures that show only LEDE
+  without the rest of the board may be incomplete relative to real
+  production batches.
+- Receivers must implement set-replacement, not merge, on these
+  felttypes.
+- A `SAMU` record (samendringUtgaar) signals that an entire family is
+  being expired — every related role/knytning/fritekst is then
+  re-sent with `endringstype="U"` in the same batch.
+
+**Status records are NOT samendret.** Status records (`KONK`, `OPPL`,
+`SKRR`, etc.) are independent flags — multiple statuses can be active
+on the same enhet at the same time. The spec also notes that the
+*same status code can be reported multiple times* with `endringstype="N"`,
+so receivers must be **idempotent** on status records (a "new"
+incoming status that already exists in the DB is not an error).
 
 ## Record families inside `<enhet>`
 
@@ -154,13 +224,15 @@ Every `<infotype>` carries two attributes:
 | Attribute | Meaning |
 | --- | --- |
 | `felttype` | Identifies which information field this record describes (e.g. `EPOS`, `NAVN`, `FADR`, `naeringskode`, `R-MV`, …) |
-| `endringstype` | The change-type for this record: `N` (new), `U` (utgår / expired), `K` (Korrektur / correction). For `U` records the source flat-file usually has all value columns blank, and every optional child element short-circuits — so `<U>` records are commonly emitted as self-closing tags |
+| `endringstype` | The change-type for this record: `N` (Ny eller endret / new or changed), `U` (Utgått / expired), `K` (**Kopi av tidligere sendt opplysning** / copy of previously-sent info). For `U` records the source flat-file has all value columns blank, and every optional child element short-circuits — so `<U>` records are commonly emitted as self-closing tags |
 
-The `endringstype="K"` (Korrektur) variant gates the conditional
-optional-field parsing in the multi-field infotypes (`naeringskode`,
-`paategning`, `ULOV`, `UREG`): the parser's `IsNewOrUpdateChange` guard
-returns true for both `"N"` and `"K"`, so a `K` record carries the
-same payload shape as an `N` record.
+The `endringstype="K"` (Kopi) variant is used for *retransmissions* —
+typically in full-snapshot deliveries where every current record is
+re-sent as a "copy" rather than a delta. Payload-wise it is identical
+to an `N` record. The parser's `IsNewOrUpdateChange` guard returns
+true for both `"N"` and `"K"`, so the conditional optional-field
+parsing in the multi-field infotypes (`naeringskode`, `paategning`,
+`ULOV`, `UREG`) treats both the same.
 
 There are five sub-shapes of `<infotype>`, corresponding to five
 writer methods:
@@ -188,10 +260,10 @@ code (sometimes trimmed of its trailing space):
 | `TFON` | Phone |
 | `TFAX` | Fax |
 | `FMVA` | Forenklet MVA-melding registration type (Skatteetaten VAT-art code, e.g. `BFLA`) |
-| `R-MV` | Registreringsstatus MVA-register (`J` / `N` boolean — uses the boolean-length value branch in the parser) |
-| `R-FV` | Registrert i Foretaksregisteret (`J` / `N`) |
-| `R-FR` | Registrert i Frivilligregisteret |
-| `R-SR` | Registrert i Stiftelsesregisteret |
+| `R-MV` | Registrert i MVA-registeret. **Tri-state:** `J` = registered, `N` = was registered (no longer is), blank = never registered. Uses the boolean-length value branch in the parser; the spec also defines a "Dato reg. i MVA" date field at offset 10 that the parser does not currently extract |
+| `R-FR` | Registrert i Foretaksregisteret. Tri-state `J` / `N` / blank with the same semantics as `R-MV` |
+| `R-SR` | Registrert i Stiftelsesregisteret. Tri-state `J` / `N` / blank |
+| `R-FV` | Registrert i Frivillighetsregisteret. Two-state `J` / `N` (the spec doesn't define a blank state for this record) |
 | `RSKP` | Regnskapsinfo / accounts |
 | `MÅL` | Målform (language form: `B` = bokmål, `N` = nynorsk) |
 | `KTO` | Konto / account |
@@ -471,7 +543,7 @@ Same outer shape, different body. The parser branches on `type`:
 
 ```xml
 <samendringer data="T" felttype="SIGN" endringstype="N" type="S">
-  <plassering>H</plassering>                       <!-- positional code (H = head/main, …) -->
+  <plassering>H</plassering>                       <!-- H = Heading (text placed BEFORE the roles), T = Trailer (text placed AFTER the roles) -->
   <samendringfritTekstlinje>Styrets leder alene.</samendringfritTekstlinje>
 </samendringer>
 ```
@@ -587,17 +659,96 @@ inner `<samendringstype>` is the actual record code being expired.
 
 ## Encoding and character handling
 
-The source flat-file is **Latin-9 / ISO-8859-15** encoded; the parser
-decodes line-by-line into UTF-8 chars before writing the XML, which is
-declared `encoding="utf-8"`. Characters that exist in Latin-9 but not
-Latin-1 (notably `€`, `Š`, `š`, `Ž`, `ž`, `Œ`, `œ`, `Ÿ`) and Norwegian
-characters (`æ`, `ø`, `å`, `Æ`, `Ø`, `Å`) round-trip cleanly. Finnish
-Swedish characters (`å`, `ä`, `ö`) used in foreign-org names also
+The source flat-file is decoded by the parser using
+[`LegacyEncodings.Latin9`](../../../src/Altinn.Register.Integrations.Ccr.FileImport/LegacyEncodings.cs)
+= **ISO-8859-15** before writing UTF-8 XML output. Norwegian
+characters (`æ`, `ø`, `å`, `Æ`, `Ø`, `Å`) and the Latin-9-specific
+characters (`€`, `Š`, `š`, `Ž`, `ž`, `Œ`, `œ`, `Ÿ`) round-trip
+cleanly; Finnish/Swedish `ä`, `ö` used in foreign-org names also
 round-trip.
+
+> **Spec discrepancy.** The official BR format spec
+> (`batch-ajourhold - formatbeskrivelse pr.25.04.2025.doc`) states
+> *"Tegnsett for utvekslingsfil skal være ISO 8859.1 (windows)"*,
+> i.e. **ISO-8859-1**, not the ISO-8859-15 the parser uses. The two
+> overlap on every byte except a handful (notably `€` is `0xA4` in
+> 8859-15 but `¤` in 8859-1). If BR really delivers 8859-1, any `€`
+> character would decode incorrectly. This has not been observed
+> in practice in the test corpus, but is worth flagging if a future
+> incident shows mojibake on these bytes.
 
 Each input line is padded to a minimum of 500 characters before
 slicing — fields beyond the actual line length are read as
 whitespace and trim to empty.
+
+## Felter parser-en ikke beholder i XML-en
+
+The flat-file format defines several fields per record that the
+current parser **reads past but does not propagate to the XML
+output**. Listed here so that anyone investigating "why doesn't the
+XML have field X?" can confirm it's intentionally dropped:
+
+### Per-record (every infotype / status / samendringer / SAMU record)
+
+| Flat-file field | Position | Description | Why dropped |
+| --- | --- | --- | --- |
+| `Endret av` | 6–8 (3 chars) | Code for the avsender that last changed the record (`ER`, `FR`, `MVA`, `BB`, etc.) | Audit trail at the source — Altinn doesn't currently track per-field provenance |
+
+### `<enhet>` extras
+
+| Flat-file field | Position | Description | Why dropped |
+| --- | --- | --- | --- |
+| `Korrekt orgnr` | 40–48 (9 chars) | When this enhet is being deleted as a duplicate (`undersakstype="DUBL"`) or merged (`SMSL`), this field carries the *surviving* orgnr that the duplicate's data should be merged into | Duplicate/merge handling not implemented in the parser today; would be necessary for a future re-mapping flow |
+| `Type overføring` | 49 (1 char) | Blank for ordinary delivery, `I` = Innførte data via SKD-knappen, `J` = Journaldata via SKD-knappen | The SKD-knappen subtype only matters for `head/@type="S"` batches, which the parser doesn't differentiate |
+
+### `<infotype felttype="FADR\|PADR">` extras
+
+| Flat-file field | Position | Description | Why dropped |
+| --- | --- | --- | --- |
+| `Linjenummer` | 170 (1 char) | `1` / `2` / `3` — which `<adresseN>` line carries the Matrikkel-link | Matrikkel-cross-reference not used downstream |
+| `Vegadresseid` | 171–185 (15 chars) | Vegadresseid from the Matrikkel cadastral system | Same reason |
+
+### `<infotype felttype="R-MV">` extras
+
+| Flat-file field | Position | Description | Why dropped |
+| --- | --- | --- | --- |
+| `Dato reg. i MVA` | 10–17 (8 chars, `YYYYMMDD`) | Date the org was registered in the VAT register | The boolean-length-value parser branch only reads `<opplysning>` and stops; the date is in the line but not sliced |
+
+### `<trai>` extras
+
+| Flat-file field | Position | Description | Why dropped |
+| --- | --- | --- | --- |
+| `Antall records` | 15–23 (9 chars) | Total record count in the file (sanity check) | Parser doesn't enforce trailer-checksum validation; legacy lenient behavior |
+
+### Whole-record families dropped (parser ignores at the switch level)
+
+| Record type | What it is | Status |
+| --- | --- | --- |
+| `KAPI` | Kapitalopplysninger — share/equity capital with currency code, paid-in / bound, and free-text description (up to 4 lines × 70 chars) | Parser explicit: `// altinn doesn't use these, so we ignore them` |
+| `KATG`, `TKN ` | Legacy categorization records | Parser explicit: `// no longer in use, so we ignore it`. The corresponding `WriteKatg` / `WriteTkn` writer methods exist but are dead code |
+| `FMKA`, `FMAK`, `FMAP`, `FMKL`, `FMUU`, `FSTR`, `TRAK`, `KLAN` | Fullmaktsnoder (capital-related authorizations: kapitalforhøyelse, egne aksjer, avtalepant, konvertibelt lån, utbytte, finansielle instrumenter, klausuler) | Parser explicit: `// not in use, ignored` |
+| `INST` | Sektorkode (3-char) — institutional sector code | Officially deprecated in the BR spec (`Utgår 1.1.2012. Erstattes av ISEK`); ISEK (4-char) is the replacement and is handled |
+| `MANR` | Matrikkelnummer-records (one per registered cadastral parcel) | Documented in the BR spec but **not in the parser switch** — currently falls through to the `Log.UnknownOrganizationRecordType` warning |
+| `INSO` | "Under insolvensbehandling" — recently-added insolvency status | Documented in the BR spec but **not in the parser switch** — currently falls through to the warning |
+
+> **Why these gaps exist.** The current `CcrFlatFileProcessor` is a
+> direct port of an older Altinn-2 implementation. The "ignored"
+> records have been ignored for many years — Altinn-register has
+> never made use of them, so they were never wired up. They are not
+> active TODOs.
+>
+> **What this means for testing.** From a database-import-test
+> perspective, these record types are de-facto out of scope: the
+> parser+XML conversion will skip them silently before any DB code
+> sees them, so a test scenario that "exercises a `KAPI` record" or
+> "exercises a `MANR` record" cannot meaningfully assert anything on
+> the DB side. Treat the "ignored" list as a signal of which BR
+> record types are *not relevant* to the import pipeline as it stands.
+>
+> If at any point Altinn-register starts caring about (for example)
+> `INSO` insolvency status, the work is to add the parser case +
+> writer method first; only then can XML-driven scenarios test the
+> downstream DB behavior.
 
 ## PII content reference
 
