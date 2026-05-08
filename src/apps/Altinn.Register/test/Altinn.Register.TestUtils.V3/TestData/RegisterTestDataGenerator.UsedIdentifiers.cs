@@ -48,6 +48,7 @@ public sealed partial class RegisterTestDataGenerator
                 /*strpsql*/"""
                 SELECT MAX(id)
                 FROM register.party
+                WHERE id < 1000000000
                 """,
                 cancellationToken);
 
@@ -56,6 +57,7 @@ public sealed partial class RegisterTestDataGenerator
                 /*strpsql*/"""
                 SELECT MAX(user_id)
                 FROM register."user"
+                WHERE user_id < 1000000000
                 """,
                 cancellationToken);
 

@@ -273,6 +273,12 @@ public static class RegisterPersistenceExtensions
             _ => null,
         }));
 
+        builder.MapEnum<PersistenceFeatureFlag>("register.db_feature_flag", new EnumNameTranslator<PersistenceFeatureFlag>(static value => value switch
+        {
+            PersistenceFeatureFlag.CreatePartyId => "create_party_id",
+            _ => null,
+        }));
+
         builder.MapComposite<MailingAddressRecord>("register.co_mailing_address", new CompositeNameTranslator<MailingAddressRecord>(static member => member.Name switch
         {
             nameof(MailingAddressRecord.Address) => "address",
