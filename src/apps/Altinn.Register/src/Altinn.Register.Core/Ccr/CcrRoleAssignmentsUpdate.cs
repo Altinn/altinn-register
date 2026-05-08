@@ -20,12 +20,17 @@ public class CcrRoleAssignmentsUpdate
     public List<CcrRoleAssignment> RoleAssignments { get; set; } = [];
 
     /// <summary>
-    /// Gets or sets the collection of role assignments to be removed
+    /// Gets or sets the collection of role assignments to be removed.
+    /// RD or KD fratraadt
     /// </summary>
     public List<CcrRoleAssignment> RemoveRoleAssignments { get; set; } = [];
 
     /// <summary>
-    /// Gets or sets the collection of role assignments to be removed in bulk operations.
+    /// Gets or sets the collection of SAMU role assignments to be removed in bulk operations.
+    /// STYR: LEDE, NEST, MEDL, OBS.
+    /// DELT: DTSO, DTPR
+    /// SIGN: SIGN, SIFE, SIHV
+    /// PROK: PROK, KENK, KGRL
     /// </summary>
     public List<CcrRoleAssignment> BulkRemoveRoleAssignments { get; set; } = [];
 }

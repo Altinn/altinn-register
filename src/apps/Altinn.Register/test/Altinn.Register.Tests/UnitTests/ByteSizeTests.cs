@@ -1,3 +1,4 @@
+using System.Globalization;
 using Altinn.Register.Core.Utils;
 
 namespace Altinn.Register.Tests.UnitTests;
@@ -9,9 +10,8 @@ public class ByteSizeTests
     public void FormatsCorrectly(ByteSize value, string expected)
     {
         Span<char> buffer = new char[256];
-
-        var actualString = value.ToString();
-        var success = value.TryFormat(buffer, out var written, format: default, provider: null);
+        var actualString = value.ToString(null, CultureInfo.InvariantCulture);
+        var success = value.TryFormat(buffer, out var written, format: null, provider: CultureInfo.InvariantCulture);
 
         actualString.ShouldBe(expected);
 
