@@ -202,7 +202,7 @@ internal abstract class A2PartyImportSagaEnricher
             using var activity = RegisterTelemetry.StartActivity(
                 $"enrich {Name}",
                 tags: [
-                    new("party.identifier", context.PartyIdentifier.ToString()),
+                    new("party.identifier", context.PartyIdentifier.ToLogSafeString()),
                     new("enrichment.name", Name),
                 ]);
 

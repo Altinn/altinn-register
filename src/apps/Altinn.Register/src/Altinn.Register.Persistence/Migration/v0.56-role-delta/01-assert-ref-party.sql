@@ -10,6 +10,8 @@ DECLARE
 BEGIN
   CASE
     WHEN p_party_ref.party_uuid IS NOT NULL THEN
+      -- we trust that if the caller provides a party uuid, it is valid and exists.
+      -- if it doesn't, the foreign key constraint will catch it.
       RETURN p_party_ref.party_uuid;
 
     WHEN p_party_ref.person_identifier IS NOT NULL THEN

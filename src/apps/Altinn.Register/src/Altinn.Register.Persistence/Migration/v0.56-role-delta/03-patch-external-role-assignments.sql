@@ -17,16 +17,13 @@ RETURNS TABLE (
 DECLARE
   v_cmd_id uuid;
 BEGIN
-  -- Check if the command has already been processed
-  SELECT h.cmd_id INTO v_cmd_id
-  FROM register.external_role_assignment_command_history h
-  WHERE h.cmd_id = p_cmd_id
-    AND h."source" = p_source
-    AND h.from_party = p_from_party;
+  INSERT INTO register.external_role_assignment_command_history (cmd_id, "source", from_party)
+  VALUES (p_cmd_id, p_source, p_from_party)
+  ON CONFLICT (cmd_id, "source", from_party) DO NOTHING
+  RETURNING cmd_id INTO v_cmd_id;
 
-  -- If the command has already been processed,
-  -- simply return all the events associated with it
-  IF v_cmd_id IS NOT NULL THEN
+  -- If the command has already been processed, return its existing events.
+  IF v_cmd_id IS NULL THEN
     RETURN QUERY
     SELECT
       e.id version_id,
@@ -36,13 +33,10 @@ BEGIN
     FROM register.external_role_assignment_event e
     WHERE e.cmd_id = p_cmd_id
       AND e."source" = p_source
-      AND e.from_party = p_from_party;
+      AND e.from_party = p_from_party
+    ORDER BY e.id;
     RETURN;
   END IF;
-
-  -- Insert the command id into the command history
-  INSERT INTO register.external_role_assignment_command_history (cmd_id, "source", from_party)
-  VALUES (p_cmd_id, p_source, p_from_party);
 
   WITH
     resolved AS (
@@ -133,6 +127,7 @@ BEGIN
   FROM register.external_role_assignment_event e
   WHERE e.cmd_id = p_cmd_id
     AND e."source" = p_source
-    AND e.from_party = p_from_party;
+    AND e.from_party = p_from_party
+  ORDER BY e.id;
 END;
 $$ LANGUAGE plpgsql;

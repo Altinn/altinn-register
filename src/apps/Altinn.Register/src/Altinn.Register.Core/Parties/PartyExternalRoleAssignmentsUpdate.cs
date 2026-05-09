@@ -1,8 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using Altinn.Authorization.ModelUtils;
-using Altinn.Register.Contracts;
-using Altinn.Register.Core.Parties.Records;
 
 namespace Altinn.Register.Core.Parties;
 
@@ -10,6 +9,9 @@ namespace Altinn.Register.Core.Parties;
 /// Base class for updates to party external role assignments.
 /// This is a union between a <see cref="Full"/> and a <see cref="Patch"/>.
 /// </summary>
+[JsonPolymorphic]
+[JsonDerivedType(typeof(Full), typeDiscriminator: "full")]
+[JsonDerivedType(typeof(Patch), typeDiscriminator: "patch")]
 public abstract record PartyExternalRoleAssignmentsUpdate
 {
     /// <summary>
@@ -71,11 +73,6 @@ public abstract record PartyExternalRoleAssignmentsUpdate
     private PartyExternalRoleAssignmentsUpdate()
     {
     }
-
-    /// <summary>
-    /// Gets the source of the role assignment.
-    /// </summary>
-    public ExternalRoleSource RoleSource { get; init; }
 
     /// <summary>
     /// Gets the update as a full update if this is a <see cref="Full"/> update.
@@ -160,76 +157,4 @@ public abstract record PartyExternalRoleAssignmentsUpdate
         /// </summary>
         public required ImmutableValueArray<PartyExternalRoleAssignment> Present { get; init; }
     }
-}
-
-/// <summary>
-/// Represents a reference to a party in the context of an external-role assignment.
-/// </summary>
-public abstract record PartyExternalRoleAssignmentPartyRef
-{
-    private PartyExternalRoleAssignmentPartyRef()
-    {
-    }
-
-    /// <summary>
-    /// A reference to a party by its UUID.
-    /// </summary>
-    public sealed record PartyUuid
-        : PartyExternalRoleAssignmentPartyRef
-    {
-        /// <summary>
-        /// Gets the UUID of the party.
-        /// </summary>
-        public required Guid Uuid { get; init; }
-    }
-
-    /// <summary>
-    /// A reference to a party by its organization identifier.
-    /// </summary>
-    public sealed record Person
-        : PartyExternalRoleAssignmentPartyRef
-    {
-        /// <summary>
-        /// Gets the person identifier of the party.
-        /// </summary>
-        public required PersonIdentifier PersonIdentifier { get; init; }
-
-        /// <summary>
-        /// Gets the name of the person.
-        /// </summary>
-        public required PersonName? Name { get; init; }
-
-        /// <summary>
-        /// Gets the mailing address of the person.
-        /// </summary>
-        public required MailingAddressRecord? MailingAddress { get; init; }
-    }
-
-    /// <summary>
-    /// A reference to a party by its person identifier.
-    /// </summary>
-    public sealed record Organization
-        : PartyExternalRoleAssignmentPartyRef
-    {
-        /// <summary>
-        /// Gets the organization identifier of the party.
-        /// </summary>
-        public required OrganizationIdentifier OrganizationIdentifier { get; init; }
-    }
-}
-
-/// <summary>
-/// Represents an assignment of an external role to a party, where the party is identified by a reference and the role is identified by its external role identifier.
-/// </summary>
-public sealed record PartyExternalRoleAssignment
-{
-    /// <summary>
-    /// Gets the reference to the party to which the external role is assigned.
-    /// </summary>
-    public required PartyExternalRoleAssignmentPartyRef ToParty { get; init; }
-
-    /// <summary>
-    /// Gets the identifier of the external role to assign to the party.
-    /// </summary>
-    public required string ExternalRoleIdentifier { get; init; }
 }

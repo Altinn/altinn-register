@@ -77,6 +77,19 @@ public readonly struct ImportPartyIdentifier
         };
 
     /// <summary>
+    /// Gets a log-safe representation of the identifier, redacting sensitive information.
+    /// </summary>
+    /// <returns>A log-safe string representation of the identifier.</returns>
+    public string ToLogSafeString()
+        => (_identifierRef, _partyUuid) switch
+        {
+            (PersonIdentifier, _) => "[redacted person identifier]",
+            (OrganizationIdentifier orgId, _) => orgId.ToString(),
+            (null, Guid partyUuid) when partyUuid != Guid.Empty => partyUuid.ToString(),
+            _ => "<null>",
+        };
+
+    /// <summary>
     /// Tries to get the person identifier if the value is of type <see cref="PersonIdentifier"/>.
     /// </summary>
     /// <param name="personIdentifier">The person identifier if the value is of type <see cref="PersonIdentifier"/>; otherwise, <see langword="null"/>.</param>
@@ -207,7 +220,7 @@ public readonly struct ImportPartyIdentifier
                 return new ImportPartyIdentifier(orgId);
             }
 
-            if (Guid.TryParse(value, out Guid partyUuid))
+            if (Guid.TryParse(value, out Guid partyUuid) && partyUuid != Guid.Empty)
             {
                 return new ImportPartyIdentifier(partyUuid);
             }

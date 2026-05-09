@@ -19,7 +19,16 @@ internal sealed class PostgresSagaStatePersistence
     : ISagaStatePersistence
     , ISagaStateCleanup
 {
-    private static readonly JsonSerializerOptions _options = JsonSerializerOptions.Web;
+    private static readonly JsonSerializerOptions _options = new(JsonSerializerOptions.Web)
+    {
+        // JsonB in postgres does not retain property order
+        AllowOutOfOrderMetadataProperties = true,
+    };
+
+    /// <summary>
+    /// Expose the json serializer options used for testing.
+    /// </summary>
+    internal static JsonSerializerOptions JsonSerializerOptions => _options;
 
     private static readonly JsonWriterOptions _writerOptions = new JsonWriterOptions
     {
