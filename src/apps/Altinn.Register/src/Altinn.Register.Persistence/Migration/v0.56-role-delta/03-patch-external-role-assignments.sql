@@ -51,7 +51,7 @@ BEGIN
         era.from_party = p_from_party
         AND era."source" = p_source
         AND (
-          (era.identifier, era.to_party) IN (SELECT identifier, to_party FROM resolved)
+          (era.identifier, era.to_party) IN (SELECT r.identifier, r.to_party FROM resolved r)
           OR era.identifier = ANY(p_absent_by_type)
         )
       RETURNING
