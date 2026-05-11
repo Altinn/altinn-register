@@ -1,6 +1,7 @@
 using System.Net;
 using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Contracts;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Models;
 using Altinn.Register.TestUtils.TestData;
@@ -47,7 +48,7 @@ public class HoldersTests
                 commandId: Guid.CreateVersion7(),
                 partyUuid: org1.PartyUuid.Value,
                 roleSource: ExternalRoleSource.CentralCoordinatingRegister,
-                assignments: [
+                update: PartyExternalRoleAssignmentsUpdate.CreateFull([
                     new(roleIdentifier, org1.PartyUuid.Value),
                     new(roleIdentifier, org2.PartyUuid.Value),
                     new(roleIdentifier, org3.PartyUuid.Value),
@@ -57,7 +58,7 @@ public class HoldersTests
                     new(role2.Identifier, org4.PartyUuid.Value),
                     new(role2.Identifier, pers1.PartyUuid.Value),
                     new(role2.Identifier, pers2.PartyUuid.Value),
-                ],
+                ]),
                 cancellationToken: ct);
 
             return (org1, org2, org3, org4, pers1, pers2);

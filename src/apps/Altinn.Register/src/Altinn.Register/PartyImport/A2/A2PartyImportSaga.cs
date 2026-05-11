@@ -1,4 +1,7 @@
 using System.Diagnostics;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core;
 using Altinn.Register.Core.Errors;
@@ -6,6 +9,7 @@ using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
+using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.PartyImport.A2;
 
@@ -72,7 +76,7 @@ public sealed partial class A2PartyImportSaga
         Debug.Assert(State.Party is not null);
         Debug.Assert(State.Enrichers.Count == 0);
 
-        var context = new A2PartyImportSagaEnrichmentCheckContext { Party = State.Party, PartyUuid = State.PartyUuid };
+        var context = new A2PartyImportSagaEnrichmentCheckContext { Party = State.Party, PartyIdentifier = State.PartyIdentifier };
         State.Enrichers = new(A2PartyImportSagaEnricher.For(_configuration, context));
 
         await ContinueEnrichment(cancellationToken);
@@ -86,7 +90,7 @@ public sealed partial class A2PartyImportSaga
                   new EnrichA2PartyImportSagaCommand
                   {
                       CorrelationId = SagaId,
-                      PartyUuid = State.PartyUuid,
+                      PartyIdentifier = State.PartyIdentifier,
                   },
                   cancellationToken);
 
@@ -97,21 +101,26 @@ public sealed partial class A2PartyImportSaga
             new CompleteA2PartyImportSagaCommand
             {
                 CorrelationId = SagaId,
-                PartyUuid = State.PartyUuid,
+                PartyIdentifier = State.PartyIdentifier,
             },
             cancellationToken);
     }
 
-    private async Task<FlowControl> FetchParty(CancellationToken cancellationToken)
+    private async Task<FlowControl> FetchPartyFromA2(CancellationToken cancellationToken)
     {
-        using var activity = RegisterTelemetry.StartActivity("fetch party altinn 2", ActivityKind.Internal, tags: [new("party.uuid", State.PartyUuid)]);
+        if (!State.PartyIdentifier.TryGetValue(out Guid partyUuid))
+        {
+            ThrowHelper.ThrowInvalidOperationException("FetchPartyFromA2 can only be called when PartyIdentifier is a PartyUuid");
+        }
 
-        var partyResult = await _importService.GetParty(State.PartyUuid, cancellationToken);
+        using var activity = RegisterTelemetry.StartActivity("fetch party altinn 2", ActivityKind.Internal, tags: [new("party.uuid", partyUuid)]);
+
+        var partyResult = await _importService.GetParty(partyUuid, cancellationToken);
         if (partyResult is { Problem.ErrorCode: var errorCode }
             && errorCode == Problems.PartyGone.ErrorCode)
         {
             // Party is gone, so we can skip it. These should be rare, so don't bother with tracking.
-            Log.PartyGone(_logger, State.PartyUuid);
+            Log.PartyGone(_logger, partyUuid);
             MarkComplete();
             return FlowControl.Break;
         }
@@ -128,17 +137,12 @@ public sealed partial class A2PartyImportSaga
         : ISagaStateData<A2PartyImportSagaData>
     {
         /// <inheritdoc/>
-        public static string StateType => nameof(A2PartyImportSagaData);
+        public static string StateType => "A2PartyImportSagaData@2";
 
         /// <summary>
         /// Gets the unique identifier for the party.
         /// </summary>
-        public required Guid PartyUuid { get; init; }
-
-        /// <summary>
-        /// Gets the unique identifier of the user associated with this instance.
-        /// </summary>
-        public required ulong? UserId { get; init; }
+        public required ImportPartyIdentifier PartyIdentifier { get; init; }
 
         /// <summary>
         /// Gets tracking information for the import job.
@@ -153,7 +157,7 @@ public sealed partial class A2PartyImportSaga
         /// <summary>
         /// Gets or sets the collection of role assignments grouped by external role source.
         /// </summary>
-        public Dictionary<ExternalRoleSource, IReadOnlyList<UpsertExternalRoleAssignmentsCommand.Assignment>> RoleAssignments { get; set; } = new();
+        public Dictionary<ExternalRoleSource, PartyExternalRoleAssignmentsUpdate> RoleAssignments { get; set; } = new();
 
         /// <summary>
         /// Gets or sets the remaining enrichers.
@@ -169,6 +173,117 @@ public sealed partial class A2PartyImportSaga
             RoleAssignments.Clear();
             Enrichers.Clear();
         }
+
+        /// <inheritdoc/>
+        static ValueTask<A2PartyImportSagaData?> ISagaStateData<A2PartyImportSagaData>.ReadAsync(
+            Stream stream,
+            string stateType,
+            JsonSerializerOptions options,
+            CancellationToken cancellationToken)
+        {
+            if (stateType == V1.StateType)
+            {
+                return V1.ReadAsync(stream, options, cancellationToken);
+            }
+
+            if (stateType == StateType)
+            {
+                return JsonSerializer.DeserializeAsync<A2PartyImportSagaData>(stream, options, cancellationToken);
+            }
+
+            return default;
+        }
+
+        /// <summary>
+        /// Represents the version 1 format of the saga state data, which is used for migration purposes.
+        /// </summary>
+        internal sealed class V1
+        {
+            /// <summary>
+            /// The state type identifier for version 1 of the saga state data.
+            /// </summary>
+            public static string StateType => "A2PartyImportSagaData";
+
+            /// <summary>
+            /// Reads the version 1 format of the saga state data from the provided stream and migrates it to the current format.
+            /// </summary>
+            /// <param name="stream">The stream containing the serialized version 1 saga state data.</param>
+            /// <param name="options">The JSON serializer options.</param>
+            /// <param name="cancellationToken">The cancellation token.</param>
+            /// <returns>The migrated saga state data.</returns>
+            public static async ValueTask<A2PartyImportSagaData?> ReadAsync(
+                Stream stream,
+                JsonSerializerOptions options,
+                CancellationToken cancellationToken)
+            {
+                var data = await JsonSerializer.DeserializeAsync<V1>(stream, options, cancellationToken);
+                return data?.Migrate();
+            }
+
+            /// <summary>
+            /// Gets the unique identifier for the party.
+            /// </summary>
+            public required Guid PartyUuid { get; init; }
+
+            /// <summary>
+            /// Gets the unique identifier of the user associated with this instance.
+            /// </summary>
+            public required ulong? UserId { get; init; }
+
+            /// <summary>
+            /// Gets tracking information for the import job.
+            /// </summary>
+            public required UpsertPartyTracking Tracking { get; init; }
+
+            /// <summary>
+            /// Gets or sets the party being upserted.
+            /// </summary>
+            public PartyRecord? Party { get; set; }
+
+            /// <summary>
+            /// Gets or sets the collection of role assignments grouped by external role source.
+            /// </summary>
+            public Dictionary<ExternalRoleSource, IReadOnlyList<UpsertExternalRoleAssignmentsCommand.Assignment>> RoleAssignments { get; set; } = new();
+
+            /// <summary>
+            /// Gets or sets the remaining enrichers.
+            /// </summary>
+            public Queue<string> Enrichers { get; set; } = new();
+
+            private A2PartyImportSagaData Migrate()
+            {
+                return new A2PartyImportSagaData
+                {
+                    PartyIdentifier = PartyUuid,
+                    Tracking = Tracking,
+                    Party = Party,
+                    RoleAssignments = RoleAssignments.ToDictionary(
+                        static kv => kv.Key,
+                        static kv => (PartyExternalRoleAssignmentsUpdate)new PartyExternalRoleAssignmentsUpdate.Full
+                        {
+                            Assignments = kv.Value.Select(static a => new PartyExternalRoleAssignment
+                            {
+                                ToParty = new PartyExternalRoleAssignmentPartyRef.PartyUuid { Uuid = a.ToPartyUuid },
+                                ExternalRoleIdentifier = a.Identifier,
+                            }).ToImmutableValueArray(),
+                        }),
+                    Enrichers = Enrichers,
+                };
+            }
+        }
+    }
+
+    /// <summary>
+    /// Enum representing the initiator of the import saga. This can be used to differentiate between different sources of imports.
+    /// </summary>
+    [StringEnumConverter]
+    public enum ImportSagaInitiator
+    {
+        /// <summary>
+        /// Saga initiated by item appearing on Altinn 2's feed.
+        /// </summary>
+        [JsonStringEnumMemberName("a2")]
+        A2 = 1,
     }
 
     private enum FlowControl

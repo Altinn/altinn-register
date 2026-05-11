@@ -166,15 +166,11 @@ public sealed partial class PartyImportBatchConsumer
             {
                 var fromParty = context.Message.FromPartyUuid;
                 var source = context.Message.Source;
-                var assignments = context.Message.Assignments.Select(static ra => new IPartyExternalRolePersistence.UpsertExternalRoleAssignment
-                {
-                    RoleIdentifier = ra.Identifier,
-                    ToParty = ra.ToPartyUuid,
-                });
+                var update = PartyExternalRoleAssignmentsUpdate.CreateFull(context.Message.Assignments.Select(static ra => KeyValuePair.Create(ra.Identifier, ra.ToPartyUuid)));
 
                 tracking.Update(context.Message.Tracking);
                 var publishTasks = new List<Task>(context.Message.Assignments.Count);
-                var upsertEvts = persistence.UpsertExternalRolesFromPartyBySource(context.Message.CommandId, fromParty, source, assignments, cancellationToken);
+                var upsertEvts = persistence.UpsertExternalRolesFromPartyBySource(context.Message.CommandId, fromParty, source, update, cancellationToken);
                 await foreach (var upsertEvt in upsertEvts.WithCancellation(cancellationToken))
                 {
                     var publishTask = upsertEvt.Type switch

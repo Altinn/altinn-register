@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace Altinn.Register.Core.Parties;
 
@@ -93,6 +94,7 @@ public sealed record class PersonName
         }
     }
 
+    [JsonConstructor]
     private PersonName(
         string firstName,
         string? middleName,

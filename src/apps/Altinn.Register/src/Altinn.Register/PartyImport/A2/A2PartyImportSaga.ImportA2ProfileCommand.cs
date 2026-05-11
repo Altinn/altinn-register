@@ -16,15 +16,14 @@ public partial class A2PartyImportSaga
     public static ValueTask<A2PartyImportSagaData> CreateInitialState(IServiceProvider services, ImportA2UserProfileCommand command)
         => ValueTask.FromResult(new A2PartyImportSagaData
         {
-            PartyUuid = command.PartyUuid,
-            UserId = command.UserId,
+            PartyIdentifier = command.PartyUuid,
             Tracking = command.Tracking,
         });
 
     /// <inheritdoc/>
     public async Task Handle(ImportA2UserProfileCommand message, CancellationToken cancellationToken)
     {
-        Debug.Assert(message.PartyUuid == State.PartyUuid);
+        Debug.Assert(State.PartyIdentifier.TryGetValue(out Guid partyUuid) && partyUuid == message.PartyUuid);
 
         var now = _timeProvider.GetUtcNow();
 
@@ -49,7 +48,7 @@ public partial class A2PartyImportSaga
 
             case A2UserProfileType.Person:
             case A2UserProfileType.SelfIdentifiedUser:
-                if (State.Party is null && await FetchParty(cancellationToken) == FlowControl.Break)
+                if (State.Party is null && await FetchPartyFromA2(cancellationToken) == FlowControl.Break)
                 {
                     return;
                 }
