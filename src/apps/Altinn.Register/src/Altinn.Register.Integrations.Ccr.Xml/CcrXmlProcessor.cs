@@ -118,7 +118,7 @@ public sealed class CcrXmlProcessor
         IExternalRoleDefinitionLookup roleDef,
         ILocationLookup locationLookup)
     {
-        CcrOrganizationUpdate org;
+        OrgBuilder org;
 
         var organisasjonsnummer = reader.GetAttribute("organisasjonsnummer");
         if (string.IsNullOrEmpty(organisasjonsnummer))
@@ -154,7 +154,6 @@ public sealed class CcrXmlProcessor
 
                 DeletedAt = isDeleted ? datoSistEndret : null,
                 IsDeleted = isDeleted,
-                RoleUpdates = null
             };
         }
 
@@ -179,7 +178,6 @@ public sealed class CcrXmlProcessor
 
                 DeletedAt = isDeleted ? datoSistEndret : null,
                 IsDeleted = isDeleted,
-                RoleUpdates = null
             };
         }
 
@@ -197,8 +195,6 @@ public sealed class CcrXmlProcessor
                 else if (reader.LocalName == "samendringer")
                 {
                     org.RoleUpdates ??= new();
-                    org.RoleUpdates.RoleAssignments ??= [];
-                    org.RoleUpdates.RemoveRoleAssignments ??= [];
                     ReadSamendring(
                         reader,
                         nye: org.RoleUpdates.RoleAssignments,
@@ -213,7 +209,6 @@ public sealed class CcrXmlProcessor
                 else if (reader.LocalName == "samendringUtgaar")
                 {
                     org.RoleUpdates ??= new();
-                    org.RoleUpdates.BulkRemoveRoleAssignments ??= [];
                     ReadSamu(
                         reader,
                         org.RoleUpdates.BulkRemoveRoleAssignments,
@@ -234,10 +229,10 @@ public sealed class CcrXmlProcessor
             reader.Read();
         }
 
-        return org;
+        return org.Build();
     }
 
-    private static void ReadInfoType(XmlReader reader, CcrOrganizationUpdate org)
+    private static void ReadInfoType(XmlReader reader, OrgBuilder org)
     {
         var felttype = reader.GetAttribute("felttype") ?? string.Empty;
         var endringstype = reader.GetAttribute("endringstype") ?? string.Empty;
@@ -747,4 +742,78 @@ public sealed class CcrXmlProcessor
     }
 
     private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private sealed class OrgBuilder
+    {
+        public required OrganizationIdentifier OrganizationIdentifier { get; init; }
+
+        public required bool IsFirstRegistration { get; init; }
+
+        public required FieldValue<string> DisplayName { get; set; }
+
+        public required bool IsDeleted { get; init; }
+
+        public required DateTimeOffset? DeletedAt { get; init; }
+
+        public FieldValue<string> UnitType { get; init; }
+
+        public FieldValue<string> UnitStatus { get; init; }
+
+        public FieldValue<DateTimeOffset> DatoSistEndret { get; init; }
+
+        public required FieldValue<string> EmailAddress { get; set; }
+
+        public required FieldValue<string> InternetAddress { get; set; }
+
+        public required FieldValue<string> TelephoneNumber { get; set; }
+
+        public required FieldValue<string> MobileNumber { get; set; }
+
+        public required FieldValue<string> FaxNumber { get; set; }
+
+        public required FieldValue<MailingAddressRecord> MailingAddress { get; set; }
+
+        public required FieldValue<MailingAddressRecord> BusinessAddress { get; set; }
+
+        public RoleUpdatesBuilder? RoleUpdates { get; set; }
+
+        public CcrOrganizationUpdate Build() => new()
+        {
+            OrganizationIdentifier = OrganizationIdentifier,
+            IsFirstRegistration = IsFirstRegistration,
+            DisplayName = DisplayName,
+            IsDeleted = IsDeleted,
+            DeletedAt = DeletedAt,
+            UnitType = UnitType,
+            UnitStatus = UnitStatus,
+            DatoSistEndret = DatoSistEndret,
+            EmailAddress = EmailAddress,
+            InternetAddress = InternetAddress,
+            TelephoneNumber = TelephoneNumber,
+            MobileNumber = MobileNumber,
+            FaxNumber = FaxNumber,
+            MailingAddress = MailingAddress,
+            BusinessAddress = BusinessAddress,
+            RoleUpdates = RoleUpdates?.Build(),
+        };
+    }
+
+    private sealed class RoleUpdatesBuilder
+    {
+        public bool IsFullUpdate { get; set; }
+
+        public List<CcrRoleAssignment> RoleAssignments { get; } = [];
+
+        public List<CcrRoleAssignment> RemoveRoleAssignments { get; } = [];
+
+        public List<CcrRoleAssignment> BulkRemoveRoleAssignments { get; } = [];
+
+        public CcrRoleAssignmentsUpdate Build() => new()
+        {
+            IsFullUpdate = IsFullUpdate,
+            RoleAssignments = RoleAssignments.ToArray(),
+            RemoveRoleAssignments = RemoveRoleAssignments.ToArray(),
+            BulkRemoveRoleAssignments = BulkRemoveRoleAssignments.ToArray(),
+        };
+    }
 }

@@ -14,7 +14,7 @@ namespace Altinn.Register.Core.Ccr;
 /// while FieldValue.Null indicates that the field should be explicitly set to null. FieldValue with a value indicates that the field should be updated to the specified value.
 /// The RoleUpdates property can also be used for both full and partial updates, with the same logic for the fields within each <see cref="CcrRoleAssignment"/>.
 /// </remarks>
-public sealed class CcrOrganizationUpdate
+public sealed record CcrOrganizationUpdate
 {
     /// <summary>
     /// Gets the organization identifier of the party, or <see langword="null"/> if the party is not an organization.
@@ -29,70 +29,70 @@ public sealed class CcrOrganizationUpdate
     /// <summary>
     /// Gets the display-name of the party.
     /// </summary>
-    public required FieldValue<string> DisplayName { get; set; }
+    public required FieldValue<string> DisplayName { get; init; }
 
     /// <summary>
     /// Gets whether the party is deleted.
     /// </summary>
-    public required bool IsDeleted { get; set; }
+    public required bool IsDeleted { get; init; }
 
     /// <summary>
     /// Gets when the party was deleted.
     /// </summary>
-    public required DateTimeOffset? DeletedAt { get; set; }
+    public required DateTimeOffset? DeletedAt { get; init; }
 
     /// <summary>
-    /// Gets or sets the organisation form.(Organisasjonsform)
+    /// Gets the organisation form.(Organisasjonsform)
     /// </summary>
-    public FieldValue<string> UnitType { get; set; }
+    public FieldValue<string> UnitType { get; init; }
 
     /// <summary>
-    /// Gets or sets the status of the unit as extracted from the field value.
+    /// Gets the status of the unit as extracted from the field value.
     /// </summary>
-    public FieldValue<string> UnitStatus { get; set; }
+    public FieldValue<string> UnitStatus { get; init; }
 
     /// <summary>
-    /// Gets or sets the date last changed.
+    /// Gets the date last changed.
     /// </summary>
-    public FieldValue<DateTimeOffset> DatoSistEndret { get; set; }
+    public FieldValue<DateTimeOffset> DatoSistEndret { get; init; }
 
     /// <summary>
     /// Gets the email address of the organization.
     /// </summary>
-    public required FieldValue<string> EmailAddress { get; set; }
+    public required FieldValue<string> EmailAddress { get; init; }
 
     /// <summary>
     /// Gets the internet address of the organization.
     /// </summary>
-    public required FieldValue<string> InternetAddress { get; set; }
+    public required FieldValue<string> InternetAddress { get; init; }
 
     /// <summary>
     /// Gets the telephone number of the organization.
     /// </summary>
-    public required FieldValue<string> TelephoneNumber { get; set; }
+    public required FieldValue<string> TelephoneNumber { get; init; }
 
     /// <summary>
     /// Gets the mobile number of the organization.
     /// </summary>
-    public required FieldValue<string> MobileNumber { get; set; }
+    public required FieldValue<string> MobileNumber { get; init; }
 
     /// <summary>
     /// Gets the fax number of the organization.
     /// </summary>
-    public required FieldValue<string> FaxNumber { get; set; }
+    public required FieldValue<string> FaxNumber { get; init; }
 
     /// <summary>
     /// Gets the mailing address of the organization.
     /// </summary>
-    public required FieldValue<MailingAddressRecord> MailingAddress { get; set; }
+    public required FieldValue<MailingAddressRecord> MailingAddress { get; init; }
 
     /// <summary>
     /// Gets the business address of the organization.
     /// </summary>
-    public required FieldValue<MailingAddressRecord> BusinessAddress { get; set; }
+    public required FieldValue<MailingAddressRecord> BusinessAddress { get; init; }
 
     /// <summary>
-    /// Gets or sets the co-changes.
+    /// Gets the co-changes.
     /// </summary>
-    public CcrRoleAssignmentsUpdate? RoleUpdates { get; set; }
+    public CcrRoleAssignmentsUpdate? RoleUpdates { get; init; }
 }

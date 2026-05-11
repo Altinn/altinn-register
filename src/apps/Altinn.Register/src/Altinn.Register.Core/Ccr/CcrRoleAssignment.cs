@@ -8,7 +8,7 @@ namespace Altinn.Register.Core.Ccr;
 /// <summary>
 /// Represents a role assignment with associated role code and optional personal identifier.
 /// </summary>
-public sealed class CcrRoleAssignment
+public sealed record CcrRoleAssignment
 {
     private CcrRoleAssignment(RoleAssignmentType type, string code, string? pid = default, string? org = default)
     {
@@ -146,12 +146,12 @@ public sealed class CcrRoleAssignment
     /// <summary>
     /// Gets the first name value associated with the field.
     /// </summary>
-    public FieldValue<PersonName> PersonName { get; private set; }
+    public FieldValue<PersonName> PersonName { get; init; }
 
     /// <summary>
     /// Gets the postal address associated with the entity.
     /// </summary>
-    public FieldValue<MailingAddressRecord> Postadresse { get; private set; }
+    public FieldValue<MailingAddressRecord> Postadresse { get; init; }
     #endregion
 
     #region Connection
