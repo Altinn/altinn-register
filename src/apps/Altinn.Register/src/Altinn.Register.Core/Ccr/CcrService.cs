@@ -1,6 +1,8 @@
 using System.Buffers;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
+using Altinn.Register.Core.ExternalRoles;
+using Altinn.Register.Core.Location;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
@@ -16,18 +18,26 @@ public class CcrService
 {
     private readonly IUnitOfWorkManager _uowManager;
     private readonly ICcrXmlProcessor _ccrXmlProcessor;
+    private readonly IExternalRoleDefinitionPersistence _roleMapper;
+    private readonly ILocationLookupProvider _locationLookupProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CcrService"/> class.
     /// </summary>
     /// <param name="uowManager">The unit of work manager.</param>
     /// <param name="ccrXmlProcessor">Processes the CCR XML and returns a list of updates</param>
+    /// <param name="roleMapper">Maps CCR rolecodes to Altinn Role Codes</param>
+    /// <param name="locationLookupProvider">Gets static countrycode lookup</param>
     public CcrService(
         IUnitOfWorkManager uowManager,
-        ICcrXmlProcessor ccrXmlProcessor)
+        ICcrXmlProcessor ccrXmlProcessor,
+        IExternalRoleDefinitionPersistence roleMapper,
+        ILocationLookupProvider locationLookupProvider)
     {
         _uowManager = uowManager;
         _ccrXmlProcessor = ccrXmlProcessor;
+        _roleMapper = roleMapper;
+        _locationLookupProvider = locationLookupProvider;
     }
 
     /// <summary>
@@ -37,7 +47,9 @@ public class CcrService
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     public async Task UpdateFromCcr(ReadOnlySequence<byte> input, CancellationToken cancellationToken)
     {
-        var updates = _ccrXmlProcessor.ProcessCcrXml(input, cancellationToken);
+        ILocationLookup locationLookup = await _locationLookupProvider.GetLocationLookup(cancellationToken);
+        IExternalRoleDefinitionLookup roleMap = await _roleMapper.GetRoleDefinitionLookup(cancellationToken);
+        var updates = _ccrXmlProcessor.ProcessCcrXml(input, roleMap, locationLookup, cancellationToken);
         var dbUpdates = MapToDbUpdates(updates);
 
         await using var uow = await _uowManager.CreateAsync(cancellationToken);
@@ -50,7 +62,7 @@ public class CcrService
             {
                 result.EnsureSuccess();
             }
-                        
+
             if (dbUpdate.Roles is not null && dbUpdate.Roles is PartyExternalRoleAssignmentsUpdate.Patch patch)
             {
                 foreach (var assignment in patch.AbsentByIdentifier)
@@ -67,7 +79,7 @@ public class CcrService
                 {
                     // TODO upsert based on external role identifier and party reference
                 }
-            }            
+            }
         }
 
         await uow.CommitAsync(cancellationToken);
@@ -109,7 +121,7 @@ public class CcrService
         {
             AbsentByIdentifier = samuBulks.ToImmutableValueArray(),
             Absent = absent.ToImmutableValueArray(),
-            Present = present.ToImmutableValueArray() 
+            Present = present.ToImmutableValueArray()
         };
 
         if (roles.AbsentByIdentifier.IsEmpty && roles.Absent.IsEmpty && roles.Present.IsEmpty)

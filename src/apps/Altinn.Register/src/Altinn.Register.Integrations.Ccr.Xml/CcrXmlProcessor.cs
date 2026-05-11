@@ -5,6 +5,7 @@ using Altinn.Register.Contracts;
 using Altinn.Register.Core.Ccr;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.Location;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using CommunityToolkit.Diagnostics;
 using Nerdbank.Streams;
@@ -15,9 +16,7 @@ namespace Altinn.Register.Integrations.Ccr.Xml;
 /// XML processor for CCR (Customer Contact Register) data. This class provides functionality to read and process CCR XML data,
 /// yielding updates as CcrPartyUpdate instances. The processing is done in an asynchronous manner, allowing for efficient handling of large XML data streams.
 /// </summary>
-public sealed class CcrXmlProcessor(
-    ILocationLookup lookup,
-    IExternalRoleDefinitionPersistence roleDef)
+public sealed class CcrXmlProcessor
     : ICcrXmlProcessor
 {
     /// <summary>
@@ -29,10 +28,16 @@ public sealed class CcrXmlProcessor(
     /// may be thrown during enumeration.</remarks>
     /// <param name="xmlData">A read-only sequence of bytes containing the CCR XML data to process. The data must be a well-formed XML
     /// document in the expected CCR format.</param>
+    /// <param name="roleDef">Defines a lookup service for external role definitions, allowing retrieval of role definitions by source/identifier or role-code without asynchronous operations.</param>
+    /// <param name="lookup">Gets static countrycode lookup</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the asynchronous operation.</param>
     /// <returns>An asynchronous stream of <see cref="CcrOrganizationUpdate"/> objects, each representing an update for a party found in
     /// the CCR XML. The stream is empty if no parties are present.</returns>
-    public IEnumerable<CcrOrganizationUpdate> ProcessCcrXml(ReadOnlySequence<byte> xmlData, CancellationToken cancellationToken = default)
+    public IEnumerable<CcrOrganizationUpdate> ProcessCcrXml(
+        ReadOnlySequence<byte> xmlData,
+        IExternalRoleDefinitionLookup roleDef,
+        ILocationLookup lookup,
+        CancellationToken cancellationToken = default)
     {
         using var reader = XmlReader.Create(xmlData.AsStream());
         int enhet = 0;
@@ -52,7 +57,7 @@ public sealed class CcrXmlProcessor(
         {
             enhet++;
             cancellationToken.ThrowIfCancellationRequested();
-            yield return ReadEnhet(reader);
+            yield return ReadEnhet(reader, roleDef, lookup);
             reader.MoveToContent();
         }
 
@@ -108,7 +113,10 @@ public sealed class CcrXmlProcessor(
     private static DateTimeOffset? ParseDate(string? value)
         => DateTimeOffset.TryParse(value, out var result) ? result : null;
 
-    private static CcrOrganizationUpdate ReadEnhet(XmlReader reader)
+    private static CcrOrganizationUpdate ReadEnhet(
+        XmlReader reader,
+        IExternalRoleDefinitionLookup roleDef,
+        ILocationLookup locationLookup)
     {
         CcrOrganizationUpdate org;
 
@@ -191,7 +199,12 @@ public sealed class CcrXmlProcessor(
                     org.RoleUpdates ??= new();
                     org.RoleUpdates.RoleAssignments ??= [];
                     org.RoleUpdates.RemoveRoleAssignments ??= [];
-                    ReadSamendring(reader, nye: org.RoleUpdates.RoleAssignments, fjernes: org.RoleUpdates.RemoveRoleAssignments);
+                    ReadSamendring(
+                        reader,
+                        nye: org.RoleUpdates.RoleAssignments,
+                        fjernes: org.RoleUpdates.RemoveRoleAssignments,
+                        roleDef,
+                        locationLookup);
                 }
                 else if (reader.LocalName == "status")
                 {
@@ -201,7 +214,10 @@ public sealed class CcrXmlProcessor(
                 {
                     org.RoleUpdates ??= new();
                     org.RoleUpdates.BulkRemoveRoleAssignments ??= [];
-                    ReadSamu(reader, org.RoleUpdates.BulkRemoveRoleAssignments);
+                    ReadSamu(
+                        reader,
+                        org.RoleUpdates.BulkRemoveRoleAssignments,
+                        roleDef);
                 }
                 else
                 {
@@ -221,82 +237,120 @@ public sealed class CcrXmlProcessor(
         return org;
     }
 
-    private static void ReadStatus(XmlReader reader, CcrOrganizationUpdate org)
-    {
-        var felttype = reader.GetAttribute("felttype") ?? string.Empty;
-        var endringstype = reader.GetAttribute("endringstype") ?? string.Empty;
-        if (felttype is "KONK" && endringstype is "N")
-        {
-            var statusFields = ReadChildFields(reader, "status");
-            if (statusFields.TryGetValue("kjennelsesdato", out var kdato))
-            {
-            }
-        }
-
-        org.UnitStatus = felttype;
-    }
-
     private static void ReadInfoType(XmlReader reader, CcrOrganizationUpdate org)
     {
         var felttype = reader.GetAttribute("felttype") ?? string.Empty;
         var endringstype = reader.GetAttribute("endringstype") ?? string.Empty;
 
-        switch (felttype)
+        switch (felttype, endringstype)
         {
-            case "EPOS":
+            case ("EPOS", "N"):
                 {
-                    var eposFields = ReadChildFields(reader, "infotype");
-                    if (eposFields.TryGetValue("opplysning", out var epost))
+                    if (TryReadOpplysning(reader, out string? epost))
                     {
-                        org.EmailAddress = epost;
+                        org.EmailAddress = !string.IsNullOrEmpty(epost) ? epost : FieldValue.Null;
                     }
 
                     break;
                 }
 
-            case "FADR":
+            case ("EPOS", "U"):
+                {
+                    org.EmailAddress = FieldValue.Null;
+                    break;
+                }
+
+            case ("FADR", "N"):
                 {
                     var fadrFields = ReadChildFields(reader, "infotype");
                     org.BusinessAddress = ReadMailingAddress(fadrFields);
                     break;
                 }
 
-            case "PADR":
+            case ("FADR", "U"):
+                {
+                    org.BusinessAddress = FieldValue.Null;
+                    break;
+                }
+
+            case ("PADR", "N"):
                 {
                     var fadrFields = ReadChildFields(reader, "infotype");
                     org.MailingAddress = ReadMailingAddress(fadrFields);
                     break;
                 }
 
-            case "IADR":
+            case ("PADR", "U"):
                 {
-                    var iadrFields = ReadChildFields(reader, "infotype");
-                    org.InternetAddress = iadrFields.TryGetValue("opplysning", out var internetAddress) ? internetAddress : null;
+                    org.MailingAddress = FieldValue.Null;
                     break;
                 }
 
-            case "TFON":
+            case ("IADR", "N"):
                 {
-                    var mtlfFields = ReadChildFields(reader, "infotype");
-                    org.TelephoneNumber = mtlfFields.TryGetValue("opplysning", out var telephone) ? telephone : null;
+                    if (TryReadOpplysning(reader, out string? iadr))
+                    {
+                        org.InternetAddress = !string.IsNullOrEmpty(iadr) ? iadr : FieldValue.Null;
+                    }
+
                     break;
                 }
 
-            case "MTLF":
+            case ("IADR", "U"):
                 {
-                    var mtlfFields = ReadChildFields(reader, "infotype");
-                    org.MobileNumber = mtlfFields.TryGetValue("opplysning", out var telephone) ? telephone : null;
+                    org.InternetAddress = FieldValue.Null;
                     break;
                 }
 
-            case "TFAX":
+            case ("TFON", "N"):
                 {
-                    var mtlfFields = ReadChildFields(reader, "infotype");
-                    org.FaxNumber = mtlfFields.TryGetValue("opplysning", out var telephone) ? telephone : null;
+                    if (TryReadOpplysning(reader, out string? tlf))
+                    {
+                        org.TelephoneNumber = !string.IsNullOrEmpty(tlf) ? tlf : FieldValue.Null;
+                    }
+
                     break;
                 }
 
-            case "NAVN":
+            case ("TFON", "U"):
+                {
+                    org.TelephoneNumber = FieldValue.Null;
+                    break;
+                }
+
+            case ("MTLF", "N"):
+                {
+                    if (TryReadOpplysning(reader, out string? mtlf))
+                    {
+                        org.MobileNumber = !string.IsNullOrEmpty(mtlf) ? mtlf : FieldValue.Null;
+                    }
+
+                    break;
+                }
+
+            case ("MTLF", "U"):
+                {
+                    org.MobileNumber = FieldValue.Null;
+                    break;
+                }
+
+            case ("TFAX", "N"):
+                {
+                    if (TryReadOpplysning(reader, out string? fax))
+                    {
+                        org.FaxNumber = !string.IsNullOrEmpty(fax) ? fax : FieldValue.Null;
+                    }
+
+                    break;
+                }
+
+            case ("TFAX", "U"):
+                {
+                    org.FaxNumber = FieldValue.Null;
+                    break;
+                }
+
+            case ("NAVN", "N"):
                 {
                     // We assume we dont get a redigertNavn for a full insert
                     var navnFields = ReadChildFields(reader, "infotype");
@@ -304,15 +358,21 @@ public sealed class CcrXmlProcessor(
                     break;
                 }
 
+            case ("NAVN", "U"):
+                {
+                    org.DisplayName = FieldValue.Null;
+                    break;
+                }
+
             // The following felttyper are currently not mapped to any fields in the organization record,
             // but we want to allow them without throwing an exception, as they may be present in the XML data and we want to be able to process it without errors.
             // If we later decide to map any of these felttyper to fields in the organization record, we can simply add the necessary code to do so.
-            case "FMVA":
-            case "UREG":
-            case "ULOV":
-            case "PAAT":
-            case "NACE":
-            case "SN25":
+            case ("FMVA", "N" or "U"):
+            case ("UREG", "N" or "U"):
+            case ("ULOV", "N" or "U"):
+            case ("PAAT", "N" or "U"):
+            case ("NACE", "N" or "U"):
+            case ("SN25", "N" or "U"):
                 break;
 
             default:
@@ -378,7 +438,10 @@ public sealed class CcrXmlProcessor(
         };
     }
 
-    private static void ReadSamu(XmlReader reader, List<CcrRoleAssignment> samuLista)
+    private static void ReadSamu(
+        XmlReader reader,
+        List<CcrRoleAssignment> samuLista,
+        IExternalRoleDefinitionLookup roleDef)
     {
         var samuFields = ReadChildFields(reader, "samendringUtgaar");
         samuFields.TryGetValue("samendringstype", out var samuType);
@@ -388,39 +451,137 @@ public sealed class CcrXmlProcessor(
             ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required field 'samendringstype' in <samendringUtgaar> element.");
         }
 
-        if (samuType == "STYR")
+        switch (samuType)
         {
-            samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval("LEDE"));
-            samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval("NEST"));
-            samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval("MEDL"));
-            samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval("OBS"));
-        }
-        else if (samuType == "DELT")
-        {
-            samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval("DTSO"));
-            samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval("DTPR"));
-        }
-        else if (samuType == "SIGN")
-        {
-            samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval("SIGN"));
-            samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval("SIFE"));
-            samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval("SIHV"));
-        }
-        else if (samuType == "PROK")
-        {
-            samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval("PROK"));
-            samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval("KENK"));
-            samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval("KGRL"));
-        }
-        else
-        {
-            samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(samuType));
+            case "STYR":
+                {
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("LEDE", roleDef)));
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("NEST", roleDef)));
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("MEDL", roleDef)));
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("VARA", roleDef)));
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("OBS", roleDef)));
+                    break;
+                }
+
+            case "DELT":
+                {
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("DTSO", roleDef)));
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("DTPR", roleDef)));
+                    break;
+                }
+
+            case "SIGN":
+                {
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("SIGN", roleDef)));
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("SIFE", roleDef)));
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("SIHV", roleDef)));
+                    break;
+                }
+
+            case "PROK":
+                {
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("PROK", roleDef)));
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("POHV", roleDef)));
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("POFE", roleDef)));
+                    break;
+                }
+
+            case "KONT":
+                {
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("SREVA", roleDef)));
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("KOMK", roleDef)));
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("KNUF", roleDef)));
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("KEMN", roleDef)));
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("KONT", roleDef)));
+                    break;
+                }
+
+            case "REVI":
+                {
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("REVI", roleDef)));
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("READ", roleDef)));
+                    break;
+                }
+
+            case "REGN":
+                {
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("RFAD", roleDef)));
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("REGN", roleDef)));
+                    break;
+                }
+
+            case "HOST":
+                {
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("HLED", roleDef)));
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("HMDL", roleDef)));
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("HNST", roleDef)));
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("HVAR", roleDef)));
+                    break;
+                }
+
+            case "ESGR":
+                {
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("ESGR", roleDef)));
+                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("ETDL", roleDef)));
+                    break;
+                }
+
+            default:
+                {
+                    if (VerifyRoleCode(samuType))
+                    {
+                        samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode(samuType, roleDef)));
+                    }
+
+                    break;
+                }
         }
 
         ThrowHelper.ThrowInvalidDataException("XmlReader: unknown samendringstype '" + samuType + "' in <samendringUtgaar> element.");
     }
 
-    private static void ReadSamendring(XmlReader reader, List<CcrRoleAssignment> nye, List<CcrRoleAssignment> fjernes)
+    private static bool VerifyRoleCode(string samuCode)
+    {
+        if (samuCode == "BEDR" || samuCode == "AAFY" || samuCode == "BEST" || samuCode == "BOBE" || samuCode == "DAGL"
+                || samuCode == "KOMP" || samuCode == "REPR" || samuCode == "FFØR" || samuCode == "INNH" || samuCode == "ADOS"
+                || samuCode == "AVKL" || samuCode == "EIKM" || samuCode == "FGRP" || samuCode == "HFOR" || samuCode == "HLSE"
+                || samuCode == "KDAT" || samuCode == "KDEB" || samuCode == "KENK" || samuCode == "KGRL" || samuCode == "KIRK"
+                || samuCode == "KMOR" || samuCode == "KOMP" || samuCode == "KTRF" || samuCode == "OPMV" || samuCode == "ORGL"
+                || samuCode == "STFT" || samuCode == "UTBG" || samuCode == "VIFE")
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    // This method can be used to convert CCR role codes to Altinn role codes if they differ.
+    // For example, if CCR uses "LEDER" and Altinn uses "LEDE", you could implement the mapping here.
+    // For now, we assume they are the same.
+    // In this case the feltype corresponds to a CCR role code, and we want to validate to the corresponding Altinn Role Code.
+    private static string ConvertToAltinnRoleCode(
+        string ccrRoleCode,
+        IExternalRoleDefinitionLookup roleDef)
+    {
+        if (!roleDef.TryGetRoleDefinitionByRoleCode(ccrRoleCode, out var roleDefinition))
+        {
+            ThrowHelper.ThrowInvalidDataException($"XmlReader: Unknown role code '{ccrRoleCode}' in <samendringer> element. No corresponding role definition found.");
+        }
+
+        if (roleDefinition.Source != ExternalRoleSource.CentralCoordinatingRegister)
+        {
+            ThrowHelper.ThrowInvalidDataException($"XmlReader: Role code '{ccrRoleCode}' in <samendringer> element does not correspond to a role definition with source '{ExternalRoleSource.CentralCoordinatingRegister}'. Found role definition {roleDefinition.Identifier} with source '{roleDefinition.Source}'.");
+        }
+
+        return roleDefinition.Identifier;
+    }
+
+    private static void ReadSamendring(
+        XmlReader reader,
+        List<CcrRoleAssignment> nye,
+        List<CcrRoleAssignment> fjernes,
+        IExternalRoleDefinitionLookup roleDef,
+        ILocationLookup locationLookup)
     {
         var felttype = reader.GetAttribute("felttype") ?? string.Empty;
         var endringstype = reader.GetAttribute("endringstype") ?? string.Empty;
@@ -450,25 +611,26 @@ public sealed class CcrXmlProcessor(
                         ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required field 'rolleFoedselsnr' for role assignment in <samendringer> element.");
                     }
 
+                    // Convert CCR role code to Altinn role code
+                    string validatedAltinnRoleCode = ConvertToAltinnRoleCode(felttype, roleDef);
+
                     if (endringstype == "N")
                     {
                         nye.Add(
                             CcrRoleAssignment.CreatePersonalRoleAssignment(
-                                felttype,
+                                validatedAltinnRoleCode,
                                 validatedRolleFnr,
-                                string.Join(" ", new[] { fornavn, mellomnavn }.Where(s => !string.IsNullOrEmpty(s))),
-                                etternavn,
-                                ReadRoleAddress(adr1, adr2, adr3, rlandkode, postnr)));
+                                PersonName.Create(fornavn, mellomnavn, etternavn),
+                                ReadRoleAddress(adr1, adr2, adr3, rlandkode, postnr, locationLookup)));
                     }
                     else if (!string.IsNullOrEmpty(rolleFratraadt) && rolleFratraadt != "N" && endringstype != "N")
                     {
                         fjernes.Add(
                             CcrRoleAssignment.CreatePersonalRoleAssignment(
-                                felttype,
+                                validatedAltinnRoleCode,
                                 validatedRolleFnr,
-                                string.Join(" ", new[] { fornavn, mellomnavn }.Where(s => !string.IsNullOrEmpty(s))),
-                                etternavn,
-                                ReadRoleAddress(adr1, adr2, adr3, rlandkode, postnr)));
+                                PersonName.Create(fornavn, mellomnavn, etternavn),
+                                ReadRoleAddress(adr1, adr2, adr3, rlandkode, postnr, locationLookup)));
                     }
 
                     break;
@@ -501,7 +663,13 @@ public sealed class CcrXmlProcessor(
         ThrowHelper.ThrowArgumentException("XmlReader: unknown samendring type '" + type + "' in <samendringer> element.");
     }
 
-    private static MailingAddressRecord ReadRoleAddress(string? adr1, string? adr2, string? adr3, string? land, string? postnr)
+    private static MailingAddressRecord ReadRoleAddress(
+        string? adr1,
+        string? adr2,
+        string? adr3,
+        string? land,
+        string? postnr,
+        ILocationLookup locationLookup)
     {
         List<string> addressLines = [];
         if (!string.IsNullOrEmpty(adr1))
@@ -519,6 +687,11 @@ public sealed class CcrXmlProcessor(
             addressLines.Add(adr3);
         }
 
+        if (!string.IsNullOrEmpty(land) && locationLookup.TryGetCountry(land, out Country? countryCode))
+        {
+            addressLines.Add(countryCode.Name);
+        }
+
         if (addressLines.Count > 1 && postnr is not null && !addressLines[^1].StartsWith(postnr, StringComparison.Ordinal))
         {
             addressLines.Add($"{postnr}".Trim());
@@ -531,6 +704,21 @@ public sealed class CcrXmlProcessor(
             PostalCode = postnr is not null ? postnr : null,
             City = null,
         };
+    }
+
+    private static bool TryReadOpplysning(XmlReader reader, out string? value)
+    {
+        reader.MoveToContent();
+
+        if (reader.NodeType != XmlNodeType.Element && reader.LocalName != "opplysning")
+        {
+            value = default;
+            return false;
+        }
+
+        value = Normalize(reader.ReadElementContentAsString());
+        reader.ReadEndElement();
+        return true;
     }
 
     private static Dictionary<string, string> ReadChildFields(XmlReader reader, string parentElement)
@@ -557,4 +745,6 @@ public sealed class CcrXmlProcessor(
         reader.ReadEndElement();
         return fields;
     }
+
+    private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

@@ -1,4 +1,5 @@
 using Altinn.Authorization.ModelUtils;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using CommunityToolkit.Diagnostics;
 
@@ -115,15 +116,13 @@ public sealed class CcrRoleAssignment
     /// </summary>
     /// <param name="code">The code representing the role to assign. Cannot be null or whitespace.</param>
     /// <param name="pid">The personal identifier associated with the role assignment. Cannot be null or whitespace.</param>
-    /// <param name="fornavnMellomnavn">The given name, and optionally middle names</param>
-    /// <param name="slektsnavn">The last name</param>
+    /// <param name="personName">The given name, and optionally middle names</param>
     /// <param name="postadresse">A <see cref="MailingAddressRecord"/></param>
     /// <returns>A new instance of <see cref="CcrRoleAssignment"/> representing the personal role assignment.</returns>
     public static CcrRoleAssignment CreatePersonalRoleAssignment(
         string code,
         string pid,
-        FieldValue<string> fornavnMellomnavn,
-        FieldValue<string> slektsnavn,
+        FieldValue<PersonName> personName,
         FieldValue<MailingAddressRecord> postadresse)
     {
         if (string.IsNullOrWhiteSpace(code))
@@ -139,8 +138,7 @@ public sealed class CcrRoleAssignment
         return new CcrRoleAssignment(RoleAssignmentType.RoleAssignment, code, pid, null)
         {
             RolePersonalIdentifier = pid,
-            Fornavn = fornavnMellomnavn,
-            Slektsnavn = slektsnavn,
+            PersonName = personName,
             Postadresse = postadresse
         };
     }
@@ -148,12 +146,7 @@ public sealed class CcrRoleAssignment
     /// <summary>
     /// Gets the first name value associated with the field.
     /// </summary>
-    public FieldValue<string> Fornavn { get; private set; }
-
-    /// <summary>
-    /// Gets the family name associated with the entity.
-    /// </summary>
-    public FieldValue<string> Slektsnavn { get; private set; }
+    public FieldValue<PersonName> PersonName { get; private set; }
 
     /// <summary>
     /// Gets the postal address associated with the entity.

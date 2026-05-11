@@ -1,4 +1,6 @@
 using System.Buffers;
+using Altinn.Register.Core.ExternalRoles;
+using Altinn.Register.Core.Location;
 
 namespace Altinn.Register.Core.Ccr;
 
@@ -15,9 +17,15 @@ public interface ICcrXmlProcessor
     /// </summary>
     /// <param name="xmlData">A read-only sequence of bytes containing the CCR XML data to process. The data must be well-formed XML in the
     /// expected CCR format.</param>
+    /// <param name="roleDef">Defines a lookup service for external role definitions, allowing retrieval of role definitions by source/identifier or role-code without asynchronous operations.</param>
+    /// <param name="locationLookup">Gets static countrycode lookup</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation. The default value is <see
     /// cref="CancellationToken.None"/>.</param>
     /// <returns>An enumerable collection of <see cref="CcrOrganizationUpdate"/> objects extracted from the provided XML data. The
     /// collection is empty if no party updates are found.</returns>
-    IEnumerable<CcrOrganizationUpdate> ProcessCcrXml(ReadOnlySequence<byte> xmlData, CancellationToken cancellationToken = default);
+    IEnumerable<CcrOrganizationUpdate> ProcessCcrXml(
+        ReadOnlySequence<byte> xmlData,
+        IExternalRoleDefinitionLookup roleDef,
+        ILocationLookup locationLookup,
+        CancellationToken cancellationToken = default);
 }
