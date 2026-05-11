@@ -115,6 +115,7 @@ internal sealed partial class A2PartyImportService
             return Problems.PartyFetchFailed.Create([
                 new("partyUuid", partyUuid.ToString()),
                 new("source", "a2-party"),
+                new("http.status", ((int)responseMessage.StatusCode).ToString()),
             ]);
         }
 
@@ -124,6 +125,7 @@ internal sealed partial class A2PartyImportService
             return Problems.PartyFetchFailed.Create([
                 new("partyUuid", partyUuid.ToString()),
                 new("source", "a2-party"),
+                new("error", "Failed to parse party response."),
             ]);
         }
 
@@ -205,7 +207,7 @@ internal sealed partial class A2PartyImportService
         if (!responseMessage.IsSuccessStatusCode)
         {
             Log.FailedToFetchPartyProfile(_logger, url, responseMessage.StatusCode);
-            return Problems.PartyFetchFailed.Create(diagnostics);
+            return Problems.PartyFetchFailed.Create([.. diagnostics, new("http.status", ((int)responseMessage.StatusCode).ToString())]);
         }
 
         PartyProfile? response;
@@ -216,7 +218,7 @@ internal sealed partial class A2PartyImportService
         catch (JsonException ex)
         {
             Log.FailedToDeserializePartyProfile(_logger, url, ex);
-            return Problems.PartyFetchFailed.Create(diagnostics);
+            return Problems.PartyFetchFailed.Create([.. diagnostics, new("error", "Failed to parse party response.")]);
         }
 
         if (response is null)

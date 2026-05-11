@@ -11,17 +11,15 @@ public partial class A2PartyImportSaga
     public static ValueTask<A2PartyImportSagaData> CreateInitialState(IServiceProvider services, ImportA2PartyCommand command)
         => ValueTask.FromResult(new A2PartyImportSagaData
         {
-            PartyUuid = command.PartyUuid,
-            UserId = null, // we will only fetch latest user, not any specific one
+            PartyIdentifier = command.PartyUuid,
             Tracking = command.Tracking,
         });
 
     /// <inheritdoc/>
     public async Task Handle(ImportA2PartyCommand message, CancellationToken cancellationToken)
     {
-        Debug.Assert(message.PartyUuid == State.PartyUuid);
-
-        if (await FetchParty(cancellationToken) == FlowControl.Break)
+        Debug.Assert(State.PartyIdentifier.TryGetValue(out Guid partyUuid) && partyUuid == message.PartyUuid);
+        if (await FetchPartyFromA2(cancellationToken) == FlowControl.Break)
         {
             return;
         }

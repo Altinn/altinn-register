@@ -299,10 +299,30 @@ public static class RegisterPersistenceExtensions
             _ => null,
         }));
 
-        builder.MapComposite<ArgUpsertExternalRoleAssignment>("register.arg_upsert_external_role_assignment", new CompositeNameTranslator<ArgUpsertExternalRoleAssignment>(static member => member.Name switch
+        builder.MapComposite<ArgRolePartyRefPersonName>("register.arg_role_party_ref_person_name", new CompositeNameTranslator<ArgRolePartyRefPersonName>(static member => member.Name switch
         {
-            nameof(ArgUpsertExternalRoleAssignment.ToParty) => "to_party",
-            nameof(ArgUpsertExternalRoleAssignment.Identifier) => "identifier",
+            nameof(ArgRolePartyRefPersonName.FirstName) => "first_name",
+            nameof(ArgRolePartyRefPersonName.MiddleName) => "middle_name",
+            nameof(ArgRolePartyRefPersonName.LastName) => "last_name",
+            nameof(ArgRolePartyRefPersonName.ShortName) => "short_name",
+            nameof(ArgRolePartyRefPersonName.DisplayName) => "display_name",
+            _ => null,
+        }));
+
+        builder.MapComposite<ArgRolePartyRef>("register.arg_role_party_ref", new CompositeNameTranslator<ArgRolePartyRef>(static member => member.Name switch
+        {
+            nameof(ArgRolePartyRef.PartyUuid) => "party_uuid",
+            nameof(ArgRolePartyRef.PersonIdentifier) => "person_identifier",
+            nameof(ArgRolePartyRef.OrganizationNumber) => "organization_identifier",
+            nameof(ArgRolePartyRef.PersonName) => "person_name",
+            nameof(ArgRolePartyRef.MailingAddress) => "mailing_address",
+            _ => null,
+        }));
+
+        builder.MapComposite<ArgRoleAssignment>("register.arg_role_assignment", new CompositeNameTranslator<ArgRoleAssignment>(static member => member.Name switch
+        {
+            nameof(ArgRoleAssignment.Identifier) => "identifier",
+            nameof(ArgRoleAssignment.ToParty) => "to_party",
             _ => null,
         }));
 

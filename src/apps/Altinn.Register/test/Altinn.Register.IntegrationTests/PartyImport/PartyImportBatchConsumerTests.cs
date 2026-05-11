@@ -39,9 +39,9 @@ public class PartyImportBatchConsumerTests
                 commandId: Guid.CreateVersion7(),
                 partyUuid: org.PartyUuid.Value,
                 roleSource: ExternalRoleSource.CentralCoordinatingRegister,
-                assignments: [
+                update: PartyExternalRoleAssignmentsUpdate.CreateFull([
                     new("styreleder", person2.PartyUuid.Value),
-                ],
+                ]),
                 cancellationToken: ct);
 
             return (org, person1, person2);

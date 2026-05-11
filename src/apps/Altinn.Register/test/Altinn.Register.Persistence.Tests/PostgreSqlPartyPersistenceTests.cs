@@ -603,28 +603,28 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             commandId: Guid.CreateVersion7(),
             partyUuid: org2.PartyUuid.Value,
             roleSource: ExternalRoleSource.CentralCoordinatingRegister,
-            assignments: [
+            update: PartyExternalRoleAssignmentsUpdate.CreateFull([
                 new(role1.Identifier, org1.PartyUuid.Value),
                 new(role2.Identifier, org1.PartyUuid.Value),
-            ],
+            ]),
             cancellationToken: CancellationToken);
 
         await Persistence.UpsertExternalRolesFromPartyBySource(
             commandId: Guid.CreateVersion7(),
             partyUuid: org3.PartyUuid.Value,
             roleSource: ExternalRoleSource.CentralCoordinatingRegister,
-            assignments: [
+            update: PartyExternalRoleAssignmentsUpdate.CreateFull([
                 new(role1.Identifier, org1.PartyUuid.Value),
-            ],
+            ]),
             cancellationToken: CancellationToken);
 
         await Persistence.UpsertExternalRolesFromPartyBySource(
             commandId: Guid.CreateVersion7(),
             partyUuid: org4.PartyUuid.Value,
             roleSource: ExternalRoleSource.CentralCoordinatingRegister,
-            assignments: [
+            update: PartyExternalRoleAssignmentsUpdate.CreateFull([
                 new(role2.Identifier, org1.PartyUuid.Value),
-            ],
+            ]),
             cancellationToken: CancellationToken);
 
         var roles = await Persistence.GetExternalRoleAssignmentsToParty(
@@ -2403,10 +2403,194 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             => r => r.Source == source && r.Identifier == identifier && r.ToParty == toParty;
     }
 
+    [Fact]
+    public async Task UpsertExternalRolesFromPartyBySource_Patch_CanRemoveAndAddSameRoleInSameUpdate()
+    {
+        var added = ExternalRoleAssignmentEvent.EventType.Added;
+        var removed = ExternalRoleAssignmentEvent.EventType.Removed;
+        var source = ExternalRoleSource.CentralCoordinatingRegister;
+
+        await UoW.CreateFakeRoleDefinitions(CancellationToken);
+
+        var party1 = (await UoW.CreateOrg(uuid: Guid.Parse("10000000-0000-0000-0000-000000000001"), cancellationToken: CancellationToken)).PartyUuid.Value;
+        var party2 = (await UoW.CreateOrg(uuid: Guid.Parse("10000000-0000-0000-0000-000000000002"), cancellationToken: CancellationToken)).PartyUuid.Value;
+
+        await CheckUpsertExternalRolesFromPartyBySource(
+            party1,
+            source,
+            [new("fake-01", party2)],
+            [new(added, "fake-01", party2)]);
+
+        await CheckUpsertExternalRolesFromPartyBySourcePatch(
+            party1,
+            source,
+            new PartyExternalRoleAssignmentsUpdate.Patch
+            {
+                AbsentByIdentifier = [],
+                Absent = [Assignment("fake-01", party2)],
+                Present = [Assignment("fake-01", party2)],
+            },
+            expectedEvents:
+            [
+                new(removed, "fake-01", party2),
+                new(added, "fake-01", party2),
+            ],
+            expectedAssignments:
+            [
+                new("fake-01", party2),
+            ]);
+    }
+
+    [Fact]
+    public async Task UpsertExternalRolesFromPartyBySource_Patch_AbsentByIdentifier_RemovesMatchingSourceAndIdentifier()
+    {
+        var added = ExternalRoleAssignmentEvent.EventType.Added;
+        var removed = ExternalRoleAssignmentEvent.EventType.Removed;
+        var ccr = ExternalRoleSource.CentralCoordinatingRegister;
+        var npr = ExternalRoleSource.NationalPopulationRegister;
+
+        await UoW.CreateFakeRoleDefinitions(CancellationToken);
+
+        var party1 = (await UoW.CreateOrg(uuid: Guid.Parse("20000000-0000-0000-0000-000000000001"), cancellationToken: CancellationToken)).PartyUuid.Value;
+        var party2 = (await UoW.CreateOrg(uuid: Guid.Parse("20000000-0000-0000-0000-000000000002"), cancellationToken: CancellationToken)).PartyUuid.Value;
+        var party3 = (await UoW.CreateOrg(uuid: Guid.Parse("20000000-0000-0000-0000-000000000003"), cancellationToken: CancellationToken)).PartyUuid.Value;
+        var party4 = (await UoW.CreateOrg(uuid: Guid.Parse("20000000-0000-0000-0000-000000000004"), cancellationToken: CancellationToken)).PartyUuid.Value;
+
+        await CheckUpsertExternalRolesFromPartyBySource(
+            party1,
+            ccr,
+            [
+                new("fake-01", party2),
+                new("fake-01", party3),
+                new("fake-02", party2),
+            ],
+            [
+                new(added, "fake-01", party2),
+                new(added, "fake-01", party3),
+                new(added, "fake-02", party2),
+            ]);
+
+        await CheckUpsertExternalRolesFromPartyBySource(
+            party1,
+            npr,
+            [
+                new("fake-01", party4),
+            ],
+            [
+                new(added, "fake-01", party4),
+            ]);
+
+        await CheckUpsertExternalRolesFromPartyBySourcePatch(
+            party1,
+            ccr,
+            new PartyExternalRoleAssignmentsUpdate.Patch
+            {
+                AbsentByIdentifier = ["fake-01"],
+                Absent = [],
+                Present = [],
+            },
+            expectedEvents:
+            [
+                new(removed, "fake-01", party2),
+                new(removed, "fake-01", party3),
+            ],
+            expectedAssignments:
+            [
+                new("fake-02", party2),
+            ]);
+
+        var nprRoles = await Persistence
+            .GetExternalRoleAssignmentsFromParty(party1, cancellationToken: CancellationToken)
+            .Where(r => r.Source == npr)
+            .ToListAsync(CancellationToken);
+
+        nprRoles.Count.ShouldBe(1);
+        nprRoles.ShouldContain(r => r.Identifier == "fake-01" && r.ToParty == party4);
+    }
+
+    [Fact]
+    public async Task UpsertExternalRolesFromPartyBySource_Patch_RemovingMissingRolesIsSafe()
+    {
+        var added = ExternalRoleAssignmentEvent.EventType.Added;
+        var source = ExternalRoleSource.CentralCoordinatingRegister;
+
+        await UoW.CreateFakeRoleDefinitions(CancellationToken);
+
+        var party1 = (await UoW.CreateOrg(uuid: Guid.Parse("30000000-0000-0000-0000-000000000001"), cancellationToken: CancellationToken)).PartyUuid.Value;
+        var party2 = (await UoW.CreateOrg(uuid: Guid.Parse("30000000-0000-0000-0000-000000000002"), cancellationToken: CancellationToken)).PartyUuid.Value;
+        var party3 = (await UoW.CreateOrg(uuid: Guid.Parse("30000000-0000-0000-0000-000000000003"), cancellationToken: CancellationToken)).PartyUuid.Value;
+
+        await CheckUpsertExternalRolesFromPartyBySource(
+            party1,
+            source,
+            [
+                new("fake-01", party2),
+            ],
+            [
+                new(added, "fake-01", party2),
+            ]);
+
+        await CheckUpsertExternalRolesFromPartyBySourcePatch(
+            party1,
+            source,
+            new PartyExternalRoleAssignmentsUpdate.Patch
+            {
+                AbsentByIdentifier = ["missing-role"],
+                Absent =
+                [
+                    Assignment("fake-01", party3),
+                    Assignment("also-missing", party2),
+                ],
+                Present = [],
+            },
+            expectedEvents: [],
+            expectedAssignments:
+            [
+                new("fake-01", party2),
+            ]);
+    }
+
+    [Fact]
+    public async Task UpsertExternalRolesFromPartyBySource_Patch_AddingExistingRoleDoesNothing()
+    {
+        var added = ExternalRoleAssignmentEvent.EventType.Added;
+        var source = ExternalRoleSource.CentralCoordinatingRegister;
+
+        await UoW.CreateFakeRoleDefinitions(CancellationToken);
+
+        var party1 = (await UoW.CreateOrg(uuid: Guid.Parse("40000000-0000-0000-0000-000000000001"), cancellationToken: CancellationToken)).PartyUuid.Value;
+        var party2 = (await UoW.CreateOrg(uuid: Guid.Parse("40000000-0000-0000-0000-000000000002"), cancellationToken: CancellationToken)).PartyUuid.Value;
+
+        await CheckUpsertExternalRolesFromPartyBySource(
+            party1,
+            source,
+            [
+                new("fake-01", party2),
+            ],
+            [
+                new(added, "fake-01", party2),
+            ]);
+
+        await CheckUpsertExternalRolesFromPartyBySourcePatch(
+            party1,
+            source,
+            new PartyExternalRoleAssignmentsUpdate.Patch
+            {
+                AbsentByIdentifier = [],
+                Absent = [],
+                Present = [Assignment("fake-01", party2)],
+            },
+            expectedEvents: [],
+            expectedAssignments:
+            [
+                new("fake-01", party2),
+            ]);
+    }
+
     private async Task CheckUpsertExternalRolesFromPartyBySource(
         Guid fromParty,
         ExternalRoleSource source,
-        IReadOnlyList<IPartyExternalRolePersistence.UpsertExternalRoleAssignment> assignments,
+        IReadOnlyList<KeyValuePair<string, Guid>> assignments,
         IReadOnlyList<CheckUpsertExternalRolesFromPartyBySourceExpectedEvent> expectedEvents)
     {
         var cmdId = Guid.CreateVersion7();
@@ -2415,7 +2599,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
                 cmdId,
                 fromParty,
                 source,
-                assignments,
+                update: PartyExternalRoleAssignmentsUpdate.CreateFull(assignments),
                 cancellationToken: CancellationToken)
             .Select(static e => new CheckUpsertExternalRolesFromPartyBySourceExpectedEvent(e.Type, e.RoleIdentifier, e.ToParty))
             .ToListAsync(CancellationToken);
@@ -2432,7 +2616,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
                 cmdId,
                 fromParty,
                 source,
-                assignments,
+                update: PartyExternalRoleAssignmentsUpdate.CreateFull(assignments),
                 cancellationToken: CancellationToken)
             .Select(static e => new CheckUpsertExternalRolesFromPartyBySourceExpectedEvent(e.Type, e.RoleIdentifier, e.ToParty))
             .ToListAsync(CancellationToken);
@@ -2448,9 +2632,68 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         roles.Count.ShouldBe(assignments.Count);
         foreach (var assignment in assignments)
         {
-            roles.Where(r => r.Identifier == assignment.RoleIdentifier && r.ToParty == assignment.ToParty).ShouldHaveSingleItem();
+            roles.Where(r => r.Identifier == assignment.Key && r.ToParty == assignment.Value).ShouldHaveSingleItem();
         }
     }
+
+    private async Task CheckUpsertExternalRolesFromPartyBySourcePatch(
+        Guid fromParty,
+        ExternalRoleSource source,
+        PartyExternalRoleAssignmentsUpdate.Patch patch,
+        IReadOnlyList<CheckUpsertExternalRolesFromPartyBySourceExpectedEvent> expectedEvents,
+        IReadOnlyList<KeyValuePair<string, Guid>> expectedAssignments)
+    {
+        var cmdId = Guid.CreateVersion7();
+        var firstTryEvents = await Persistence
+            .UpsertExternalRolesFromPartyBySource(
+                cmdId,
+                fromParty,
+                source,
+                update: patch,
+                cancellationToken: CancellationToken)
+            .Select(static e => new CheckUpsertExternalRolesFromPartyBySourceExpectedEvent(e.Type, e.RoleIdentifier, e.ToParty))
+            .ToListAsync(CancellationToken);
+
+        firstTryEvents.Count.ShouldBe(expectedEvents.Count);
+        foreach (var expected in expectedEvents)
+        {
+            firstTryEvents.ShouldContain(expected);
+        }
+
+        var secondTryEvents = await Persistence
+            .UpsertExternalRolesFromPartyBySource(
+                cmdId,
+                fromParty,
+                source,
+                update: patch,
+                cancellationToken: CancellationToken)
+            .Select(static e => new CheckUpsertExternalRolesFromPartyBySourceExpectedEvent(e.Type, e.RoleIdentifier, e.ToParty))
+            .ToListAsync(CancellationToken);
+
+        secondTryEvents.Count.ShouldBe(expectedEvents.Count);
+        foreach (var expected in expectedEvents)
+        {
+            secondTryEvents.ShouldContain(expected);
+        }
+
+        var roles = await Persistence
+            .GetExternalRoleAssignmentsFromParty(fromParty, cancellationToken: CancellationToken)
+            .Where(r => r.Source == source)
+            .ToListAsync(CancellationToken);
+
+        roles.Count.ShouldBe(expectedAssignments.Count);
+        foreach (var assignment in expectedAssignments)
+        {
+            roles.Where(r => r.Identifier == assignment.Key && r.ToParty == assignment.Value).ShouldHaveSingleItem();
+        }
+    }
+
+    private static PartyExternalRoleAssignment Assignment(string identifier, Guid toParty)
+        => new()
+        {
+            ExternalRoleIdentifier = identifier,
+            ToParty = new PartyExternalRoleAssignmentPartyRef.PartyUuid { Uuid = toParty },
+        };
 
     private record CheckUpsertExternalRolesFromPartyBySourceExpectedEvent(ExternalRoleAssignmentEvent.EventType Type, string Identifier, Guid ToParty);
 
