@@ -1,5 +1,6 @@
 using System.Buffers;
 using Altinn.Authorization.ModelUtils;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
@@ -43,25 +44,116 @@ public class CcrService
 
         var persistence = uow.GetRequiredService<IPartyPersistence>();
 
-        await foreach (var result in persistence.UpsertParties(dbUpdates, cancellationToken))
+        foreach (var dbUpdate in dbUpdates)
         {
-            result.EnsureSuccess();
+            var result = await persistence.UpsertParty(dbUpdate.Org, cancellationToken);
+            {
+                result.EnsureSuccess();
+            }
+                        
+            if (dbUpdate.Roles is not null && dbUpdate.Roles is PartyExternalRoleAssignmentsUpdate.Patch patch)
+            {
+                foreach (var assignment in patch.AbsentByIdentifier)
+                {
+                    // TODO samu bulk removal based on external role identifier
+                }
+
+                foreach (var assignment in patch.Absent)
+                {
+                    // TODO removal based on external role identifier and party reference
+                }
+
+                foreach (var assignment in patch.Present)
+                {
+                    // TODO upsert based on external role identifier and party reference
+                }
+            }            
         }
 
         await uow.CommitAsync(cancellationToken);
     }
 
-    private static IEnumerable<PartyRecord> MapToDbUpdates(IEnumerable<CcrOrganizationUpdate> updates)
+    private static IEnumerable<CcrDbUpdate> MapToDbUpdates(IEnumerable<CcrOrganizationUpdate> updates)
     {
         foreach (var update in updates)
         {
-            yield return MapToDbUpdate(update);
+            CcrDbUpdate dbUpdate = MapToDbUpdate(update);
+            yield return dbUpdate;
         }
     }
 
-    private static PartyRecord MapToDbUpdate(CcrOrganizationUpdate update)
+    private static CcrDbUpdate MapToDbUpdate(CcrOrganizationUpdate update)
     {
-        return MapOrganization(update);
+        List<string> samuBulks = [];
+        List<PartyExternalRoleAssignment> absent = [];
+        List<PartyExternalRoleAssignment> present = [];
+
+        if (update.RoleUpdates is null)
+        {
+            samuBulks = update.RoleUpdates?.BulkRemoveRoleAssignments.Select(b => b.RoleCode).ToList() ?? [];
+
+            absent = update.RoleUpdates?.RemoveRoleAssignments.Select(r => new PartyExternalRoleAssignment
+            {
+                ExternalRoleIdentifier = r.RoleCode,
+                ToParty = SetToParty(r.RolePersonalIdentifier, r.RoleOrganizationNumber)
+            }).ToList() ?? [];
+
+            present = update.RoleUpdates?.RoleAssignments.Select(a => new PartyExternalRoleAssignment
+            {
+                ExternalRoleIdentifier = a.RoleCode,
+                ToParty = SetToParty(a.RolePersonalIdentifier, a.RoleOrganizationNumber)
+            }).ToList() ?? [];
+        }
+
+        PartyExternalRoleAssignmentsUpdate.Patch? roles = new()
+        {
+            AbsentByIdentifier = samuBulks.ToImmutableValueArray(),
+            Absent = absent.ToImmutableValueArray(),
+            Present = present.ToImmutableValueArray() 
+        };
+
+        if (roles.AbsentByIdentifier.IsEmpty && roles.Absent.IsEmpty && roles.Present.IsEmpty)
+        {
+            roles = null;
+        }
+
+        return new CcrDbUpdate(MapOrganization(update), roles);
+    }
+
+    private static PartyExternalRoleAssignmentPartyRef SetToParty(string? rolePersonalIdentifier, string? roleOrganizationNumber)
+    {
+        if (rolePersonalIdentifier is not null)
+        {
+            bool success = PersonIdentifier.TryParse(rolePersonalIdentifier, provider: null, out var personIdentifier);
+            if (!success || personIdentifier is null)
+            {
+                throw new ArgumentException($"Invalid personal identifier: {rolePersonalIdentifier}");
+            }
+
+            return new PartyExternalRoleAssignmentPartyRef.Person
+            {
+                PersonIdentifier = personIdentifier,
+                Name = null,
+                MailingAddress = null
+            };
+        }
+        else if (roleOrganizationNumber is not null)
+        {
+            bool success = OrganizationIdentifier.TryParse(roleOrganizationNumber, provider: null, out var organizationIdentifier);
+            if (!success || organizationIdentifier is null)
+            {
+                throw new ArgumentException($"Invalid organization identifier: {roleOrganizationNumber}");
+            }
+
+            return new PartyExternalRoleAssignmentPartyRef.Organization
+            {
+                OrganizationIdentifier = organizationIdentifier
+            };
+        }
+        else
+        {
+            throw new ArgumentException("Either rolePersonalIdentifier or roleOrganizationNumber must be provided, and correctly formatted.");
+        }
     }
 
     private static OrganizationRecord MapOrganization(CcrOrganizationUpdate model)
@@ -96,3 +188,12 @@ public class CcrService
         };
     }
 }
+
+/// <summary>
+/// Represents an update to an organization's CCR (Central Contractor Registration) information, including organization
+/// details and optional external role assignments.
+/// Intended to be used as a data transfer object for upserting party information into the database based on CCR updates.
+/// </summary>
+/// <param name="Org">The organization record containing updated information for the CCR entry.</param>
+/// <param name="Roles">The set of external role assignments to update for the party, or null to leave roles unchanged.</param>
+public record struct CcrDbUpdate(OrganizationRecord Org, PartyExternalRoleAssignmentsUpdate.Patch? Roles);
