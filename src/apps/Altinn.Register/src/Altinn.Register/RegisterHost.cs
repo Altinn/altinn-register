@@ -16,6 +16,7 @@ using Altinn.Register.Configuration;
 using Altinn.Register.Conventions;
 using Altinn.Register.Core;
 using Altinn.Register.Core.A2;
+using Altinn.Register.Core.A2.SblProfile;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.PartyImport.A2;
@@ -182,6 +183,15 @@ internal static partial class RegisterHost
         services.AddHttpClient<SystemUserImportService>()
             .ConfigureBaseAddress("https+http://altinn-authentication/authentication/")
             .AddPlatformAccessTokenHandler();
+
+        services.AddHttpClient<ISblProfileBridgeClient, SblProfileBridgeClient>()
+            .ConfigureBaseAddressFromOptions(static (A2PartyImportSettings settings) => settings.BridgeApiEndpoint!)
+            .ReplaceResilienceHandler(static c =>
+            {
+                // Iteration-1 proxy: the caller (altinn-authentication) is synchronous;
+                // failures should surface immediately as 502 BadGateway, not get retried.
+                c.Retry.ShouldHandle = static _ => ValueTask.FromResult(false);
+            });
 
         services.AddNprClient()
             .ConfigureBaseAddress("https://folkeregisteret/")

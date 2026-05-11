@@ -103,6 +103,8 @@ public static class RegisterCoreServiceCollectionExtensions
             services.TryAddScoped<LookupV1PartyFromDBRequestHandler>();
             services.TryAddScoped<LookupV1PartyNamesFromA2RequestHandler>();
             services.TryAddScoped<LookupV1PartyNamesFromDBRequestHandler>();
+            services.TryAddScoped<GetOrCreateSelfIdentifiedUserFromBridgeHandler>();
+            services.TryAddScoped<GetOrCreateSelfIdentifiedUserFromDBHandler>();
         }
 
         private void AddRateLimiter()

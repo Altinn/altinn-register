@@ -65,6 +65,11 @@ internal sealed class RegisterMediator
             .ApiSourceSwitch<LookupV1PartyNamesFromA2RequestHandler, LookupV1PartyNamesFromDBRequestHandler>(this, sender, "parties/nameslookup")
             .Handle(request, cancellationToken);
 
+    private ValueTask<Result<SelfIdentifiedUserResult>> Send(GetOrCreateSelfIdentifiedUserRequest request, Sender sender, CancellationToken cancellationToken)
+        => RequestDispatcher<GetOrCreateSelfIdentifiedUserRequest, SelfIdentifiedUserResult>
+            .ApiSourceSwitch<GetOrCreateSelfIdentifiedUserFromBridgeHandler, GetOrCreateSelfIdentifiedUserFromDBHandler>(this, sender, "users/self-identified/get-or-create")
+            .Handle(request, cancellationToken);
+
     private static class RequestDispatcher<TRequest, TResponse>
         where TRequest : notnull, IRequest<TResponse>
         where TResponse : notnull
@@ -100,6 +105,7 @@ internal sealed class RegisterMediator
         , IRequestSender<GetV1PersonRequest, Contracts.V1.Person>
         , IRequestSender<LookupV1PartyRequest, Contracts.V1.Party>
         , IRequestSender<LookupV1PartyNamesRequest, Contracts.V1.PartyNamesLookupResult>
+        , IRequestSender<GetOrCreateSelfIdentifiedUserRequest, SelfIdentifiedUserResult>
     {
         private readonly RegisterMediator _mediator;
         private readonly IServiceProvider _services;
@@ -169,6 +175,12 @@ internal sealed class RegisterMediator
         /// <inheritdoc/>
         public ValueTask<Result<Contracts.V1.PartyNamesLookupResult>> Send(
             LookupV1PartyNamesRequest request,
+            CancellationToken cancellationToken = default)
+            => _mediator.Send(request, this, cancellationToken);
+
+        /// <inheritdoc/>
+        public ValueTask<Result<SelfIdentifiedUserResult>> Send(
+            GetOrCreateSelfIdentifiedUserRequest request,
             CancellationToken cancellationToken = default)
             => _mediator.Send(request, this, cancellationToken);
     }

@@ -51,4 +51,17 @@ public static class Problems
     /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
     public static ProblemDescriptor PersonNotFound { get; }
         = _factory.Create(9, HttpStatusCode.NotFound, "Person not found");
+
+    /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
+    /// <remarks>The external identity payload does not match the declared self-identified user type.</remarks>
+    public static ProblemDescriptor SelfIdentifiedUserTypeMismatch { get; }
+        = _factory.Create(10, HttpStatusCode.BadRequest, "Self-identified user payload does not match the declared type");
+
+    /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
+    public static ProblemDescriptor SelfIdentifiedUserCreateFailed { get; }
+        = _factory.Create(11, HttpStatusCode.InternalServerError, "Failed to create self-identified user");
+
+    /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
+    public static ProblemDescriptor SblProfileBridgeUnavailable { get; }
+        = _factory.Create(12, HttpStatusCode.BadGateway, "SBL Profile Bridge is unavailable");
 }
