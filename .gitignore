@@ -354,3 +354,4 @@ devenv.lock
 
 # Codex
 .codex
+/.claude/settings.local.json
