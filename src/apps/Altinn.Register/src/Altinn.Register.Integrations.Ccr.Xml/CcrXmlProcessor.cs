@@ -133,7 +133,7 @@ public sealed class CcrXmlProcessor(
                 IsFirstRegistration = true,
                 OrganizationIdentifier = OrganizationIdentifier.Parse(organisasjonsnummer),
                 UnitType = organisasjonsform,
-
+                UnitStatus = hovedsakstype,
                 DatoSistEndret = FieldValue.From(datoSistEndret),
                 DisplayName = FieldValue.Null,
                 BusinessAddress = FieldValue.Null,
@@ -195,7 +195,7 @@ public sealed class CcrXmlProcessor(
                 }
                 else if (reader.LocalName == "status")
                 {
-                    ReadStatus(reader, org);
+                    // ReadStatus(reader, org);
                 }
                 else if (reader.LocalName == "samendringUtgaar")
                 {
@@ -289,7 +289,7 @@ public sealed class CcrXmlProcessor(
                     break;
                 }
 
-            case "FAX":
+            case "TFAX":
                 {
                     var mtlfFields = ReadChildFields(reader, "infotype");
                     org.FaxNumber = mtlfFields.TryGetValue("opplysning", out var telephone) ? telephone : null;
@@ -429,66 +429,73 @@ public sealed class CcrXmlProcessor(
 
         var rolleFields = ReadChildFields(reader, "samendringer");
 
-        if (type == "R" && data == "D")
+        switch ((type, data))
         {
-            var rolleFoedselsnr = rolleFields.TryGetValue("rolleFoedselsnr", out var fod) ? fod : null;
-            var rolleFratraadt = rolleFields.TryGetValue("rolleFratraadt", out var rfratr) ? rfratr : null;
-            var fornavn = rolleFields.TryGetValue("fornavn", out var forn) ? forn : null;
-            var mellomnavn = rolleFields.TryGetValue("mellomnavn", out var mell) ? mell : null;
-            var etternavn = rolleFields.TryGetValue("slektsnavn", out var etter) ? etter : null;
-            var postnr = rolleFields.TryGetValue("postnr", out var post) ? post : null;
-            var adr1 = rolleFields.TryGetValue("adresse1", out var radr1) ? radr1 : null;
-            var adr2 = rolleFields.TryGetValue("adresse2", out var radr2) ? radr2 : null;
-            var adr3 = rolleFields.TryGetValue("adresse3", out var radr3) ? radr3 : null;
-            var rlandkode = rolleFields.TryGetValue("adresseLandkode", out var rlk) ? rlk : null;
+            case ("R", "D"):
+                {
+                    var rolleFoedselsnr = rolleFields.TryGetValue("rolleFoedselsnr", out var fod) ? fod : null;
+                    var rolleFratraadt = rolleFields.TryGetValue("rolleFratraadt", out var rfratr) ? rfratr : null;
+                    var fornavn = rolleFields.TryGetValue("fornavn", out var forn) ? forn : null;
+                    var mellomnavn = rolleFields.TryGetValue("mellomnavn", out var mell) ? mell : null;
+                    var etternavn = rolleFields.TryGetValue("slektsnavn", out var etter) ? etter : null;
+                    var postnr = rolleFields.TryGetValue("postnr", out var post) ? post : null;
+                    var adr1 = rolleFields.TryGetValue("adresse1", out var radr1) ? radr1 : null;
+                    var adr2 = rolleFields.TryGetValue("adresse2", out var radr2) ? radr2 : null;
+                    var adr3 = rolleFields.TryGetValue("adresse3", out var radr3) ? radr3 : null;
+                    var rlandkode = rolleFields.TryGetValue("adresseLandkode", out var rlk) ? rlk : null;
 
-            var validatedRolleFnr = PersonIdentifier.TryParse(rolleFoedselsnr, null, out var fnr) ? fnr.ToString() : null;
-            if (string.IsNullOrEmpty(validatedRolleFnr))
-            {
-                ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required field 'rolleFoedselsnr' for role assignment in <samendringer> element.");
-            }
+                    var validatedRolleFnr = PersonIdentifier.TryParse(rolleFoedselsnr, null, out var fnr) ? fnr.ToString() : null;
+                    if (string.IsNullOrEmpty(validatedRolleFnr))
+                    {
+                        ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required field 'rolleFoedselsnr' for role assignment in <samendringer> element.");
+                    }
 
-            if (endringstype == "N")
-            {
-                nye.Add(
-                    CcrRoleAssignment.CreatePersonalRoleAssignment(
-                        felttype,
-                        validatedRolleFnr,
-                        string.Join(" ", new[] { fornavn, mellomnavn }.Where(s => !string.IsNullOrEmpty(s))),
-                        etternavn,
-                        ReadRoleAddress(adr1, adr2, adr3, rlandkode, postnr)));
-            }
-            else if (!string.IsNullOrEmpty(rolleFratraadt) && rolleFratraadt != "N" && endringstype != "N")
-            {
-                fjernes.Add(
-                    CcrRoleAssignment.CreatePersonalRoleAssignment(
-                        felttype,
-                        validatedRolleFnr,
-                        string.Join(" ", new[] { fornavn, mellomnavn }.Where(s => !string.IsNullOrEmpty(s))),
-                        etternavn,
-                        ReadRoleAddress(adr1, adr2, adr3, rlandkode, postnr)));
-            }
-        }
+                    if (endringstype == "N")
+                    {
+                        nye.Add(
+                            CcrRoleAssignment.CreatePersonalRoleAssignment(
+                                felttype,
+                                validatedRolleFnr,
+                                string.Join(" ", new[] { fornavn, mellomnavn }.Where(s => !string.IsNullOrEmpty(s))),
+                                etternavn,
+                                ReadRoleAddress(adr1, adr2, adr3, rlandkode, postnr)));
+                    }
+                    else if (!string.IsNullOrEmpty(rolleFratraadt) && rolleFratraadt != "N" && endringstype != "N")
+                    {
+                        fjernes.Add(
+                            CcrRoleAssignment.CreatePersonalRoleAssignment(
+                                felttype,
+                                validatedRolleFnr,
+                                string.Join(" ", new[] { fornavn, mellomnavn }.Where(s => !string.IsNullOrEmpty(s))),
+                                etternavn,
+                                ReadRoleAddress(adr1, adr2, adr3, rlandkode, postnr)));
+                    }
 
-        if (type == "K" && data == "D")
-        {
-            var knytningsOrgnr = rolleFields.TryGetValue("korrektOrganisasjonsnummer", out var kforn) ? kforn : null;
-            var knytningsFratraadt = rolleFields.TryGetValue("knytningsFratraadt", out var kfratr) ? kfratr : null;
+                    break;
+                }
 
-            if (string.IsNullOrEmpty(knytningsOrgnr))
-            {
-                ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required field 'korrektOrganisasjonsnummer' for organizational role assignment in <samendringer> element.");
-            }
+            case ("K", "D"):
+                {
+                    var knytningsOrgnr = rolleFields.TryGetValue("korrektOrganisasjonsnummer", out var kforn) ? kforn : null;
+                    var knytningsFratraadt = rolleFields.TryGetValue("knytningsFratraadt", out var kfratr) ? kfratr : null;
 
-            var orgnr = OrganizationIdentifier.TryParse(knytningsOrgnr, null, out var temporg) ? temporg.ToString() : null;
-            if (!string.IsNullOrEmpty(knytningsFratraadt) && knytningsFratraadt == "N")
-            {
-                nye.Add(CcrRoleAssignment.CreateConnection(felttype, orgnr));
-            }
-            else if (!string.IsNullOrEmpty(knytningsFratraadt) && knytningsFratraadt != "N")
-            {
-                fjernes.Add(CcrRoleAssignment.CreateConnection(felttype, orgnr));
-            }
+                    if (string.IsNullOrEmpty(knytningsOrgnr))
+                    {
+                        ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required field 'korrektOrganisasjonsnummer' for organizational role assignment in <samendringer> element.");
+                    }
+
+                    var orgnr = OrganizationIdentifier.TryParse(knytningsOrgnr, null, out var temporg) ? temporg.ToString() : null;
+                    if (!string.IsNullOrEmpty(knytningsFratraadt) && knytningsFratraadt == "N")
+                    {
+                        nye.Add(CcrRoleAssignment.CreateConnection(felttype, orgnr));
+                    }
+                    else if (!string.IsNullOrEmpty(knytningsFratraadt) && knytningsFratraadt != "N")
+                    {
+                        fjernes.Add(CcrRoleAssignment.CreateConnection(felttype, orgnr));
+                    }
+
+                    break;
+                }
         }
 
         ThrowHelper.ThrowArgumentException("XmlReader: unknown samendring type '" + type + "' in <samendringer> element.");
