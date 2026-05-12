@@ -275,6 +275,6 @@ public class ErDataTransClientTests
         mockFile1.Setup(f => f.IsSymbolicLink).Returns(false);
         mockFile1.Setup(f => f.FullName).Returns(fullName);
         mockFile1.Setup(f => f.Name).Returns(name);
-        return mockFile1; 
+        return mockFile1;
     }
 }
