@@ -15,41 +15,12 @@ public class ErDataTransClientTests
         var mockClient = new Mock<ISftpClient>();
         var remotePath = "/remote/path";
 
-        var mockFile1 = new Mock<ISftpFile>();
-        mockFile1.Setup(f => f.IsDirectory).Returns(false);
-        mockFile1.Setup(f => f.IsSymbolicLink).Returns(false);
-        mockFile1.Setup(f => f.FullName).Returns("/remote/path/baj05778.txtretrieved");
-        mockFile1.Setup(f => f.Name).Returns("baj05778.txtretrieved");
-
-        var mockFile2 = new Mock<ISftpFile>();
-        mockFile2.Setup(f => f.IsDirectory).Returns(false);
-        mockFile2.Setup(f => f.IsSymbolicLink).Returns(false);
-        mockFile2.Setup(f => f.FullName).Returns("/remote/path/baj05779.txtretrieved");
-        mockFile2.Setup(f => f.Name).Returns("baj05779.txtretrieved");
-
-        var mockFile3 = new Mock<ISftpFile>();
-        mockFile3.Setup(f => f.IsDirectory).Returns(false);
-        mockFile3.Setup(f => f.IsSymbolicLink).Returns(false);
-        mockFile3.Setup(f => f.FullName).Returns("/remote/path/baj05780.txt");
-        mockFile3.Setup(f => f.Name).Returns("baj05780.txt");
-
-        var mockFile4 = new Mock<ISftpFile>();
-        mockFile4.Setup(f => f.IsDirectory).Returns(false);
-        mockFile4.Setup(f => f.IsSymbolicLink).Returns(false);
-        mockFile4.Setup(f => f.FullName).Returns("/remote/path/baj05781.txt");
-        mockFile4.Setup(f => f.Name).Returns("baj05781.txt");
-
-        var mockFile5 = new Mock<ISftpFile>();
-        mockFile5.Setup(f => f.IsDirectory).Returns(false);
-        mockFile5.Setup(f => f.IsSymbolicLink).Returns(false);
-        mockFile5.Setup(f => f.FullName).Returns("/remote/path/baj05777Downloaded.txtretrieved");
-        mockFile5.Setup(f => f.Name).Returns("baj05777Downloaded.txtretrieved");
-
-        var mockFile6 = new Mock<ISftpFile>();
-        mockFile6.Setup(f => f.IsDirectory).Returns(false);
-        mockFile6.Setup(f => f.IsSymbolicLink).Returns(false);
-        mockFile6.Setup(f => f.FullName).Returns("/remote/path/bns00000.txt");
-        mockFile6.Setup(f => f.Name).Returns("bns00000.txt");
+        var mockFile1 = CreateMockFile("/remote/path/baj05778.txtretrieved", "baj05778.txtretrieved");
+        var mockFile2 = CreateMockFile("/remote/path/baj05779.txtretrieved", "baj05779.txtretrieved");
+        var mockFile3 = CreateMockFile("/remote/path/baj05780.txt", "baj05780.txt");
+        var mockFile4 = CreateMockFile("/remote/path/baj05781.txt", "baj05781.txt");
+        var mockFile5 = CreateMockFile("/remote/path/baj05777Downloaded.txtretrieved", "baj05777Downloaded.txtretrieved");
+        var mockFile6 = CreateMockFile("/remote/path/bns00000.txt", "bns00000.txt");
 
         var files = new List<ISftpFile> { mockFile1.Object, mockFile2.Object, mockFile3.Object, mockFile4.Object, mockFile5.Object, mockFile6.Object };
 
@@ -127,7 +98,12 @@ public class ErDataTransClientTests
         // Verify rename was called
         mockClient.Verify(c => c.DownloadFile("/remote/path/baj05777Downloaded.txtretrieved", It.IsAny<Stream>()), Times.Never);
         mockClient.Verify(c => c.DownloadFile("/remote/path/baj05778.txtretrieved", It.IsAny<Stream>()), Times.Once);
+        mockClient.Verify(c => c.DownloadFile("/remote/path/baj05779.txtretrieved", It.IsAny<Stream>()), Times.Once);
+        mockClient.Verify(c => c.DownloadFile("/remote/path/baj05780.txt", It.IsAny<Stream>()), Times.Once);
+        mockClient.Verify(c => c.DownloadFile("/remote/path/baj05781.txt", It.IsAny<Stream>()), Times.Once);
         mockClient.Verify(c => c.RenameFile("/remote/path/baj05778.txtretrieved", "/remote/path/baj05778Downloaded.txtretrieved"), Times.Once);
+        mockClient.Verify(c => c.RenameFile("/remote/path/baj05779.txtretrieved", "/remote/path/baj05779Downloaded.txtretrieved"), Times.Once);
+        mockClient.Verify(c => c.RenameFile("/remote/path/baj05780.txt", "/remote/path/baj05780Downloaded.txt"), Times.Once);
         mockClient.Verify(c => c.RenameFile("/remote/path/baj05781.txt", "/remote/path/baj05781Downloaded.txt"), Times.Once);
         mockClient.Verify(c => c.Connect(), Times.Once);
         mockClient.Verify(c => c.Disconnect(), Times.Once);
@@ -140,29 +116,10 @@ public class ErDataTransClientTests
         var mockClient = new Mock<ISftpClient>();
         var remotePath = "/remote/path";
 
-        var mockFile1 = new Mock<ISftpFile>();
-        mockFile1.Setup(f => f.IsDirectory).Returns(false);
-        mockFile1.Setup(f => f.IsSymbolicLink).Returns(false);
-        mockFile1.Setup(f => f.FullName).Returns("/remote/path/baj05778.txtretrieved");
-        mockFile1.Setup(f => f.Name).Returns("baj05778.txtretrieved");
-
-        var mockFile2 = new Mock<ISftpFile>();
-        mockFile2.Setup(f => f.IsDirectory).Returns(false);
-        mockFile2.Setup(f => f.IsSymbolicLink).Returns(false);
-        mockFile2.Setup(f => f.FullName).Returns("/remote/path/baj05779.txtretrieved");
-        mockFile2.Setup(f => f.Name).Returns("baj05779.txtretrieved");
-
-        var mockFile3 = new Mock<ISftpFile>();
-        mockFile3.Setup(f => f.IsDirectory).Returns(false);
-        mockFile3.Setup(f => f.IsSymbolicLink).Returns(false);
-        mockFile3.Setup(f => f.FullName).Returns("/remote/path/baj05780.txt");
-        mockFile3.Setup(f => f.Name).Returns("baj05780.txt");
-
-        var mockFile4 = new Mock<ISftpFile>();
-        mockFile4.Setup(f => f.IsDirectory).Returns(false);
-        mockFile4.Setup(f => f.IsSymbolicLink).Returns(false);
-        mockFile4.Setup(f => f.FullName).Returns("/remote/path/baj05781.txt");
-        mockFile4.Setup(f => f.Name).Returns("baj05781.txt");
+        var mockFile1 = CreateMockFile("/remote/path/baj05778.txtretrieved", "baj05778.txtretrieved");
+        var mockFile2 = CreateMockFile("/remote/path/baj05779.txtretrieved", "baj05779.txtretrieved");
+        var mockFile3 = CreateMockFile("/remote/path/baj05780.txt", "baj05780.txt");
+        var mockFile4 = CreateMockFile("/remote/path/baj05781.txt", "baj05781.txt");
 
         var files = new List<ISftpFile> { mockFile1.Object, mockFile2.Object, mockFile3.Object, mockFile4.Object };
 
@@ -220,6 +177,8 @@ public class ErDataTransClientTests
         Assert.Equal(content4, reader4.ReadToEnd());
 
         // Verify rename was called
+        mockClient.Verify(c => c.DownloadFile("/remote/path/baj05780.txt", It.IsAny<Stream>()), Times.Never);
+        mockClient.Verify(c => c.DownloadFile("/remote/path/baj05781.txt", It.IsAny<Stream>()), Times.Once);
         mockClient.Verify(c => c.RenameFile("/remote/path/baj05778.txtretrieved", "/remote/path/baj05778Downloaded.txtretrieved"), Times.Never);
         mockClient.Verify(c => c.RenameFile("/remote/path/baj05781.txt", "/remote/path/baj05781Downloaded.txt"), Times.Once);
         mockClient.Verify(c => c.Connect(), Times.Once);
@@ -233,11 +192,7 @@ public class ErDataTransClientTests
         var mockClient = new Mock<ISftpClient>();
         var remotePath = "/remote/path";
 
-        var mockFile1 = new Mock<ISftpFile>();
-        mockFile1.Setup(f => f.IsDirectory).Returns(false);
-        mockFile1.Setup(f => f.IsSymbolicLink).Returns(false);
-        mockFile1.Setup(f => f.FullName).Returns("/remote/path/bajaaaaa.txtretrieved");
-        mockFile1.Setup(f => f.Name).Returns("bajaaaaa.txtretrieved");
+        var mockFile1 = CreateMockFile("/remote/path/bajaaaaa.txtretrieved", "bajaaaaa.txtretrieved");
 
         var files = new List<ISftpFile> { mockFile1.Object };
 
@@ -260,11 +215,7 @@ public class ErDataTransClientTests
         var mockClient = new Mock<ISftpClient>();
         var remotePath = "/remote/path";
 
-        var mockFile1 = new Mock<ISftpFile>();
-        mockFile1.Setup(f => f.IsDirectory).Returns(false);
-        mockFile1.Setup(f => f.IsSymbolicLink).Returns(false);
-        mockFile1.Setup(f => f.FullName).Returns("/remote/path/bajaaaaa.a");
-        mockFile1.Setup(f => f.Name).Returns("bajaaaaa.a");
+        var mockFile1 = CreateMockFile("/remote/path/bajaaaaa.a", "bajaaaaa.a");
 
         var files = new List<ISftpFile> { mockFile1.Object };
 
@@ -286,11 +237,7 @@ public class ErDataTransClientTests
         var mockClient = new Mock<ISftpClient>();
         var remotePath = "/remote/path";
 
-        var mockFile1 = new Mock<ISftpFile>();
-        mockFile1.Setup(f => f.IsDirectory).Returns(false);
-        mockFile1.Setup(f => f.IsSymbolicLink).Returns(false);
-        mockFile1.Setup(f => f.FullName).Returns("/remote/path/baj05778.txtretrieved");
-        mockFile1.Setup(f => f.Name).Returns("baj05778.txtretrieved");
+        var mockFile1 = CreateMockFile("/remote/path/baj05778.txtretrieved", "baj05778.txtretrieved");
 
         var files = new List<ISftpFile> { mockFile1.Object, };
 
@@ -319,5 +266,15 @@ public class ErDataTransClientTests
         mockClient.Verify(c => c.DownloadFile("/remote/path/baj05778.txtretrieved", It.IsAny<Stream>()), Times.Once);
         mockClient.Verify(c => c.Connect(), Times.Once);
         mockClient.Verify(c => c.Disconnect(), Times.Once);
+    }
+
+    private static Mock<ISftpFile> CreateMockFile(string fullName, string name)
+    {
+        var mockFile1 = new Mock<ISftpFile>();
+        mockFile1.Setup(f => f.IsDirectory).Returns(false);
+        mockFile1.Setup(f => f.IsSymbolicLink).Returns(false);
+        mockFile1.Setup(f => f.FullName).Returns(fullName);
+        mockFile1.Setup(f => f.Name).Returns(name);
+        return mockFile1; 
     }
 }
