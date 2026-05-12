@@ -155,7 +155,7 @@ public class ErDataTransClientTests
         mockFile4.Setup(f => f.IsDirectory).Returns(false);
         mockFile4.Setup(f => f.IsSymbolicLink).Returns(false);
         mockFile4.Setup(f => f.FullName).Returns("/remote/path/baj05781.txt");
-        mockFile4.Setup(f => f.Name).Returns("baj05781.txt"); 
+        mockFile4.Setup(f => f.Name).Returns("baj05781.txt");
 
         var files = new List<ISftpFile> { mockFile1.Object, mockFile2.Object, mockFile3.Object, mockFile4.Object };
 
