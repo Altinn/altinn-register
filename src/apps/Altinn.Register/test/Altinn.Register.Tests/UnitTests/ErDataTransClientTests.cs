@@ -223,28 +223,4 @@ public class ErDataTransClientTests
         mockClient.Verify(c => c.RenameFile("/remote/path/baj05781.txt", "/remote/path/baj05781Downloaded.txt"), Times.Once);
         mockClient.Verify(c => c.Connect(), Times.Once);
     }
-
-/* For testing against locally running SFTP server.
-    [Fact]
-    public void GetNewFiles_GetFileFromLocalSFTPServer()
-    {
-        // Arrange
-        var remotePath = "/out/prod/er";
-        string username = "tester";
-        string password = "password";
-        string host = "localhost";
-
-        var client = new ErDataTransClient(username, password, host, remotePath);
-
-        // Act
-        var result1 = client.GetNewFiles(5780);
-
-        var result3 = client.GetNewFiles(-1);
-        var result2 = client.GetNewFiles(-1);
-
-        // Assert
-        Assert.Equal(3, result3.Count);
-        Assert.Empty(result2);
-        Assert.Single(result1);
-    } */
 }

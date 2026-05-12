@@ -62,32 +62,38 @@ internal sealed class ErDataTransClient
             _client.Connect();
         }
 
-        int lastProcessedRunId = lastRunId;
-        IEnumerable<ISftpFile> files = _client.ListDirectory(_remotePath).Where(f => !f.IsDirectory && !f.IsSymbolicLink);
-        List<Tuple<string, Stream>> streams = new();
-        foreach (var file in files.OrderBy(f => f.Name))
+        try
         {
-            if (file.Name.Contains("Downloaded"))
+            int lastProcessedRunId = lastRunId;
+            List<Tuple<string, Stream>> streams = new();
+            IEnumerable<ISftpFile> files = _client.ListDirectory(_remotePath).Where(f => !f.IsDirectory && !f.IsSymbolicLink);
+            foreach (var file in files.OrderBy(f => f.Name))
             {
-                continue;
+                if (file.Name.Contains("Downloaded"))
+                {
+                    continue;
+                }
+
+                int runId = ErDataTransClient.GetRunIdFromFileName(file.Name);
+                if (!file.FullName.Contains("Downloaded")
+                    && (lastRunId == -1 || runId == lastProcessedRunId + 1))
+                {
+                    Stream stream = new MemoryStream();
+                    _client.DownloadFile(file.FullName, stream);
+                    stream.Position = 0; // Reset stream position after download
+                    streams.Add(new Tuple<string, Stream>(file.Name, stream));
+                    _client.RenameFile(file.FullName, file.FullName.Replace(".txt", "Downloaded.txt")); // Mark file as downloaded
+                    lastProcessedRunId = runId;
+                }
             }
 
-            int runId = ErDataTransClient.GetRunIdFromFileName(file.Name);
-            if (!file.FullName.Contains("Downloaded")
-                && (lastRunId == -1 || runId == lastProcessedRunId + 1))
-            {
-                Stream stream = new MemoryStream();
-                _client.DownloadFile(file.FullName, stream);
-                stream.Position = 0; // Reset stream position after download
-                streams.Add(new Tuple<string, Stream>(file.Name, stream));
-                _client.RenameFile(file.FullName, file.FullName.Replace(".txt", "Downloaded.txt")); // Mark file as downloaded
-                lastProcessedRunId = runId;
-            }
+            return streams;
+        }
+        finally
+        {
+            _client.Disconnect();
         }
 
-        _client.Disconnect();
-
-        return streams;
     }
 
     /// <summary>
@@ -121,9 +127,14 @@ internal sealed class ErDataTransClient
         // Extract runId from filename, e.g., "baj05778.txt" -> 5778
         int bajIndex = filename.IndexOf("baj");
         int dotIndex = filename.IndexOf("Downloaded.txt");
-        if(dotIndex == -1)
+        if (dotIndex == -1)
         {
             dotIndex = filename.IndexOf(".txt");
+        }
+
+        if (bajIndex < 0 || dotIndex < 0 || dotIndex <= bajIndex)
+        {
+            throw new FormatException($"Filename {filename} does not contain a valid runId.");
         }
 
         string runIdPart = filename[(bajIndex + 3)..dotIndex]; // Assuming filename format is always "bajXXXXX.txt"
