@@ -52,7 +52,7 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
             Email: "user@example.com",
             Issuer: null,
             ExternalSubject: null,
-            UserNamePrefix: null);
+            UserName: "altinn-test-user");
 
         var result = await handler.Handle(request, CancellationToken);
 
@@ -101,7 +101,7 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
             Email: "new@example.com",
             Issuer: null,
             ExternalSubject: null,
-            UserNamePrefix: "altinn-");
+            UserName: "epost:new@example.com");
 
         var result = await handler.Handle(request, CancellationToken);
 
@@ -110,7 +110,7 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
 
         capturedCreate.ShouldNotBeNull();
         capturedCreate!.UserType.ShouldBe(2);
-        capturedCreate.UserName.ShouldStartWith("altinn-");
+        capturedCreate.UserName.ShouldBe("epost:new@example.com");
         capturedCreate.ExternalIdentity.ShouldStartWith("urn:altinn:person:idporten-email:");
         capturedCreate.ExternalIdentity.ShouldContain("new@example.com");
 
@@ -146,7 +146,7 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
             Email: null,
             Issuer: "https://example-idp",
             ExternalSubject: "sub-abc",
-            UserNamePrefix: null);
+            UserName: "altinn-test-user");
 
         var result = await handler.Handle(request, CancellationToken);
 
@@ -173,7 +173,7 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
             Email: null,
             Issuer: null,
             ExternalSubject: null,
-            UserNamePrefix: null);
+            UserName: "altinn-test-user");
 
         var result = await handler.Handle(request, CancellationToken);
 
@@ -197,7 +197,7 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
             Email: null,
             Issuer: null,
             ExternalSubject: "sub-abc",
-            UserNamePrefix: null);
+            UserName: "altinn-test-user");
 
         var result = await handler.Handle(request, CancellationToken);
 
@@ -234,7 +234,7 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
             Email: null,
             Issuer: "https://feide.no",
             ExternalSubject: "edu-sub-abc",
-            UserNamePrefix: null);
+            UserName: "altinn-test-user");
 
         var result = await handler.Handle(request, CancellationToken);
 
@@ -262,7 +262,7 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
             Email: null,
             Issuer: null,
             ExternalSubject: "edu-sub-abc",
-            UserNamePrefix: null);
+            UserName: "altinn-test-user");
 
         var result = await handler.Handle(request, CancellationToken);
 
@@ -273,19 +273,27 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
     }
 
     [Fact]
-    public void GenerateUserName_UsesCustomPrefix_AndProducesShortStableSegment()
+    public async Task MissingUserName_ReturnsValidationProblem()
     {
-        var name1 = GetOrCreateSelfIdentifiedUserFromBridgeHandler.GenerateUserName("urn:altinn:person:idporten-email:abc", "test-");
-        var name2 = GetOrCreateSelfIdentifiedUserFromBridgeHandler.GenerateUserName("urn:altinn:person:idporten-email:abc", "test-");
+        var bridge = new Mock<ISblProfileBridgeClient>(MockBehavior.Strict);
+        var sender = CreateSenderMock();
 
-        name1.ShouldStartWith("test-");
-        name2.ShouldStartWith("test-");
+        var handler = CreateHandler(bridge.Object, sender.Object);
 
-        // Same hashed segment for the same external identity, but suffix randomized
-        var hashed1 = name1.Substring("test-".Length, 10);
-        var hashed2 = name2.Substring("test-".Length, 10);
-        hashed1.ShouldBe(hashed2);
-        name1.ShouldNotBe(name2);
+        var request = new GetOrCreateSelfIdentifiedUserRequest(
+            SelfIdentifiedUserType: SelfIdentifiedUserType.IdPortenEmail,
+            Email: "user@example.com",
+            Issuer: null,
+            ExternalSubject: null,
+            UserName: null);
+
+        var result = await handler.Handle(request, CancellationToken);
+
+        result.IsProblem.ShouldBeTrue();
+        result.Problem!.ErrorCode.ShouldBe(Problems.SelfIdentifiedUserTypeMismatch.ErrorCode);
+
+        bridge.Verify(b => b.LookupUser(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        sender.Verify(s => s.Send(It.IsAny<ImportA2PartyCommand>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -303,7 +311,7 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
             Email: "user@example.com",
             Issuer: null,
             ExternalSubject: null,
-            UserNamePrefix: null);
+            UserName: "altinn-test-user");
 
         var result = await handler.Handle(request, CancellationToken);
 
@@ -341,7 +349,7 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
             Email: "flaky@example.com",
             Issuer: null,
             ExternalSubject: null,
-            UserNamePrefix: null);
+            UserName: "altinn-test-user");
 
         var result = await handler.Handle(request, CancellationToken);
 

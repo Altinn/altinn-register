@@ -37,6 +37,7 @@ public class UsersControllerTests
         {
             SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
             Email = "user@example.com",
+            UserName = "epost:user@example.com",
         });
 
         var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
@@ -80,6 +81,7 @@ public class UsersControllerTests
         {
             SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
             Email = "new@example.com",
+            UserName = "epost:new@example.com",
         });
 
         var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
@@ -119,6 +121,7 @@ public class UsersControllerTests
             SelfIdentifiedUserType = SelfIdentifiedUserType.Educational,
             Issuer = "https://feide.no",
             ExternalSubject = "edu-sub-abc",
+            UserName = "altinn-eduhash99-x7q9w2",
         });
 
         var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
@@ -158,6 +161,7 @@ public class UsersControllerTests
             SelfIdentifiedUserType = SelfIdentifiedUserType.Educational,
             Issuer = "https://feide.no",
             ExternalSubject = "edu-sub-existing",
+            UserName = "altinn-eduexisting-1",
         });
 
         var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
@@ -180,6 +184,7 @@ public class UsersControllerTests
         {
             SelfIdentifiedUserType = SelfIdentifiedUserType.Educational,
             ExternalSubject = "edu-sub-abc",
+            UserName = "altinn-test",
         });
 
         var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
@@ -197,6 +202,7 @@ public class UsersControllerTests
         request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
         {
             SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
+            UserName = "altinn-test",
         });
 
         var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
@@ -219,6 +225,7 @@ public class UsersControllerTests
         {
             SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
             Email = "x@example.com",
+            UserName = "epost:x@example.com",
         });
 
         var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);

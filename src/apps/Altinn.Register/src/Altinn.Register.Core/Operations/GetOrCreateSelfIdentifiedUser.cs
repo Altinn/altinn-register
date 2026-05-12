@@ -1,7 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.RegularExpressions;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Contracts;
@@ -32,15 +29,16 @@ namespace Altinn.Register.Core.Operations;
 /// <param name="ExternalSubject">
 /// The OIDC subject / external identity (required for <see cref="SelfIdentifiedUserType.Legacy"/>).
 /// </param>
-/// <param name="UserNamePrefix">
-/// Optional username prefix. The handler generates a unique suffix.
+/// <param name="UserName">
+/// The username to assign on create. Required. The caller (altinn-authentication)
+/// owns username generation; register does not transform it.
 /// </param>
 public readonly record struct GetOrCreateSelfIdentifiedUserRequest(
     SelfIdentifiedUserType SelfIdentifiedUserType,
     string? Email,
     string? Issuer,
     string? ExternalSubject,
-    string? UserNamePrefix)
+    string? UserName)
     : IRequest<SelfIdentifiedUserResult>;
 
 /// <summary>
@@ -49,7 +47,7 @@ public readonly record struct GetOrCreateSelfIdentifiedUserRequest(
 /// <param name="PartyUuid">The party UUID assigned to the user.</param>
 /// <param name="PartyId">The legacy numeric party id.</param>
 /// <param name="UserId">The legacy numeric user id.</param>
-/// <param name="UserName">The username (server-generated when created).</param>
+/// <param name="UserName">The username.</param>
 /// <param name="SelfIdentifiedUserType">The self-identified user type.</param>
 /// <param name="ExternalUrn">
 /// The canonical external URN representing the user. <see langword="null"/> for
@@ -76,12 +74,9 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
     ILogger<GetOrCreateSelfIdentifiedUserFromBridgeHandler> logger)
     : IRequestHandler<GetOrCreateSelfIdentifiedUserRequest, SelfIdentifiedUserResult>
 {
-    private const string IdPortenEmailUrnPrefix = "urn:altinn:person:idporten-email";
     private const string LegacySelfIdentifiedUrnPrefix = "urn:altinn:person:legacy-selfidentified";
-    private const string DefaultUserNamePrefix = "altinn-";
+    private const string IdPortenEmailUrnPrefix = "urn:altinn:person:idporten-email";
     private const int SbiUserTypeSelfIdentified = 2;
-
-    private static readonly Regex _userNameRegex = UserNameRegex();
 
     /// <inheritdoc/>
     public async ValueTask<Result<SelfIdentifiedUserResult>> Handle(
@@ -104,11 +99,10 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
             return MapToResult(lookupResult.Value.Profile, request.SelfIdentifiedUserType);
         }
 
-        var userName = GenerateUserName(bridgeExternalIdentity, request.UserNamePrefix);
         var createRequest = new SblUserProfile
         {
             ExternalIdentity = bridgeExternalIdentity,
-            UserName = userName,
+            UserName = request.UserName,
             UserType = SbiUserTypeSelfIdentified,
         };
 
@@ -159,6 +153,15 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
         [NotNullWhen(true)] out string? bridgeExternalIdentity,
         [NotNullWhen(false)] out ProblemInstance? validationProblem)
     {
+        if (string.IsNullOrWhiteSpace(request.UserName))
+        {
+            bridgeExternalIdentity = null;
+            validationProblem = Problems.SelfIdentifiedUserTypeMismatch.Create([
+                new("reason", "userName is required"),
+            ]);
+            return false;
+        }
+
         switch (request.SelfIdentifiedUserType)
         {
             case SelfIdentifiedUserType.IdPortenEmail:
@@ -245,37 +248,6 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
             SelfIdentifiedUserType: type,
             ExternalUrn: externalUrn);
     }
-
-    /// <summary>
-    /// Generates a username from the bridge-shaped external identity, using a stable hashed
-    /// segment plus a random suffix so concurrent creates do not collide.
-    /// </summary>
-    /// <param name="externalIdentity">The bridge-shaped external identity string.</param>
-    /// <param name="userNamePrefix">Optional prefix; defaults to <c>altinn-</c> when null or empty.</param>
-    /// <returns>The generated username.</returns>
-    internal static string GenerateUserName(string externalIdentity, string? userNamePrefix)
-    {
-        Span<byte> hashBuffer = stackalloc byte[32];
-        SHA256.HashData(Encoding.UTF8.GetBytes(externalIdentity), hashBuffer);
-
-        var hashSegment = Convert.ToBase64String(hashBuffer);
-        var trimmed = _userNameRegex.Replace(hashSegment, string.Empty);
-        var truncated = trimmed.Length >= 10 ? trimmed[..10] : trimmed;
-        var lowered = truncated.ToLowerInvariant();
-
-        Span<byte> random = stackalloc byte[6];
-        RandomNumberGenerator.Fill(random);
-        var randomSegment = Convert.ToBase64String(random)
-            .TrimEnd('=')
-            .Replace('+', '-')
-            .Replace('/', '_');
-
-        var prefix = string.IsNullOrEmpty(userNamePrefix) ? DefaultUserNamePrefix : userNamePrefix;
-        return prefix + lowered + randomSegment;
-    }
-
-    [GeneratedRegex("[^a-zA-Z0-9-]")]
-    private static partial Regex UserNameRegex();
 
     private static partial class Log
     {

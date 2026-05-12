@@ -48,7 +48,7 @@ public sealed class UsersController : ControllerBase
             Email: request.Email,
             Issuer: request.Issuer,
             ExternalSubject: request.ExternalSubject,
-            UserNamePrefix: request.UserNamePrefix);
+            UserName: request.UserName);
 
         Result<SelfIdentifiedUserResult> result = await sender.Send(mediatorRequest, cancellationToken);
         if (result.IsProblem)

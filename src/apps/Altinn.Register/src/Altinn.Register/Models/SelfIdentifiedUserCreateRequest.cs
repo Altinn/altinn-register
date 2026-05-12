@@ -44,8 +44,9 @@ public sealed class SelfIdentifiedUserCreateRequest
     public string? ExternalSubject { get; set; }
 
     /// <summary>
-    /// Gets or sets an optional prefix for the generated username. Defaults to <c>altinn-</c> when omitted.
+    /// Gets or sets the username to assign on create. Required. The caller (altinn-authentication)
+    /// owns username generation; register does not transform it.
     /// </summary>
-    [JsonPropertyName("userNamePrefix")]
-    public string? UserNamePrefix { get; set; }
+    [JsonPropertyName("userName")]
+    public string? UserName { get; set; }
 }
