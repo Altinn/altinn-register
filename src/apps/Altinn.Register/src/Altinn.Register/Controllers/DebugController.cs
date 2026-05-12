@@ -10,7 +10,6 @@ using Altinn.Register.Contracts.PartyImport.A2;
 using Altinn.Register.Conventions;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Npr;
-using Altinn.Register.PartyImport.A2;
 using Asp.Versioning;
 using CommunityToolkit.Diagnostics;
 using Microsoft.AspNetCore.Authorization;

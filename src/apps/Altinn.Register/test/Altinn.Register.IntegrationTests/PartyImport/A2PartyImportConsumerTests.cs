@@ -11,7 +11,6 @@ using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.Core.UnitOfWork;
-using Altinn.Register.PartyImport.A2;
 using Altinn.Register.TestUtils.MassTransit;
 using Altinn.Register.TestUtils.TestData;
 using Xunit.Sdk;
