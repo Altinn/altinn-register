@@ -2,12 +2,12 @@ HEADER 2026042805780ALTA
 ENH 316289576ENK ENY  2021031220210312N
 DAGLU   RD                                      60833200189
 SAMUDAGL
-FADRNSSY0662     NO 8006                                                                           Storgata 88
+FADRNSSY0662     NO 0301                                                                           Storgata 88
 KJRPNSSYN
 LEDEU   RD                                      29842699620
-LEDENSSYRD                              N    00346836800303VÅRLIG                                                                                              ARTIKKEL                                          8006     Storgata 88                                                                                              NO L
-MEDLNSSYRD                              N    00121834995635ROBUST                                                                                              SEKRETÆR                                          8006     Storgata 88                                                                                              NO L
-MEDLNSSYRD                              N    0021686019716JORDNÆR                                                                                              LAGIDRETT                                         8006     Storgata 88                                                                                              NO L
+LEDENSSYRD                              N    00346836800303VÅRLIG                                                                                              ARTIKKEL                                          0301     Storgata 88                                                                                              NO L
+MEDLNSSYRD                              N    00121834995635ROBUST                                                                                              SEKRETÆR                                          0301     Storgata 88                                                                                              NO L
+MEDLNSSYRD                              N    00245811675095ORDNÆR                                                                                              LAGIDRETT                                         0301     Storgata 88                                                                                              NO L
 MTLFUSSY
 ENH 316289460AS  EEN  2023010220260428N
 SAMUREGN

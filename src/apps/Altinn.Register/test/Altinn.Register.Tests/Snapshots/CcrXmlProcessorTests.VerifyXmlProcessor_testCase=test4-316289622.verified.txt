@@ -1,0 +1,41 @@
+﻿[
+  {
+    organizationIdentifier: 316289622,
+    isFirstRegistration: false,
+    isDeleted: false,
+    deletedAt: null,
+    unitType: NUF,
+    datoSistEndret: 2026-04-28,
+    roleUpdates: {
+      isFullUpdate: false,
+      removeRoleAssignments: [
+        {
+          roleAssignmentType: connection,
+          roleCode: REVI,
+          rolePersonalIdentifier: null,
+          roleOrganizationNumber: 316289584,
+          personName: null,
+          postadresse: null
+        }
+      ],
+      bulkRemoveRoleAssignments: [
+        {
+          roleAssignmentType: bulk-role-assignment-removal,
+          roleCode: revisor,
+          rolePersonalIdentifier: null,
+          roleOrganizationNumber: null,
+          personName: null,
+          postadresse: null
+        },
+        {
+          roleAssignmentType: bulk-role-assignment-removal,
+          roleCode: revisoradressat,
+          rolePersonalIdentifier: null,
+          roleOrganizationNumber: null,
+          personName: null,
+          postadresse: null
+        }
+      ]
+    }
+  }
+]

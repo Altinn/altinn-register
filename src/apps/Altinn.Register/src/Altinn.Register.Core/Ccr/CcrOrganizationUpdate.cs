@@ -14,6 +14,7 @@ namespace Altinn.Register.Core.Ccr;
 /// while FieldValue.Null indicates that the field should be explicitly set to null. FieldValue with a value indicates that the field should be updated to the specified value.
 /// The RoleUpdates property can also be used for both full and partial updates, with the same logic for the fields within each <see cref="CcrRoleAssignment"/>.
 /// </remarks>
+[FieldValueRecord]
 public sealed record CcrOrganizationUpdate
 {
     /// <summary>
@@ -39,7 +40,7 @@ public sealed record CcrOrganizationUpdate
     /// <summary>
     /// Gets when the party was deleted.
     /// </summary>
-    public required DateTimeOffset? DeletedAt { get; init; }
+    public required DateOnly? DeletedAt { get; init; }
 
     /// <summary>
     /// Gets the organisation form.(Organisasjonsform)
@@ -54,7 +55,7 @@ public sealed record CcrOrganizationUpdate
     /// <summary>
     /// Gets the date last changed.
     /// </summary>
-    public FieldValue<DateTimeOffset> DatoSistEndret { get; init; }
+    public required DateOnly DatoSistEndret { get; init; }
 
     /// <summary>
     /// Gets the email address of the organization.

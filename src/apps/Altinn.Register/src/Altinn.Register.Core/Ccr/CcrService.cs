@@ -6,6 +6,7 @@ using Altinn.Register.Core.Location;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
+using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Register.Core.Ccr;
@@ -113,9 +114,7 @@ public class CcrService
                     Select(a => new PartyExternalRoleAssignment
                     {
                         ExternalRoleIdentifier = a.RoleCode,
-                        ToParty = SetToParty(
-                                a.RolePersonalIdentifier,
-                                a.RoleOrganizationNumber)
+                        ToParty = MapToPartyRef(a),
                     }).ToImmutableValueArray() ?? []
             };
         }
@@ -130,18 +129,14 @@ public class CcrService
                     Select(r => new PartyExternalRoleAssignment
                     {
                         ExternalRoleIdentifier = r.RoleCode,
-                        ToParty = SetToParty(
-                                r.RolePersonalIdentifier,
-                                r.RoleOrganizationNumber)
+                        ToParty = MapToPartyRef(r),
                     }).ToImmutableValueArray() ?? [],
 
                 Present = update.RoleUpdates?.RoleAssignments.
                     Select(a => new PartyExternalRoleAssignment
                     {
                         ExternalRoleIdentifier = a.RoleCode,
-                        ToParty = SetToParty(
-                                a.RolePersonalIdentifier,
-                                a.RoleOrganizationNumber)
+                        ToParty = MapToPartyRef(a),
                     }).ToImmutableValueArray() ?? []
             };
         }
@@ -149,44 +144,35 @@ public class CcrService
         return roles;
     }
 
-    private static PartyExternalRoleAssignmentPartyRef SetToParty(string? rolePersonalIdentifier, string? roleOrganizationNumber)
+    private static PartyExternalRoleAssignmentPartyRef MapToPartyRef(CcrRoleAssignment assignment)
     {
-        if (rolePersonalIdentifier is not null)
+        if (assignment.IsToOrganization)
         {
-            bool success = PersonIdentifier.TryParse(rolePersonalIdentifier, provider: null, out var personIdentifier);
-            if (!success || personIdentifier is null)
-            {
-                throw new ArgumentException($"Invalid personal identifier: {rolePersonalIdentifier}");
-            }
-
-            return new PartyExternalRoleAssignmentPartyRef.Person
-            {
-                PersonIdentifier = personIdentifier,
-                Name = null,
-                MailingAddress = null
-            };
-        }
-        else if (roleOrganizationNumber is not null)
-        {
-            bool success = OrganizationIdentifier.TryParse(roleOrganizationNumber, provider: null, out var organizationIdentifier);
-            if (!success || organizationIdentifier is null)
-            {
-                throw new ArgumentException($"Invalid organization identifier: {roleOrganizationNumber}");
-            }
-
             return new PartyExternalRoleAssignmentPartyRef.Organization
             {
-                OrganizationIdentifier = organizationIdentifier
+                OrganizationIdentifier = assignment.RoleOrganizationNumber,
             };
         }
-        else
+
+        if (assignment.IsToPerson)
         {
-            throw new ArgumentException("Either rolePersonalIdentifier or roleOrganizationNumber must be provided, and correctly formatted.");
+            return new PartyExternalRoleAssignmentPartyRef.Person
+            {
+                PersonIdentifier = assignment.RolePersonalIdentifier,
+                Name = assignment.PersonName,
+                MailingAddress = assignment.Postadresse,
+            };
         }
+
+        ThrowHelper.ThrowArgumentException(nameof(assignment), "Role assignment must be to either a person or an organization, but was neither.");
+        return null!; // Unreachable, but required for compilation
     }
 
     private static OrganizationRecord MapOrganization(CcrOrganizationUpdate model)
     {
+        TimeOnly midnight = new TimeOnly(0, 0);
+        TimeSpan utcOffset = TimeSpan.Zero; // TODO
+
         return new OrganizationRecord
         {
             PartyUuid = FieldValue.Unset,
@@ -200,9 +186,9 @@ public class CcrService
 
             Source = OrganizationSource.CentralCoordinatingRegister,
             PersonIdentifier = FieldValue.Null,
-            ModifiedAt = model.DatoSistEndret,
+            ModifiedAt = new DateTimeOffset(model.DatoSistEndret, midnight, utcOffset),
             IsDeleted = model.IsDeleted,
-            DeletedAt = FieldValue.From(model.DeletedAt),
+            DeletedAt = FieldValue.From(model.DeletedAt).Select(date => new DateTimeOffset(date, midnight, utcOffset)),
             OrganizationIdentifier = model.OrganizationIdentifier,
             DisplayName = model.DisplayName,
             UnitType = model.UnitType,
@@ -213,7 +199,7 @@ public class CcrService
             EmailAddress = model.EmailAddress,
             InternetAddress = model.InternetAddress,
             MailingAddress = model.MailingAddress,
-            BusinessAddress = model.BusinessAddress
+            BusinessAddress = model.BusinessAddress,
         };
     }
 }

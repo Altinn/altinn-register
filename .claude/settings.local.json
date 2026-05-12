@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(xargs grep -l \"FieldValue<T>\")",
-      "Bash(xargs grep -l \"FieldValue\")"
-    ]
-  }
-}

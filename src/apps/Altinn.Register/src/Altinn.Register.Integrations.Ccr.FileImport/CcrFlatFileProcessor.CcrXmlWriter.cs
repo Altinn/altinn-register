@@ -114,7 +114,7 @@ internal sealed partial class CcrFlatFileProcessor
             ReadOnlySpan<char> type,
             ReadOnlySpan<char> status,
             ReadOnlySpan<char> postNummer,
-            ReadOnlySpan<char> poststedUtland,
+            ReadOnlySpan<char> poststedIUtland,
             ReadOnlySpan<char> kommuneNummer,
             ReadOnlySpan<char> landKode,
             ReadOnlySpan<char> adresse1,
@@ -125,7 +125,7 @@ internal sealed partial class CcrFlatFileProcessor
             WriteInfoElementValue("postnr", postNummer);
             WriteInfoElementValue("landkode", landKode);
             WriteInfoElementValue("kommunenr", kommuneNummer);
-            WriteInfoElementValue("poststed", poststedUtland);
+            WriteInfoElementValue("poststed", poststedIUtland);
             WriteInfoElementValue("adresse1", adresse1);
             WriteInfoElementValue("adresse2", adresse2);
             WriteInfoElementValue("adresse3", adresse3);
