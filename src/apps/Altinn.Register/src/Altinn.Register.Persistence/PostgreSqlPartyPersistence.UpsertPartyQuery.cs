@@ -375,10 +375,10 @@ internal partial class PostgreSqlPartyPersistence
                 var userIds = party.User.SelectFieldValue(static u => u.UserIds);
 
                 Debug.Assert(flags.Contains(PersistenceFeatureFlag.CreatePartyId) || party.PartyUuid.HasValue);
-                Debug.Assert(party.ExternalUrn.IsSet);
+                Debug.Assert(flags.Contains(PersistenceFeatureFlag.CreatePartyId) || party.ExternalUrn.IsSet);
                 Debug.Assert(party.User.IsUnset || (userIds.HasValue && !userIds.Value.IsDefaultOrEmpty));
                 Debug.Assert(party.PartyType.HasValue && party.PartyType.Value == type);
-                Debug.Assert(party.DisplayName.HasValue);
+                Debug.Assert(flags.Contains(PersistenceFeatureFlag.CreatePartyId) || party.DisplayName.HasValue);
                 Debug.Assert(party.PersonIdentifier.IsSet);
                 Debug.Assert(party.OrganizationIdentifier.IsSet);
                 Debug.Assert(party.CreatedAt.HasValue);
@@ -570,13 +570,13 @@ internal partial class PostgreSqlPartyPersistence
                 base.ValidateFields(party, flags);
                 Debug.Assert(party.UnitStatus.HasValue);
                 Debug.Assert(party.UnitType.HasValue);
-                Debug.Assert(party.TelephoneNumber.IsSet);
-                Debug.Assert(party.MobileNumber.IsSet);
-                Debug.Assert(party.FaxNumber.IsSet);
-                Debug.Assert(party.EmailAddress.IsSet);
-                Debug.Assert(party.InternetAddress.IsSet);
-                Debug.Assert(party.MailingAddress.IsSet);
-                Debug.Assert(party.BusinessAddress.IsSet);
+                Debug.Assert(flags.Contains(PersistenceFeatureFlag.CreatePartyId) || party.TelephoneNumber.IsSet);
+                Debug.Assert(flags.Contains(PersistenceFeatureFlag.CreatePartyId) || party.MobileNumber.IsSet);
+                Debug.Assert(flags.Contains(PersistenceFeatureFlag.CreatePartyId) || party.FaxNumber.IsSet);
+                Debug.Assert(flags.Contains(PersistenceFeatureFlag.CreatePartyId) || party.EmailAddress.IsSet);
+                Debug.Assert(flags.Contains(PersistenceFeatureFlag.CreatePartyId) || party.InternetAddress.IsSet);
+                Debug.Assert(flags.Contains(PersistenceFeatureFlag.CreatePartyId) || party.MailingAddress.IsSet);
+                Debug.Assert(flags.Contains(PersistenceFeatureFlag.CreatePartyId) || party.BusinessAddress.IsSet);
                 Debug.Assert(!party.OwnerUuid.HasValue, "organization cannot have OwnerUuid set");
             }
 

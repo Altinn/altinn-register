@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.ExternalRoles;
@@ -15,34 +16,29 @@ namespace Altinn.Register.Core.Ccr;
 /// Calls the XML processor for CCR (Customer Contact Register) data and transforms the dto's to
 /// to models usable for the db layer.
 /// </summary>
-public class CcrService
+public sealed class CcrService
 {
     private readonly IUnitOfWorkManager _uowManager;
     private readonly ICcrXmlProcessor _ccrXmlProcessor;
     private readonly IExternalRoleDefinitionPersistence _roleMapper;
     private readonly ILocationLookupProvider _locationLookupProvider;
-    private readonly IPartyExternalRolePersistence _rolePersistence;
+    private readonly TimeProvider _timeProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CcrService"/> class.
     /// </summary>
-    /// <param name="uowManager">The unit of work manager.</param>
-    /// <param name="ccrXmlProcessor">Processes the CCR XML and returns a list of updates</param>
-    /// <param name="roleMapper">Maps CCR rolecodes to Altinn Role Codes</param>
-    /// <param name="locationLookupProvider">Gets static countrycode lookup</param>
-    /// <param name="rolePersistence">Role persistence</param>
     public CcrService(
         IUnitOfWorkManager uowManager,
         ICcrXmlProcessor ccrXmlProcessor,
         IExternalRoleDefinitionPersistence roleMapper,
         ILocationLookupProvider locationLookupProvider,
-        IPartyExternalRolePersistence rolePersistence)
+        TimeProvider timeProvider)
     {
         _uowManager = uowManager;
         _ccrXmlProcessor = ccrXmlProcessor;
         _roleMapper = roleMapper;
         _locationLookupProvider = locationLookupProvider;
-        _rolePersistence = rolePersistence;
+        _timeProvider = timeProvider;
     }
 
     /// <summary>
@@ -56,23 +52,31 @@ public class CcrService
         ReadOnlySequence<byte> input,
         CancellationToken cancellationToken)
     {
+        var now = _timeProvider.GetUtcNow();
+
         ILocationLookup locationLookup = await _locationLookupProvider.GetLocationLookup(cancellationToken);
         IExternalRoleDefinitionLookup roleMap = await _roleMapper.GetRoleDefinitionLookup(cancellationToken);
         var updates = _ccrXmlProcessor.ProcessCcrXml(input, roleMap, locationLookup, cancellationToken);
-        var dbUpdates = MapToDbUpdates(updates);
+        var dbUpdates = MapToDbUpdates(updates, now);
 
-        await using var uow = await _uowManager.CreateAsync(cancellationToken);
+        await using var uow = await _uowManager.CreateAsync(activityName: "update parties from ccr xml", cancellationToken: cancellationToken);
 
-        var persistence = uow.GetRequiredService<IPartyPersistence>();
+        var parties = uow.GetRequiredService<IPartyPersistence>();
+        var roles = uow.GetRequiredService<IPartyExternalRolePersistence>();
 
         foreach (CcrDbUpdate dbUpdate in dbUpdates)
         {
-            var result = await persistence.UpsertParty(dbUpdate.Org, cancellationToken);
+            Debug.Assert(dbUpdate.Org.OrganizationIdentifier.HasValue);
+            using var activity = RegisterTelemetry.StartActivity(
+                name: "upsert party and roles",
+                tags: [new("org.id", dbUpdate.Org.OrganizationIdentifier.Value)]);
+
+            var result = await parties.UpsertParty(dbUpdate.Org, cancellationToken);
             result.EnsureSuccess();
 
             if (dbUpdate.RolesUpdate is not null)
             {
-                await _rolePersistence.UpsertExternalRolesFromPartyBySource(
+                await roles.UpsertExternalRolesFromPartyBySource(
                     commandId,
                     partyUuid: result.Value.PartyUuid.Value,
                     ExternalRoleSource.CentralCoordinatingRegister,
@@ -84,11 +88,11 @@ public class CcrService
         await uow.CommitAsync(cancellationToken);
     }
 
-    private static IEnumerable<CcrDbUpdate> MapToDbUpdates(IEnumerable<CcrOrganizationUpdate> updates)
+    private static IEnumerable<CcrDbUpdate> MapToDbUpdates(IEnumerable<CcrOrganizationUpdate> updates, DateTimeOffset now)
     {
         foreach (var update in updates)
         {
-            CcrDbUpdate dbUpdate = new(MapOrganization(update), MapRolesUpdate(update));
+            CcrDbUpdate dbUpdate = new(MapOrganization(update, now), MapRolesUpdate(update));
             yield return dbUpdate;
         }
     }
@@ -168,10 +172,10 @@ public class CcrService
         return null!; // Unreachable, but required for compilation
     }
 
-    private static OrganizationRecord MapOrganization(CcrOrganizationUpdate model)
+    private static OrganizationRecord MapOrganization(CcrOrganizationUpdate model, DateTimeOffset now)
     {
         TimeOnly midnight = new TimeOnly(0, 0);
-        TimeSpan utcOffset = TimeSpan.Zero; // TODO
+        TimeSpan utcOffset = TimeSpan.Zero; // TODO norwegian timezone
 
         return new OrganizationRecord
         {
@@ -180,13 +184,13 @@ public class CcrService
             PartyId = FieldValue.Unset,
             ExternalUrn = FieldValue.Unset,
             User = FieldValue.Unset,
-            CreatedAt = FieldValue.Unset,
+            CreatedAt = now,
+            ModifiedAt = now,
             VersionId = FieldValue.Unset,
             ParentOrganizationUuid = FieldValue.Unset,
 
             Source = OrganizationSource.CentralCoordinatingRegister,
             PersonIdentifier = FieldValue.Null,
-            ModifiedAt = new DateTimeOffset(model.DatoSistEndret, midnight, utcOffset),
             IsDeleted = model.IsDeleted,
             DeletedAt = FieldValue.From(model.DeletedAt).Select(date => new DateTimeOffset(date, midnight, utcOffset)),
             OrganizationIdentifier = model.OrganizationIdentifier,
@@ -202,13 +206,6 @@ public class CcrService
             BusinessAddress = model.BusinessAddress,
         };
     }
-}
 
-/// <summary>
-/// Represents an update to an organization's CCR (Central Contractor Registration) information, including organization
-/// details and optional external role assignments.
-/// Intended to be used as a data transfer object for upserting party information into the database based on CCR updates.
-/// </summary>
-/// <param name="Org">The organization record containing updated information for the CCR entry.</param>
-/// <param name="RolesUpdate">The set of external role assignments to update for the party, or null to leave roles unchanged.</param>
-public record struct CcrDbUpdate(OrganizationRecord Org, PartyExternalRoleAssignmentsUpdate? RolesUpdate);
+    private record struct CcrDbUpdate(OrganizationRecord Org, PartyExternalRoleAssignmentsUpdate? RolesUpdate);
+}

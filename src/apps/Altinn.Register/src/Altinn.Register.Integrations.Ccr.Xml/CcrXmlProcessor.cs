@@ -18,7 +18,7 @@ namespace Altinn.Register.Integrations.Ccr.Xml;
 /// XML processor for CCR (Customer Contact Register) data. This class provides functionality to read and process CCR XML data,
 /// yielding updates as CcrPartyUpdate instances. The processing is done in an asynchronous manner, allowing for efficient handling of large XML data streams.
 /// </summary>
-public sealed class CcrXmlProcessor
+internal sealed class CcrXmlProcessor
     : ICcrXmlProcessor
 {
     /// <summary>
@@ -190,7 +190,7 @@ public sealed class CcrXmlProcessor
                 IsFirstRegistration = false,
                 OrganizationIdentifier = OrganizationIdentifier.Parse(organisasjonsnummer),
                 UnitType = organisasjonsform,
-                UnitStatus = FieldValue.Unset,
+                UnitStatus = hovedsakstype,
 
                 DatoSistEndret = datoSistEndret.Value,
                 DisplayName = FieldValue.Unset,
