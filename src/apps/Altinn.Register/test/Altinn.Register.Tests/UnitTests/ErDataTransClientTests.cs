@@ -243,15 +243,32 @@ public class ErDataTransClientTests
 
         mockClient.Setup(c => c.ListDirectory(remotePath)).Returns(files);
 
-        var content1 = "content of file1";
+        var client = new ErDataTransClient(remotePath, mockClient.Object);
 
-        mockClient.Setup(c => c.DownloadFile("/remote/path/baj05778.txtretrieved", It.IsAny<Stream>()))
-        .Callback<string, Stream, Action<ulong>>((path, stream, callback) =>
-        {
-            var writer = new StreamWriter(stream, Encoding.ASCII, leaveOpen: true);
-            writer.Write(content1);
-            writer.Flush();
-        });
+        // Assert
+        Assert.Throws<FormatException>(() => client.GetNewFiles(-1));
+
+        // Verify rename was called
+        mockClient.Verify(c => c.Connect(), Times.Once);
+        mockClient.Verify(c => c.Disconnect(), Times.Once);
+    }
+
+    [Fact]
+    public void GetNewFiles_InvalidFileRetrieved_V2()
+    {
+        // Arrange
+        var mockClient = new Mock<ISftpClient>();
+        var remotePath = "/remote/path";
+
+        var mockFile1 = new Mock<ISftpFile>();
+        mockFile1.Setup(f => f.IsDirectory).Returns(false);
+        mockFile1.Setup(f => f.IsSymbolicLink).Returns(false);
+        mockFile1.Setup(f => f.FullName).Returns("/remote/path/bajaaaaa.a");
+        mockFile1.Setup(f => f.Name).Returns("bajaaaaa.a");
+
+        var files = new List<ISftpFile> { mockFile1.Object };
+
+        mockClient.Setup(c => c.ListDirectory(remotePath)).Returns(files);
 
         var client = new ErDataTransClient(remotePath, mockClient.Object);
 
