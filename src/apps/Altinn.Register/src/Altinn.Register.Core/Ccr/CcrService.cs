@@ -20,6 +20,7 @@ public class CcrService
     private readonly ICcrXmlProcessor _ccrXmlProcessor;
     private readonly IExternalRoleDefinitionPersistence _roleMapper;
     private readonly ILocationLookupProvider _locationLookupProvider;
+    private readonly IPartyExternalRolePersistence _rolePersistence;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CcrService"/> class.
@@ -28,24 +29,31 @@ public class CcrService
     /// <param name="ccrXmlProcessor">Processes the CCR XML and returns a list of updates</param>
     /// <param name="roleMapper">Maps CCR rolecodes to Altinn Role Codes</param>
     /// <param name="locationLookupProvider">Gets static countrycode lookup</param>
+    /// <param name="rolePersistence">Role persistence</param>
     public CcrService(
         IUnitOfWorkManager uowManager,
         ICcrXmlProcessor ccrXmlProcessor,
         IExternalRoleDefinitionPersistence roleMapper,
-        ILocationLookupProvider locationLookupProvider)
+        ILocationLookupProvider locationLookupProvider,
+        IPartyExternalRolePersistence rolePersistence)
     {
         _uowManager = uowManager;
         _ccrXmlProcessor = ccrXmlProcessor;
         _roleMapper = roleMapper;
         _locationLookupProvider = locationLookupProvider;
+        _rolePersistence = rolePersistence;
     }
 
     /// <summary>
     /// Processes a CCR XML batch and upserts all party updates into the database.
     /// </summary>
+    /// <param name="commandId">Idempotency disambiguation id for queueing</param>
     /// <param name="input">The raw CCR XML byte sequence.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
-    public async Task UpdateFromCcr(ReadOnlySequence<byte> input, CancellationToken cancellationToken)
+    public async Task UpdateFromCcr(
+        Guid commandId,
+        ReadOnlySequence<byte> input,
+        CancellationToken cancellationToken)
     {
         ILocationLookup locationLookup = await _locationLookupProvider.GetLocationLookup(cancellationToken);
         IExternalRoleDefinitionLookup roleMap = await _roleMapper.GetRoleDefinitionLookup(cancellationToken);
@@ -56,29 +64,19 @@ public class CcrService
 
         var persistence = uow.GetRequiredService<IPartyPersistence>();
 
-        foreach (var dbUpdate in dbUpdates)
+        foreach (CcrDbUpdate dbUpdate in dbUpdates)
         {
             var result = await persistence.UpsertParty(dbUpdate.Org, cancellationToken);
+            result.EnsureSuccess();
+
+            if (dbUpdate.RolesUpdate is not null)
             {
-                result.EnsureSuccess();
-            }
-
-            if (dbUpdate.Roles is not null && dbUpdate.Roles is PartyExternalRoleAssignmentsUpdate.Patch patch)
-            {
-                foreach (var assignment in patch.AbsentByIdentifier)
-                {
-                    // TODO samu bulk removal based on external role identifier
-                }
-
-                foreach (var assignment in patch.Absent)
-                {
-                    // TODO removal based on external role identifier and party reference
-                }
-
-                foreach (var assignment in patch.Present)
-                {
-                    // TODO upsert based on external role identifier and party reference
-                }
+                await _rolePersistence.UpsertExternalRolesFromPartyBySource(
+                    commandId,
+                    partyUuid: result.Value.PartyUuid.Value,
+                    ExternalRoleSource.CentralCoordinatingRegister,
+                    dbUpdate.RolesUpdate,
+                    cancellationToken);
             }
         }
 
@@ -89,47 +87,66 @@ public class CcrService
     {
         foreach (var update in updates)
         {
-            CcrDbUpdate dbUpdate = MapToDbUpdate(update);
+            CcrDbUpdate dbUpdate = new(MapOrganization(update), MapRolesUpdate(update));
             yield return dbUpdate;
         }
     }
 
-    private static CcrDbUpdate MapToDbUpdate(CcrOrganizationUpdate update)
+    private static PartyExternalRoleAssignmentsUpdate? MapRolesUpdate(CcrOrganizationUpdate update)
     {
+        if (update.RoleUpdates is null)
+        {
+            return null;
+        }
+
         List<string> samuBulks = [];
         List<PartyExternalRoleAssignment> absent = [];
         List<PartyExternalRoleAssignment> present = [];
 
-        if (update.RoleUpdates is null)
+        PartyExternalRoleAssignmentsUpdate? roles;
+
+        if (update.IsFirstRegistration)
         {
-            samuBulks = update.RoleUpdates?.BulkRemoveRoleAssignments.Select(b => b.RoleCode).ToList() ?? [];
-
-            absent = update.RoleUpdates?.RemoveRoleAssignments.Select(r => new PartyExternalRoleAssignment
+            roles = new PartyExternalRoleAssignmentsUpdate.Full
             {
-                ExternalRoleIdentifier = r.RoleCode,
-                ToParty = SetToParty(r.RolePersonalIdentifier, r.RoleOrganizationNumber)
-            }).ToList() ?? [];
-
-            present = update.RoleUpdates?.RoleAssignments.Select(a => new PartyExternalRoleAssignment
+                Assignments = update.RoleUpdates?.RoleAssignments.
+                    Select(a => new PartyExternalRoleAssignment
+                    {
+                        ExternalRoleIdentifier = a.RoleCode,
+                        ToParty = SetToParty(
+                                a.RolePersonalIdentifier,
+                                a.RoleOrganizationNumber)
+                    }).ToImmutableValueArray() ?? []
+            };
+        }
+        else
+        {
+            roles = new PartyExternalRoleAssignmentsUpdate.Patch
             {
-                ExternalRoleIdentifier = a.RoleCode,
-                ToParty = SetToParty(a.RolePersonalIdentifier, a.RoleOrganizationNumber)
-            }).ToList() ?? [];
+                AbsentByIdentifier = update.RoleUpdates?.BulkRemoveRoleAssignments.
+                    Select(b => b.RoleCode).ToImmutableValueArray() ?? [],
+
+                Absent = update.RoleUpdates?.RemoveRoleAssignments.
+                    Select(r => new PartyExternalRoleAssignment
+                    {
+                        ExternalRoleIdentifier = r.RoleCode,
+                        ToParty = SetToParty(
+                                r.RolePersonalIdentifier,
+                                r.RoleOrganizationNumber)
+                    }).ToImmutableValueArray() ?? [],
+
+                Present = update.RoleUpdates?.RoleAssignments.
+                    Select(a => new PartyExternalRoleAssignment
+                    {
+                        ExternalRoleIdentifier = a.RoleCode,
+                        ToParty = SetToParty(
+                                a.RolePersonalIdentifier,
+                                a.RoleOrganizationNumber)
+                    }).ToImmutableValueArray() ?? []
+            };
         }
 
-        PartyExternalRoleAssignmentsUpdate.Patch? roles = new()
-        {
-            AbsentByIdentifier = samuBulks.ToImmutableValueArray(),
-            Absent = absent.ToImmutableValueArray(),
-            Present = present.ToImmutableValueArray()
-        };
-
-        if (roles.AbsentByIdentifier.IsEmpty && roles.Absent.IsEmpty && roles.Present.IsEmpty)
-        {
-            roles = null;
-        }
-
-        return new CcrDbUpdate(MapOrganization(update), roles);
+        return roles;
     }
 
     private static PartyExternalRoleAssignmentPartyRef SetToParty(string? rolePersonalIdentifier, string? roleOrganizationNumber)
@@ -207,5 +224,5 @@ public class CcrService
 /// Intended to be used as a data transfer object for upserting party information into the database based on CCR updates.
 /// </summary>
 /// <param name="Org">The organization record containing updated information for the CCR entry.</param>
-/// <param name="Roles">The set of external role assignments to update for the party, or null to leave roles unchanged.</param>
-public record struct CcrDbUpdate(OrganizationRecord Org, PartyExternalRoleAssignmentsUpdate.Patch? Roles);
+/// <param name="RolesUpdate">The set of external role assignments to update for the party, or null to leave roles unchanged.</param>
+public record struct CcrDbUpdate(OrganizationRecord Org, PartyExternalRoleAssignmentsUpdate? RolesUpdate);
