@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Contracts;
@@ -17,27 +16,18 @@ namespace Altinn.Register.Core.Operations;
 /// Request to get an existing self-identified user, or create one if none exists.
 /// </summary>
 /// <param name="SelfIdentifiedUserType">
-/// The self-identified user type. Only <see cref="SelfIdentifiedUserType.Legacy"/>
-/// and <see cref="SelfIdentifiedUserType.IdPortenEmail"/> are supported.
+/// The self-identified user type. Drives the response <c>ExternalUrn</c> shape; not used for identity construction.
 /// </param>
-/// <param name="Email">
-/// The user email (required for <see cref="SelfIdentifiedUserType.IdPortenEmail"/>).
-/// </param>
-/// <param name="Issuer">
-/// The OIDC issuer (required for <see cref="SelfIdentifiedUserType.Legacy"/>).
-/// </param>
-/// <param name="ExternalSubject">
-/// The OIDC subject / external identity (required for <see cref="SelfIdentifiedUserType.Legacy"/>).
+/// <param name="ExternalIdentity">
+/// The bridge-shape external identity (pre-built by the caller). Required.
 /// </param>
 /// <param name="UserName">
-/// The username to assign on create. Required. The caller (altinn-authentication)
-/// owns username generation; register does not transform it.
+/// The username to assign on create. Required. The caller owns username generation;
+/// register does not transform it.
 /// </param>
 public readonly record struct GetOrCreateSelfIdentifiedUserRequest(
     SelfIdentifiedUserType SelfIdentifiedUserType,
-    string? Email,
-    string? Issuer,
-    string? ExternalSubject,
+    string? ExternalIdentity,
     string? UserName)
     : IRequest<SelfIdentifiedUserResult>;
 
@@ -75,7 +65,6 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
     : IRequestHandler<GetOrCreateSelfIdentifiedUserRequest, SelfIdentifiedUserResult>
 {
     private const string LegacySelfIdentifiedUrnPrefix = "urn:altinn:person:legacy-selfidentified";
-    private const string IdPortenEmailUrnPrefix = "urn:altinn:person:idporten-email";
     private const int SbiUserTypeSelfIdentified = 2;
 
     /// <inheritdoc/>
@@ -83,12 +72,29 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
         GetOrCreateSelfIdentifiedUserRequest request,
         CancellationToken cancellationToken)
     {
-        if (!TryBuildBridgeExternalIdentity(request, out var bridgeExternalIdentity, out var validationProblem))
+        if (string.IsNullOrWhiteSpace(request.ExternalIdentity))
         {
-            return validationProblem;
+            return Problems.SelfIdentifiedUserTypeMismatch.Create([
+                new("reason", "externalIdentity is required"),
+            ]);
         }
 
-        var lookupResult = await bridgeClient.LookupUser(bridgeExternalIdentity, cancellationToken);
+        if (string.IsNullOrWhiteSpace(request.UserName))
+        {
+            return Problems.SelfIdentifiedUserTypeMismatch.Create([
+                new("reason", "userName is required"),
+            ]);
+        }
+
+        if (request.SelfIdentifiedUserType is not (SelfIdentifiedUserType.Legacy or SelfIdentifiedUserType.Educational or SelfIdentifiedUserType.IdPortenEmail))
+        {
+            return Problems.SelfIdentifiedUserTypeMismatch.Create([
+                new("selfIdentifiedUserType", request.SelfIdentifiedUserType.ToString()),
+                new("reason", "unsupported type"),
+            ]);
+        }
+
+        var lookupResult = await bridgeClient.LookupUser(request.ExternalIdentity, cancellationToken);
         if (lookupResult.IsProblem)
         {
             return lookupResult.Problem;
@@ -101,7 +107,7 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
 
         var createRequest = new SblUserProfile
         {
-            ExternalIdentity = bridgeExternalIdentity,
+            ExternalIdentity = request.ExternalIdentity,
             UserName = request.UserName,
             UserType = SbiUserTypeSelfIdentified,
         };
@@ -145,80 +151,6 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
         {
             // Don't fail the create on a bus hiccup — polling job will reconcile.
             Log.EnqueueImportFailed(logger, ex, user.PartyUuid);
-        }
-    }
-
-    private static bool TryBuildBridgeExternalIdentity(
-        GetOrCreateSelfIdentifiedUserRequest request,
-        [NotNullWhen(true)] out string? bridgeExternalIdentity,
-        [NotNullWhen(false)] out ProblemInstance? validationProblem)
-    {
-        if (string.IsNullOrWhiteSpace(request.UserName))
-        {
-            bridgeExternalIdentity = null;
-            validationProblem = Problems.SelfIdentifiedUserTypeMismatch.Create([
-                new("reason", "userName is required"),
-            ]);
-            return false;
-        }
-
-        switch (request.SelfIdentifiedUserType)
-        {
-            case SelfIdentifiedUserType.IdPortenEmail:
-                if (string.IsNullOrWhiteSpace(request.Email))
-                {
-                    bridgeExternalIdentity = null;
-                    validationProblem = Problems.SelfIdentifiedUserTypeMismatch.Create([
-                        new("reason", "email required for idporten-email"),
-                    ]);
-                    return false;
-                }
-
-                if (!string.IsNullOrEmpty(request.Issuer) || !string.IsNullOrEmpty(request.ExternalSubject))
-                {
-                    bridgeExternalIdentity = null;
-                    validationProblem = Problems.SelfIdentifiedUserTypeMismatch.Create([
-                        new("reason", "issuer/externalSubject must be empty for idporten-email"),
-                    ]);
-                    return false;
-                }
-
-                var encodedEmail = UrnEncoded.Create(request.Email.ToLowerInvariant());
-                bridgeExternalIdentity = $"{IdPortenEmailUrnPrefix}:{encodedEmail.Encoded}";
-                validationProblem = null;
-                return true;
-
-            case SelfIdentifiedUserType.Legacy:
-            case SelfIdentifiedUserType.Educational:
-                if (string.IsNullOrWhiteSpace(request.Issuer) || string.IsNullOrWhiteSpace(request.ExternalSubject))
-                {
-                    bridgeExternalIdentity = null;
-                    validationProblem = Problems.SelfIdentifiedUserTypeMismatch.Create([
-                        new("reason", "issuer and externalSubject required for legacy/edu"),
-                    ]);
-                    return false;
-                }
-
-                if (!string.IsNullOrEmpty(request.Email))
-                {
-                    bridgeExternalIdentity = null;
-                    validationProblem = Problems.SelfIdentifiedUserTypeMismatch.Create([
-                        new("reason", "email must be empty for legacy/edu"),
-                    ]);
-                    return false;
-                }
-
-                bridgeExternalIdentity = $"{request.Issuer}:{request.ExternalSubject}";
-                validationProblem = null;
-                return true;
-
-            default:
-                bridgeExternalIdentity = null;
-                validationProblem = Problems.SelfIdentifiedUserTypeMismatch.Create([
-                    new("selfIdentifiedUserType", request.SelfIdentifiedUserType.ToString()),
-                    new("reason", "unsupported type"),
-                ]);
-                return false;
         }
     }
 

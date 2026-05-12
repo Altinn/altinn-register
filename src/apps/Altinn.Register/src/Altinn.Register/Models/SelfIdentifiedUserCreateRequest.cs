@@ -7,12 +7,11 @@ namespace Altinn.Register.Models;
 /// Request body for the get-or-create self-identified user endpoint.
 /// </summary>
 /// <remarks>
-/// Only <see cref="SelfIdentifiedUserType.Legacy"/> and <see cref="SelfIdentifiedUserType.IdPortenEmail"/>
-/// are supported. The fields required depend on the declared type:
-/// <list type="bullet">
-///   <item><see cref="SelfIdentifiedUserType.IdPortenEmail"/> — <see cref="Email"/> is required.</item>
-///   <item><see cref="SelfIdentifiedUserType.Legacy"/> — <see cref="Issuer"/> and <see cref="ExternalSubject"/> are required.</item>
-/// </list>
+/// The caller (altinn-authentication) owns identity construction: it builds the bridge-shape
+/// <see cref="ExternalIdentity"/> (e.g. <c>uidp-anonym:&lt;hex&gt;</c> for OIDC, or
+/// <c>urn:altinn:person:idporten-email:&lt;base64-email&gt;</c> for idporten-email) and the
+/// <see cref="UserName"/>, then sends them verbatim to this endpoint. Register does not
+/// rebuild or validate the shape of either field beyond non-empty.
 /// </remarks>
 public sealed class SelfIdentifiedUserCreateRequest
 {
@@ -23,25 +22,10 @@ public sealed class SelfIdentifiedUserCreateRequest
     public SelfIdentifiedUserType SelfIdentifiedUserType { get; set; }
 
     /// <summary>
-    /// Gets or sets the user's email address (required when <see cref="SelfIdentifiedUserType"/>
-    /// is <see cref="SelfIdentifiedUserType.IdPortenEmail"/>).
+    /// Gets or sets the bridge-shape external identity (pre-built by the caller). Required.
     /// </summary>
-    [JsonPropertyName("email")]
-    public string? Email { get; set; }
-
-    /// <summary>
-    /// Gets or sets the OIDC issuer (required when <see cref="SelfIdentifiedUserType"/>
-    /// is <see cref="SelfIdentifiedUserType.Legacy"/>).
-    /// </summary>
-    [JsonPropertyName("issuer")]
-    public string? Issuer { get; set; }
-
-    /// <summary>
-    /// Gets or sets the OIDC subject (external identity) (required when <see cref="SelfIdentifiedUserType"/>
-    /// is <see cref="SelfIdentifiedUserType.Legacy"/>).
-    /// </summary>
-    [JsonPropertyName("externalSubject")]
-    public string? ExternalSubject { get; set; }
+    [JsonPropertyName("externalIdentity")]
+    public string? ExternalIdentity { get; set; }
 
     /// <summary>
     /// Gets or sets the username to assign on create. Required. The caller (altinn-authentication)

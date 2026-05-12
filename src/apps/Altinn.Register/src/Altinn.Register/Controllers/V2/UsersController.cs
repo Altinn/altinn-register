@@ -45,9 +45,7 @@ public sealed class UsersController : ControllerBase
 
         GetOrCreateSelfIdentifiedUserRequest mediatorRequest = new(
             SelfIdentifiedUserType: request.SelfIdentifiedUserType,
-            Email: request.Email,
-            Issuer: request.Issuer,
-            ExternalSubject: request.ExternalSubject,
+            ExternalIdentity: request.ExternalIdentity,
             UserName: request.UserName);
 
         Result<SelfIdentifiedUserResult> result = await sender.Send(mediatorRequest, cancellationToken);
