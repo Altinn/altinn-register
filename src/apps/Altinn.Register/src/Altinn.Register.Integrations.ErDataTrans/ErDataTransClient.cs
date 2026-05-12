@@ -8,9 +8,6 @@ namespace Altinn.Register.Integrations.ErDataTrans;
 /// </summary>
 internal sealed class ErDataTransClient
 {
-    private readonly string _username;
-    private readonly string _password;
-    private readonly string _host;
     private readonly string _remotePath;
     private readonly ISftpClient _client;
 
@@ -26,11 +23,8 @@ internal sealed class ErDataTransClient
     /// <param name="user">Username for authentication.</param>
     public ErDataTransClient(string user, string password, string host, string remotePath)
     {
-        _username = user;
-        _password = password;
-        _host = host;
         _remotePath = remotePath;
-        _client = new SftpClient(_host, _username, _password);
+        _client = new SftpClient(host, user, password);
     }
 
     /// <summary>
@@ -38,15 +32,9 @@ internal sealed class ErDataTransClient
     /// </summary>
     /// <param name="client">Test Client</param>
     /// <param name="remotePath">Remote path to access.</param>
-    /// <param name="host">Host to connect to.</param>
-    /// <param name="password">Password for authentication.</param>
-    /// <param name="user">Username for authentication.</param>
-    public ErDataTransClient(string remotePath, string host, string password, string user, ISftpClient client)
+    public ErDataTransClient(string remotePath, ISftpClient client)
     {
         _client = client;
-        _username = user;
-        _password = password;
-        _host = host;
         _remotePath = remotePath;
     }
 
@@ -93,7 +81,6 @@ internal sealed class ErDataTransClient
         {
             _client.Disconnect();
         }
-
     }
 
     /// <summary>
@@ -108,12 +95,18 @@ internal sealed class ErDataTransClient
             _client.Connect();
         }
 
-        string fullPath = $"{_remotePath}/{filename}";
-        Stream stream = new MemoryStream();
-        _client.DownloadFile(fullPath, stream);
-        stream.Position = 0; // Reset stream position after download
-        _client.Disconnect();
-        return stream;
+        try
+        {
+            string fullPath = $"{_remotePath}/{filename}";
+            Stream stream = new MemoryStream();
+            _client.DownloadFile(fullPath, stream);
+            stream.Position = 0; // Reset stream position after download
+            return stream;
+        }
+        finally
+        {
+            _client.Disconnect();
+        }
     }
 
     /// <summary>

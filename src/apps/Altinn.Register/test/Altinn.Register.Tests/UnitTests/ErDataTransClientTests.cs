@@ -14,9 +14,6 @@ public class ErDataTransClientTests
         // Arrange
         var mockClient = new Mock<ISftpClient>();
         var remotePath = "/remote/path";
-        string username = "testuser";
-        string password = "testpassword";
-        string host = "testhost";
 
         var mockFile1 = new Mock<ISftpFile>();
         mockFile1.Setup(f => f.IsDirectory).Returns(false);
@@ -40,7 +37,7 @@ public class ErDataTransClientTests
         mockFile4.Setup(f => f.IsDirectory).Returns(false);
         mockFile4.Setup(f => f.IsSymbolicLink).Returns(false);
         mockFile4.Setup(f => f.FullName).Returns("/remote/path/baj05781.txt");
-        mockFile4.Setup(f => f.Name).Returns("baj05781.txt"); 
+        mockFile4.Setup(f => f.Name).Returns("baj05781.txt");
 
         var mockFile5 = new Mock<ISftpFile>();
         mockFile5.Setup(f => f.IsDirectory).Returns(false);
@@ -89,7 +86,7 @@ public class ErDataTransClientTests
                  writer.Flush();
              });
 
-        var client = new ErDataTransClient(remotePath, host, password, username, mockClient.Object);
+        var client = new ErDataTransClient(remotePath, mockClient.Object);
 
         // Act
         var result = client.GetNewFiles(-1);
@@ -135,9 +132,6 @@ public class ErDataTransClientTests
         // Arrange
         var mockClient = new Mock<ISftpClient>();
         var remotePath = "/remote/path";
-        string username = "testuser";
-        string password = "testpassword";
-        string host = "testhost";
 
         var mockFile1 = new Mock<ISftpFile>();
         mockFile1.Setup(f => f.IsDirectory).Returns(false);
@@ -204,7 +198,7 @@ public class ErDataTransClientTests
                  writer.Flush();
              });
 
-        var client = new ErDataTransClient(remotePath, host, password, username, mockClient.Object);
+        var client = new ErDataTransClient(remotePath, mockClient.Object);
 
         // Act
         var result = client.GetNewFiles(5780);
