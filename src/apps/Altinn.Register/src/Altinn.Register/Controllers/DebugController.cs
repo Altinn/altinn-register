@@ -6,6 +6,7 @@ using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Configuration;
 using Altinn.Register.Contracts;
+using Altinn.Register.Contracts.PartyImport.A2;
 using Altinn.Register.Conventions;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Npr;

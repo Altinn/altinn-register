@@ -1,5 +1,7 @@
 using Altinn.Authorization.ProblemDetails;
+using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Contracts;
+using Altinn.Register.Contracts.PartyImport.A2;
 using Altinn.Register.Core.A2.SblProfile;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Operations;
@@ -11,6 +13,19 @@ namespace Altinn.Register.Tests.UnitTests;
 public class GetOrCreateSelfIdentifiedUserHandlerTests
 {
     private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
+
+    private static GetOrCreateSelfIdentifiedUserFromBridgeHandler CreateHandler(
+        ISblProfileBridgeClient bridge,
+        ICommandSender sender)
+        => new(bridge, sender, NullLogger<GetOrCreateSelfIdentifiedUserFromBridgeHandler>.Instance);
+
+    private static Mock<ICommandSender> CreateSenderMock()
+    {
+        var sender = new Mock<ICommandSender>(MockBehavior.Strict);
+        sender.Setup(s => s.Send(It.IsAny<ImportA2PartyCommand>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        return sender;
+    }
 
     [Fact]
     public async Task IdPortenEmail_LookupHit_ReturnsExistingUser()
@@ -29,9 +44,8 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
         bridge.Setup(b => b.LookupUser(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Result<SblUserLookup>)new SblUserLookup(existing));
 
-        var handler = new GetOrCreateSelfIdentifiedUserFromBridgeHandler(
-            bridge.Object,
-            NullLogger<GetOrCreateSelfIdentifiedUserFromBridgeHandler>.Instance);
+        var sender = CreateSenderMock();
+        var handler = CreateHandler(bridge.Object, sender.Object);
 
         var request = new GetOrCreateSelfIdentifiedUserRequest(
             SelfIdentifiedUserType: SelfIdentifiedUserType.IdPortenEmail,
@@ -50,6 +64,7 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
         result.Value.ExternalUrn.ShouldStartWith("urn:altinn:person:idporten-email:");
 
         bridge.Verify(b => b.CreateUser(It.IsAny<SblUserProfile>(), It.IsAny<CancellationToken>()), Times.Never);
+        sender.Verify(s => s.Send(It.IsAny<ImportA2PartyCommand>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -73,9 +88,13 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
             .Callback<SblUserProfile, CancellationToken>((p, _) => capturedCreate = p)
             .ReturnsAsync((Result<SblUserProfile>)created);
 
-        var handler = new GetOrCreateSelfIdentifiedUserFromBridgeHandler(
-            bridge.Object,
-            NullLogger<GetOrCreateSelfIdentifiedUserFromBridgeHandler>.Instance);
+        ImportA2PartyCommand? capturedImport = null;
+        var sender = new Mock<ICommandSender>(MockBehavior.Strict);
+        sender.Setup(s => s.Send(It.IsAny<ImportA2PartyCommand>(), It.IsAny<CancellationToken>()))
+            .Callback<ImportA2PartyCommand, CancellationToken>((c, _) => capturedImport = c)
+            .Returns(Task.CompletedTask);
+
+        var handler = CreateHandler(bridge.Object, sender.Object);
 
         var request = new GetOrCreateSelfIdentifiedUserRequest(
             SelfIdentifiedUserType: SelfIdentifiedUserType.IdPortenEmail,
@@ -94,6 +113,10 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
         capturedCreate.UserName.ShouldStartWith("altinn-");
         capturedCreate.ExternalIdentity.ShouldStartWith("urn:altinn:person:idporten-email:");
         capturedCreate.ExternalIdentity.ShouldContain("new@example.com");
+
+        capturedImport.ShouldNotBeNull();
+        capturedImport!.PartyUuid.ShouldBe(created.UserUuid!.Value);
+        capturedImport.Tracking.HasValue.ShouldBeFalse();
     }
 
     [Fact]
@@ -115,9 +138,8 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
                 UserType = 2,
             });
 
-        var handler = new GetOrCreateSelfIdentifiedUserFromBridgeHandler(
-            bridge.Object,
-            NullLogger<GetOrCreateSelfIdentifiedUserFromBridgeHandler>.Instance);
+        var sender = CreateSenderMock();
+        var handler = CreateHandler(bridge.Object, sender.Object);
 
         var request = new GetOrCreateSelfIdentifiedUserRequest(
             SelfIdentifiedUserType: SelfIdentifiedUserType.Legacy,
@@ -134,16 +156,17 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
 
         capturedCreate.ShouldNotBeNull();
         capturedCreate!.ExternalIdentity.ShouldBe("https://example-idp:sub-abc");
+
+        sender.Verify(s => s.Send(It.IsAny<ImportA2PartyCommand>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task IdPortenEmail_MissingEmail_ReturnsValidationProblem()
     {
         var bridge = new Mock<ISblProfileBridgeClient>(MockBehavior.Strict);
+        var sender = CreateSenderMock();
 
-        var handler = new GetOrCreateSelfIdentifiedUserFromBridgeHandler(
-            bridge.Object,
-            NullLogger<GetOrCreateSelfIdentifiedUserFromBridgeHandler>.Instance);
+        var handler = CreateHandler(bridge.Object, sender.Object);
 
         var request = new GetOrCreateSelfIdentifiedUserRequest(
             SelfIdentifiedUserType: SelfIdentifiedUserType.IdPortenEmail,
@@ -158,16 +181,16 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
         result.Problem!.ErrorCode.ShouldBe(Problems.SelfIdentifiedUserTypeMismatch.ErrorCode);
 
         bridge.Verify(b => b.LookupUser(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        sender.Verify(s => s.Send(It.IsAny<ImportA2PartyCommand>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
     public async Task Legacy_MissingIssuer_ReturnsValidationProblem()
     {
         var bridge = new Mock<ISblProfileBridgeClient>(MockBehavior.Strict);
+        var sender = CreateSenderMock();
 
-        var handler = new GetOrCreateSelfIdentifiedUserFromBridgeHandler(
-            bridge.Object,
-            NullLogger<GetOrCreateSelfIdentifiedUserFromBridgeHandler>.Instance);
+        var handler = CreateHandler(bridge.Object, sender.Object);
 
         var request = new GetOrCreateSelfIdentifiedUserRequest(
             SelfIdentifiedUserType: SelfIdentifiedUserType.Legacy,
@@ -180,6 +203,8 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
 
         result.IsProblem.ShouldBeTrue();
         result.Problem!.ErrorCode.ShouldBe(Problems.SelfIdentifiedUserTypeMismatch.ErrorCode);
+
+        sender.Verify(s => s.Send(It.IsAny<ImportA2PartyCommand>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -201,9 +226,8 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
                 UserType = 2,
             });
 
-        var handler = new GetOrCreateSelfIdentifiedUserFromBridgeHandler(
-            bridge.Object,
-            NullLogger<GetOrCreateSelfIdentifiedUserFromBridgeHandler>.Instance);
+        var sender = CreateSenderMock();
+        var handler = CreateHandler(bridge.Object, sender.Object);
 
         var request = new GetOrCreateSelfIdentifiedUserRequest(
             SelfIdentifiedUserType: SelfIdentifiedUserType.Educational,
@@ -221,16 +245,17 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
 
         capturedCreate.ShouldNotBeNull();
         capturedCreate!.ExternalIdentity.ShouldBe("https://feide.no:edu-sub-abc");
+
+        sender.Verify(s => s.Send(It.IsAny<ImportA2PartyCommand>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task Educational_MissingIssuer_ReturnsValidationProblem()
     {
         var bridge = new Mock<ISblProfileBridgeClient>(MockBehavior.Strict);
+        var sender = CreateSenderMock();
 
-        var handler = new GetOrCreateSelfIdentifiedUserFromBridgeHandler(
-            bridge.Object,
-            NullLogger<GetOrCreateSelfIdentifiedUserFromBridgeHandler>.Instance);
+        var handler = CreateHandler(bridge.Object, sender.Object);
 
         var request = new GetOrCreateSelfIdentifiedUserRequest(
             SelfIdentifiedUserType: SelfIdentifiedUserType.Educational,
@@ -243,6 +268,8 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
 
         result.IsProblem.ShouldBeTrue();
         result.Problem!.ErrorCode.ShouldBe(Problems.SelfIdentifiedUserTypeMismatch.ErrorCode);
+
+        sender.Verify(s => s.Send(It.IsAny<ImportA2PartyCommand>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -268,9 +295,8 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
         bridge.Setup(b => b.LookupUser(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Result<SblUserLookup>)Problems.SblProfileBridgeUnavailable.Create());
 
-        var handler = new GetOrCreateSelfIdentifiedUserFromBridgeHandler(
-            bridge.Object,
-            NullLogger<GetOrCreateSelfIdentifiedUserFromBridgeHandler>.Instance);
+        var sender = CreateSenderMock();
+        var handler = CreateHandler(bridge.Object, sender.Object);
 
         var request = new GetOrCreateSelfIdentifiedUserRequest(
             SelfIdentifiedUserType: SelfIdentifiedUserType.IdPortenEmail,
@@ -283,5 +309,44 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
 
         result.IsProblem.ShouldBeTrue();
         result.Problem!.ErrorCode.ShouldBe(Problems.SblProfileBridgeUnavailable.ErrorCode);
+
+        sender.Verify(s => s.Send(It.IsAny<ImportA2PartyCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateSucceeds_ButEnqueueImportThrows_StillReturnsSuccess()
+    {
+        var bridge = new Mock<ISblProfileBridgeClient>(MockBehavior.Strict);
+        bridge.Setup(b => b.LookupUser(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Result<SblUserLookup>)SblUserLookup.NotFound);
+        bridge.Setup(b => b.CreateUser(It.IsAny<SblUserProfile>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Result<SblUserProfile>)new SblUserProfile
+            {
+                UserId = 13,
+                UserUuid = Guid.Parse("55555555-5555-5555-5555-555555555555"),
+                UserName = "altinn-flaky-1",
+                PartyId = 50005,
+                ExternalIdentity = "urn:altinn:person:idporten-email:Zmxha3lAZXhhbXBsZS5jb20",
+                UserType = 2,
+            });
+
+        var sender = new Mock<ICommandSender>(MockBehavior.Strict);
+        sender.Setup(s => s.Send(It.IsAny<ImportA2PartyCommand>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("bus down"));
+
+        var handler = CreateHandler(bridge.Object, sender.Object);
+
+        var request = new GetOrCreateSelfIdentifiedUserRequest(
+            SelfIdentifiedUserType: SelfIdentifiedUserType.IdPortenEmail,
+            Email: "flaky@example.com",
+            Issuer: null,
+            ExternalSubject: null,
+            UserNamePrefix: null);
+
+        var result = await handler.Handle(request, CancellationToken);
+
+        result.IsProblem.ShouldBeFalse();
+        result.Value.UserId.ShouldBe(13u);
+        sender.Verify(s => s.Send(It.IsAny<ImportA2PartyCommand>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

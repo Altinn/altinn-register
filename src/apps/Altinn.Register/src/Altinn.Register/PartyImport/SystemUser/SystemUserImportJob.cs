@@ -6,6 +6,8 @@ using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Contracts;
+using Altinn.Register.Contracts.PartyImport;
+using Altinn.Register.Contracts.PartyImport.SystemUser;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;

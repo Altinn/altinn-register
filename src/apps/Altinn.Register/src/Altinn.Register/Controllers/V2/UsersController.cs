@@ -43,14 +43,14 @@ public sealed class UsersController : ControllerBase
             return BadRequest();
         }
 
-        var mediatorRequest = new GetOrCreateSelfIdentifiedUserRequest(
+        GetOrCreateSelfIdentifiedUserRequest mediatorRequest = new(
             SelfIdentifiedUserType: request.SelfIdentifiedUserType,
             Email: request.Email,
             Issuer: request.Issuer,
             ExternalSubject: request.ExternalSubject,
             UserNamePrefix: request.UserNamePrefix);
 
-        var result = await sender.Send(mediatorRequest, cancellationToken);
+        Result<SelfIdentifiedUserResult> result = await sender.Send(mediatorRequest, cancellationToken);
         if (result.IsProblem)
         {
             return result.Problem.ToActionResult();

@@ -5,6 +5,7 @@ using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Contracts;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Contracts.Parties;
+using Altinn.Register.Contracts.PartyImport.A2;
 using Altinn.Register.Core.Npr;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;

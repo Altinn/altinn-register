@@ -3,7 +3,9 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using Altinn.Authorization.ProblemDetails;
+using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Contracts;
+using Altinn.Register.Contracts.PartyImport.A2;
 using Altinn.Register.Core.A2.SblProfile;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Mediator;
@@ -70,6 +72,7 @@ public readonly record struct SelfIdentifiedUserResult(
 /// </remarks>
 internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
     ISblProfileBridgeClient bridgeClient,
+    ICommandSender commandSender,
     ILogger<GetOrCreateSelfIdentifiedUserFromBridgeHandler> logger)
     : IRequestHandler<GetOrCreateSelfIdentifiedUserRequest, SelfIdentifiedUserResult>
 {
@@ -115,7 +118,40 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
             return createResult.Problem;
         }
 
-        return MapToResult(createResult.Value, request.SelfIdentifiedUserType);
+        var mapped = MapToResult(createResult.Value, request.SelfIdentifiedUserType);
+        if (mapped.IsProblem)
+        {
+            return mapped.Problem;
+        }
+
+        await EnqueueLocalImport(mapped.Value, cancellationToken);
+        return mapped;
+    }
+
+    // The polling A2PartyImportJob will eventually pick up this party as a change
+    // from SBL, but we enqueue the same command eagerly so authentication can read
+    // the party from local register on the immediate next request. ChangeId is 0 and
+    // Tracking is left default — the polling job will track ProcessedMax when it
+    // re-processes the same change.
+    private async ValueTask EnqueueLocalImport(SelfIdentifiedUserResult user, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await commandSender.Send(
+                new ImportA2PartyCommand
+                {
+                    PartyUuid = user.PartyUuid,
+                    ChangeId = 0,
+                    ChangedTime = DateTimeOffset.UtcNow,
+                    Tracking = default,
+                },
+                cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Don't fail the create on a bus hiccup — polling job will reconcile.
+            Log.EnqueueImportFailed(logger, ex, user.PartyUuid);
+        }
     }
 
     private static bool TryBuildBridgeExternalIdentity(
@@ -245,6 +281,9 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
     {
         [LoggerMessage(0, LogLevel.Error, "SBL Bridge response missing one or more required identifiers (UserUuid, UserId, PartyId, UserName)")]
         public static partial void IncompleteBridgeResponse(ILogger logger);
+
+        [LoggerMessage(1, LogLevel.Warning, "Failed to enqueue local profile import for newly created self-identified user {PartyUuid}.")]
+        public static partial void EnqueueImportFailed(ILogger logger, Exception exception, Guid partyUuid);
     }
 }
 

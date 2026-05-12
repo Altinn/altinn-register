@@ -1,11 +1,14 @@
 using Altinn.Authorization.ServiceDefaults.MassTransit;
-using Altinn.Register.Contracts;
+using MassTransit;
 
-namespace Altinn.Register.PartyImport;
+namespace Altinn.Register.Contracts.PartyImport;
 
 /// <summary>
 /// A command for upserting external role assignments from a given party.
 /// </summary>
+// Pinned to the original urn derived from the previous namespace
+// (Altinn.Register.PartyImport) so in-flight messages keep routing.
+[MessageUrn("Altinn.Register.PartyImport:UpsertExternalRoleAssignmentsCommand")]
 public sealed record UpsertExternalRoleAssignmentsCommand
     : CommandBase
 {

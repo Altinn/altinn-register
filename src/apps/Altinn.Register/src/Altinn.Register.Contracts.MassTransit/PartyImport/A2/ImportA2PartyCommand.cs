@@ -1,10 +1,15 @@
 using Altinn.Authorization.ServiceDefaults.MassTransit;
+using MassTransit;
 
-namespace Altinn.Register.PartyImport.A2;
+namespace Altinn.Register.Contracts.PartyImport.A2;
 
 /// <summary>
 /// A command for importing a party from A2.
 /// </summary>
+// Pinned to the original urn derived from the previous namespace
+// (Altinn.Register.PartyImport.A2) so in-flight messages keep routing.
+// MassTransit prepends the "urn:message:" prefix automatically.
+[MessageUrn("Altinn.Register.PartyImport.A2:ImportA2PartyCommand")]
 public sealed record ImportA2PartyCommand
     : CommandBase
 {

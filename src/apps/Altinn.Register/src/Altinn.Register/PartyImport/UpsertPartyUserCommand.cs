@@ -1,4 +1,5 @@
 using Altinn.Authorization.ServiceDefaults.MassTransit;
+using Altinn.Register.Contracts.PartyImport;
 using Altinn.Register.Core.Parties.Records;
 
 namespace Altinn.Register.PartyImport;
