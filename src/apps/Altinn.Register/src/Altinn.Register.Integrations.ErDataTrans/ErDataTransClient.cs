@@ -57,7 +57,7 @@ internal sealed class ErDataTransClient
             IEnumerable<ISftpFile> files = _client.ListDirectory(_remotePath).Where(f => !f.IsDirectory && !f.IsSymbolicLink);
             foreach (var file in files.OrderBy(f => f.Name))
             {
-                if (file.Name.Contains("Downloaded"))
+                if (file.Name.Contains("Downloaded", StringComparison.InvariantCultureIgnoreCase) || !file.Name.StartsWith("baj", StringComparison.InvariantCultureIgnoreCase))
                 {
                     continue;
                 }
