@@ -210,6 +210,12 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
     [Fact]
     public async Task Educational_LookupMiss_CreatesNewUser_WithIssSubExternalIdentity_AndNullUrn()
     {
+        // Matches altinn-authentication's uidp-anonym provider: Iss is the provider config key,
+        // ExternalSubject is a SHA-256 hex hash from upstream, UserName is `uidp_` + hash segment + random suffix.
+        const string Iss = "uidp-anonym";
+        const string Sub = "66a633c43ef2f656978f957532ce6d0de6f5e13f1e0618b37b4b2a70573e5551";
+        const string UidpUserName = "uidp_ej2krar0cl833";
+
         SblUserProfile? capturedCreate = null;
         var bridge = new Mock<ISblProfileBridgeClient>(MockBehavior.Strict);
         bridge.Setup(b => b.LookupUser(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -220,9 +226,9 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
             {
                 UserId = 11,
                 UserUuid = Guid.Parse("44444444-4444-4444-4444-444444444444"),
-                UserName = "altinn-edu99-x7q9w2",
+                UserName = UidpUserName,
                 PartyId = 50004,
-                ExternalIdentity = "https://feide.no:edu-sub-abc",
+                ExternalIdentity = $"{Iss}:{Sub}",
                 UserType = 2,
             });
 
@@ -232,19 +238,21 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
         var request = new GetOrCreateSelfIdentifiedUserRequest(
             SelfIdentifiedUserType: SelfIdentifiedUserType.Educational,
             Email: null,
-            Issuer: "https://feide.no",
-            ExternalSubject: "edu-sub-abc",
-            UserName: "altinn-test-user");
+            Issuer: Iss,
+            ExternalSubject: Sub,
+            UserName: UidpUserName);
 
         var result = await handler.Handle(request, CancellationToken);
 
         result.IsProblem.ShouldBeFalse();
         result.Value.SelfIdentifiedUserType.ShouldBe(SelfIdentifiedUserType.Educational);
         result.Value.UserId.ShouldBe(11u);
+        result.Value.UserName.ShouldBe(UidpUserName);
         result.Value.ExternalUrn.ShouldBeNull();
 
         capturedCreate.ShouldNotBeNull();
-        capturedCreate!.ExternalIdentity.ShouldBe("https://feide.no:edu-sub-abc");
+        capturedCreate!.UserName.ShouldBe(UidpUserName);
+        capturedCreate.ExternalIdentity.ShouldBe($"{Iss}:{Sub}");
 
         sender.Verify(s => s.Send(It.IsAny<ImportA2PartyCommand>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -261,8 +269,8 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
             SelfIdentifiedUserType: SelfIdentifiedUserType.Educational,
             Email: null,
             Issuer: null,
-            ExternalSubject: "edu-sub-abc",
-            UserName: "altinn-test-user");
+            ExternalSubject: "66a633c43ef2f656978f957532ce6d0de6f5e13f1e0618b37b4b2a70573e5551",
+            UserName: "uidp_ej2krar0cl833");
 
         var result = await handler.Handle(request, CancellationToken);
 

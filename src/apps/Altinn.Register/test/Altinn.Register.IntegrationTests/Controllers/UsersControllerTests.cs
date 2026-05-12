@@ -100,13 +100,16 @@ public class UsersControllerTests
             .Expect(HttpMethod.Post, "/profile/api/users/")
             .Respond(HttpStatusCode.NotFound);
 
+        // Matches altinn-authentication's uidp-anonym provider (see appsettings.test.json):
+        // Iss is the provider config key, ExternalSubject is a SHA-256 hex hash, UserName is
+        // `uidp_` + hash segment + random suffix (see existing_uidpuser.json).
         var created = new SblUserProfile
         {
             UserId = 11011,
             UserUuid = Guid.Parse("44444444-4444-4444-4444-444444444444"),
-            UserName = "altinn-eduhash99-x7q9w2",
+            UserName = "uidp_newhash99x7",
             PartyId = 50004,
-            ExternalIdentity = "https://feide.no:edu-sub-abc",
+            ExternalIdentity = "uidp-anonym:66a633c43ef2f656978f957532ce6d0de6f5e13f1e0618b37b4b2a70573e5551",
             UserType = 2,
         };
 
@@ -119,9 +122,9 @@ public class UsersControllerTests
         request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
         {
             SelfIdentifiedUserType = SelfIdentifiedUserType.Educational,
-            Issuer = "https://feide.no",
-            ExternalSubject = "edu-sub-abc",
-            UserName = "altinn-eduhash99-x7q9w2",
+            Issuer = "uidp-anonym",
+            ExternalSubject = "66a633c43ef2f656978f957532ce6d0de6f5e13f1e0618b37b4b2a70573e5551",
+            UserName = "uidp_newhash99x7",
         });
 
         var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
@@ -140,13 +143,14 @@ public class UsersControllerTests
     [Fact]
     public async Task GetOrCreate_Educational_LookupHit_ReturnsExisting_WithNullExternalUrn()
     {
+        // Existing uidp/edu user — same shape as altinn-authentication's existing_uidpuser.json scenario.
         var existing = new SblUserProfile
         {
             UserId = 11012,
             UserUuid = Guid.Parse("55555555-5555-5555-5555-555555555555"),
-            UserName = "altinn-eduexisting-1",
+            UserName = "uidp_ej2krar0cl833",
             PartyId = 50005,
-            ExternalIdentity = "https://feide.no:edu-sub-existing",
+            ExternalIdentity = "uidp-anonym:33a633c47ef2f656978f957532ce6d0de6f5e13f1e0618b37b4b2a70573e5551",
             UserType = 2,
         };
 
@@ -159,9 +163,9 @@ public class UsersControllerTests
         request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
         {
             SelfIdentifiedUserType = SelfIdentifiedUserType.Educational,
-            Issuer = "https://feide.no",
-            ExternalSubject = "edu-sub-existing",
-            UserName = "altinn-eduexisting-1",
+            Issuer = "uidp-anonym",
+            ExternalSubject = "33a633c47ef2f656978f957532ce6d0de6f5e13f1e0618b37b4b2a70573e5551",
+            UserName = "uidp_ej2krar0cl833",
         });
 
         var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
@@ -183,8 +187,8 @@ public class UsersControllerTests
         request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
         {
             SelfIdentifiedUserType = SelfIdentifiedUserType.Educational,
-            ExternalSubject = "edu-sub-abc",
-            UserName = "altinn-test",
+            ExternalSubject = "66a633c43ef2f656978f957532ce6d0de6f5e13f1e0618b37b4b2a70573e5551",
+            UserName = "uidp_test",
         });
 
         var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
