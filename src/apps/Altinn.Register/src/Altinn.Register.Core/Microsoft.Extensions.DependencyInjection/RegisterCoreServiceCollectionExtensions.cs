@@ -1,6 +1,7 @@
 #pragma warning disable CS1734 // The compiler associates XML docs on the extension block with the lowered static method, even though the documented 'services' receiver parameter is valid.
 
 using System.Collections.Concurrent;
+using Altinn.Register.Core.Ccr;
 using Altinn.Register.Core.Mediator;
 using Altinn.Register.Core.Operations;
 using Altinn.Register.Core.RateLimiting;
@@ -28,6 +29,8 @@ public static class RegisterCoreServiceCollectionExtensions
             services.AddMediator();
             services.AddRegisterOperations();
             services.AddRegisterRateLimiting();
+
+            services.TryAddScoped<CcrService>();
 
             return services;
         }

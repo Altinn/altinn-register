@@ -203,7 +203,7 @@ internal sealed partial class CcrFlatFileProcessor
                     {
                         var status = Line.Slice(ParserConsts.FadrOffsetStatus, ParserConsts.FadrLengthStatus).Trim();
                         var postNummer = Line.Slice(ParserConsts.FadrOffsetPostadresse, ParserConsts.FadrLengthPostadresse).Trim();
-                        var poststedUtland = Line.Slice(ParserConsts.FadrOffsetPoststed, ParserConsts.FadrLengthPoststed).Trim();
+                        var poststedIUtland = Line.Slice(ParserConsts.FadrOffsetPoststed, ParserConsts.FadrLengthPoststed).Trim();
                         var kommuneNummer = Line.Slice(ParserConsts.FadrOffsetKommuneNr, ParserConsts.FadrLengthKommuneNr).Trim();
                         var landKode = Line.Slice(ParserConsts.FadrOffsetLandkode, ParserConsts.FadrLengthLandkode).Trim();
                         var adresse1 = Line.Slice(ParserConsts.FadrOffsetAdresse1, ParserConsts.FadrLengthAdresse1).Trim();
@@ -214,7 +214,7 @@ internal sealed partial class CcrFlatFileProcessor
                             type: recordType.Trim(),
                             status: status,
                             postNummer: postNummer,
-                            poststedUtland: poststedUtland,
+                            poststedIUtland: poststedIUtland,
                             kommuneNummer: kommuneNummer,
                             landKode: landKode,
                             adresse1: adresse1,
@@ -247,6 +247,7 @@ internal sealed partial class CcrFlatFileProcessor
                         var navn3 = Line.Slice(ParserConsts.NavnOffsetNavn3, ParserConsts.NavnLengthNavn3).Trim();
                         var navn4 = Line.Slice(ParserConsts.NavnOffsetNavn4, ParserConsts.NavnLengthNavn4).Trim();
                         var navn5 = Line.Slice(ParserConsts.NavnOffsetNavn5, ParserConsts.NavnLengthNavn5).Trim();
+
                         var redigertNavn = Line.Slice(ParserConsts.NavnOffsetRedigertNavn, ParserConsts.NavnLengthRedigertNavn).Trim();
 
                         writer.WriteName(status, navn1, navn2, navn3, navn4, navn5, redigertNavn);

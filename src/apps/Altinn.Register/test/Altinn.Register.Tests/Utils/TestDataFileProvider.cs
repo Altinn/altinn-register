@@ -7,6 +7,8 @@ public sealed class TestDataFileProvider
 {
     public static TestDataFileProvider Testdata { get; } = new("Testdata");
 
+    public static TestDataFileProvider Snapshots { get; } = new("Snapshots");
+
     public static TestDataFileProvider For(string root)
         => new($"Testdata/{root}");
 

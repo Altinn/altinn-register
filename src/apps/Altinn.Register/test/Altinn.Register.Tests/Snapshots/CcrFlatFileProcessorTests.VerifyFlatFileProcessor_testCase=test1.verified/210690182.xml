@@ -3,8 +3,8 @@
   <head avsender="ER" dato="20260311" kjoerenr="05749" mottaker="ALT" type="A" />
   <enhet organisasjonsnummer="210690182" organisasjonsform="ENK" hovedsakstype="E" undersakstype="NY" foersteOverfoering="N" datoFoedt="20210312" datoSistEndret="20210312">
     <infotype felttype="NAVN" endringstype="N">
-      <navn1>DYNAMISK BRA KATT HOFTE RESERVERT A</navn1>
-      <navn2>MBITA</navn2>
+      <navn1>DYNAMISK BRA KATT HOFTE RESERVERT</navn1>
+      <navn2>AMBITA</navn2>
       <rednavn>DYNAMISK BRA KATT HOFTE RESE</rednavn>
     </infotype>
     <samendringer data="D" felttype="DAGL" endringstype="N" type="R">

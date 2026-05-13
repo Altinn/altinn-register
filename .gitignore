@@ -352,5 +352,6 @@ MigrationBackup/
 .devenv/
 devenv.lock
 
-# Codex
+# AI tools
 .codex
+.claude

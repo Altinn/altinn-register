@@ -3,8 +3,8 @@
   <head avsender="ER" dato="20260311" kjoerenr="05749" mottaker="ALT" type="A" />
   <enhet organisasjonsnummer="313887162" organisasjonsform="ENK" hovedsakstype="E" undersakstype="NY" foersteOverfoering="N" datoFoedt="20210314" datoSistEndret="20210314">
     <infotype felttype="NAVN" endringstype="N">
-      <navn1>AKADEMISK DEILIG KATT MÅNEFERD RESE</navn1>
-      <navn2>RVERT AMBITA</navn2>
+      <navn1>AKADEMISK DEILIG KATT MÅNEFERD</navn1>
+      <navn2>RESERVERT AMBITA</navn2>
       <rednavn>AKADEMISK DEILIG KATT MÅNEFE</rednavn>
     </infotype>
     <samendringer data="D" felttype="DAGL" endringstype="N" type="R">
