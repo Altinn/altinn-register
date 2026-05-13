@@ -1,5 +1,4 @@
 using System.IO.Pipelines;
-using Nerdbank.Streams;
 using Renci.SshNet;
 using Renci.SshNet.Sftp;
 
@@ -54,13 +53,13 @@ internal sealed class CcrDataTransfer
     {
         if (!_client.IsConnected)
         {
-            _client.Connect();
+            await _client.ConnectAsync(cancellationToken);
         }
 
         try
         {
-            IEnumerable<ISftpFile> files = _client.ListDirectory(_remotePath).Where(f => !f.IsDirectory && !f.IsSymbolicLink);
-            foreach (var file in files.OrderBy(f => f.Name))
+            IAsyncEnumerable<ISftpFile> files = _client.ListDirectoryAsync(_remotePath, cancellationToken).Where(f => !f.IsDirectory && !f.IsSymbolicLink);
+            await foreach (var file in files.OrderBy(f => f.Name))
             {
                 if (file.Name.Contains("Downloaded", StringComparison.InvariantCultureIgnoreCase) || !file.Name.StartsWith("baj", StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -80,6 +79,11 @@ internal sealed class CcrDataTransfer
 
             return false;
         }
+        catch (Exception ex)
+        {
+            await writer.CompleteAsync(ex); // Complete the writer with an exception if an error occurs
+            throw;
+        }
         finally
         {
             _client.Disconnect();
@@ -96,13 +100,13 @@ internal sealed class CcrDataTransfer
     {
         if (!_client.IsConnected)
         {
-            _client.Connect();
+            await _client.ConnectAsync(cancellationToken);
         }
 
         try
         {
-            IEnumerable<ISftpFile> files = _client.ListDirectory(_remotePath).Where(f => !f.IsDirectory && !f.IsSymbolicLink);
-            foreach (var file in files.OrderBy(f => f.Name))
+            IAsyncEnumerable<ISftpFile> files = _client.ListDirectoryAsync(_remotePath, cancellationToken).Where(f => !f.IsDirectory && !f.IsSymbolicLink);
+            await foreach (var file in files)
             {
                 if (file.Name.Contains("Downloaded", StringComparison.InvariantCultureIgnoreCase) || !file.Name.StartsWith("baj", StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -112,15 +116,11 @@ internal sealed class CcrDataTransfer
                 int runId = GetRunIdFromFileName(file.Name);
                 if (runId == lastRun + 1)
                 {
-                    _client.RenameFile(file.FullName, file.FullName.Replace(".txt", "Downloaded.txt")); // Mark file as downloaded
+                    await _client.RenameFileAsync(file.FullName, file.FullName.Replace(".txt", "Downloaded.txt"), cancellationToken); // Mark file as downloaded
                     return true;
                 }
             }
 
-            return false;
-        }
-        catch
-        {
             return false;
         }
         finally
@@ -140,7 +140,7 @@ internal sealed class CcrDataTransfer
     {
         if (!_client.IsConnected)
         {
-            _client.Connect();
+            await _client.ConnectAsync(cancellationToken);
         }
 
         try
