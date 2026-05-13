@@ -1,5 +1,7 @@
 using System.Buffers;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Text;
 using System.Xml;
 using Altinn.Authorization.ModelUtils;
@@ -21,24 +23,11 @@ namespace Altinn.Register.Integrations.Ccr.Xml;
 internal sealed class CcrXmlProcessor
     : ICcrXmlProcessor
 {
-    /// <summary>
-    /// Parses a CCR XML data stream and asynchronously yields updates for each party found in the document.
-    /// </summary>
-    /// <remarks>The caller is responsible for enumerating the returned asynchronous sequence. The method
-    /// reads and processes the XML data in a forward-only, streaming manner, which allows for efficient handling of
-    /// large documents. If the XML data is malformed or does not conform to the expected CCR structure, an exception
-    /// may be thrown during enumeration.</remarks>
-    /// <param name="xmlData">A read-only sequence of bytes containing the CCR XML data to process. The data must be a well-formed XML
-    /// document in the expected CCR format.</param>
-    /// <param name="roleDef">Defines a lookup service for external role definitions, allowing retrieval of role definitions by source/identifier or role-code without asynchronous operations.</param>
-    /// <param name="lookup">Gets static countrycode lookup</param>
-    /// <param name="cancellationToken">A cancellation token that can be used to cancel the asynchronous operation.</param>
-    /// <returns>An asynchronous stream of <see cref="CcrOrganizationUpdate"/> objects, each representing an update for a party found in
-    /// the CCR XML. The stream is empty if no parties are present.</returns>
+    /// <inheritdoc/>
     public IEnumerable<CcrOrganizationUpdate> ProcessCcrXml(
         ReadOnlySequence<byte> xmlData,
-        IExternalRoleDefinitionLookup roleDef,
-        ILocationLookup lookup,
+        IExternalRoleDefinitionLookup roleDefs,
+        ILocationLookup locations,
         CancellationToken cancellationToken = default)
     {
         using var reader = XmlReader.Create(xmlData.AsStream());
@@ -51,7 +40,7 @@ internal sealed class CcrXmlProcessor
 
         // 2. Read header <head ... />
         reader.MoveToContent();
-        var header = ReadHeader(reader);
+        _ = ReadHeader(reader);
 
         // 3. Read <enhet> nodes
         reader.MoveToContent();
@@ -59,7 +48,7 @@ internal sealed class CcrXmlProcessor
         {
             enhet++;
             cancellationToken.ThrowIfCancellationRequested();
-            yield return ReadEnhet(reader, roleDef, lookup);
+            yield return ReadEnhet(reader, roleDefs, locations);
             reader.MoveToContent();
         }
 
@@ -120,7 +109,7 @@ internal sealed class CcrXmlProcessor
             return null;
         }
 
-        if (!DateOnly.TryParseExact(value, "yyyyMMdd", out var parsed))
+        if (!DateOnly.TryParseExact(value, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
         {
             ThrowHelper.ThrowArgumentException(nameof(value), "Invalid date format. Expected a date in the format 'yyyyMMdd'.");
         }
@@ -143,7 +132,7 @@ internal sealed class CcrXmlProcessor
 
         var organisasjonsform = reader.GetAttribute("organisasjonsform");
         var hovedsakstype = reader.GetAttribute("hovedsakstype");
-        var undersakstype = reader.GetAttribute("undersakstype");
+        _ = reader.GetAttribute("undersakstype");
         var foersteOverfoering = reader.GetAttribute("foersteOverfoering");
         var datoSistEndret = ParseDate(reader.GetAttribute("datoSistEndret"));
         var isDeleted = hovedsakstype == "S";
@@ -224,14 +213,15 @@ internal sealed class CcrXmlProcessor
                     ReadSamendring(
                         reader,
                         orgform: organisasjonsform,
-                        nye: org.RoleUpdates.RoleAssignments,
-                        fjernes: org.RoleUpdates.RemoveRoleAssignments,
+                        additions: org.RoleUpdates.RoleAssignments,
+                        removals: org.RoleUpdates.RemoveRoleAssignments,
                         roleDef,
                         locationLookup);
                 }
                 else if (reader.LocalName == "status")
                 {
-                    // ReadStatus(reader, org);
+                    //// ReadStatus(reader, org);
+                    reader.Skip();
                 }
                 else if (reader.LocalName == "samendringUtgaar")
                 {
@@ -557,7 +547,7 @@ internal sealed class CcrXmlProcessor
 
     private static void ReadSamu(
         XmlReader reader,
-        List<CcrRoleAssignment> samuLista,
+        ImmutableArray<CcrRoleAssignment>.Builder bulkRemovals,
         IExternalRoleDefinitionLookup roleDef)
     {
         reader.ReadStartElement("samendringUtgaar");
@@ -573,74 +563,74 @@ internal sealed class CcrXmlProcessor
         {
             case "STYR":
                 {
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("LEDE", roleDef)));
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("NEST", roleDef)));
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("MEDL", roleDef)));
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("VARA", roleDef)));
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("OBS", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("LEDE", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("NEST", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("MEDL", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("VARA", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("OBS", roleDef)));
                     break;
                 }
 
             case "DELT":
                 {
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("DTSO", roleDef)));
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("DTPR", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("DTSO", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("DTPR", roleDef)));
                     break;
                 }
 
             case "SIGN":
                 {
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("SIGN", roleDef)));
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("SIFE", roleDef)));
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("SIHV", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("SIGN", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("SIFE", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("SIHV", roleDef)));
                     break;
                 }
 
             case "PROK":
                 {
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("PROK", roleDef)));
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("POHV", roleDef)));
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("POFE", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("PROK", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("POHV", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("POFE", roleDef)));
                     break;
                 }
 
             case "KONT":
                 {
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("SREVA", roleDef)));
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("KOMK", roleDef)));
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("KNUF", roleDef)));
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("KEMN", roleDef)));
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("KONT", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("SREVA", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("KOMK", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("KNUF", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("KEMN", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("KONT", roleDef)));
                     break;
                 }
 
             case "REVI":
                 {
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("REVI", roleDef)));
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("READ", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("REVI", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("READ", roleDef)));
                     break;
                 }
 
             case "REGN":
                 {
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("RFAD", roleDef)));
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("REGN", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("RFAD", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("REGN", roleDef)));
                     break;
                 }
 
             case "HOST":
                 {
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("HLED", roleDef)));
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("HMDL", roleDef)));
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("HNST", roleDef)));
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("HVAR", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("HLED", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("HMDL", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("HNST", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("HVAR", roleDef)));
                     break;
                 }
 
             case "ESGR":
                 {
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("ESGR", roleDef)));
-                    samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("ETDL", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("ESGR", roleDef)));
+                    bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode("ETDL", roleDef)));
                     break;
                 }
 
@@ -648,7 +638,7 @@ internal sealed class CcrXmlProcessor
                 {
                     if (VerifyRoleCode(samuType))
                     {
-                        samuLista.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode(samuType, roleDef)));
+                        bulkRemovals.Add(CcrRoleAssignment.CreateBulkRoleAssignmentRemoval(ConvertToAltinnRoleCode(samuType, roleDef)));
                     }
                     else
                     {
@@ -701,8 +691,8 @@ internal sealed class CcrXmlProcessor
     private static void ReadSamendring(
         XmlReader reader,
         string orgform,
-        List<CcrRoleAssignment> nye,
-        List<CcrRoleAssignment> fjernes,
+        ImmutableArray<CcrRoleAssignment>.Builder additions,
+        ImmutableArray<CcrRoleAssignment>.Builder removals,
         IExternalRoleDefinitionLookup roleDef,
         ILocationLookup locationLookup)
     {
@@ -744,7 +734,7 @@ internal sealed class CcrXmlProcessor
                     {
                         case (endringstype: _, rolleFratraadt: "F"):
                         case (endringstype: "U", rolleFratraadt: _):
-                            fjernes.Add(
+                            removals.Add(
                                 CcrRoleAssignment.CreatePersonalRoleAssignment(
                                     validatedAltinnRoleCode,
                                     personIdentifier,
@@ -753,10 +743,10 @@ internal sealed class CcrXmlProcessor
 
                             if (felttype == "KONT")
                             {
-                                fjernes.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("SREVA", roleDef), personIdentifier, null, null));
-                                fjernes.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("KOMK", roleDef), personIdentifier, null, null));
-                                fjernes.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("KNUF", roleDef), personIdentifier, null, null));
-                                fjernes.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("KEMN", roleDef), personIdentifier, null, null));
+                                removals.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("SREVA", roleDef), personIdentifier, null, null));
+                                removals.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("KOMK", roleDef), personIdentifier, null, null));
+                                removals.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("KNUF", roleDef), personIdentifier, null, null));
+                                removals.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("KEMN", roleDef), personIdentifier, null, null));
                             }
 
                             break;
@@ -773,7 +763,7 @@ internal sealed class CcrXmlProcessor
                                 kommuneNummer: kommunenr,
                                 locationLookup: locationLookup);
 
-                            nye.Add(
+                            additions.Add(
                                 CcrRoleAssignment.CreatePersonalRoleAssignment(validatedAltinnRoleCode, personIdentifier, name, address));
 
                             if (felttype == "KONT")
@@ -782,19 +772,19 @@ internal sealed class CcrXmlProcessor
                                 {
                                     case "KOMM":
                                     case "FYLK":
-                                        nye.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("KOMK", roleDef), personIdentifier, name, address));
+                                        additions.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("KOMK", roleDef), personIdentifier, name, address));
                                         break;
 
                                     case "REV":
-                                        nye.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("SREVA", roleDef), personIdentifier, name, address));
+                                        additions.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("SREVA", roleDef), personIdentifier, name, address));
                                         break;
 
                                     case "NUF":
-                                        nye.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("KNUF", roleDef), personIdentifier, name, address));
+                                        additions.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("KNUF", roleDef), personIdentifier, name, address));
                                         break;
 
                                     case "ADOS":
-                                        nye.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("KEMN", roleDef), personIdentifier, name, address));
+                                        additions.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("KEMN", roleDef), personIdentifier, name, address));
                                         break;
                                 }
                             }
@@ -823,20 +813,20 @@ internal sealed class CcrXmlProcessor
                     {
                         case (endringstype: _, knytningsFratraadt: "F"):
                         case (endringstype: "U", knytningsFratraadt: _):
-                            fjernes.Add(CcrRoleAssignment.CreateConnection(felttype, organizationIdentifier));
+                            removals.Add(CcrRoleAssignment.CreateConnection(felttype, organizationIdentifier));
 
                             if (felttype == "KONT")
                             {
-                                fjernes.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("SREVA", roleDef), organizationIdentifier));
-                                fjernes.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("KOMK", roleDef), organizationIdentifier));
-                                fjernes.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("KNUF", roleDef), organizationIdentifier));
-                                fjernes.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("KEMN", roleDef), organizationIdentifier));
+                                removals.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("SREVA", roleDef), organizationIdentifier));
+                                removals.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("KOMK", roleDef), organizationIdentifier));
+                                removals.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("KNUF", roleDef), organizationIdentifier));
+                                removals.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("KEMN", roleDef), organizationIdentifier));
                             }
 
                             break;
 
                         case (endringstype: "N", knytningsFratraadt: _):
-                            nye.Add(CcrRoleAssignment.CreateConnection(felttype, organizationIdentifier));
+                            additions.Add(CcrRoleAssignment.CreateConnection(felttype, organizationIdentifier));
 
                             if (felttype == "KONT")
                             {
@@ -844,19 +834,19 @@ internal sealed class CcrXmlProcessor
                                 {
                                     case "KOMM":
                                     case "FYLK":
-                                        nye.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("KOMK", roleDef), organizationIdentifier));
+                                        additions.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("KOMK", roleDef), organizationIdentifier));
                                         break;
 
                                     case "REV":
-                                        nye.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("SREVA", roleDef), organizationIdentifier));
+                                        additions.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("SREVA", roleDef), organizationIdentifier));
                                         break;
 
                                     case "NUF":
-                                        nye.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("KNUF", roleDef), organizationIdentifier));
+                                        additions.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("KNUF", roleDef), organizationIdentifier));
                                         break;
 
                                     case "ADOS":
-                                        nye.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("KEMN", roleDef), organizationIdentifier));
+                                        additions.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("KEMN", roleDef), organizationIdentifier));
                                         break;
                                 }
                             }
@@ -958,12 +948,6 @@ internal sealed class CcrXmlProcessor
     private static Dictionary<string, string> ReadChildFields(XmlReader reader)
     {
         var fields = new Dictionary<string, string>();
-
-        // if (reader.IsEmptyElement)
-        // {
-        //     reader.Read();
-        //     return fields;
-        // }
         reader.MoveToContent();
 
         while (reader.NodeType == XmlNodeType.Element)
@@ -1036,20 +1020,20 @@ internal sealed class CcrXmlProcessor
 
     private sealed class RoleUpdatesBuilder
     {
-        public bool IsFullUpdate { get; set; }
+        public ImmutableArray<CcrRoleAssignment>.Builder RoleAssignments { get; }
+            = ImmutableArray.CreateBuilder<CcrRoleAssignment>();
 
-        public List<CcrRoleAssignment> RoleAssignments { get; } = [];
+        public ImmutableArray<CcrRoleAssignment>.Builder RemoveRoleAssignments { get; }
+            = ImmutableArray.CreateBuilder<CcrRoleAssignment>();
 
-        public List<CcrRoleAssignment> RemoveRoleAssignments { get; } = [];
-
-        public List<CcrRoleAssignment> BulkRemoveRoleAssignments { get; } = [];
+        public ImmutableArray<CcrRoleAssignment>.Builder BulkRemoveRoleAssignments { get; }
+            = ImmutableArray.CreateBuilder<CcrRoleAssignment>();
 
         public CcrRoleAssignmentsUpdate Build() => new()
         {
-            IsFullUpdate = IsFullUpdate,
-            RoleAssignments = RoleAssignments.ToArray(),
-            RemoveRoleAssignments = RemoveRoleAssignments.ToArray(),
-            BulkRemoveRoleAssignments = BulkRemoveRoleAssignments.ToArray(),
+            RoleAssignments = RoleAssignments.DrainToImmutableValueArray(),
+            RemoveRoleAssignments = RemoveRoleAssignments.DrainToImmutableValueArray(),
+            BulkRemoveRoleAssignments = BulkRemoveRoleAssignments.DrainToImmutableValueArray(),
         };
     }
 }

@@ -8,7 +8,6 @@
     unitStatus: E,
     datoSistEndret: 2026-04-28,
     roleUpdates: {
-      isFullUpdate: false,
       removeRoleAssignments: [
         {
           roleAssignmentType: role-assignment,

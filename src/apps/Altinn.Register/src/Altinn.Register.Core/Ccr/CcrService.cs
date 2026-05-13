@@ -104,15 +104,11 @@ public sealed class CcrService
             return null;
         }
 
-        List<string> samuBulks = [];
-        List<PartyExternalRoleAssignment> absent = [];
-        List<PartyExternalRoleAssignment> present = [];
-
-        PartyExternalRoleAssignmentsUpdate? roles;
+        PartyExternalRoleAssignmentsUpdate result;
 
         if (update.IsFirstRegistration)
         {
-            roles = new PartyExternalRoleAssignmentsUpdate.Full
+            result = new PartyExternalRoleAssignmentsUpdate.Full
             {
                 Assignments = update.RoleUpdates?.RoleAssignments.
                     Select(a => new PartyExternalRoleAssignment
@@ -124,7 +120,7 @@ public sealed class CcrService
         }
         else
         {
-            roles = new PartyExternalRoleAssignmentsUpdate.Patch
+            result = new PartyExternalRoleAssignmentsUpdate.Patch
             {
                 AbsentByIdentifier = update.RoleUpdates?.BulkRemoveRoleAssignments.
                     Select(b => b.RoleCode).ToImmutableValueArray() ?? [],
@@ -145,7 +141,7 @@ public sealed class CcrService
             };
         }
 
-        return roles;
+        return result;
     }
 
     private static PartyExternalRoleAssignmentPartyRef MapToPartyRef(CcrRoleAssignment assignment)
@@ -174,9 +170,6 @@ public sealed class CcrService
 
     private static OrganizationRecord MapOrganization(CcrOrganizationUpdate model, DateTimeOffset now)
     {
-        TimeOnly midnight = new TimeOnly(0, 0);
-        TimeSpan utcOffset = TimeSpan.Zero; // TODO norwegian timezone
-
         return new OrganizationRecord
         {
             PartyUuid = FieldValue.Unset,
@@ -192,7 +185,7 @@ public sealed class CcrService
             Source = OrganizationSource.CentralCoordinatingRegister,
             PersonIdentifier = FieldValue.Null,
             IsDeleted = model.IsDeleted,
-            DeletedAt = FieldValue.From(model.DeletedAt).Select(date => new DateTimeOffset(date, midnight, utcOffset)),
+            DeletedAt = FieldValue.From(model.DeletedAt).Select(ToNorwegianDateTimeOffset),
             OrganizationIdentifier = model.OrganizationIdentifier,
             DisplayName = model.DisplayName,
             UnitType = model.UnitType,
@@ -205,6 +198,15 @@ public sealed class CcrService
             MailingAddress = model.MailingAddress,
             BusinessAddress = model.BusinessAddress,
         };
+    }
+
+    private static readonly TimeZoneInfo _norwegianTimeZone
+        = TimeZoneInfo.FindSystemTimeZoneById("Europe/Oslo");
+
+    private static DateTimeOffset ToNorwegianDateTimeOffset(DateOnly date)
+    {
+        var local = date.ToDateTime(TimeOnly.MinValue);
+        return new DateTimeOffset(local, _norwegianTimeZone.GetUtcOffset(local));
     }
 
     private record struct CcrDbUpdate(OrganizationRecord Org, PartyExternalRoleAssignmentsUpdate? RolesUpdate);
