@@ -48,12 +48,12 @@ public class CcrDataTransferTests
 
         var text = "content of file1";
         var content1 = Encoding.ASCII.GetBytes(text);
-        
+
         mockClient.Setup(c => c.DownloadFileAsync("/remote/path/baj05778.txtretrieved", It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-            .Callback<string, Stream, CancellationToken>((path, stream, cancellationToken) =>
-             {
-                stream.Write(content1, 0, content1.Length);
-             });
+        .Callback<string, Stream, CancellationToken>((path, stream, cancellationToken) =>
+        {
+            stream.Write(content1, 0, content1.Length);
+        });
 
         var client = new CcrDataTransfer(remotePath, mockClient.Object);
 
@@ -104,10 +104,10 @@ public class CcrDataTransferTests
         var content4 = Encoding.ASCII.GetBytes(text);
 
         mockClient.Setup(c => c.DownloadFileAsync(_MockFile4LongName, It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-            .Callback<string, Stream, CancellationToken>((path, stream, cancellationToken) =>
-             {
-                stream.Write(content4, 0, content4.Length);
-             });
+        .Callback<string, Stream, CancellationToken>((path, stream, cancellationToken) =>
+        {
+            stream.Write(content4, 0, content4.Length);
+        });
 
         var client = new CcrDataTransfer(remotePath, mockClient.Object);
 
@@ -134,7 +134,7 @@ public class CcrDataTransferTests
         mockClient.Verify(c => c.ConnectAsync(It.IsAny<CancellationToken>()), Times.Once);
         mockClient.Verify(c => c.Disconnect(), Times.Once);
     }
-    
+
     [Fact]
     public async Task GetNewFiles_ReturnsNextFileFromSftp_ValueGiven_FileIsRenamed()
     {
@@ -158,10 +158,10 @@ public class CcrDataTransferTests
         var content4 = Encoding.ASCII.GetBytes(text);
 
         mockClient.Setup(c => c.DownloadFileAsync(_MockFile4LongName, It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-            .Callback<string, Stream, CancellationToken>((path, stream, cancellationToken) =>
-             {
-                stream.Write(content4, 0, content4.Length);
-             });
+        .Callback<string, Stream, CancellationToken>((path, stream, cancellationToken) =>
+        {
+            stream.Write(content4, 0, content4.Length);
+        });
 
         var client = new CcrDataTransfer(remotePath, mockClient.Object);
 
@@ -177,7 +177,7 @@ public class CcrDataTransferTests
         var buffer = readResult.Buffer;
         string resultContent = Encoding.ASCII.GetString(buffer.ToArray());
         Assert.Equal(text, resultContent);
-        
+
         mockClient.Verify(c => c.DownloadFileAsync("/remote/path/baj05777Downloaded.txtretrieved", It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
         mockClient.Verify(c => c.DownloadFileAsync(_MockFile1LongName, It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
         mockClient.Verify(c => c.DownloadFileAsync(_MockFile2LongName, It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -259,10 +259,10 @@ public class CcrDataTransferTests
         var content4 = Encoding.ASCII.GetBytes(text);
 
         mockClient.Setup(c => c.DownloadFileAsync(_MockFile1LongName, It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-            .Callback<string, Stream, CancellationToken>((path, stream, cancellationToken) =>
-             {
-                stream.Write(content4, 0, content4.Length);
-             });
+        .Callback<string, Stream, CancellationToken>((path, stream, cancellationToken) =>
+        {
+            stream.Write(content4, 0, content4.Length);
+        });
 
         var client = new CcrDataTransfer(remotePath, mockClient.Object);
 
@@ -279,13 +279,13 @@ public class CcrDataTransferTests
         mockClient.Verify(c => c.ConnectAsync(It.IsAny<CancellationToken>()), Times.Once);
         mockClient.Verify(c => c.Disconnect(), Times.Once);
     }
-    
+
     [Fact]
     public async Task RenameFiles_RenameFilesOnSftp()
     {
         var mockClient = new Mock<ISftpClient>();
         var remotePath = _RemotePath;
-        
+
         var mockFile1 = CreateMockFile(_MockFile1LongName, _MockFile1Name);
         var mockFile2 = CreateMockFile(_MockFile2LongName, _MockFile2Name);
         var mockFile3 = CreateMockFile(_MockFile3LongName, _MockFile3Name);
