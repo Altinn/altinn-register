@@ -365,9 +365,9 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
 
         if (string.IsNullOrEmpty(input.DateOfBirth))
         {
-            context.AddChildProblem(StdValidationErrors.Required, path: PATH);
+            // there exist birth-elements with no date of birth, we treat these as if the element itself was missing
             validated = default;
-            return false;
+            return true;
         }
 
         if (!DateOnly.TryParseExact(input.DateOfBirth, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var validatedDate))
