@@ -6,6 +6,7 @@
     isDeleted: false,
     deletedAt: null,
     unitType: AAFY,
+    unitStatus: E,
     datoSistEndret: 2025-02-20,
     roleUpdates: {
       isFullUpdate: false,

@@ -5,6 +5,7 @@
     isDeleted: false,
     deletedAt: null,
     unitType: NUF,
+    unitStatus: E,
     datoSistEndret: 2026-04-28,
     roleUpdates: {
       isFullUpdate: false,

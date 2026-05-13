@@ -6,6 +6,7 @@
     isDeleted: false,
     deletedAt: null,
     unitType: ENK,
+    unitStatus: E,
     datoSistEndret: 2021-03-12,
     roleUpdates: {
       isFullUpdate: false,
