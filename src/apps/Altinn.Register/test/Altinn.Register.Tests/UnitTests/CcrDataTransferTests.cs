@@ -61,7 +61,7 @@ public class CcrDataTransferTests
         var result = await client.GetNextFileAsync(writer, -1, TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.True(result);        
+        Assert.True(result);
         var readResult = await reader.ReadAsync(TestContext.Current.CancellationToken);
         var buffer = readResult.Buffer;
         string resultContent = Encoding.ASCII.GetString(buffer.ToArray());
@@ -115,7 +115,7 @@ public class CcrDataTransferTests
         var result = await client.GetNextFileAsync(writer, 5780, TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.True(result);        
+        Assert.True(result);
         var readResult = await reader.ReadAsync(TestContext.Current.CancellationToken);
         var buffer = readResult.Buffer;
         string resultContent = Encoding.ASCII.GetString(buffer.ToArray());
@@ -187,8 +187,8 @@ public class CcrDataTransferTests
         mockClient.Verify(c => c.RenameFileAsync(_MockFile2LongName, "/remote/path/baj05779Downloaded.txtretrieved", It.IsAny<CancellationToken>()), Times.Never);
         mockClient.Verify(c => c.RenameFileAsync(_MockFile3LongName, "/remote/path/baj05780Downloaded.txt", It.IsAny<CancellationToken>()), Times.Never);
         mockClient.Verify(c => c.RenameFileAsync(_MockFile4LongName, "/remote/path/baj05781Downloaded.txt", It.IsAny<CancellationToken>()), Times.Once);
-        mockClient.Verify(c => c.ConnectAsync(It.IsAny<CancellationToken>()), Times.Exactly(2)); // One for GetNextFileAsync and one for MarkFileAsDownloadedAsync
-        mockClient.Verify(c => c.Disconnect(), Times.Exactly(2)); // One for GetNextFileAsync and one for MarkFileAsDownloadedAsync
+        mockClient.Verify(c => c.ConnectAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+        mockClient.Verify(c => c.Disconnect(), Times.Exactly(2));
     }
 
     [Fact]
@@ -270,7 +270,7 @@ public class CcrDataTransferTests
         var result = await client.GetSpecificFileAsync(_MockFile1Name, writer, TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.True(result);        
+        Assert.True(result);
         var readResult = await reader.ReadAsync(TestContext.Current.CancellationToken);
         var buffer = readResult.Buffer;
         string resultContent = Encoding.ASCII.GetString(buffer.ToArray());
@@ -310,7 +310,7 @@ public class CcrDataTransferTests
         mockClient.Verify(c => c.RenameFileAsync(_MockFile2LongName, _MockFile2DownloadedLongName, It.IsAny<CancellationToken>()), Times.Once);
         mockClient.Verify(c => c.RenameFileAsync(_MockFile3LongName, _MockFile3DownloadedLongName, It.IsAny<CancellationToken>()), Times.Once);
         mockClient.Verify(c => c.RenameFileAsync(_MockFile4LongName, _MockFile4DownloadedLongName, It.IsAny<CancellationToken>()), Times.Once);
-        mockClient.Verify(c => c.ConnectAsync(It.IsAny<CancellationToken>()), Times.Exactly(3)); // One for each call to MarkFileAsDownloadedAsync
+        mockClient.Verify(c => c.ConnectAsync(It.IsAny<CancellationToken>()), Times.Exactly(3));
         mockClient.Verify(c => c.Disconnect(), Times.Exactly(3));
     }
 

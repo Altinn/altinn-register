@@ -28,7 +28,7 @@ internal sealed class CcrDataTransfer
     {
         _remotePath = remotePath;
         _client = new SftpClient(host, port, user, password);
-        _client.ConnectionInfo.Timeout = TimeSpan.FromSeconds(timeoutSeconds); // Set a timeout for connection attempts 
+        _client.ConnectionInfo.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
     }
 
     /// <summary>
@@ -73,9 +73,9 @@ internal sealed class CcrDataTransfer
                 if (lastRunId == -1 || runId == lastRunId + 1)
                 {
                     Stream stream = writer.AsStream();
-                    await _client.DownloadFileAsync(file.FullName, stream, cancellationToken); // Download file content to the provided stream
-                    await writer.FlushAsync(cancellationToken); // Ensure all data is flushed before disconnecting
-                    await writer.CompleteAsync(); // Complete the writer to signal no more data will be written
+                    await _client.DownloadFileAsync(file.FullName, stream, cancellationToken);
+                    await writer.FlushAsync(cancellationToken);
+                    await writer.CompleteAsync();
                     return true;
                 }
             }
@@ -84,7 +84,7 @@ internal sealed class CcrDataTransfer
         }
         catch (Exception ex)
         {
-            await writer.CompleteAsync(ex); // Complete the writer with an exception if an error occurs
+            await writer.CompleteAsync(ex);
             throw;
         }
         finally
@@ -119,7 +119,7 @@ internal sealed class CcrDataTransfer
                 int runId = GetRunIdFromFileName(file.Name);
                 if (runId == fileToMarkAsDownloaded)
                 {
-                    await _client.RenameFileAsync(file.FullName, file.FullName.Replace(".txt", "Downloaded.txt"), cancellationToken); // Mark file as downloaded
+                    await _client.RenameFileAsync(file.FullName, file.FullName.Replace(".txt", "Downloaded.txt"), cancellationToken);
                     return true;
                 }
             }
@@ -181,7 +181,7 @@ internal sealed class CcrDataTransfer
             throw new FormatException($"Filename {filename} does not contain a valid runId.");
         }
 
-        string runIdPart = filename[(bajIndex + 3)..dotIndex]; // Assuming filename format is always "bajXXXXX.txt"
+        string runIdPart = filename[(bajIndex + 3)..dotIndex];
         if (int.TryParse(runIdPart, out int runId))
         {
             return runId;
