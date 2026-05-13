@@ -31,7 +31,7 @@
       Include="..\..\src\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Altinn.Register\Altinn.Register.csproj" />
     <ProjectReference Include="..\Altinn.Register.TestUtils.V3\Altinn.Register.TestUtils.V3.csproj" />
-    <ProjectReference Include="..\..\src\Altinn.Register.Integrations.ErDataTrans\Altinn.Register.Integrations.ErDataTrans.csproj" />
+    <ProjectReference Include="..\..\src\Altinn.Register.Integrations.Ccr.FileImport\Altinn.Register.Integrations.Ccr.FileImport.csproj" />
   </ItemGroup>
 
   <ItemGroup>
