@@ -1,10 +1,13 @@
+using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
+using Altinn.Authorization.ProblemDetails.Validation;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Contracts;
-using Altinn.Register.Contracts.PartyImport.A2;
 using Altinn.Register.Core.A2.SblProfile;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Mediator;
+using Altinn.Register.Core.Parties.Records;
+using Altinn.Register.PartyImport.A2;
 using Altinn.Urn;
 using Microsoft.Extensions.Logging;
 
@@ -25,31 +28,16 @@ namespace Altinn.Register.Core.Operations;
 /// The username to assign on create. Required. The caller owns username generation;
 /// register does not transform it.
 /// </param>
+/// <param name="Email">
+/// The user's email. Required for <see cref="Contracts.SelfIdentifiedUserType.IdPortenEmail"/>;
+/// ignored otherwise.
+/// </param>
 public readonly record struct GetOrCreateSelfIdentifiedUserRequest(
     SelfIdentifiedUserType SelfIdentifiedUserType,
     string? ExternalIdentity,
-    string? UserName)
-    : IRequest<SelfIdentifiedUserResult>;
-
-/// <summary>
-/// Result of <see cref="GetOrCreateSelfIdentifiedUserRequest"/>.
-/// </summary>
-/// <param name="PartyUuid">The party UUID assigned to the user.</param>
-/// <param name="PartyId">The legacy numeric party id.</param>
-/// <param name="UserId">The legacy numeric user id.</param>
-/// <param name="UserName">The username.</param>
-/// <param name="SelfIdentifiedUserType">The self-identified user type.</param>
-/// <param name="ExternalUrn">
-/// The canonical external URN representing the user. <see langword="null"/> for
-/// <see cref="SelfIdentifiedUserType.Educational"/> (the DB stores edu users with no <c>ext_urn</c>).
-/// </param>
-public readonly record struct SelfIdentifiedUserResult(
-    Guid PartyUuid,
-    uint PartyId,
-    uint UserId,
-    string UserName,
-    SelfIdentifiedUserType SelfIdentifiedUserType,
-    string? ExternalUrn);
+    string? UserName,
+    string? Email)
+    : IRequest<SelfIdentifiedUserRecord>;
 
 /// <summary>
 /// Get-or-create self-identified user via SBL Bridge proxy (iteration 1).
@@ -62,39 +50,39 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
     ISblProfileBridgeClient bridgeClient,
     ICommandSender commandSender,
     ILogger<GetOrCreateSelfIdentifiedUserFromBridgeHandler> logger)
-    : IRequestHandler<GetOrCreateSelfIdentifiedUserRequest, SelfIdentifiedUserResult>
+    : IRequestHandler<GetOrCreateSelfIdentifiedUserRequest, SelfIdentifiedUserRecord>
 {
-    private const string LegacySelfIdentifiedUrnPrefix = "urn:altinn:person:legacy-selfidentified";
     private const int SbiUserTypeSelfIdentified = 2;
 
     /// <inheritdoc/>
-    public async ValueTask<Result<SelfIdentifiedUserResult>> Handle(
+    public async ValueTask<Result<SelfIdentifiedUserRecord>> Handle(
         GetOrCreateSelfIdentifiedUserRequest request,
         CancellationToken cancellationToken)
     {
+        ValidationProblemBuilder builder = default;
+
         if (string.IsNullOrWhiteSpace(request.ExternalIdentity))
         {
-            return Problems.SelfIdentifiedUserTypeMismatch.Create([
-                new("reason", "externalIdentity is required"),
-            ]);
+            builder.Add(StdValidationErrors.Required, "/externalIdentity");
         }
 
         if (string.IsNullOrWhiteSpace(request.UserName))
         {
-            return Problems.SelfIdentifiedUserTypeMismatch.Create([
-                new("reason", "userName is required"),
-            ]);
+            builder.Add(StdValidationErrors.Required, "/userName");
         }
 
-        if (request.SelfIdentifiedUserType is not (SelfIdentifiedUserType.Legacy or SelfIdentifiedUserType.Educational or SelfIdentifiedUserType.IdPortenEmail))
+        if (request.SelfIdentifiedUserType == SelfIdentifiedUserType.IdPortenEmail
+            && string.IsNullOrWhiteSpace(request.Email))
         {
-            return Problems.SelfIdentifiedUserTypeMismatch.Create([
-                new("selfIdentifiedUserType", request.SelfIdentifiedUserType.ToString()),
-                new("reason", "unsupported type"),
-            ]);
+            builder.Add(StdValidationErrors.Required, "/email");
         }
 
-        var lookupResult = await bridgeClient.LookupUser(request.ExternalIdentity, cancellationToken);
+        if (builder.TryBuild(out var error))
+        {
+            return error;
+        }
+
+        var lookupResult = await bridgeClient.LookupUser(request.ExternalIdentity!, cancellationToken);
         if (lookupResult.IsProblem)
         {
             return lookupResult.Problem;
@@ -102,7 +90,7 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
 
         if (lookupResult.Value.Found)
         {
-            return MapToResult(lookupResult.Value.Profile, request.SelfIdentifiedUserType);
+            return MapToRecord(lookupResult.Value.Profile, request);
         }
 
         var createRequest = new SblUserProfile
@@ -118,13 +106,13 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
             return createResult.Problem;
         }
 
-        var mapped = MapToResult(createResult.Value, request.SelfIdentifiedUserType);
+        var mapped = MapToRecord(createResult.Value, request);
         if (mapped.IsProblem)
         {
             return mapped.Problem;
         }
 
-        await EnqueueLocalImport(mapped.Value, cancellationToken);
+        await EnqueueLocalImport(mapped.Value.PartyUuid.Value, cancellationToken);
         return mapped;
     }
 
@@ -133,14 +121,14 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
     // the party from local register on the immediate next request. ChangeId is 0 and
     // Tracking is left default — the polling job will track ProcessedMax when it
     // re-processes the same change.
-    private async ValueTask EnqueueLocalImport(SelfIdentifiedUserResult user, CancellationToken cancellationToken)
+    private async ValueTask EnqueueLocalImport(Guid partyUuid, CancellationToken cancellationToken)
     {
         try
         {
             await commandSender.Send(
                 new ImportA2PartyCommand
                 {
-                    PartyUuid = user.PartyUuid,
+                    PartyUuid = partyUuid,
                     ChangeId = 0,
                     ChangedTime = DateTimeOffset.UtcNow,
                     Tracking = default,
@@ -150,35 +138,62 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // Don't fail the create on a bus hiccup — polling job will reconcile.
-            Log.EnqueueImportFailed(logger, ex, user.PartyUuid);
+            Log.EnqueueImportFailed(logger, ex, partyUuid);
         }
     }
 
-    private Result<SelfIdentifiedUserResult> MapToResult(SblUserProfile profile, SelfIdentifiedUserType type)
+    private Result<SelfIdentifiedUserRecord> MapToRecord(SblUserProfile profile, GetOrCreateSelfIdentifiedUserRequest request)
     {
         if (profile.UserUuid is null || profile.UserId <= 0 || profile.PartyId <= 0 || string.IsNullOrEmpty(profile.UserName))
         {
             Log.IncompleteBridgeResponse(logger);
-            return Problems.SelfIdentifiedUserCreateFailed.Create([
+            return Problems.PartyFetchFailed.Create([
                 new("reason", "bridge response missing required identifiers"),
             ]);
         }
 
-        string? externalUrn = type switch
+        FieldValue<PartyExternalRefUrn> externalUrn = request.SelfIdentifiedUserType switch
         {
-            SelfIdentifiedUserType.IdPortenEmail => profile.ExternalIdentity ?? string.Empty,
-            SelfIdentifiedUserType.Legacy => $"{LegacySelfIdentifiedUrnPrefix}:{UrnEncoded.Create(profile.UserName.ToLowerInvariant()).Encoded}",
-            SelfIdentifiedUserType.Educational => null,
-            _ => string.Empty,
+            SelfIdentifiedUserType.IdPortenEmail
+                => PartyExternalRefUrn.IDPortenEmail.Create(UrnEncoded.Create(request.Email!)),
+            SelfIdentifiedUserType.Legacy
+                => PartyExternalRefUrn.LegacySelfIdentifiedUsername.Create(UrnEncoded.Create(profile.UserName.ToLowerInvariant())),
+            SelfIdentifiedUserType.Educational => FieldValue.Null,
+            _ => FieldValue.Null,
         };
 
-        return new SelfIdentifiedUserResult(
-            PartyUuid: profile.UserUuid.Value,
-            PartyId: checked((uint)profile.PartyId),
-            UserId: checked((uint)profile.UserId),
-            UserName: profile.UserName,
-            SelfIdentifiedUserType: type,
-            ExternalUrn: externalUrn);
+        FieldValue<string> email = request.SelfIdentifiedUserType == SelfIdentifiedUserType.IdPortenEmail
+            ? request.Email!
+            : FieldValue.Unset;
+
+        FieldValue<string> extRef = request.SelfIdentifiedUserType == SelfIdentifiedUserType.Educational
+            ? request.ExternalIdentity!
+            : FieldValue.Unset;
+
+        var userId = checked((uint)profile.UserId);
+        var now = DateTimeOffset.UtcNow;
+
+        return new SelfIdentifiedUserRecord
+        {
+            // Iteration-1 (bridge proxy) does not have a real version id; the polling
+            // A2PartyImportJob will write a real version when it imports this party.
+            PartyUuid = profile.UserUuid.Value,
+            VersionId = 0UL,
+            PartyId = checked((uint)profile.PartyId),
+            OwnerUuid = FieldValue.Null,
+            ExternalUrn = externalUrn,
+            DisplayName = profile.UserName,
+            PersonIdentifier = FieldValue.Null,
+            OrganizationIdentifier = FieldValue.Null,
+            CreatedAt = now,
+            ModifiedAt = now,
+            User = new PartyUserRecord(userId, profile.UserName),
+            IsDeleted = false,
+            DeletedAt = FieldValue.Null,
+            SelfIdentifiedUserType = request.SelfIdentifiedUserType,
+            Email = email,
+            ExtRef = extRef,
+        };
     }
 
     private static partial class Log
@@ -198,10 +213,10 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
 /// Stubbed for now; switching to this handler is the iteration-2 cutover. See issue #863.
 /// </remarks>
 internal sealed class GetOrCreateSelfIdentifiedUserFromDBHandler
-    : IRequestHandler<GetOrCreateSelfIdentifiedUserRequest, SelfIdentifiedUserResult>
+    : IRequestHandler<GetOrCreateSelfIdentifiedUserRequest, SelfIdentifiedUserRecord>
 {
     /// <inheritdoc/>
-    public ValueTask<Result<SelfIdentifiedUserResult>> Handle(
+    public ValueTask<Result<SelfIdentifiedUserRecord>> Handle(
         GetOrCreateSelfIdentifiedUserRequest request,
         CancellationToken cancellationToken)
         => throw new NotImplementedException("Iteration 2: direct DB write not yet implemented. See issue #863.");

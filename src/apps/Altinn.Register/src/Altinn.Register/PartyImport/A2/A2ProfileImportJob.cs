@@ -4,10 +4,10 @@ using System.Diagnostics.Metrics;
 using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Authorization.ServiceDefaults.Telemetry;
-using Altinn.Register.Contracts.PartyImport.A2;
 using Altinn.Register.Core;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.PartyImport.A2;
+using Altinn.Register.PartyImport.A2;
 
 namespace Altinn.Register.PartyImport.A2;
 

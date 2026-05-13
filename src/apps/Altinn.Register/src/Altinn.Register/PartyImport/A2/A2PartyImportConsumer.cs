@@ -1,4 +1,4 @@
-using Altinn.Register.Contracts.PartyImport.A2;
+using Altinn.Register.PartyImport.A2;
 using MassTransit;
 
 namespace Altinn.Register.PartyImport.A2;

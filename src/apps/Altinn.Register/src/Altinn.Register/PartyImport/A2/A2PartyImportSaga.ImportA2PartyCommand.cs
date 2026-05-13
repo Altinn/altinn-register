@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using Altinn.Register.Contracts.PartyImport.A2;
+using Altinn.Register.PartyImport.A2;
 
 namespace Altinn.Register.PartyImport.A2;
 

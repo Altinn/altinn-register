@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Core.Operations;
+using Altinn.Register.Core.Parties.Records;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Register.Core.Mediator;
@@ -65,8 +66,8 @@ internal sealed class RegisterMediator
             .ApiSourceSwitch<LookupV1PartyNamesFromA2RequestHandler, LookupV1PartyNamesFromDBRequestHandler>(this, sender, "parties/nameslookup")
             .Handle(request, cancellationToken);
 
-    private ValueTask<Result<SelfIdentifiedUserResult>> Send(GetOrCreateSelfIdentifiedUserRequest request, Sender sender, CancellationToken cancellationToken)
-        => RequestDispatcher<GetOrCreateSelfIdentifiedUserRequest, SelfIdentifiedUserResult>
+    private ValueTask<Result<SelfIdentifiedUserRecord>> Send(GetOrCreateSelfIdentifiedUserRequest request, Sender sender, CancellationToken cancellationToken)
+        => RequestDispatcher<GetOrCreateSelfIdentifiedUserRequest, SelfIdentifiedUserRecord>
             .ApiSourceSwitch<GetOrCreateSelfIdentifiedUserFromBridgeHandler, GetOrCreateSelfIdentifiedUserFromDBHandler>(this, sender, "users/self-identified/get-or-create")
             .Handle(request, cancellationToken);
 
@@ -105,7 +106,7 @@ internal sealed class RegisterMediator
         , IRequestSender<GetV1PersonRequest, Contracts.V1.Person>
         , IRequestSender<LookupV1PartyRequest, Contracts.V1.Party>
         , IRequestSender<LookupV1PartyNamesRequest, Contracts.V1.PartyNamesLookupResult>
-        , IRequestSender<GetOrCreateSelfIdentifiedUserRequest, SelfIdentifiedUserResult>
+        , IRequestSender<GetOrCreateSelfIdentifiedUserRequest, SelfIdentifiedUserRecord>
     {
         private readonly RegisterMediator _mediator;
         private readonly IServiceProvider _services;
@@ -179,7 +180,7 @@ internal sealed class RegisterMediator
             => _mediator.Send(request, this, cancellationToken);
 
         /// <inheritdoc/>
-        public ValueTask<Result<SelfIdentifiedUserResult>> Send(
+        public ValueTask<Result<SelfIdentifiedUserRecord>> Send(
             GetOrCreateSelfIdentifiedUserRequest request,
             CancellationToken cancellationToken = default)
             => _mediator.Send(request, this, cancellationToken);

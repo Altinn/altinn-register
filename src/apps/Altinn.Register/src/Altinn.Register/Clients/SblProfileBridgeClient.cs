@@ -47,7 +47,7 @@ internal sealed partial class SblProfileBridgeClient : ISblProfileBridgeClient
         }
 
         Log.LookupFailed(_logger, response.StatusCode);
-        return Problems.SblProfileBridgeUnavailable.Create([
+        return Problems.PartyFetchFailed.Create([
             new("operation", "profile/api/users/"),
             new("http.status", ((int)response.StatusCode).ToString()),
         ]);
@@ -65,7 +65,8 @@ internal sealed partial class SblProfileBridgeClient : ISblProfileBridgeClient
             if (created is null)
             {
                 Log.CreateReturnedEmptyBody(_logger);
-                return Problems.SelfIdentifiedUserCreateFailed.Create([
+                return Problems.PartyFetchFailed.Create([
+                    new("operation", "profile/api/users/create/"),
                     new("reason", "bridge returned empty body"),
                 ]);
             }
@@ -74,7 +75,8 @@ internal sealed partial class SblProfileBridgeClient : ISblProfileBridgeClient
         }
 
         Log.CreateFailed(_logger, response.StatusCode);
-        return Problems.SelfIdentifiedUserCreateFailed.Create([
+        return Problems.PartyFetchFailed.Create([
+            new("operation", "profile/api/users/create/"),
             new("http.status", ((int)response.StatusCode).ToString()),
         ]);
     }

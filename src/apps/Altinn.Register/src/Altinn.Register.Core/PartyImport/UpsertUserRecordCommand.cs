@@ -1,14 +1,10 @@
 using Altinn.Authorization.ServiceDefaults.MassTransit;
-using MassTransit;
 
-namespace Altinn.Register.Contracts.PartyImport;
+namespace Altinn.Register.PartyImport;
 
 /// <summary>
 /// A command for upserting a user record.
 /// </summary>
-// Pinned to the original urn derived from the previous namespace
-// (Altinn.Register.PartyImport) so in-flight messages keep routing.
-[MessageUrn("Altinn.Register.PartyImport:UpsertUserRecordCommand")]
 public sealed record UpsertUserRecordCommand
     : CommandBase
 {

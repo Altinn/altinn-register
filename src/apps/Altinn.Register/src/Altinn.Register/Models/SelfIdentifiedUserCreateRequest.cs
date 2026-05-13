@@ -19,7 +19,8 @@ public sealed class SelfIdentifiedUserCreateRequest
     /// Gets or sets the type of self-identified user to create.
     /// </summary>
     [JsonPropertyName("selfIdentifiedUserType")]
-    public SelfIdentifiedUserType SelfIdentifiedUserType { get; set; }
+    [JsonRequired]
+    public required SelfIdentifiedUserType SelfIdentifiedUserType { get; set; }
 
     /// <summary>
     /// Gets or sets the bridge-shape external identity (pre-built by the caller). Required.
@@ -33,4 +34,11 @@ public sealed class SelfIdentifiedUserCreateRequest
     /// </summary>
     [JsonPropertyName("userName")]
     public string? UserName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the email of the user. Required for
+    /// <see cref="Contracts.SelfIdentifiedUserType.IdPortenEmail"/>; ignored otherwise.
+    /// </summary>
+    [JsonPropertyName("email")]
+    public string? Email { get; set; }
 }

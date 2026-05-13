@@ -1,7 +1,6 @@
 using Altinn.Authorization.ServiceDefaults.MassTransit;
-using MassTransit;
 
-namespace Altinn.Register.Contracts.PartyImport.SystemUser;
+namespace Altinn.Register.PartyImport.SystemUser;
 
 /// <summary>
 /// A command sent for each system user that could not be imported.
@@ -9,9 +8,6 @@ namespace Altinn.Register.Contracts.PartyImport.SystemUser;
 /// <remarks>
 /// This exists to get retries and error handling.
 /// </remarks>
-// Pinned to the original urn derived from the previous namespace
-// (Altinn.Register.PartyImport.SystemUser) so in-flight messages keep routing.
-[MessageUrn("Altinn.Register.PartyImport.SystemUser:ImportSystemUserCommand")]
 public sealed record ImportSystemUserCommand
     : CommandBase
 {

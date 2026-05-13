@@ -39,21 +39,22 @@ public class UsersControllerTests
         {
             SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
             ExternalIdentity = ExternalIdentity,
-            UserName = "epost:user@example.com",
+            UserName = "user@example.com",
+            Email = "user@example.com",
         });
 
         var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
-        var body = await response.ShouldHaveJsonContent<SelfIdentifiedUserResponse>();
+        var body = await response.ShouldHaveJsonContent<SelfIdentifiedUser>();
 
         body.ShouldNotBeNull();
-        body.UserId.ShouldBe(4242u);
-        body.PartyId.ShouldBe(50001u);
-        body.PartyUuid.ShouldBe(Guid.Parse("11111111-1111-1111-1111-111111111111"));
-        body.UserName.ShouldBe("epost:user@example.com");
-        body.SelfIdentifiedUserType.ShouldBe(SelfIdentifiedUserType.IdPortenEmail);
-        body.ExternalUrn.ShouldBe(ExternalIdentity);
+        body.User.Value.UserId.Value.ShouldBe(4242u);
+        body.PartyId.Value.ShouldBe(50001u);
+        body.Uuid.ShouldBe(Guid.Parse("11111111-1111-1111-1111-111111111111"));
+        body.User.Value.Username.Value.ShouldBe("epost:user@example.com");
+        body.SelfIdentifiedUserType.Value.Value.ShouldBe(SelfIdentifiedUserType.IdPortenEmail);
+        body.Email.Value.ShouldBe("user@example.com");
     }
 
     [Fact]
@@ -89,15 +90,16 @@ public class UsersControllerTests
             SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
             ExternalIdentity = ExternalIdentity,
             UserName = UserName,
+            Email = "new@example.com",
         });
 
         var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
-        var body = await response.ShouldHaveJsonContent<SelfIdentifiedUserResponse>();
+        var body = await response.ShouldHaveJsonContent<SelfIdentifiedUser>();
 
         body.ShouldNotBeNull();
-        body.UserId.ShouldBe(9001u);
+        body.User.Value.UserId.Value.ShouldBe(9001u);
     }
 
     [Fact]
@@ -140,14 +142,14 @@ public class UsersControllerTests
         var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
-        var body = await response.ShouldHaveJsonContent<SelfIdentifiedUserResponse>();
+        var body = await response.ShouldHaveJsonContent<SelfIdentifiedUser>();
 
         body.ShouldNotBeNull();
-        body.UserId.ShouldBe(11011u);
-        body.PartyId.ShouldBe(50004u);
-        body.PartyUuid.ShouldBe(Guid.Parse("44444444-4444-4444-4444-444444444444"));
-        body.SelfIdentifiedUserType.ShouldBe(SelfIdentifiedUserType.Educational);
-        body.ExternalUrn.ShouldBeNull();
+        body.User.Value.UserId.Value.ShouldBe(11011u);
+        body.PartyId.Value.ShouldBe(50004u);
+        body.Uuid.ShouldBe(Guid.Parse("44444444-4444-4444-4444-444444444444"));
+        body.SelfIdentifiedUserType.Value.Value.ShouldBe(SelfIdentifiedUserType.Educational);
+        body.ExternalUrn.IsNull.ShouldBeTrue();
     }
 
     [Fact]
@@ -183,12 +185,12 @@ public class UsersControllerTests
         var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
-        var body = await response.ShouldHaveJsonContent<SelfIdentifiedUserResponse>();
+        var body = await response.ShouldHaveJsonContent<SelfIdentifiedUser>();
 
         body.ShouldNotBeNull();
-        body.UserId.ShouldBe(11012u);
-        body.SelfIdentifiedUserType.ShouldBe(SelfIdentifiedUserType.Educational);
-        body.ExternalUrn.ShouldBeNull();
+        body.User.Value.UserId.Value.ShouldBe(11012u);
+        body.SelfIdentifiedUserType.Value.Value.ShouldBe(SelfIdentifiedUserType.Educational);
+        body.ExternalUrn.IsNull.ShouldBeTrue();
     }
 
     [Fact]
@@ -199,14 +201,16 @@ public class UsersControllerTests
         request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
         {
             SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
-            UserName = "epost:user@example.com",
+            UserName = "user@example.com",
+            Email = "user@example.com",
         });
 
         var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
-        var problem = await response.ShouldHaveJsonContent<AltinnProblemDetails>();
-        problem.ErrorCode.ShouldBe(Problems.SelfIdentifiedUserTypeMismatch.ErrorCode);
+        var problem = await response.ShouldHaveJsonContent<AltinnValidationProblemDetails>();
+        problem.ErrorCode.ShouldBe(StdProblemDescriptors.ErrorCodes.ValidationError);
+        problem.Errors.ShouldContain(e => e.ErrorCode == StdValidationErrors.Required.ErrorCode && e.Paths.Contains("/externalIdentity"));
     }
 
     [Fact]
@@ -217,18 +221,40 @@ public class UsersControllerTests
         request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
         {
             SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
-            ExternalIdentity = "urn:altinn:person:idporten-email:abc",
+            ExternalIdentity = "urn:altinn:person:idporten-email:dXNlckBleGFtcGxlLmNvbQ",
+            Email = "user@example.com",
         });
 
         var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
-        var problem = await response.ShouldHaveJsonContent<AltinnProblemDetails>();
-        problem.ErrorCode.ShouldBe(Problems.SelfIdentifiedUserTypeMismatch.ErrorCode);
+        var problem = await response.ShouldHaveJsonContent<AltinnValidationProblemDetails>();
+        problem.ErrorCode.ShouldBe(StdProblemDescriptors.ErrorCodes.ValidationError);
+        problem.Errors.ShouldContain(e => e.ErrorCode == StdValidationErrors.Required.ErrorCode && e.Paths.Contains("/userName"));
     }
 
     [Fact]
-    public async Task GetOrCreate_BridgeUnavailable_ReturnsBadGateway()
+    public async Task GetOrCreate_IdPortenEmail_MissingEmail_ReturnsBadRequest()
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl)
+            .WithPlatformToken("unittest");
+        request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
+        {
+            SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
+            ExternalIdentity = "urn:altinn:person:idporten-email:dXNlckBleGFtcGxlLmNvbQ",
+            UserName = "user@example.com",
+        });
+
+        var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
+        var problem = await response.ShouldHaveJsonContent<AltinnValidationProblemDetails>();
+        problem.ErrorCode.ShouldBe(StdProblemDescriptors.ErrorCodes.ValidationError);
+        problem.Errors.ShouldContain(e => e.ErrorCode == StdValidationErrors.Required.ErrorCode && e.Paths.Contains("/email"));
+    }
+
+    [Fact]
+    public async Task GetOrCreate_BridgeUnavailable_ReturnsProblem()
     {
         FakeHttpHandlers.For<ISblProfileBridgeClient>()
             .Expect(HttpMethod.Post, "/profile/api/users/")
@@ -239,15 +265,16 @@ public class UsersControllerTests
         request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
         {
             SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
-            ExternalIdentity = "urn:altinn:person:idporten-email:eEBleGFtcGxlLmNvbQ",
-            UserName = "epost:x@example.com",
+            ExternalIdentity = "urn:altinn:person:idporten-email:dXNlckBleGFtcGxlLmNvbQ",
+            UserName = "user@example.com",
+            Email = "user@example.com",
         });
 
         var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
 
-        await response.ShouldHaveStatusCode(HttpStatusCode.BadGateway);
+        await response.ShouldHaveStatusCode(HttpStatusCode.InternalServerError);
         var problem = await response.ShouldHaveJsonContent<AltinnProblemDetails>();
-        problem.ErrorCode.ShouldBe(Problems.SblProfileBridgeUnavailable.ErrorCode);
+        problem.ErrorCode.ShouldBe(Problems.PartyFetchFailed.ErrorCode);
     }
 
     [Fact]
@@ -258,8 +285,9 @@ public class UsersControllerTests
         request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
         {
             SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
-            ExternalIdentity = "urn:altinn:person:idporten-email:eEBleGFtcGxlLmNvbQ",
-            UserName = "epost:x@example.com",
+            ExternalIdentity = "urn:altinn:person:idporten-email:dXNlckBleGFtcGxlLmNvbQ",
+            UserName = "user@example.com",
+            Email = "user@example.com",
         });
 
         var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);

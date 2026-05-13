@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace Altinn.Register.Contracts.PartyImport;
+namespace Altinn.Register.PartyImport;
 
 /// <summary>
 /// Tracking information for a party import.

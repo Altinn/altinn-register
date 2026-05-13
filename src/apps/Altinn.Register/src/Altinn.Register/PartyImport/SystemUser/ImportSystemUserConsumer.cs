@@ -1,4 +1,4 @@
-using Altinn.Register.Contracts.PartyImport.SystemUser;
+using Altinn.Register.PartyImport.SystemUser;
 using CommunityToolkit.Diagnostics;
 using MassTransit;
 

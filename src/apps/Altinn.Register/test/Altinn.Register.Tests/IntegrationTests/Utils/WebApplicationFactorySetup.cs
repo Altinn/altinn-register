@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Altinn.Authorization.ServiceDefaults;
+using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Common.AccessToken.Services;
 using Altinn.Common.AccessTokenClient.Services;
 using Altinn.Register.Clients;
@@ -71,6 +72,7 @@ namespace Altinn.Register.Tests.IntegrationTests.Utils
                     services.AddSingleton<IExternalRoleDefinitionPersistence, MockExternalRoleDefinitionPersistence>();
                     services.AddSingleton(RateLimitProvider);
                     services.AddSingleton<IRateLimitProvider>(sp => sp.GetRequiredService<MockRateLimitProvider>());
+                    services.AddScoped<ICommandSender, NoOpCommandSender>();
 
                     // Using the real/actual implementation of IParties and IPersons, but with a mocked message handler.
                     // Haven't found any other ways of injecting a mocked message handler to simulate SBL Bridge.

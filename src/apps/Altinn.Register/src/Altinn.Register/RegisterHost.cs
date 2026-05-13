@@ -290,8 +290,6 @@ internal static partial class RegisterHost
             builder.AddAltinnMassTransitMigrations();
         }
 
-        services.TryAddScoped<ICommandSender, NoOpCommandSender>();
-
         services.AddOpenApiExampleProvider();
         services.AddSwaggerFilterAttributeSupport();
         services.AddUrnSwaggerSupport();

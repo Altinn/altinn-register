@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Altinn.Authorization.ServiceDefaults;
+using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Common.AccessTokenClient.Services;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.RateLimiting;
@@ -29,6 +30,7 @@ public class SwaggerEndpointTests
                 services.AddSingleton<IAccessTokenGenerator, TestAccessTokenGenerator>();
                 services.AddSingleton<IExternalRoleDefinitionPersistence, MockExternalRoleDefinitionPersistence>();
                 services.AddSingleton<IRateLimitProvider, MockRateLimitProvider>();
+                services.AddScoped<ICommandSender, NoOpCommandSender>();
             });
         });
     }
