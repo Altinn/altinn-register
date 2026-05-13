@@ -43,7 +43,10 @@ internal sealed class CcrDataTransfer
     }
 
     /// <summary>
-    /// Retrieves the next file from the SFTP server based on the last processed runId. It checks for files in the specified remote path, and if a file's runId is exactly one greater than the last processed runId, it downloads the file and marks it as downloaded by renaming it. The method returns a tuple containing the filename and its content as a stream.
+    /// Retrieves the next file from the SFTP server based on the last processed runId. 
+    /// It checks for files in the specified remote path, and if a file's runId is exactly one greater than the last processed runId, 
+    /// it downloads the file and marks it as downloaded by renaming it. The method returns a tuple containing the filename and its content as a stream.
+    /// Warning: If you give the number 5778 as last file, you will retrieve 5779. Once processing is done, you should then mark file 5779 as downloaded.
     /// </summary>
     /// <param name="writer">PipeWriter to write the file content.</param>
     /// <param name="lastRunId">Last RunId</param>
@@ -93,10 +96,10 @@ internal sealed class CcrDataTransfer
     /// <summary>
     /// Marks a file as downloaded by renaming it on the SFTP server. It connects to the SFTP server, checks for files in the specified remote path, and if a file's runId is exactly one greater than the last processed runId, it renames the file by replacing ".txt" with "Downloaded.txt". After processing, it disconnects from the SFTP server. The method returns true if a file was marked as downloaded, otherwise false.
     /// </summary>
-    /// <param name="lastRun">The last processed runId. Used to identify which file should be renamed.</param>
+    /// <param name="fileToMarkAsDownloaded">The runId of the file to mark as downloaded.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task<bool> MarkFileAsDownloadedAsync(int lastRun, CancellationToken cancellationToken = default)
+    public async Task<bool> MarkFileAsDownloadedAsync(int fileToMarkAsDownloaded, CancellationToken cancellationToken = default)
     {
         if (!_client.IsConnected)
         {
@@ -114,7 +117,7 @@ internal sealed class CcrDataTransfer
                 }
 
                 int runId = GetRunIdFromFileName(file.Name);
-                if (runId == lastRun + 1)
+                if (runId == fileToMarkAsDownloaded)
                 {
                     await _client.RenameFileAsync(file.FullName, file.FullName.Replace(".txt", "Downloaded.txt"), cancellationToken); // Mark file as downloaded
                     return true;
