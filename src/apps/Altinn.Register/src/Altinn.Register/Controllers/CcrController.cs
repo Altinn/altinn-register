@@ -15,6 +15,7 @@ using Altinn.Register.Core.CcrLog;
 using Altinn.Register.Core.Utils;
 using Altinn.Register.Integrations.Ccr.Xml;
 using Asp.Versioning;
+using CommunityToolkit.Diagnostics;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
@@ -76,23 +77,31 @@ public partial class CcrController
         {
             try
             {
+                var receivedAt = _timeProvider.GetUtcNow();
                 await UpdateFromCcr(cancellationToken);
-
-                // TODO: return correct response
-                return;
+                await WriteAltinnSoapSuccess(receivedAt);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 throw;
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                Log.InteralUpdateError(_logger, ex);
+                await WriteAltinnSoapFault("Client authentication failed", isClientFault: true);
+            }
             catch (XmlException ex)
             {
-                throw new NotImplementedException(null, ex);
+                Log.InteralUpdateError(_logger, ex);
+                await WriteAltinnSoapFault("Malformed XML in request", isClientFault: true);
             }
             catch (Exception ex)
             {
-                throw new NotImplementedException(null, ex);
+                Log.InteralUpdateError(_logger, ex);
+                await WriteAltinnSoapFault("Internal server error", isClientFault: false);
             }
+
+            return;
         }
 
         using RecordOperationState state = new(_timeProvider.GetUtcNow(), Request.GetDisplayUrl());
@@ -153,10 +162,84 @@ public partial class CcrController
         }
 
         var ccrService = HttpContext.RequestServices.GetRequiredService<CcrService>();
+        if (HttpContext.Connection.RemoteIpAddress is null
+            || string.IsNullOrWhiteSpace(result.UserName)
+            || string.IsNullOrWhiteSpace(result.Password)
+            || !ccrService.AuthorizeCcrClient(result.UserName, result.Password, HttpContext.Connection.RemoteIpAddress))
+        {
+            ThrowHelper.ThrowUnauthorizedAccessException("Invalid CCR client credentials or missing source IP address");
+        }
+
         await ccrService.UpdateFromCcr(
             commandId: Guid.CreateVersion7(),
             seq.AsReadOnlySequence,
             cancellationToken);
+    }
+
+    private async Task WriteAltinnSoapSuccess(DateTimeOffset timeReceived)
+    {
+        const string nsSoap = "http://schemas.xmlsoap.org/soap/envelope/";
+        const string nsRegister = "http://www.altinn.no/services/Register/ER/2013/06";
+        const string nsXsi = "http://www.w3.org/2001/XMLSchema-instance";
+
+        Response.ContentType = "text/xml; charset=utf-8";
+
+        var receiptXml = $"""
+            <?xml version="1.0" encoding="UTF-8"?><ERReceipt schemaVersion="1.0" xmlns:xsi="{nsXsi}" xsi:noNamespaceSchemaLocation="GovAgencyReceipt.xsd"><DataUnitInReceipt receiptType="ER" status="OK_ER_DATA_PROCESSED" timeReceived="{timeReceived.UtcDateTime:yyyy-MM-ddTHH:mm:ss}"><Message><MessageEntry>ER data processed ok</MessageEntry></Message></DataUnitInReceipt></ERReceipt>
+            """;
+
+        using var writer = XmlWriter.Create(Response.Body, new XmlWriterSettings { Async = true, Indent = true });
+        await writer.WriteStartDocumentAsync();
+        await writer.WriteStartElementAsync(prefix: "s", localName: "Envelope", ns: nsSoap);
+        await writer.WriteStartElementAsync(prefix: "s", localName: "Body", ns: nsSoap);
+        await writer.WriteStartElementAsync(prefix: null, localName: "SubmitERDataBasicResponse", ns: nsRegister);
+        await writer.WriteElementStringAsync(prefix: null, localName: "SubmitERDataBasicResult", ns: nsRegister, value: receiptXml);
+        await writer.WriteEndElementAsync(); // SubmitERDataBasicResponse
+        await writer.WriteEndElementAsync(); // Body
+        await writer.WriteEndElementAsync(); // Envelope
+        await writer.WriteEndDocumentAsync();
+        await writer.FlushAsync();
+    }
+
+    private async Task WriteAltinnSoapFault(string faultString, bool isClientFault)
+    {
+        const string nsSoap = "http://schemas.xmlsoap.org/soap/envelope/";
+        const string nsAltinnFault = "http://www.altinn.no/services/common/fault/2009/10";
+        const string nsXsi = "http://www.w3.org/2001/XMLSchema-instance";
+
+        Response.ContentType = "text/xml; charset=utf-8";
+
+        using var writer = XmlWriter.Create(Response.Body, new XmlWriterSettings { Async = true, Indent = true });
+        await writer.WriteStartDocumentAsync();
+        await writer.WriteStartElementAsync(prefix: "s", localName: "Envelope", ns: nsSoap);
+        await writer.WriteStartElementAsync(prefix: "s", localName: "Body", ns: nsSoap);
+        await writer.WriteStartElementAsync(prefix: "s", localName: "Fault", ns: nsSoap);
+
+        await writer.WriteElementStringAsync(prefix: null, localName: "faultcode", ns: null, value: isClientFault ? "s:Client" : "s:Server");
+
+        await writer.WriteStartElementAsync(prefix: null, localName: "faultstring", ns: null);
+        await writer.WriteAttributeStringAsync(prefix: "xml", localName: "lang", ns: null, value: "nb-NO");
+        await writer.WriteStringAsync("An error occurred");
+        await writer.WriteEndElementAsync(); // faultstring
+
+        await writer.WriteStartElementAsync(prefix: null, localName: "detail", ns: null);
+        await writer.WriteStartElementAsync(prefix: null, localName: "AltinnFault", ns: nsAltinnFault);
+        await writer.WriteAttributeStringAsync(prefix: "xmlns", localName: "i", ns: null, value: nsXsi);
+        await writer.WriteElementStringAsync(prefix: null, localName: "AltinnErrorMessage", ns: nsAltinnFault, value: faultString);
+        await writer.WriteElementStringAsync(prefix: null, localName: "AltinnExtendedErrorMessage", ns: nsAltinnFault, value: "No further information available");
+        await writer.WriteElementStringAsync(prefix: null, localName: "AltinnLocalizedErrorMessage", ns: nsAltinnFault, value: "No further information available");
+        await writer.WriteElementStringAsync(prefix: null, localName: "ErrorGuid", ns: nsAltinnFault, value: Guid.CreateVersion7().ToString());
+        await writer.WriteElementStringAsync(prefix: null, localName: "ErrorID", ns: nsAltinnFault, value: "0");
+        await writer.WriteElementStringAsync(prefix: null, localName: "UserGuid", ns: nsAltinnFault, value: "-no value-");
+        await writer.WriteElementStringAsync(prefix: null, localName: "UserId", ns: nsAltinnFault, value: "0");
+        await writer.WriteEndElementAsync(); // AltinnFault
+        await writer.WriteEndElementAsync(); // detail
+
+        await writer.WriteEndElementAsync(); // Fault
+        await writer.WriteEndElementAsync(); // Body
+        await writer.WriteEndElementAsync(); // Envelope
+        await writer.WriteEndDocumentAsync();
+        await writer.FlushAsync();
     }
 
     private void EnqueueRecord(RecordOperationState state)
@@ -594,5 +677,8 @@ public partial class CcrController
 
         [LoggerMessage(4, LogLevel.Information, "Unsupported content-encoding: {Encoding}")]
         public static partial void UnsupportedContentEncoding(ILogger logger, string encoding);
+
+        [LoggerMessage(5, LogLevel.Error, "Error during internal update from CCR")]
+        public static partial void InteralUpdateError(ILogger logger, Exception ex);
     }
 }
