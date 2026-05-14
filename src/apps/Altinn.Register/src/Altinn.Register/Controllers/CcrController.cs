@@ -4,11 +4,16 @@ using System.IO.Compression;
 using System.IO.Pipelines;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Xml;
 using Altinn.Authorization.ModelUtils.EnumUtils;
 using Altinn.Register.Conventions;
+using Altinn.Register.Core.Ccr;
 using Altinn.Register.Core.CcrLog;
+using Altinn.Register.Core.Utils;
+using Altinn.Register.Integrations.Ccr.Xml;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -66,6 +71,30 @@ public partial class CcrController
         [FromQuery(Name = "record")] bool record = true,
         CancellationToken cancellationToken = default)
     {
+        if (Request.Headers.TryGetValue("X-Altinn-Register-Ccr", out var values)
+            && values.Contains("Apply-In-A3", StringComparer.OrdinalIgnoreCase))
+        {
+            try
+            {
+                await UpdateFromCcr(cancellationToken);
+
+                // TODO: return correct response
+                return;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (XmlException ex)
+            {
+                throw new NotImplementedException(null, ex);
+            }
+            catch (Exception ex)
+            {
+                throw new NotImplementedException(null, ex);
+            }
+        }
+
         using RecordOperationState state = new(_timeProvider.GetUtcNow(), Request.GetDisplayUrl());
 
         state.ReadRequestHeaders(Request.Headers);
@@ -105,6 +134,29 @@ public partial class CcrController
         {
             Log.NotRecordingCcrUpdate(_logger, skipReasons);
         }
+    }
+
+    private async Task UpdateFromCcr(CancellationToken cancellationToken)
+    {
+        using var seq = new Sequence<byte>(ArrayPool<byte>.Shared);
+        await Request.BodyReader.CopyToAsync(seq, cancellationToken);
+
+        var result = CcrUpdateEnvelopeReader.ReadEnvelope(seq.AsReadOnlySequence);
+
+        // TODO: validate credentials
+        seq.Reset();
+
+        {
+            using var writer = new BufferTextWriter(seq, Encoding.UTF8);
+            writer.Write(result.Payload);
+            writer.Flush();
+        }
+
+        var ccrService = HttpContext.RequestServices.GetRequiredService<CcrService>();
+        await ccrService.UpdateFromCcr(
+            commandId: Guid.CreateVersion7(),
+            seq.AsReadOnlySequence,
+            cancellationToken);
     }
 
     private void EnqueueRecord(RecordOperationState state)
