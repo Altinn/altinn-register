@@ -1,4 +1,3 @@
-using Altinn.Register.PartyImport.SystemUser;
 using CommunityToolkit.Diagnostics;
 using MassTransit;
 
