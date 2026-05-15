@@ -750,6 +750,122 @@ XML have field X?" can confirm it's intentionally dropped:
 > writer method first; only then can XML-driven scenarios test the
 > downstream DB behavior.
 
+## XML → DB processing (`CcrXmlProcessor`)
+
+Everything above describes the **flat-file → XML** stage
+(`CcrFlatFileProcessor`). There is now a second, separate stage:
+[`CcrXmlProcessor`](../../../src/Altinn.Register.Integrations.Ccr.Xml/CcrXmlProcessor.cs)
+consumes the `batchAjourholdXML` documents described here and produces
+`CcrOrganizationUpdate` records for the Register DB import. It is a
+**deliberately narrow subset** of the legacy Altinn-2 `RegisterERSI.SubmitERData`
+flow — it intentionally does *not* re-implement status, NACE/industry
+codes, foreign legal form, capital, endorsements, party affiliations,
+or sensitive-role deletion. Anyone reasoning about "what reaches the DB"
+must apply *both* this filter and the flat-file-stage
+[Felter parser-en ikke beholder](#felter-parser-en-ikke-beholder-i-xml-en)
+filter.
+
+> **Source format note.** This stage is the *consumer* of the XML, not
+> the producer. The flat-file stage can legitimately emit constructs
+> (e.g. `endringstype="K"`, `data="T"` records, `felttype="FORM"`,
+> `<status>` blocks) that this stage does not yet accept — see
+> "Known code issues" below.
+
+### What `CcrXmlProcessor` consumes vs. ignores vs. rejects
+
+| Construct | Behavior in `CcrXmlProcessor` |
+| --- | --- |
+| `<infotype>` `EPOS`, `IADR`, `TFON`, `MTLF`, `TFAX` (`N`/`U`) | **Mapped** to the corresponding org contact field |
+| `<infotype>` `FADR`, `PADR` (`N`/`U`) | **Mapped** to business / mailing address |
+| `<infotype>` `NAVN` (`N`/`U`) | **Mapped** to display name (navn1..navn5 concatenated) |
+| `<infotype>` `naeringskode`, `paategning`, `ULOV`, `UREG`, `R-MV`, `R-FR`, `R-FV`, `R-SR`, `MÅL`, `ISEK`, `STID`, `VEDT`, `FMVA`, `KAPI`, `EDAT`/`BDAT`/`NDAT`, and the BR-internal codes | **Silently skipped** (`reader.Skip()`) — explicit allow-list so they don't fault, but they have no DB effect |
+| `<infotype felttype="FORM">` | **Rejected** — not in the skip allow-list, throws `InvalidDataException` (see issue I1) |
+| `<samendringer data="D" type="R">` (person role) | **Mapped** to role add / remove (incl. `KONT` orgform fan-out) |
+| `<samendringer data="D" type="K">` (org connection) | **Mapped** to connection add / remove (incl. `KONT` fan-out) |
+| `<samendringer data="T" …>` (any free-text record) | **Rejected** — throws `ArgumentException` (see issue I2) |
+| `<samendringUtgaar felttype="SAMU">` | **Handled** — `ReadSamu` expands the samendringstype into family bulk-removals (`STYR`→LEDE/NEST/MEDL/VARA/OBS, `DELT`→DTSO/DTPR, `SIGN`, `PROK`, `KONT`, `REVI`, `REGN`, `HOST`, `ESGR`, plus a single-role `VerifyRoleCode` fallback) |
+| `<status …>` (`KONK`, `OPPL`, `SKRR`, …) | **Silently dropped** — `ReadStatus` is commented out, replaced by `reader.Skip()`. No DB effect, including the `KONK` `kjennelsesdato` |
+| `endringstype="K"` (Kopi/retransmission) on any *mapped* `<infotype>` or `<samendringer>` | **Rejected** — only the literal strings `"N"` and `"U"` are matched; `"K"` falls through to a throw (see issue I3) |
+| `hovedsakstype="S"` (deletion) | Sets `IsDeleted` / `DeletedAt`. `hovedsakstype="L"` (revived) is not special-cased |
+| `<trai antallEnheter>` | Enforced — a mismatch vs. the number of `<enhet>` read throws |
+
+### Per-scenario consequence
+
+The scenario corpus is documentation-only (no test feeds `ScenarioN.xml`
+into `CcrXmlProcessor`; the processor test runs on the flat-file
+snapshot outputs, and the one snapshot containing these constructs —
+`test2` — is disabled with `Skip = "Bad data?"`). Applying the table
+above to the fixtures:
+
+| Scenario | `CcrXmlProcessor` outcome |
+| --- | --- |
+| S1, S2, S6, S9 | OK — `REGN` connection add |
+| S3 | OK — person-role board reshuffle (N/U) |
+| S7, S8 | OK — `FADR` |
+| S10 | OK — `NAVN` + `BEDR` connection (N/U); `EDAT` skipped |
+| S13 | OK — `FADR` + `PADR-U` |
+| S14 | OK — `EPOS`/`IADR`/`MTLF-U` |
+| S18 | OK — `EPOS-U`/`TFON-U` |
+| S24 | OK — `EPOS`/`MTLF`/`NAVN`/`TFON-U` + `DAGL`/`INNH` roles; `paategning-U` skipped |
+| S4, S5, S12, S19, S20, S25 | **No-op** — only skipped infotypes; produces an org update with no field/role change |
+| S16, S21 | **No-op** — only `<status>` (dropped) |
+| S17 | **Partial** — SAMU bulk-removal + `DAGL-U` role expiry work; `OPPL` status dropped |
+| **S11** | **Throws** — `felttype="FORM"` (I1) *and* `data="T" type="S"` (I2) |
+| **S15** | **Throws** — `data="T" type="S"` signaturrett (I2) |
+| **S22, S23** | **Throws** — `felttype="FORM"` (I1) |
+
+### Known code issues (`CcrXmlProcessor`)
+
+These are observations only — fixes are out of scope for this doc and
+are owned by the team working on the processor. Listed so scenario
+authors and reviewers know these are *known* gaps, not fixture bugs.
+
+- **I1 — `felttype="FORM"` is missing from the infotype skip
+  allow-list.** Every comparable BR-internal felttype (`GRDT`, `GRUN`,
+  `UVNO`, `MÅL`, …) is in the allow-list and skipped; `FORM` is not, so
+  it hits `default:` and throws `InvalidDataException("unknown felttype
+  'FORM'")`. The flat-file stage *does* emit `FORM` (it is documented as
+  a normal infotype, see [Simple infotype](#a-simple-infotype-infotypeopplysning)).
+  Affects S11, S22, S23. Almost certainly an accidental omission rather
+  than an intentional rejection.
+
+- **I2 — Free-text samendringer (`data="T"`) are rejected, not
+  skipped.** Only `(type="R", data="D")` and `(type="K", data="D")` are
+  handled; any `data="T"` record (notably the `type="S"` signaturrett
+  free-text used in S11/S15) reaches the `default:` and throws
+  `ArgumentException`. The legacy Altinn-2 flow handled these in
+  `ImportPartyRoleTexts`, including the `H`/`T` (Head/Tail) placement
+  semantics. Either this needs implementing, or `data="T"` needs to be
+  skipped gracefully rather than throwing.
+
+- **I3 — `endringstype="K"` (Kopi) is not treated as an insert.** The
+  flat-file stage emits `K` and explicitly treats it identically to `N`
+  (`IsNewOrUpdateChange` returns true for both — see
+  [`<infotype>`](#infotype--direct-enhet-info)). The legacy Altinn-2
+  `IsInsertNode` likewise treated `CHANGETYPE_COPY` as an insert.
+  `CcrXmlProcessor` matches only the literal `"N"`/`"U"`, so any `K`
+  record on a mapped felttype/samendringer throws. This breaks
+  full-snapshot and `head/@type="K"` deliveries (where every current
+  record is re-sent as a Kopi). No fixture currently exercises `K`, so
+  it is latent in the corpus but real for production batches.
+
+- **I4 — `<knytningFratraadt>` field name typo.** `ReadSamendring`
+  looks up the dictionary key `"knytningsFratraadt"` (with an `s`), but
+  the emitted element — and the BR field — is `<knytningFratraadt>`
+  (see [knytning record](#datad-typek--knytning-org-to-org-connection)).
+  A connection marked `knytningFratraadt="F"` (stepped down but
+  `endringstype` not `U`) is therefore never recognized as a removal.
+  Latent in the corpus because the knytning fixtures (S1/S2/S6/S9/S10/S22)
+  use `endringstype` `N`/`U` rather than `fratraadt="F"`; the
+  person-role equivalent (`rolleFratraadt`) is spelled correctly.
+
+- **I5 — `<status>` processing is disabled, not just unmapped.**
+  `ReadStatus` exists but is commented out in favour of `reader.Skip()`,
+  so KONK/OPPL/SKRR (and the `KONK` `kjennelsesdato`) produce no DB
+  effect. This is consistent with the "narrow subset" design intent but
+  is worth calling out explicitly because the `<status>` section above
+  describes it as semantically meaningful at the format level.
+
 ## PII content reference
 
 Documents derived from real production data may contain:

@@ -38,6 +38,29 @@ real format:
   LEDE in the same update) only stay coherent if the SSN matches across
   records.
 
+## `CcrXmlProcessor` coverage at a glance
+
+These fixtures describe the **flat-file → XML** format. A second stage,
+[`CcrXmlProcessor`](../../../src/Altinn.Register.Integrations.Ccr.Xml/CcrXmlProcessor.cs),
+consumes that XML for the Register DB import and is a deliberately
+narrow subset of the legacy Altinn-2 flow. **No test feeds these
+`ScenarioN.xml` files into `CcrXmlProcessor`** — they are
+documentation-only; the processor test runs on the flat-file snapshot
+outputs instead. Applying the processor's contract to these fixtures:
+
+| Outcome | Scenarios |
+| --- | --- |
+| Processed (fields/roles mapped) | S1, S2, S3, S6, S7, S8, S9, S10, S13, S14, S18, S24 |
+| No-op (only skipped infotypes / dropped `<status>`) | S4, S5, S12, S16, S19, S20, S21, S25 |
+| Partial (SAMU + role expiry OK, status dropped) | S17 |
+| **Throws** (unhandled construct) | S11, S15, S22, S23 |
+
+See
+[CcrXmlFormat.md → "XML → DB processing (`CcrXmlProcessor`)"](./CcrXmlFormat.md#xml--db-processing-ccrxmlprocessor)
+for the full consume/ignore/reject table and the **Known code issues**
+list (I1 `FORM`, I2 `data="T"`, I3 `endringstype="K"`, I4
+`knytningFratraadt` typo, I5 `<status>` disabled).
+
 ## Scenario 1 — New accountant (regnskapsfører) registered for a NUF
 
 **Change type:** New `REGN` connection (`samendringer data="D" felttype="REGN" endringstype="N" type="K"`)
