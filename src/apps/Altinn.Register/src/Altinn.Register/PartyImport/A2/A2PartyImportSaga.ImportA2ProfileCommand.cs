@@ -3,8 +3,6 @@ using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
-using Altinn.Register.PartyImport;
-using Altinn.Register.PartyImport.A2;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.PartyImport.A2;
