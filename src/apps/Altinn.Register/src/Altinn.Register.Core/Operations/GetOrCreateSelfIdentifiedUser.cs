@@ -49,6 +49,7 @@ public readonly record struct GetOrCreateSelfIdentifiedUserRequest(
 internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
     ISblProfileBridgeClient bridgeClient,
     ICommandSender commandSender,
+    TimeProvider timeProvider,
     ILogger<GetOrCreateSelfIdentifiedUserFromBridgeHandler> logger)
     : IRequestHandler<GetOrCreateSelfIdentifiedUserRequest, SelfIdentifiedUserRecord>
 {
@@ -130,7 +131,7 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
                 {
                     PartyUuid = partyUuid,
                     ChangeId = 0,
-                    ChangedTime = DateTimeOffset.UtcNow,
+                    ChangedTime = timeProvider.GetUtcNow(),
                     Tracking = default,
                 },
                 cancellationToken);
@@ -164,14 +165,18 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
 
         FieldValue<string> email = request.SelfIdentifiedUserType == SelfIdentifiedUserType.IdPortenEmail
             ? request.Email!
-            : FieldValue.Unset;
+            : FieldValue.Null;
 
         FieldValue<string> extRef = request.SelfIdentifiedUserType == SelfIdentifiedUserType.Educational
             ? request.ExternalIdentity!
-            : FieldValue.Unset;
+            : FieldValue.Null;
 
         var userId = checked((uint)profile.UserId);
-        var now = DateTimeOffset.UtcNow;
+        var now = timeProvider.GetUtcNow();
+
+        var displayName = request.SelfIdentifiedUserType == SelfIdentifiedUserType.IdPortenEmail
+            ? request.Email!
+            : profile.UserName;
 
         return new SelfIdentifiedUserRecord
         {
@@ -182,7 +187,7 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
             PartyId = checked((uint)profile.PartyId),
             OwnerUuid = FieldValue.Null,
             ExternalUrn = externalUrn,
-            DisplayName = profile.UserName,
+            DisplayName = displayName,
             PersonIdentifier = FieldValue.Null,
             OrganizationIdentifier = FieldValue.Null,
             CreatedAt = now,

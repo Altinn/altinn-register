@@ -39,6 +39,7 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
         var handler = new GetOrCreateSelfIdentifiedUserFromBridgeHandler(
             bridge.Object,
             sender.Object,
+            TimeProvider.System,
             NullLogger<GetOrCreateSelfIdentifiedUserFromBridgeHandler>.Instance);
 
         var request = new GetOrCreateSelfIdentifiedUserRequest(

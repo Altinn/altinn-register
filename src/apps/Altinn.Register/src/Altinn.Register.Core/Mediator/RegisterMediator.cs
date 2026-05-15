@@ -66,9 +66,11 @@ internal sealed class RegisterMediator
             .ApiSourceSwitch<LookupV1PartyNamesFromA2RequestHandler, LookupV1PartyNamesFromDBRequestHandler>(this, sender, "parties/nameslookup")
             .Handle(request, cancellationToken);
 
+    // The DB handler is not yet implemented (iteration 2) and the global ApiSource feature flag
+    // is already flipped to DB in non-prod environments, so we forward directly to the A2 bridge
+    // handler until iteration 2 lands.
     private ValueTask<Result<SelfIdentifiedUserRecord>> Send(GetOrCreateSelfIdentifiedUserRequest request, Sender sender, CancellationToken cancellationToken)
-        => RequestDispatcher<GetOrCreateSelfIdentifiedUserRequest, SelfIdentifiedUserRecord>
-            .ApiSourceSwitch<GetOrCreateSelfIdentifiedUserFromBridgeHandler, GetOrCreateSelfIdentifiedUserFromDBHandler>(this, sender, "users/self-identified/get-or-create")
+        => sender.Services.GetRequiredService<GetOrCreateSelfIdentifiedUserFromBridgeHandler>()
             .Handle(request, cancellationToken);
 
     private static class RequestDispatcher<TRequest, TResponse>
