@@ -9,9 +9,9 @@ using Altinn.Register.TestUtils.TestData;
 namespace Altinn.Register.IntegrationTests.Ccr.Xml;
 
 /// <summary>
-/// BEDR med EPOS-N + IADR-N + MTLF-U
+/// Missing Role to remove
 /// </summary>
-public class Scenario1
+public class Scenario01
     : CcrXmlUpdateTestBase
 {
     private OrganizationRecord _org = null!;
@@ -60,12 +60,6 @@ public class Scenario1
         _personRegnOld = await uow.CreatePerson(
             name: PersonName.Create("Forrige", "Regnskapsfører"),
             identifier: PersonIdentifier.Parse("16898398653"),
-            cancellationToken: cancellationToken);
-
-        // gammel Revisor
-        _personReviOld = await uow.CreatePerson(
-            name: PersonName.Create("Forrige", "Revisor"),
-            identifier: PersonIdentifier.Parse("08817498451"),
             cancellationToken: cancellationToken);
 
         // ny Regnskapsfører

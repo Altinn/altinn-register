@@ -9,9 +9,9 @@ using Altinn.Register.TestUtils.TestData;
 namespace Altinn.Register.IntegrationTests.Ccr.Xml;
 
 /// <summary>
-/// BEDR med EPOS-N + IADR-N + MTLF-U
+/// Missing Role to add
 /// </summary>
-public class Scenario1
+public class Scenario02
     : CcrXmlUpdateTestBase
 {
     private OrganizationRecord _org = null!;
@@ -68,11 +68,7 @@ public class Scenario1
             identifier: PersonIdentifier.Parse("08817498451"),
             cancellationToken: cancellationToken);
 
-        // ny Regnskapsfører
-        _personRegn = await uow.CreatePerson(
-            name: PersonName.Create("CECILIE", "CHRISTIANSEN"),
-            identifier: PersonIdentifier.Parse("06815999639"),
-            cancellationToken: cancellationToken);
+        // Mangler nye Regnskapsfører i db, bør insettes on the fly av Upsert fra XML
 
         // ny Revisor
         _personRevi = await uow.CreatePerson(
