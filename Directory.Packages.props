@@ -43,6 +43,7 @@
     <PackageVersion Include="MassTransit.RabbitMQ" Version="8.5.9" />
     <PackageVersion Include="MassTransit" Version="8.5.9" />
     <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.23.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Cryptography.KeyDerivation" Version="9.0.14" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.14" />
     <PackageVersion Include="Microsoft.AspNetCore.WebUtilities" Version="9.0.14" />
     <PackageVersion Include="Microsoft.Build.Artifacts" Version="6.1.63" />

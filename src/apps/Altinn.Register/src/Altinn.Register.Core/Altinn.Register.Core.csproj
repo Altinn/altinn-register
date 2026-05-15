@@ -9,6 +9,7 @@
     <PackageReference Include="Altinn.Authorization.ProblemDetails.Validation" />
     <PackageReference Include="Altinn.Authorization.ServiceDefaults.Telemetry" />
     <PackageReference Include="Altinn.Swashbuckle.Abstractions" />
+    <PackageReference Include="Microsoft.AspNetCore.Cryptography.KeyDerivation" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
     <PackageReference Include="Nerdbank.Streams" />
