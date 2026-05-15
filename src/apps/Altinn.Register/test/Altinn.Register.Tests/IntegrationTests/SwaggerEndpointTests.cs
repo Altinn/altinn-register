@@ -3,6 +3,7 @@ using Altinn.Authorization.ServiceDefaults;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Common.AccessTokenClient.Services;
 using Altinn.Register.Core.ExternalRoles;
+using Altinn.Register.Core.Location;
 using Altinn.Register.Core.RateLimiting;
 using Altinn.Register.Tests.IntegrationTests.Utils;
 using Altinn.Register.Tests.Mocks;
@@ -31,6 +32,7 @@ public class SwaggerEndpointTests
                 services.AddSingleton<IExternalRoleDefinitionPersistence, MockExternalRoleDefinitionPersistence>();
                 services.AddSingleton<IRateLimitProvider, MockRateLimitProvider>();
                 services.AddScoped<ICommandSender, NoOpCommandSender>();
+                services.AddSingleton<ILocationLookupProvider, MockLocationLookupProvider>();
             });
         });
     }

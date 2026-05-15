@@ -352,6 +352,6 @@ MigrationBackup/
 .devenv/
 devenv.lock
 
-# Codex
+# AI tools
 .codex
-/.claude/settings.local.json
+.claude

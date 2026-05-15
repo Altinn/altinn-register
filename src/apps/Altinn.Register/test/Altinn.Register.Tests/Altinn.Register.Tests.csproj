@@ -30,6 +30,8 @@
     <ProjectReference Include="..\..\src\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Altinn.Register\Altinn.Register.csproj" />
     <ProjectReference Include="..\Altinn.Register.TestUtils.V3\Altinn.Register.TestUtils.V3.csproj" />
+    <ProjectReference Include="..\..\src\Altinn.Register.Integrations.Ccr.Xml\Altinn.Register.Integrations.Ccr.Xml.csproj" />
+    <ProjectReference Include="..\..\src\Altinn.Register.Integrations.Ccr.FileImport\Altinn.Register.Integrations.Ccr.FileImport.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -62,6 +64,7 @@
     <EmbeddedResource Include="Testdata/**/*.json" />
     <EmbeddedResource Include="Testdata/**/*.txt" />
     <EmbeddedResource Include="Testdata/**/*.xml" />
+    <EmbeddedResource Include="Snapshots/**/*.xml" />
   </ItemGroup>
 
 </Project>

@@ -3,8 +3,8 @@
   <head avsender="ER" dato="20260311" kjoerenr="05749" mottaker="ALT" type="A" />
   <enhet organisasjonsnummer="313316661" organisasjonsform="BRL" hovedsakstype="E" undersakstype="EN" foersteOverfoering="N" datoFoedt="20210315" datoSistEndret="20210320">
     <infotype felttype="NAVN" endringstype="N">
-      <navn1>AUTORISERT GLAD HEST BORETTSLAG RES</navn1>
-      <navn2>ERVERT AMBITA</navn2>
+      <navn1>AUTORISERT GLAD HEST BORETTSLAG</navn1>
+      <navn2>RESERVERT AMBITA</navn2>
       <rednavn>AUTORISERT GLAD HEST BORETTS</rednavn>
     </infotype>
     <samendringer data="D" felttype="DAGL" endringstype="N" type="R">

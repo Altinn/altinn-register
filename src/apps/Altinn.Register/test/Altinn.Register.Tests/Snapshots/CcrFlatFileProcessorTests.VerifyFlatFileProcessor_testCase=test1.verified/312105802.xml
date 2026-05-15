@@ -3,8 +3,8 @@
   <head avsender="ER" dato="20260311" kjoerenr="05749" mottaker="ALT" type="A" />
   <enhet organisasjonsnummer="312105802" organisasjonsform="BEDR" hovedsakstype="E" undersakstype="NY" foersteOverfoering="N" datoFoedt="20210318" datoSistEndret="20210318">
     <infotype felttype="NAVN" endringstype="N">
-      <navn1>PROAKTIV MORALSK TIGER AS RESERVERT</navn1>
-      <navn2>AMBITA</navn2>
+      <navn1>PROAKTIV MORALSK TIGER AS</navn1>
+      <navn2>RESERVERT AMBITA</navn2>
       <rednavn>PROAKTIV MORALSK TIGER AS RE</rednavn>
     </infotype>
     <samendringer data="D" felttype="DAGL" endringstype="N" type="R">

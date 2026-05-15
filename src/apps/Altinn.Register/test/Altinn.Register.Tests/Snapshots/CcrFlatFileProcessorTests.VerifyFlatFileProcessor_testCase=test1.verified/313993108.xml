@@ -3,8 +3,8 @@
   <head avsender="ER" dato="20260311" kjoerenr="05749" mottaker="ALT" type="A" />
   <enhet organisasjonsnummer="313993108" organisasjonsform="AS" hovedsakstype="E" undersakstype="NY" foersteOverfoering="N" datoFoedt="20210315" datoSistEndret="20210315">
     <infotype felttype="NAVN" endringstype="N">
-      <navn1>KOMPETENT GRETTEN TIGER AS RESERVER</navn1>
-      <navn2>T AMBITA</navn2>
+      <navn1>KOMPETENT GRETTEN TIGER AS</navn1>
+      <navn2>RESERVERT AMBITA</navn2>
       <rednavn>KOMPETENT GRETTEN TIGER AS R</rednavn>
     </infotype>
     <samendringer data="D" felttype="DAGL" endringstype="N" type="R">
