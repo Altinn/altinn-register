@@ -722,9 +722,14 @@ internal sealed class CcrXmlProcessor
                     var kommunenr = rolleFields.TryGetValue("kommunenr", out var rkomm) ? rkomm : null;
                     var poststedIUtland = rolleFields.TryGetValue("poststed", out var rps) ? rps : null;
 
-                    if (!PersonIdentifier.TryParse(rolleFoedselsnr, null, out var personIdentifier))
+                    if (string.IsNullOrEmpty(rolleFoedselsnr))
                     {
                         ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required field 'rolleFoedselsnr' for role assignment in <samendringer> element.");
+                    }
+
+                    if (!PersonIdentifier.TryParse(rolleFoedselsnr, null, out var personIdentifier))
+                    {
+                        ThrowHelper.ThrowInvalidDataException("XmlReader: Invalid format for required field 'rolleFoedselsnr' for role assignment in <samendringer> element.");
                     }
 
                     // Convert CCR role code to Altinn role code
@@ -803,6 +808,11 @@ internal sealed class CcrXmlProcessor
                 {
                     var knytningsOrgnr = rolleFields.TryGetValue("knytningOrganisasjonsnummer", out var kforn) ? kforn : null;
                     var knytningsFratraadt = rolleFields.TryGetValue("knytningsFratraadt", out var kfratr) ? kfratr : null;
+
+                    if (string.IsNullOrEmpty(knytningsOrgnr))
+                    {
+                        ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required field 'knytningsOrgnr' for role assignment in <samendringer> element.");
+                    }
 
                     if (!OrganizationIdentifier.TryParse(knytningsOrgnr, null, out var organizationIdentifier))
                     {
