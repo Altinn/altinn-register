@@ -39,12 +39,16 @@ BEGIN
   END IF;
 
   WITH
-    resolved AS (
+    resolved_raw AS (
       SELECT DISTINCT
         a.identifier,
         register.resolve_external_role_referenced_party(p_flags, a.to_party) AS to_party
       FROM unnest(p_absent) a
-      WHERE to_party IS NOT NULL
+    ),
+    resolved AS (
+      SELECT *
+      FROM resolved_raw r
+      WHERE r.to_party IS NOT NULL
     ),
     deleted AS (
       DELETE FROM register.external_role_assignment era

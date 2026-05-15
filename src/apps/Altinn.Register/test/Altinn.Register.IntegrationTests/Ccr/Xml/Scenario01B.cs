@@ -8,13 +8,12 @@ using Altinn.Register.TestUtils.TestData;
 namespace Altinn.Register.IntegrationTests.Ccr.Xml;
 
 /// <summary>
-/// BEDR med EPOS-N + IADR-N + MTLF-U
+/// Missing Person to update to, should be created and assigned the role
 /// </summary>
-public class Scenario1
+public class Scenario01B
     : CcrXmlUpdateTestBase
 {
     private OrganizationRecord _org = null!;
-    private PersonRecord _personRegn = null!;
     private PersonRecord _personRevi = null!;
     private PersonRecord _personRegnOld = null!;
     private PersonRecord _personReviOld = null!;
@@ -30,7 +29,7 @@ public class Scenario1
               <rolleFoedselsnr>{{_personRegnOld.PersonIdentifier.Value}}</rolleFoedselsnr>
             </samendringer>
             <samendringer data="D" felttype="REGN" endringstype="N" type="R">
-              <rolleFoedselsnr>{{_personRegn.PersonIdentifier.Value}}</rolleFoedselsnr>
+              <rolleFoedselsnr>16898398653</rolleFoedselsnr>
               <fornavn>CECILIE</fornavn>
               <slektsnavn>CHRISTIANSEN</slektsnavn>
             </samendringer>
@@ -65,11 +64,6 @@ public class Scenario1
             name: PersonName.Create("Forrige", "Revisor"),
             cancellationToken: cancellationToken);
 
-        // ny Regnskapsfører
-        _personRegn = await uow.CreatePerson(
-            name: PersonName.Create("CECILIE", "CHRISTIANSEN"),
-            cancellationToken: cancellationToken);
-
         // ny Revisor
         _personRevi = await uow.CreatePerson(
             name: PersonName.Create("DAVID", "DANIELSEN"),
@@ -95,7 +89,7 @@ public class Scenario1
         var revisorFound = roleAssignments.Where(r => r.Identifier == "revisor").ToList();
         var regnskapsforerFound = roleAssignments.Where(r => r.Identifier == "regnskapsforer").ToList();
 
-        regnskapsforerFound.ShouldHaveSingleItem().ToParty.ShouldBe(_personRegn.PartyUuid.Value);
+        regnskapsforerFound.ShouldHaveSingleItem();
         revisorFound.ShouldHaveSingleItem().ToParty.ShouldBe(_personRevi.PartyUuid.Value);
     }
 }

@@ -8,15 +8,41 @@ using Altinn.Register.TestUtils.TestData;
 namespace Altinn.Register.IntegrationTests.Ccr.Xml;
 
 /// <summary>
-/// Missing Person to update to, should be created and assigned the role
+/// Missing Person to remove
 /// </summary>
-public class Scenario01
+public class Scenario01C
     : CcrXmlUpdateTestBase
 {
     private OrganizationRecord _org = null!;
+    private PersonRecord _personRegn = null!;
     private PersonRecord _personRevi = null!;
-    private PersonRecord _personRegnOld = null!;
     private PersonRecord _personReviOld = null!;
+
+    protected override async ValueTask Setup(IUnitOfWork uow, CancellationToken cancellationToken)
+    {
+        // we can specify things we want here
+        _org = await uow.CreateOrg(
+            unitType: "AS",
+            name: "REGN REVI TEST AS",
+            cancellationToken: cancellationToken);
+
+        // gammel Revisor
+        _personReviOld = await uow.CreatePerson(
+            name: PersonName.Create("Forrige", "Revisor"),
+            cancellationToken: cancellationToken);
+
+        // ny Regnskapsfører
+        _personRegn = await uow.CreatePerson(
+            name: PersonName.Create("CECILIE", "CHRISTIANSEN"),
+            cancellationToken: cancellationToken);
+
+        // ny Revisor
+        _personRevi = await uow.CreatePerson(
+            name: PersonName.Create("DAVID", "DANIELSEN"),
+            cancellationToken: cancellationToken);
+
+        await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, roleIdentifier: "revisor", from: _org.PartyUuid.Value, to: _personReviOld.PartyUuid.Value, cancellationToken);
+    }
 
     [StringSyntax(StringSyntaxAttribute.Xml)]
     protected override string XmlToApply
@@ -26,10 +52,10 @@ public class Scenario01
           <head avsender="ER" dato="20260102" kjoerenr="00091" mottaker="ALT" type="A" />
           <enhet organisasjonsnummer="{{_org.OrganizationIdentifier.Value}}" organisasjonsform="AS" hovedsakstype="E" undersakstype="NY" foersteOverfoering="N" datoFoedt="20260101" datoSistEndret="20260102">
             <samendringer data="D" felttype="REGN" endringstype="U" type="R">
-              <rolleFoedselsnr>{{_personRegnOld.PersonIdentifier.Value}}</rolleFoedselsnr>
+              <rolleFoedselsnr>16898398653</rolleFoedselsnr>
             </samendringer>
             <samendringer data="D" felttype="REGN" endringstype="N" type="R">
-              <rolleFoedselsnr>316289347</rolleFoedselsnr>
+              <rolleFoedselsnr>{{_personRegn.PersonIdentifier.Value}}</rolleFoedselsnr>
               <fornavn>CECILIE</fornavn>
               <slektsnavn>CHRISTIANSEN</slektsnavn>
             </samendringer>
@@ -45,33 +71,6 @@ public class Scenario01
           <trai antallEnheter="1" avsender="ER" />
         </batchAjourholdXML>
         """;
-
-    protected override async ValueTask Setup(IUnitOfWork uow, CancellationToken cancellationToken)
-    {
-        // we can specify things we want here
-        _org = await uow.CreateOrg(
-            unitType: "AS",
-            name: "REGN REVI TEST AS",
-            cancellationToken: cancellationToken);
-
-        // gammel Regnskapsfører
-        _personRegnOld = await uow.CreatePerson(
-            name: PersonName.Create("Forrige", "Regnskapsfører"),
-            cancellationToken: cancellationToken);
-
-        // gammel Revisor
-        _personReviOld = await uow.CreatePerson(
-            name: PersonName.Create("Forrige", "Revisor"),
-            cancellationToken: cancellationToken);
-
-        // ny Revisor
-        _personRevi = await uow.CreatePerson(
-            name: PersonName.Create("DAVID", "DANIELSEN"),
-            cancellationToken: cancellationToken);
-
-        await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, roleIdentifier: "regnskapsforer", from: _org.PartyUuid.Value, to: _personRegnOld.PartyUuid.Value, cancellationToken);
-        await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, roleIdentifier: "revisor", from: _org.PartyUuid.Value, to: _personReviOld.PartyUuid.Value, cancellationToken);
-    }
 
     protected override async ValueTask Verify(IUnitOfWork uow, CancellationToken cancellationToken)
     {
@@ -89,7 +88,7 @@ public class Scenario01
         var revisorFound = roleAssignments.Where(r => r.Identifier == "revisor").ToList();
         var regnskapsforerFound = roleAssignments.Where(r => r.Identifier == "regnskapsforer").ToList();
 
-        regnskapsforerFound.ShouldHaveSingleItem();
+        regnskapsforerFound.ShouldHaveSingleItem().ToParty.ShouldBe(_personRegn.PartyUuid.Value);
         revisorFound.ShouldHaveSingleItem().ToParty.ShouldBe(_personRevi.PartyUuid.Value);
     }
 }
