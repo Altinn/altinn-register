@@ -811,7 +811,7 @@ internal sealed class CcrXmlProcessor
 
                     if (string.IsNullOrEmpty(knytningsOrgnr))
                     {
-                        ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required field 'rolleFoedselsnr' for role assignment in <samendringer> element.");
+                        ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required field 'knytningsOrgnr' for role assignment in <samendringer> element.");
                     }
 
                     if (!OrganizationIdentifier.TryParse(knytningsOrgnr, null, out var organizationIdentifier))
