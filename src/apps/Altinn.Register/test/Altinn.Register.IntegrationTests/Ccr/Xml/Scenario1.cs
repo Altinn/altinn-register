@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using Altinn.Register.Contracts;
-using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
@@ -28,18 +27,18 @@ public class Scenario1
           <head avsender="ER" dato="20260102" kjoerenr="00091" mottaker="ALT" type="A" />
           <enhet organisasjonsnummer="{{_org.OrganizationIdentifier.Value}}" organisasjonsform="AS" hovedsakstype="E" undersakstype="NY" foersteOverfoering="N" datoFoedt="20260101" datoSistEndret="20260102">
             <samendringer data="D" felttype="REGN" endringstype="U" type="R">
-              <rolleFoedselsnr>16898398653</rolleFoedselsnr>
+              <rolleFoedselsnr>{{_personRegnOld.PersonIdentifier.Value}}</rolleFoedselsnr>
             </samendringer>
             <samendringer data="D" felttype="REGN" endringstype="N" type="R">
-              <rolleFoedselsnr>06815999639</rolleFoedselsnr>
+              <rolleFoedselsnr>{{_personRegn.PersonIdentifier.Value}}</rolleFoedselsnr>
               <fornavn>CECILIE</fornavn>
               <slektsnavn>CHRISTIANSEN</slektsnavn>
             </samendringer>
             <samendringer data="D" felttype="REVI" endringstype="U" type="R">
-              <rolleFoedselsnr>08817498451</rolleFoedselsnr>
+              <rolleFoedselsnr>{{_personReviOld.PersonIdentifier.Value}}</rolleFoedselsnr>
             </samendringer>
             <samendringer data="D" felttype="REVI" endringstype="N" type="R">
-              <rolleFoedselsnr>31877295896</rolleFoedselsnr>
+              <rolleFoedselsnr>{{_personRevi.PersonIdentifier.Value}}</rolleFoedselsnr>
               <fornavn>DAVID</fornavn>
               <slektsnavn>DANIELSEN</slektsnavn>
             </samendringer>
@@ -59,45 +58,44 @@ public class Scenario1
         // gammel Regnskapsfører
         _personRegnOld = await uow.CreatePerson(
             name: PersonName.Create("Forrige", "Regnskapsfører"),
-            identifier: PersonIdentifier.Parse("16898398653"),
             cancellationToken: cancellationToken);
 
         // gammel Revisor
         _personReviOld = await uow.CreatePerson(
             name: PersonName.Create("Forrige", "Revisor"),
-            identifier: PersonIdentifier.Parse("08817498451"),
             cancellationToken: cancellationToken);
 
         // ny Regnskapsfører
         _personRegn = await uow.CreatePerson(
             name: PersonName.Create("CECILIE", "CHRISTIANSEN"),
-            identifier: PersonIdentifier.Parse("06815999639"),
             cancellationToken: cancellationToken);
 
         // ny Revisor
         _personRevi = await uow.CreatePerson(
             name: PersonName.Create("DAVID", "DANIELSEN"),
-            identifier: PersonIdentifier.Parse("31877295896"),
             cancellationToken: cancellationToken);
 
-        await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, roleIdentifier: "regnskapsforer", from: _org.PartyUuid.Value, to: _personRegn.PartyUuid.Value, cancellationToken);
-        await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, roleIdentifier: "revisor", from: _org.PartyUuid.Value, to: _personRevi.PartyUuid.Value, cancellationToken);
+        await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, roleIdentifier: "regnskapsforer", from: _org.PartyUuid.Value, to: _personRegnOld.PartyUuid.Value, cancellationToken);
+        await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, roleIdentifier: "revisor", from: _org.PartyUuid.Value, to: _personReviOld.PartyUuid.Value, cancellationToken);
     }
 
     protected override async ValueTask Verify(IUnitOfWork uow, CancellationToken cancellationToken)
     {
         var parties = uow.GetPartyPersistence();
         var roles = uow.GetPartyExternalRolePersistence();
-        var revisor = new ExternalRoleReference(ExternalRoleSource.CentralCoordinatingRegister, "revisor");
-        var regnskapsforer = new ExternalRoleReference(ExternalRoleSource.CentralCoordinatingRegister, "regnskapsforer");
 
         var updatedOrg = await parties.GetOrganizationByIdentifier(_org.OrganizationIdentifier.Value!, PartyFieldIncludes.Party | PartyFieldIncludes.Organization, cancellationToken)
             .FirstOrDefaultAsync(cancellationToken);
 
+        var roleAssignments = await roles.GetExternalRoleAssignmentsFromParty(partyUuid: _org.PartyUuid.Value, cancellationToken: cancellationToken).ToListAsync(cancellationToken);
+
+        roleAssignments.Count.ShouldBe(2);
+
         updatedOrg.ShouldNotBeNull();
-        var revisorFound = await roles.GetExternalRoleAssignmentsFromParty(partyUuid: _org.PartyUuid.Value, role: revisor, include: PartyExternalRoleAssignmentFieldIncludes.RoleAssignment, cancellationToken).ToListAsync(cancellationToken: cancellationToken);
-        var regnskapsforerFound = await roles.GetExternalRoleAssignmentsFromParty(partyUuid: _org.PartyUuid.Value, role: regnskapsforer, include: PartyExternalRoleAssignmentFieldIncludes.RoleAssignment, cancellationToken).ToListAsync(cancellationToken: cancellationToken);
-        regnskapsforerFound.Select(r => r.ToParty).ShouldHaveSingleItem().ShouldBe(_personRegn.PartyUuid.Value);
-        revisorFound.Select(r => r.ToParty).ShouldHaveSingleItem().ShouldBe(_personRevi.PartyUuid.Value);
+        var revisorFound = roleAssignments.Where(r => r.Identifier == "revisor").ToList();
+        var regnskapsforerFound = roleAssignments.Where(r => r.Identifier == "regnskapsforer").ToList();
+
+        regnskapsforerFound.ShouldHaveSingleItem().ToParty.ShouldBe(_personRegn.PartyUuid.Value);
+        revisorFound.ShouldHaveSingleItem().ToParty.ShouldBe(_personRevi.PartyUuid.Value);
     }
 }
