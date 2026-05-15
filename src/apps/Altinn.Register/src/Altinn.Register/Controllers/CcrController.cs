@@ -151,8 +151,6 @@ public partial class CcrController
         await Request.BodyReader.CopyToAsync(seq, cancellationToken);
 
         var result = CcrUpdateEnvelopeReader.ReadEnvelope(seq.AsReadOnlySequence);
-
-        // TODO: validate credentials
         seq.Reset();
 
         {

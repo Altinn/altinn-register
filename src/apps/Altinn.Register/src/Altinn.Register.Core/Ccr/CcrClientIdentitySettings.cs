@@ -13,7 +13,7 @@ public sealed class CcrClientIdentitySettings
     public string? PasswordHash { get; set; }
 
     /// <summary>
-    /// Allowed source networks for the client. If empty, requests from any network are allowed.
+    /// Allowed source networks for the client. If empty, requests from any network are rejected.
     /// </summary>
     public List<IPNetwork> AllowedSourceNetworks { get; set; } = [];
 }
