@@ -8,7 +8,8 @@ using Altinn.Register.TestUtils.TestData;
 namespace Altinn.Register.IntegrationTests.Ccr.Xml;
 
 /// <summary>
-/// BEDR med EPOS-N + IADR-N + MTLF-U
+/// Swaps out the REGN and REVI roles for an organization,
+/// replacing them with new ones. Tests that the old roles are removed and the new ones are added correctly.
 /// </summary>
 public class Scenario01A
     : CcrXmlUpdateTestBase

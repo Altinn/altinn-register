@@ -4,6 +4,7 @@ using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.TestUtils.TestData;
+using Microsoft.Testing.Platform.Services;
 
 namespace Altinn.Register.IntegrationTests.Ccr.Xml;
 
@@ -17,6 +18,8 @@ public class Scenario01C
     private PersonRecord _personRegn = null!;
     private PersonRecord _personRevi = null!;
     private PersonRecord _personReviOld = null!;
+    private PersonIdentifier _personIdentifier = null!;
+    private string _oldRegnskapsforerFnr = null!;
 
     protected override async ValueTask Setup(IUnitOfWork uow, CancellationToken cancellationToken)
     {
@@ -41,6 +44,9 @@ public class Scenario01C
             name: PersonName.Create("DAVID", "DANIELSEN"),
             cancellationToken: cancellationToken);
 
+        _personIdentifier = await uow.GetRequiredService<RegisterTestDataGenerator>().GetNewPersonIdentifier(cancellationToken: cancellationToken);
+        _oldRegnskapsforerFnr = _personIdentifier.ToString();
+
         await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, roleIdentifier: "revisor", from: _org.PartyUuid.Value, to: _personReviOld.PartyUuid.Value, cancellationToken);
     }
 
@@ -52,7 +58,7 @@ public class Scenario01C
           <head avsender="ER" dato="20260102" kjoerenr="00091" mottaker="ALT" type="A" />
           <enhet organisasjonsnummer="{{_org.OrganizationIdentifier.Value}}" organisasjonsform="AS" hovedsakstype="E" undersakstype="NY" foersteOverfoering="N" datoFoedt="20260101" datoSistEndret="20260102">
             <samendringer data="D" felttype="REGN" endringstype="U" type="R">
-              <rolleFoedselsnr>16898398653</rolleFoedselsnr>
+              <rolleFoedselsnr>{{_oldRegnskapsforerFnr}}</rolleFoedselsnr>
             </samendringer>
             <samendringer data="D" felttype="REGN" endringstype="N" type="R">
               <rolleFoedselsnr>{{_personRegn.PersonIdentifier.Value}}</rolleFoedselsnr>

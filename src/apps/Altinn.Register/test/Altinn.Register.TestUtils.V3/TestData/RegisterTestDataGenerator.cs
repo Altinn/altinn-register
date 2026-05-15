@@ -87,11 +87,11 @@ public sealed partial class RegisterTestDataGenerator
             cancellationToken);
 
     public ValueTask<PersonIdentifier> GetNewPersonIdentifier(
-        DateOnly birthDate,
-        bool isDNumber,
+        DateOnly? birthDate = null,
+        bool? isDNumber = null,
         CancellationToken cancellationToken = default)
         => WithIdentifiers(
-            (birthDate, isDNumber),
+            (birthDate: birthDate ?? GetRandomBirthDate(), isDNumber: isDNumber ?? GetRandomBool(chance: 0.2)),
             static (used, rng, data) => used.GetNewPersonIdentifier(rng, data.birthDate, data.isDNumber),
             cancellationToken);
 
