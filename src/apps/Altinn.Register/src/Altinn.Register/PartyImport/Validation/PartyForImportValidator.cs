@@ -5,6 +5,7 @@ using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ProblemDetails.Validation;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 
 namespace Altinn.Register.PartyImport.Validation;

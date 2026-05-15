@@ -21,4 +21,10 @@ public enum OrganizationSource
     /// </summary>
     [JsonStringEnumMemberName("sdf")]
     BusinessAssessedPartnerships,
+
+    /// <summary>
+    /// Skatteetaten Registered Companies (SIRE).
+    /// </summary>
+    [JsonStringEnumMemberName("srs")]
+    RegisteredWithSkatteetaten,
 }

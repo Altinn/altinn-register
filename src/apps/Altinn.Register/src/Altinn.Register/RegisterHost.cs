@@ -22,6 +22,7 @@ using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.Core.Sire;
 using Altinn.Register.Core.Utils;
 using Altinn.Register.Extensions;
+using Altinn.Register.Integrations.Sire;
 using Altinn.Register.Model.Extensions;
 using Altinn.Register.ModelBinding;
 using Altinn.Register.PartyImport;
@@ -120,7 +121,7 @@ internal static partial class RegisterHost
             })
             .ValidateDataAnnotations();
 
-        services.AddSingleton<IAuthorizationHandler, AccessTokenHandler>();
+        ////services.AddSingleton<IAuthorizationHandler, AccessTokenHandler>();
         services.AddScoped<IAuthorizationHandler, ScopeAccessHandler>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddSingleton<IPublicSigningKeyProvider, PublicSigningKeyProvider>();
@@ -188,8 +189,12 @@ internal static partial class RegisterHost
             .ConfigureBaseAddress("https://folkeregisteret/")
             .AddMaskinPortenHandler("register-freg");
 
-        services.AddHttpClient<ISireClient, TempSireClient>()
-            .ConfigureBaseAddress("https://sire/")
+        services.AddHttpClient<ISireClient, SireClient>()
+            .ConfigureBaseAddress("http://sire/")
+            .ConfigureHttpClient(client =>
+            {
+                client.DefaultRequestHeaders.Add("Host", "sire.localhost");
+            })
             .AddMaskinPortenHandler("register-freg"); // we reuse the maskinporten client from freg
 
         services.AddHttpClient("a2:ccr")

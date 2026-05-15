@@ -1,8 +1,4 @@
-using System.Buffers;
-using System.Diagnostics;
-using System.IO.Pipelines;
-using System.Net.Http.Headers;
-using System.Text.Json.Serialization;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Configuration;
@@ -10,8 +6,12 @@ using Altinn.Register.Contracts;
 using Altinn.Register.Conventions;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Npr;
+using Altinn.Register.Core.Parties;
+using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.Sire;
 using Altinn.Register.PartyImport.A2;
+using Altinn.Register.PartyImport.A2.Enrichers;
+using Altinn.Register.PartyImport.Sire;
 using Asp.Versioning;
 using CommunityToolkit.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
@@ -19,6 +19,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Nerdbank.Streams;
+using System.Buffers;
+using System.Diagnostics;
+using System.IO.Pipelines;
+using System.Net.Http.Headers;
+using System.Text.Json.Serialization;
 
 namespace Altinn.Register.Controllers;
 
@@ -182,6 +187,44 @@ public class DebugController
         await response.Content.CopyToAsync(Response.Body, cancellationToken);
 
         return new EmptyResult();
+    }
+
+    /// <summary>
+    /// Manually trigger ingestion of a SIRE organization event.
+    /// </summary>
+    [HttpPost("sire/ingest")]
+    public async Task<IActionResult> IngestSireOrganization(
+        [FromBody] IngestSireEventCommand command,
+        [FromServices] ICommandSender sender,
+        CancellationToken cancellationToken = default)
+    {
+        await sender.Send(command, cancellationToken);
+
+        return Ok(command);
+    }
+
+    /// <summary>
+    /// Manually trigger SIRE enrichment for an organization.
+    /// </summary>
+    [HttpPost("sire/enrich/{orgNo}")]
+    public async Task<IActionResult> EnrichSireOrganization(
+        string orgNo,
+        [FromServices] ISireClient sireClient,
+        CancellationToken cancellationToken = default)
+    {
+        if (!OrganizationIdentifier.TryParse(orgNo, provider: null, out var orgId))
+        {
+            return BadRequest("Invalid organization number");
+        }
+
+        var result = await sireClient.GetOrganization(orgId, cancellationToken);
+
+        if (result.IsProblem)
+        {
+            return result.Problem.ToActionResult();
+        }
+
+        return Ok(result.Value);
     }
 
     private sealed record SireStartModel

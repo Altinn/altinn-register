@@ -211,6 +211,7 @@ public static class RegisterPersistenceExtensions
         {
             OrganizationSource.CentralCoordinatingRegister => "ccr",
             OrganizationSource.BusinessAssessedPartnerships => "sdf",
+            OrganizationSource.RegisteredWithSkatteetaten => "srs",
             _ => null,
         }));
 
@@ -226,6 +227,7 @@ public static class RegisterPersistenceExtensions
             ExternalRoleSource.NationalPopulationRegister => "npr",
             ExternalRoleSource.EmployersEmployeeRegister => "aar",
             ExternalRoleSource.CivilRightsAuthority => "cra",
+            ExternalRoleSource.RegisteredWithSkatteetaten => "srs",
             _ => null,
         }));
 

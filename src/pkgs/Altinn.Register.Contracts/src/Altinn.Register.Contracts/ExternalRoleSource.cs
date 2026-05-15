@@ -35,6 +35,12 @@ public enum ExternalRoleSource
     /// </summary>
     [JsonStringEnumMemberName("cra")]
     CivilRightsAuthority,
+
+    /// <summary>
+    /// Skatteetaten Registered Companies (SIRE).
+    /// </summary>
+    [JsonStringEnumMemberName("srs")]
+    RegisteredWithSkatteetaten,
 }
 
 /// <summary>
@@ -55,6 +61,7 @@ internal static class ExternalRoleSourceExtensions
         ExternalRoleSource.NationalPopulationRegister => "npr",
         ExternalRoleSource.EmployersEmployeeRegister => "aar",
         ExternalRoleSource.CivilRightsAuthority => "cra",
+        ExternalRoleSource.RegisteredWithSkatteetaten => "srs",
         _ => throw new ArgumentOutOfRangeException(nameof(source), source, null),
     };
 
