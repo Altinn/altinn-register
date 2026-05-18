@@ -176,6 +176,31 @@ public class PartyController
             sequenceNumberFactory: static e => e.VersionId);
     }
 
+    /// <summary>
+    /// Gets all external role assignments from a party.
+    ///
+    /// This endpoint is not finalized, and is subject to change without a major version bump.
+    /// </summary>
+    /// <param name="partyUuid">The party uuid.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>A list of external role assignments for the specified party.</returns>
+    [HttpGet("{partyUuid:guid}/external-roles")]
+    public async Task<ActionResult<ListObject<PartyExternalRoleAssignmentRecord>>> GetExternalRoleAssignmentsFromParty(
+        Guid partyUuid,
+        CancellationToken cancellationToken = default)
+    {
+        await using var uow = await _uowManager.CreateAsync(cancellationToken);
+        var persistence = uow.GetPartyExternalRolePersistence();
+
+        var assignments = await persistence.GetExternalRoleAssignmentsFromParty(
+            partyUuid,
+            PartyExternalRoleAssignmentFieldIncludes.RoleAssignment,
+            cancellationToken)
+            .ToListAsync(cancellationToken);
+
+        return ListObject.Create(assignments);
+    }
+
     private static readonly ExternalRoleReference _revisorRole = new(ExternalRoleSource.CentralCoordinatingRegister, "revisor");
 
     /// <summary>
