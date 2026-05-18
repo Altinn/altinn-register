@@ -1,4 +1,4 @@
-﻿[
+[
   {
     organizationIdentifier: 316289460,
     isFirstRegistration: false,
@@ -11,7 +11,7 @@
       removeRoleAssignments: [
         {
           roleAssignmentType: connection,
-          roleCode: REGN,
+          roleCode: regnskapsforer,
           rolePersonalIdentifier: null,
           roleOrganizationNumber: 316289436,
           personName: null,

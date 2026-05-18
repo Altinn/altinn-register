@@ -1,4 +1,4 @@
-﻿[
+[
   {
     organizationIdentifier: 316289622,
     isFirstRegistration: false,
@@ -11,7 +11,7 @@
       removeRoleAssignments: [
         {
           roleAssignmentType: connection,
-          roleCode: REVI,
+          roleCode: revisor,
           rolePersonalIdentifier: null,
           roleOrganizationNumber: 316289584,
           personName: null,
