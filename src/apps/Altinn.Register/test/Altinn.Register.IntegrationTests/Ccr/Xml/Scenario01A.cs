@@ -20,34 +20,6 @@ public class Scenario01A
     private PersonRecord _personRegnOld = null!;
     private PersonRecord _personReviOld = null!;
 
-    [StringSyntax(StringSyntaxAttribute.Xml)]
-    protected override string XmlToApply
-        => $$"""
-        <?xml version="1.0" encoding="utf-8"?>
-        <batchAjourholdXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="batchAjourholdXML_versjon2_1.xsd">
-          <head avsender="ER" dato="20260102" kjoerenr="00091" mottaker="ALT" type="A" />
-          <enhet organisasjonsnummer="{{_org.OrganizationIdentifier.Value}}" organisasjonsform="AS" hovedsakstype="E" undersakstype="NY" foersteOverfoering="N" datoFoedt="20260101" datoSistEndret="20260102">
-            <samendringer data="D" felttype="REGN" endringstype="U" type="R">
-              <rolleFoedselsnr>{{_personRegnOld.PersonIdentifier.Value}}</rolleFoedselsnr>
-            </samendringer>
-            <samendringer data="D" felttype="REGN" endringstype="N" type="R">
-              <rolleFoedselsnr>{{_personRegn.PersonIdentifier.Value}}</rolleFoedselsnr>
-              <fornavn>CECILIE</fornavn>
-              <slektsnavn>CHRISTIANSEN</slektsnavn>
-            </samendringer>
-            <samendringer data="D" felttype="REVI" endringstype="U" type="R">
-              <rolleFoedselsnr>{{_personReviOld.PersonIdentifier.Value}}</rolleFoedselsnr>
-            </samendringer>
-            <samendringer data="D" felttype="REVI" endringstype="N" type="R">
-              <rolleFoedselsnr>{{_personRevi.PersonIdentifier.Value}}</rolleFoedselsnr>
-              <fornavn>DAVID</fornavn>
-              <slektsnavn>DANIELSEN</slektsnavn>
-            </samendringer>
-          </enhet>
-          <trai antallEnheter="1" avsender="ER" />
-        </batchAjourholdXML>
-        """;
-
     protected override async ValueTask Setup(IUnitOfWork uow, CancellationToken cancellationToken)
     {
         // we can specify things we want here
@@ -79,6 +51,34 @@ public class Scenario01A
         await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, roleIdentifier: "regnskapsforer", from: _org.PartyUuid.Value, to: _personRegnOld.PartyUuid.Value, cancellationToken);
         await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, roleIdentifier: "revisor", from: _org.PartyUuid.Value, to: _personReviOld.PartyUuid.Value, cancellationToken);
     }
+
+    [StringSyntax(StringSyntaxAttribute.Xml)]
+    protected override string XmlToApply
+        => $$"""
+        <?xml version="1.0" encoding="utf-8"?>
+        <batchAjourholdXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="batchAjourholdXML_versjon2_1.xsd">
+          <head avsender="ER" dato="20260102" kjoerenr="00091" mottaker="ALT" type="A" />
+          <enhet organisasjonsnummer="{{_org.OrganizationIdentifier.Value}}" organisasjonsform="AS" hovedsakstype="E" undersakstype="NY" foersteOverfoering="N" datoFoedt="20260101" datoSistEndret="20260102">
+            <samendringer data="D" felttype="REGN" endringstype="U" type="R">
+              <rolleFoedselsnr>{{_personRegnOld.PersonIdentifier.Value}}</rolleFoedselsnr>
+            </samendringer>
+            <samendringer data="D" felttype="REGN" endringstype="N" type="R">
+              <rolleFoedselsnr>{{_personRegn.PersonIdentifier.Value}}</rolleFoedselsnr>
+              <fornavn>CECILIE</fornavn>
+              <slektsnavn>CHRISTIANSEN</slektsnavn>
+            </samendringer>
+            <samendringer data="D" felttype="REVI" endringstype="U" type="R">
+              <rolleFoedselsnr>{{_personReviOld.PersonIdentifier.Value}}</rolleFoedselsnr>
+            </samendringer>
+            <samendringer data="D" felttype="REVI" endringstype="N" type="R">
+              <rolleFoedselsnr>{{_personRevi.PersonIdentifier.Value}}</rolleFoedselsnr>
+              <fornavn>DAVID</fornavn>
+              <slektsnavn>DANIELSEN</slektsnavn>
+            </samendringer>
+          </enhet>
+          <trai antallEnheter="1" avsender="ER" />
+        </batchAjourholdXML>
+        """;
 
     protected override async ValueTask Verify(IUnitOfWork uow, CancellationToken cancellationToken)
     {
