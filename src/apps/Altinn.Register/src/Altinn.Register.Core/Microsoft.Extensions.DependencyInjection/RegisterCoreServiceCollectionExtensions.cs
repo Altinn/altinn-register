@@ -171,7 +171,16 @@ public static class RegisterCoreServiceCollectionExtensions
         public void Apply(CcrClientIdentitySettings settings)
         {
             settings.PasswordHash = PasswordHash;
-            settings.AllowedSourceNetworks.AddRange(AllowedSourceNetworks.Select(IPNetwork.Parse));
+
+            settings.AllowedSourceNetworks.EnsureCapacity(settings.AllowedSourceNetworks.Count + AllowedSourceNetworks.Count);
+            foreach (var network in AllowedSourceNetworks)
+            {
+                var parsed = IPNetwork.Parse(network);
+                if (!settings.AllowedSourceNetworks.Contains(parsed))
+                {
+                    settings.AllowedSourceNetworks.Add(parsed);
+                }
+            }
         }
     }
 }

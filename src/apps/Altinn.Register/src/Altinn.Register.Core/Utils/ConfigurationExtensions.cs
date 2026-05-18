@@ -34,6 +34,7 @@ public static class ConfigurationExtensions
         {
             Guard.IsNotNull(optionsBuilder);
             Guard.IsNotNull(configSectionPath);
+            Guard.IsNotNull(apply);
 
             optionsBuilder.Configure<IConfiguration>((opts, config) =>
             {
