@@ -445,6 +445,8 @@ internal sealed class CcrXmlProcessor
             case ("UREG", _):
             case ("UVNO", _):
             case ("VEDT", _):
+            case ("VFOR", _):
+            case ("FORM", _):
             case ("naeringskode", _):
             case ("registrertHjemlandetsRegister", _):
             case ("underlagtHjemlandetsLovgivning", _):
@@ -868,6 +870,12 @@ internal sealed class CcrXmlProcessor
                             break;
                     }
 
+                    break;
+                }
+
+            case ("S", _) when endringstype == "N" || endringstype == "U":
+                {
+                    // We currently do not have a mapping for samendringsfritekst, whether new, update or delete.
                     break;
                 }
 

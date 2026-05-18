@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
@@ -8,45 +8,44 @@ using Altinn.Register.TestUtils.TestData;
 namespace Altinn.Register.IntegrationTests.Ccr.Xml;
 
 /// <summary>
-/// SAMU OPMV: Removes the specially sectioned VAT entity (saerskilt-oppdelt-enhet) role of an organization.
+/// We ignore the status rows, but the parser should not fail.
 /// </summary>
-public class ScenarioSamuOpmv
+public class Scenario17A
     : CcrXmlUpdateTestBase
 {
     private OrganizationRecord _org = null!;
-    private OrganizationRecord _orgOPMV = null!;
-    private PersonRecord _personLede = null!;
+    private PersonRecord _personDagl = null!;
 
     protected override async ValueTask Setup(IUnitOfWork uow, CancellationToken cancellationToken)
     {
+        // we can specify things we want here
         _org = await uow.CreateOrg(
-            unitType: "AS",
-            name: "SAMU OPMV TEST AS",
+            unitType: "BEDR",
+            emailAddress: "old@example.com",
+            internetAddress: FieldValue.Null,
+            mobileNumber: "12345678",
             cancellationToken: cancellationToken);
 
-        _personLede = await uow.CreatePerson(
-            name: PersonName.Create("Forrige", "Styreleder"),
+        _personDagl = await uow.CreatePerson(
+            name: PersonName.Create("Forrige", "Dagl"),
             cancellationToken: cancellationToken);
 
-        _orgOPMV = await uow.CreateOrg(
-            unitType: "AS",
-            name: "OPMV AS",
-            cancellationToken: cancellationToken);
-
-        await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, roleIdentifier: "styreleder", from: _org.PartyUuid.Value, to: _personLede.PartyUuid.Value, cancellationToken);
-        await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, roleIdentifier: "saerskilt-oppdelt-enhet", from: _org.PartyUuid.Value, to: _orgOPMV.PartyUuid.Value, cancellationToken);
+        await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, roleIdentifier: "daglig-leder", from: _org.PartyUuid.Value, to: _personDagl.PartyUuid.Value, cancellationToken);
     }
 
-    [StringSyntax(StringSyntaxAttribute.Xml)]
     protected override string XmlToApply
         => $$"""
         <?xml version="1.0" encoding="utf-8"?>
         <batchAjourholdXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="batchAjourholdXML_versjon2_1.xsd">
           <head avsender="ER" dato="20260504" kjoerenr="05783" mottaker="ALT" type="A" />
-          <enhet organisasjonsnummer="{{_org.OrganizationIdentifier.Value}}" organisasjonsform="ESEK" hovedsakstype="E" undersakstype="EN" foersteOverfoering="N" datoFoedt="20130413" datoSistEndret="20260504">
+          <enhet organisasjonsnummer="{{_org.OrganizationIdentifier.Value}}" organisasjonsform="AS" hovedsakstype="E" undersakstype="OPPL" foersteOverfoering="N" datoFoedt="20170201" datoSistEndret="20260504">
+            <samendringer data="D" felttype="DAGL" endringstype="U" type="R">
+              <rolleFoedselsnr>{{_personDagl.PersonIdentifier.Value}}</rolleFoedselsnr>
+            </samendringer>
             <samendringUtgaar felttype="SAMU">
-                <samendringstype>OPMV</samendringstype>
+              <samendringstype>DAGL</samendringstype>
             </samendringUtgaar>
+            <status felttype="OPPL" endringstype="N" />
           </enhet>
           <trai antallEnheter="1" avsender="ER" />
         </batchAjourholdXML>
@@ -62,8 +61,7 @@ public class ScenarioSamuOpmv
 
         var roleAssignments = await roles.GetExternalRoleAssignmentsFromParty(partyUuid: _org.PartyUuid.Value, cancellationToken: cancellationToken).ToListAsync(cancellationToken);
 
-        roleAssignments.Count.ShouldBe(1);
-        roleAssignments[0].Identifier.ShouldBe("styreleder");
+        roleAssignments.Count.ShouldBe(0);
 
         updatedOrg.ShouldNotBeNull();
     }
