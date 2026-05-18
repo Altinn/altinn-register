@@ -39,7 +39,7 @@
     <PackageVersion Include="MassTransit.Abstractions" Version="8.5.9" />
     <PackageVersion Include="MassTransit.Analyzers" Version="8.5.9" />
     <PackageVersion Include="MassTransit.Azure.ServiceBus.Core" Version="8.5.9" />
-    <PackageVersion Include="MassTransit.Quartz" Version="8.5.9" />
+    <PackageVersion Include="MassTransit.Quartz" Version="9.1.1" />
     <PackageVersion Include="MassTransit.RabbitMQ" Version="8.5.9" />
     <PackageVersion Include="MassTransit" Version="8.5.9" />
     <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.23.0" />
