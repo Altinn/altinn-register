@@ -47,7 +47,7 @@ public class Scenario02B
     [StringSyntax(StringSyntaxAttribute.Xml)]
     protected override string XmlToApply
         => $$"""
-        ﻿<?xml version="1.0" encoding="utf-8"?>
+        <?xml version="1.0" encoding="utf-8"?>
         <batchAjourholdXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="batchAjourholdXML_versjon2_1.xsd">
           <head avsender="ER" dato="20260504" kjoerenr="05783" mottaker="ALT" type="A" />
           <enhet organisasjonsnummer="{{_org.OrganizationIdentifier.Value}}" organisasjonsform="AS" hovedsakstype="E" undersakstype="EN" foersteOverfoering="N" datoFoedt="20130409" datoSistEndret="20260504">

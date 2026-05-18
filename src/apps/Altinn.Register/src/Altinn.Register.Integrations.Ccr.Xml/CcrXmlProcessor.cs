@@ -807,7 +807,7 @@ internal sealed class CcrXmlProcessor
             case ("K", "D"):
                 {
                     var knytningsOrgnr = rolleFields.TryGetValue("knytningOrganisasjonsnummer", out var kforn) ? kforn : null;
-                    var knytningsFratraadt = rolleFields.TryGetValue("knytningsFratraadt", out var kfratr) ? kfratr : null;
+                    var knytningFratraadt = rolleFields.TryGetValue("knytningFratraadt", out var kfratr) ? kfratr : null;
 
                     if (string.IsNullOrEmpty(knytningsOrgnr))
                     {
@@ -819,10 +819,10 @@ internal sealed class CcrXmlProcessor
                         ThrowHelper.ThrowInvalidDataException("XmlReader: Invalid 'knytningOrganisasjonsnummer' value for organizational role assignment in <samendringer> element. Value: " + knytningsOrgnr);
                     }
 
-                    switch (endringstype, knytningsFratraadt)
+                    switch (endringstype, knytningFratraadt)
                     {
-                        case (endringstype: _, knytningsFratraadt: "F"):
-                        case (endringstype: "U", knytningsFratraadt: _):
+                        case (endringstype: _, knytningFratraadt: "F"):
+                        case (endringstype: "U", knytningFratraadt: _):
                             removals.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode(felttype, roleDef), organizationIdentifier));
 
                             if (felttype == "KONT")
@@ -835,7 +835,7 @@ internal sealed class CcrXmlProcessor
 
                             break;
 
-                        case (endringstype: "N", knytningsFratraadt: _):
+                        case (endringstype: "N", knytningFratraadt: _):
                             additions.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode(felttype, roleDef), organizationIdentifier));
 
                             if (felttype == "KONT")
@@ -864,7 +864,7 @@ internal sealed class CcrXmlProcessor
                             break;
 
                         default:
-                            ThrowHelper.ThrowInvalidDataException($"XmlReader: Invalid combination of 'endringstype' and 'knytningsFratraadt' values for organizational role assignment in <samendringer> element. endringstype: '{endringstype}', knytningsFratraadt: '{knytningsFratraadt}'");
+                            ThrowHelper.ThrowInvalidDataException($"XmlReader: Invalid combination of 'endringstype' and 'knytningsFratraadt' values for organizational role assignment in <samendringer> element. endringstype: '{endringstype}', knytningsFratraadt: '{knytningFratraadt}'");
                             break;
                     }
 

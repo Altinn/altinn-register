@@ -8,19 +8,15 @@ using Altinn.Register.TestUtils.TestData;
 namespace Altinn.Register.IntegrationTests.Ccr.Xml;
 
 /// <summary>
-/// SAMU STYR: Removes all board members (styremedlem) of an organization, including the chairperson (styreleder) and deputy members (varamedlem).
+/// SAMU REGN: Removes all accountants (regnskapsforer) of an organization, including those with individual responsibility (regnskapsforer) and those who are recipients of accounting information (regnskapsforeradressat).
 /// </summary>
-public class ScenarioSamuStyr
+public class ScenarioSamuRegn
     : CcrXmlUpdateTestBase
 {
     private OrganizationRecord _org = null!;
-    private PersonRecord _personLedeNew = null!;
     private PersonRecord _personLedeOld = null!;
-    private PersonRecord _personMedlOld1 = null!;
-    private PersonRecord _personMedlOld2 = null!;
-    private PersonRecord _personMedlNew1 = null!;
-    private PersonRecord _personMedlNew2 = null!;
-    private PersonRecord _personVaraBlirMedl = null!;
+    private PersonRecord _personREGN = null!;
+    private PersonRecord _personRFAD = null!;
 
     protected override async ValueTask Setup(IUnitOfWork uow, CancellationToken cancellationToken)
     {
@@ -33,34 +29,17 @@ public class ScenarioSamuStyr
             name: PersonName.Create("Forrige", "Styreleder"),
             cancellationToken: cancellationToken);
 
-        _personLedeNew = await uow.CreatePerson(
-            name: PersonName.Create("Ny", "Styreleder"),
+        _personRFAD = await uow.CreatePerson(
+            name: PersonName.Create("Forrige", "regnskapsforeradressat"),
             cancellationToken: cancellationToken);
 
-        _personMedlOld1 = await uow.CreatePerson(
-            name: PersonName.Create("Forrige", "Medlem 1"),
-            cancellationToken: cancellationToken);
-
-        _personMedlOld2 = await uow.CreatePerson(
-            name: PersonName.Create("Forrige", "Medlem 2"),
-            cancellationToken: cancellationToken);
-
-        _personMedlNew1 = await uow.CreatePerson(
-            name: PersonName.Create("Nytt", "Medlem 1"),
-            cancellationToken: cancellationToken);
-
-        _personMedlNew2 = await uow.CreatePerson(
-            name: PersonName.Create("Nytt", "Medlem 2"),
-            cancellationToken: cancellationToken);
-
-        _personVaraBlirMedl = await uow.CreatePerson(
-            name: PersonName.Create("Vara", "BlirMedlem"),
+        _personREGN = await uow.CreatePerson(
+            name: PersonName.Create("Forrige", "regnskapsforer"),
             cancellationToken: cancellationToken);
 
         await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, roleIdentifier: "styreleder", from: _org.PartyUuid.Value, to: _personLedeOld.PartyUuid.Value, cancellationToken);
-        await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, roleIdentifier: "styremedlem", from: _org.PartyUuid.Value, to: _personMedlOld1.PartyUuid.Value, cancellationToken);
-        await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, roleIdentifier: "styremedlem", from: _org.PartyUuid.Value, to: _personMedlOld2.PartyUuid.Value, cancellationToken);
-        await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, roleIdentifier: "varamedlem", from: _org.PartyUuid.Value, to: _personVaraBlirMedl.PartyUuid.Value, cancellationToken);
+        await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, roleIdentifier: "regnskapsforeradressat", from: _org.PartyUuid.Value, to: _personRFAD.PartyUuid.Value, cancellationToken);
+        await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, roleIdentifier: "regnskapsforer", from: _org.PartyUuid.Value, to: _personREGN.PartyUuid.Value, cancellationToken);
     }
 
     [StringSyntax(StringSyntaxAttribute.Xml)]
@@ -71,7 +50,7 @@ public class ScenarioSamuStyr
           <head avsender="ER" dato="20260504" kjoerenr="05783" mottaker="ALT" type="A" />
           <enhet organisasjonsnummer="{{_org.OrganizationIdentifier.Value}}" organisasjonsform="ESEK" hovedsakstype="E" undersakstype="EN" foersteOverfoering="N" datoFoedt="20130413" datoSistEndret="20260504">
             <samendringUtgaar felttype="SAMU">
-                <samendringstype>STYR</samendringstype>
+                <samendringstype>REGN</samendringstype>
             </samendringUtgaar>
           </enhet>
           <trai antallEnheter="1" avsender="ER" />
@@ -88,7 +67,7 @@ public class ScenarioSamuStyr
 
         var roleAssignments = await roles.GetExternalRoleAssignmentsFromParty(partyUuid: _org.PartyUuid.Value, cancellationToken: cancellationToken).ToListAsync(cancellationToken);
 
-        roleAssignments.Count.ShouldBe(0);
+        roleAssignments.Count.ShouldBe(1);
 
         updatedOrg.ShouldNotBeNull();
     }
