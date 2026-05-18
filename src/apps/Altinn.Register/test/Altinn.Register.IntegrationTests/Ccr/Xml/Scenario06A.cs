@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
@@ -7,14 +8,14 @@ using Altinn.Register.TestUtils.TestData;
 namespace Altinn.Register.IntegrationTests.Ccr.Xml;
 
 /// <summary>
-/// Adds two new "regnskapsforer" roles to the same organization.
+/// Adds one new REGN and the other leaves.
 /// </summary>
-public class Scenario02A
+public class Scenario06A
     : CcrXmlUpdateTestBase
 {
     private OrganizationRecord _org = null!;
-    private OrganizationRecord _regn1 = null!;
-    private OrganizationRecord _regn2 = null!;
+    private OrganizationRecord _oldRegn = null!;
+    private OrganizationRecord _newRegn = null!;
 
     protected override async ValueTask Setup(IUnitOfWork uow, CancellationToken cancellationToken)
     {
@@ -24,15 +25,17 @@ public class Scenario02A
             name: "REGN REVI TEST AS",
             cancellationToken: cancellationToken);
 
-        _regn1 = await uow.CreateOrg(
+        _oldRegn = await uow.CreateOrg(
             unitType: "AS",
-            name: "REGN1 AS",
+            name: "REGN AS",
             cancellationToken: cancellationToken);
 
-        _regn2 = await uow.CreateOrg(
+        _newRegn = await uow.CreateOrg(
             unitType: "AS",
             name: "REGN2 AS",
             cancellationToken: cancellationToken);
+
+        await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, roleIdentifier: "regnskapsforer", from: _org.PartyUuid.Value, to: _oldRegn.PartyUuid.Value, cancellationToken);
     }
 
     [StringSyntax(StringSyntaxAttribute.Xml)]
@@ -41,16 +44,16 @@ public class Scenario02A
         <?xml version="1.0" encoding="utf-8"?>
         <batchAjourholdXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="batchAjourholdXML_versjon2_1.xsd">
           <head avsender="ER" dato="20260504" kjoerenr="05783" mottaker="ALT" type="A" />
-          <enhet organisasjonsnummer="{{_org.OrganizationIdentifier.Value}}" organisasjonsform="AS" hovedsakstype="E" undersakstype="EN" foersteOverfoering="N" datoFoedt="20130409" datoSistEndret="20260504">
+          <enhet organisasjonsnummer="{{_org.OrganizationIdentifier.Value}}" organisasjonsform="AS" hovedsakstype="E" undersakstype="EN" foersteOverfoering="N" datoFoedt="20210125" datoSistEndret="20260503">
             <samendringer data="D" felttype="REGN" endringstype="N" type="K">
-              <knytningFratraadt>N</knytningFratraadt>
-              <knytningOrganisasjonsnummer>{{_regn1.OrganizationIdentifier.Value}}</knytningOrganisasjonsnummer>
+              <knytningFratraadt>F</knytningFratraadt>
+              <knytningOrganisasjonsnummer>{{_oldRegn.OrganizationIdentifier.Value}}</knytningOrganisasjonsnummer>
               <knytningRekkefoelge>1</knytningRekkefoelge>
               <korrektOrganisasjonsnummer>000000000</korrektOrganisasjonsnummer>
             </samendringer>
             <samendringer data="D" felttype="REGN" endringstype="N" type="K">
               <knytningFratraadt>N</knytningFratraadt>
-              <knytningOrganisasjonsnummer>{{_regn2.OrganizationIdentifier.Value}}</knytningOrganisasjonsnummer>
+              <knytningOrganisasjonsnummer>{{_newRegn.OrganizationIdentifier.Value}}</knytningOrganisasjonsnummer>
               <korrektOrganisasjonsnummer>000000000</korrektOrganisasjonsnummer>
             </samendringer>
           </enhet>
@@ -74,15 +77,12 @@ public class Scenario02A
             cancellationToken: cancellationToken).
             ToListAsync(cancellationToken);
 
-        roleAssignments.Count.ShouldBe(2);
+        roleAssignments.Count.ShouldBe(1);
 
         updatedOrg.ShouldNotBeNull();
         var regnskapsforerFound = roleAssignments.Where(r => r.Identifier == "regnskapsforer").ToList();
 
-        regnskapsforerFound.Count.ShouldBe(2);
-
-        List<Guid> expectedPartyUuids = [_regn1.PartyUuid.Value, _regn2.PartyUuid.Value];
-        List<Guid> actualPartyUuids = [.. regnskapsforerFound.Select(r => r.ToParty.Value)];
-        actualPartyUuids.ShouldBe(expectedPartyUuids, ignoreOrder: true);
+        regnskapsforerFound.Count.ShouldBe(1);
+        regnskapsforerFound.FirstOrDefault(r => r.ToParty == _newRegn.PartyUuid.Value).ShouldNotBeNull();
     }
 }
