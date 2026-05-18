@@ -74,6 +74,7 @@ public class ScenarioSamuProk
         var roleAssignments = await roles.GetExternalRoleAssignmentsFromParty(partyUuid: _org.PartyUuid.Value, cancellationToken: cancellationToken).ToListAsync(cancellationToken);
 
         roleAssignments.Count.ShouldBe(1);
+        roleAssignments[0].Identifier.ShouldBe("styreleder");
 
         updatedOrg.ShouldNotBeNull();
     }
