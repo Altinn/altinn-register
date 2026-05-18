@@ -1,10 +1,13 @@
 #pragma warning disable CS1734 // The compiler associates XML docs on the extension block with the lowered static method, even though the documented 'services' receiver parameter is valid.
 
 using System.Collections.Concurrent;
+using System.Net;
+using System.Runtime.InteropServices;
 using Altinn.Register.Core.Ccr;
 using Altinn.Register.Core.Mediator;
 using Altinn.Register.Core.Operations;
 using Altinn.Register.Core.RateLimiting;
+using Altinn.Register.Core.Utils;
 using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -31,7 +34,9 @@ public static class RegisterCoreServiceCollectionExtensions
             services.AddRegisterRateLimiting();
 
             services.AddOptions<CcrServiceSettings>()
-                .BindConfiguration("Altinn:Register:Ccr")
+                .BindConfigurationAs(
+                    "Altinn:Register:Ccr",
+                    (CcrServiceSettings settings, CcrServiceSettingsRaw raw) => raw.Apply(settings))
                 .ValidateDataAnnotations()
                 .ValidateOnStart();
             services.TryAddScoped<CcrService>();
@@ -134,6 +139,48 @@ public static class RegisterCoreServiceCollectionExtensions
 
             services.Add(descriptor);
             return true;
+        }
+    }
+
+    private sealed class CcrServiceSettingsRaw
+    {
+        public Dictionary<string, CcrClientIdentitySettingsRaw> Clients { get; set; }
+            = new(StringComparer.Ordinal);
+
+        public void Apply(CcrServiceSettings settings)
+        {
+            foreach (var kvp in Clients)
+            {
+                ref var clientSettings = ref CollectionsMarshal.GetValueRefOrAddDefault(settings.Clients, kvp.Key, out bool exists);
+                if (!exists || clientSettings is null)
+                {
+                    clientSettings = new CcrClientIdentitySettings();
+                }
+
+                kvp.Value.Apply(clientSettings);
+            }
+        }
+    }
+
+    private sealed class CcrClientIdentitySettingsRaw
+    {
+        public string? PasswordHash { get; set; }
+
+        public List<string> AllowedSourceNetworks { get; set; } = [];
+
+        public void Apply(CcrClientIdentitySettings settings)
+        {
+            settings.PasswordHash = PasswordHash;
+
+            settings.AllowedSourceNetworks.EnsureCapacity(settings.AllowedSourceNetworks.Count + AllowedSourceNetworks.Count);
+            foreach (var network in AllowedSourceNetworks)
+            {
+                var parsed = IPNetwork.Parse(network);
+                if (!settings.AllowedSourceNetworks.Contains(parsed))
+                {
+                    settings.AllowedSourceNetworks.Add(parsed);
+                }
+            }
         }
     }
 }
