@@ -823,7 +823,7 @@ internal sealed class CcrXmlProcessor
                     {
                         case (endringstype: _, knytningsFratraadt: "F"):
                         case (endringstype: "U", knytningsFratraadt: _):
-                            removals.Add(CcrRoleAssignment.CreateConnection(felttype, organizationIdentifier));
+                            removals.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode(felttype, roleDef), organizationIdentifier));
 
                             if (felttype == "KONT")
                             {
@@ -836,7 +836,7 @@ internal sealed class CcrXmlProcessor
                             break;
 
                         case (endringstype: "N", knytningsFratraadt: _):
-                            additions.Add(CcrRoleAssignment.CreateConnection(felttype, organizationIdentifier));
+                            additions.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode(felttype, roleDef), organizationIdentifier));
 
                             if (felttype == "KONT")
                             {
