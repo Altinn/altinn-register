@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.Xml;
 using Altinn.Register.Core.Ccr;
 using Altinn.Register.Core.UnitOfWork;
 
@@ -25,6 +26,50 @@ public abstract class CcrXmlUpdateTestBase
         });
 
         await ApplyXml(XmlToApply);
+
+        await Check(async (uow, ct) =>
+        {
+            await Verify(uow, ct);
+        });
+    }
+
+    [Fact]
+    public async Task CallApi()
+    {
+        await Setup(async (uow, ct) =>
+        {
+            await Setup(uow, ct);
+        });
+
+        using var ms = new MemoryStream();
+        using var writer = XmlWriter.Create(ms);
+        writer.WriteStartDocument();
+        writer.WriteStartElement("Envelope", "http://schemas.xmlsoap.org/soap/envelope/");
+
+        writer.WriteStartElement("Header", "http://schemas.xmlsoap.org/soap/envelope/");
+        writer.WriteEndElement(); // Header
+
+        writer.WriteStartElement("Body", "http://schemas.xmlsoap.org/soap/envelope/");
+        writer.WriteStartElement("SubmitERDataBasic", "http://www.altinn.no/services/Register/ER/2013/06");
+        writer.WriteElementString("systemUserName", "http://www.altinn.no/services/Register/ER/2013/06", "test-user");
+        writer.WriteElementString("systemPassword", "http://www.altinn.no/services/Register/ER/2013/06", "test-password");
+        writer.WriteElementString("ERData", "http://www.altinn.no/services/Register/ER/2013/06", XmlToApply);
+        writer.WriteEndElement(); // SubmitERDataBasic
+        writer.WriteEndElement(); // Body
+        writer.WriteEndElement(); // Envelope
+        writer.WriteEndDocument();
+        writer.Flush();
+
+        using var content = new ByteArrayContent(ms.ToArray());
+        content.Headers.ContentType = new("text/xml", charSet: "utf-8");
+        content.Headers.Add("SOAPAction", "http://www.altinn.no/services/Register/ER/2013/06/IRegisterERExternalBasic/SubmitERDataBasic");
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "enhets-registeret/api/v1/update.svc");
+        request.Headers.Add("X-Altinn-Register-Ccr", "Apply-In-A3");
+        request.Content = content;
+
+        using var response = await HttpClient.SendAsync(request, CancellationToken);
+        response.EnsureSuccessStatusCode();
 
         await Check(async (uow, ct) =>
         {

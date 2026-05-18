@@ -30,6 +30,10 @@ public static class RegisterCoreServiceCollectionExtensions
             services.AddRegisterOperations();
             services.AddRegisterRateLimiting();
 
+            services.AddOptions<CcrServiceSettings>()
+                .BindConfiguration("Altinn:Register:Ccr")
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
             services.TryAddScoped<CcrService>();
 
             return services;

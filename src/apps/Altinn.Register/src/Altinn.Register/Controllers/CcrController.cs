@@ -68,42 +68,21 @@ public partial class CcrController
     [ApiExplorerSettings(IgnoreApi = true)]
     [ConfigurationCondition("Altinn:register:Ccr:Update:Enabled")]
     [RequestSizeLimit(50_000_000 /* 50 MB */)]
-    public async Task Update(
+    public Task Update(
         [FromQuery(Name = "record")] bool record = true,
         CancellationToken cancellationToken = default)
     {
         if (Request.Headers.TryGetValue("X-Altinn-Register-Ccr", out var values)
             && values.Contains("Apply-In-A3", StringComparer.OrdinalIgnoreCase))
         {
-            try
-            {
-                var receivedAt = _timeProvider.GetUtcNow();
-                await UpdateFromCcr(cancellationToken);
-                await WriteAltinnSoapSuccess(receivedAt);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                Log.InteralUpdateError(_logger, ex);
-                await WriteAltinnSoapFault("Client authentication failed", isClientFault: true);
-            }
-            catch (XmlException ex)
-            {
-                Log.InteralUpdateError(_logger, ex);
-                await WriteAltinnSoapFault("Malformed XML in request", isClientFault: true);
-            }
-            catch (Exception ex)
-            {
-                Log.InteralUpdateError(_logger, ex);
-                await WriteAltinnSoapFault("Internal server error", isClientFault: false);
-            }
-
-            return;
+            return HandleInA3(cancellationToken);
         }
 
+        return ProxyToA2(record, cancellationToken);
+    }
+
+    private async Task ProxyToA2(bool record, CancellationToken cancellationToken)
+    {
         using RecordOperationState state = new(_timeProvider.GetUtcNow(), Request.GetDisplayUrl());
 
         state.ReadRequestHeaders(Request.Headers);
@@ -142,6 +121,35 @@ public partial class CcrController
         else
         {
             Log.NotRecordingCcrUpdate(_logger, skipReasons);
+        }
+    }
+
+    private async Task HandleInA3(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var receivedAt = _timeProvider.GetUtcNow();
+            await UpdateFromCcr(cancellationToken);
+            await WriteAltinnSoapSuccess(receivedAt);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Log.InteralUpdateError(_logger, ex);
+            await WriteAltinnSoapFault("Client authentication failed", isClientFault: true);
+        }
+        catch (XmlException ex)
+        {
+            Log.InteralUpdateError(_logger, ex);
+            await WriteAltinnSoapFault("Malformed XML in request", isClientFault: true);
+        }
+        catch (Exception ex)
+        {
+            Log.InteralUpdateError(_logger, ex);
+            await WriteAltinnSoapFault("Internal server error", isClientFault: false);
         }
     }
 
@@ -186,7 +194,7 @@ public partial class CcrController
             <?xml version="1.0" encoding="UTF-8"?><ERReceipt schemaVersion="1.0" xmlns:xsi="{nsXsi}" xsi:noNamespaceSchemaLocation="GovAgencyReceipt.xsd"><DataUnitInReceipt receiptType="ER" status="OK_ER_DATA_PROCESSED" timeReceived="{timeReceived.UtcDateTime:yyyy-MM-ddTHH:mm:ss}"><Message><MessageEntry>ER data processed ok</MessageEntry></Message></DataUnitInReceipt></ERReceipt>
             """;
 
-        using var writer = XmlWriter.Create(Response.Body, new XmlWriterSettings { Async = true, Indent = true });
+        await using var writer = XmlWriter.Create(Response.Body, new XmlWriterSettings { Async = true, CloseOutput = false });
         await writer.WriteStartDocumentAsync();
         await writer.WriteStartElementAsync(prefix: "s", localName: "Envelope", ns: nsSoap);
         await writer.WriteStartElementAsync(prefix: "s", localName: "Body", ns: nsSoap);
@@ -205,9 +213,10 @@ public partial class CcrController
         const string nsAltinnFault = "http://www.altinn.no/services/common/fault/2009/10";
         const string nsXsi = "http://www.w3.org/2001/XMLSchema-instance";
 
+        Response.StatusCode = (int)(isClientFault ? HttpStatusCode.BadRequest : HttpStatusCode.InternalServerError);
         Response.ContentType = "text/xml; charset=utf-8";
 
-        using var writer = XmlWriter.Create(Response.Body, new XmlWriterSettings { Async = true, Indent = true });
+        await using var writer = XmlWriter.Create(Response.Body, new XmlWriterSettings { Async = true, CloseOutput = false });
         await writer.WriteStartDocumentAsync();
         await writer.WriteStartElementAsync(prefix: "s", localName: "Envelope", ns: nsSoap);
         await writer.WriteStartElementAsync(prefix: "s", localName: "Body", ns: nsSoap);

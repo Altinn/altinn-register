@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Net;
 
 namespace Altinn.Register.Core.Ccr;
@@ -10,10 +11,12 @@ public sealed class CcrClientIdentitySettings
     /// <summary>
     /// The password hash for the client. Generated using <see cref="Cryptography.PasswordHash"/>.
     /// </summary>
+    [Required]
     public string? PasswordHash { get; set; }
 
     /// <summary>
     /// Allowed source networks for the client. If empty, requests from any network are rejected.
     /// </summary>
+    [MinLength(1, ErrorMessage = "At least one allowed source network must be specified.")]
     public List<IPNetwork> AllowedSourceNetworks { get; set; } = [];
 }

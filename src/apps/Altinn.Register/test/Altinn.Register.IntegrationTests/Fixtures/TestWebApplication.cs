@@ -1,3 +1,4 @@
+using System.Net;
 using Altinn.Register.Core.Utils;
 using Altinn.Register.IntegrationTests.TestServices;
 using Altinn.Register.IntegrationTests.Tracing;
@@ -15,6 +16,9 @@ namespace Altinn.Register.IntegrationTests.Fixtures;
 public sealed class TestWebApplication
     : IAsyncDisposable
 {
+    // random link-local IPv6 address
+    public static readonly IPAddress RemoteTestIpAddress = IPAddress.Parse("fe80::215:5dff:fe8f:4e7f");
+
     public static async Task<TestWebApplication> Create()
     {
         var fixture = await TestContext.Current.GetRequiredFixture<WebApplicationFixture>();
@@ -24,6 +28,7 @@ public sealed class TestWebApplication
 
     private readonly WebApplicationFactory<Program> _factory;
     private readonly PostgresDatabase _db;
+    private readonly List<HttpClient> _clients = new();
 
     public TestWebApplication(
         WebApplicationFactory<Program> factory,
@@ -40,14 +45,31 @@ public sealed class TestWebApplication
     {
         var jwtService = Services.GetRequiredService<TestJwtService>();
 
-        return _factory.CreateDefaultClient(
-            new Uri("http://register.test/"),
-            [
-                new TracingHandler([]),
-                new DefaultTestAuthorizationHandler(jwtService),
-                new RedirectHandler(),
-                new CookieContainerHandler(),
-            ]);
+        ReadOnlySpan<DelegatingHandler> handlers = [
+            new TracingHandler([]),
+            new DefaultTestAuthorizationHandler(jwtService),
+            new RedirectHandler(),
+            new CookieContainerHandler(),
+        ];
+
+        for (var i = handlers.Length - 1; i > 0; i--)
+        {
+            handlers[i - 1].InnerHandler = handlers[i];
+        }
+
+        var serverHandler = _factory.Server.CreateHandler(httpContext =>
+        {
+            httpContext.Connection.RemoteIpAddress = RemoteTestIpAddress;
+        });
+
+        handlers[^1].InnerHandler = serverHandler;
+        var client = new HttpClient(handlers[0])
+        {
+            BaseAddress = new Uri("http://register.test/"),
+        };
+
+        _clients.Add(client);
+        return client;
     }
 
     async ValueTask IAsyncDisposable.DisposeAsync()
@@ -80,6 +102,11 @@ public sealed class TestWebApplication
                 output.WriteLine(">>>>> EXCEPTION DETAILS:");
                 output.WriteLine(receiveFault.Exception?.ToString() ?? "No exception available.");
             }
+        }
+
+        foreach (var client in _clients)
+        {
+            client.Dispose();
         }
 
         await _factory.DisposeAsync().WaitAsync(timeout: TimeSpan.FromMinutes(5), timeProvider: TimeProvider.System);
