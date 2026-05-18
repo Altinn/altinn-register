@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using Altinn.Authorization.ServiceDefaults;
 using Altinn.Authorization.ServiceDefaults.HttpClient.MaskinPorten;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
@@ -8,6 +9,8 @@ using Altinn.Common.AccessToken.Services;
 using Altinn.Common.AccessTokenClient.Services;
 using Altinn.Register.Configuration;
 using Altinn.Register.Controllers.V2;
+using Altinn.Register.Core.Ccr;
+using Altinn.Register.Core.Cryptography;
 using Altinn.Register.IntegrationTests.Fakes;
 using Altinn.Register.IntegrationTests.TestServices;
 using Altinn.Register.IntegrationTests.Tracing;
@@ -211,6 +214,20 @@ public sealed class WebApplicationFixture
                 services.AddHttpClient<SystemUserImportService>().ConfigureBaseAddress(FakeHttpEndpoint.HttpsUri);
                 services.AddNprClient().ConfigureBaseAddress(FakeHttpEndpoint.HttpsUri);
                 services.AddSingleton<IMaskinPortenClient, FakeMaskinPortenClient>();
+
+                services.AddOptions<CcrServiceSettings>()
+                    .Configure(s =>
+                    {
+                        var userName = "test-user";
+                        var password = "test-password";
+                        var client = new CcrClientIdentitySettings
+                        {
+                            PasswordHash = PasswordHash.Create(userName, password),
+                            AllowedSourceNetworks = [new IPNetwork(TestWebApplication.RemoteTestIpAddress, 128)],
+                        };
+
+                        s.Clients[userName] = client;
+                    });
 
                 AltinnServiceDefaultsMassTransitTestingExtensions.AddAltinnMassTransitTestHarness(
                     services,

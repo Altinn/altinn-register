@@ -1,7 +1,9 @@
 using System.Buffers;
 using System.Diagnostics;
+using System.Net;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
+using Altinn.Register.Core.Cryptography;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.Location;
 using Altinn.Register.Core.Parties;
@@ -9,6 +11,8 @@ using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
 using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Altinn.Register.Core.Ccr;
 
@@ -16,12 +20,14 @@ namespace Altinn.Register.Core.Ccr;
 /// Calls the XML processor for CCR (Customer Contact Register) data and transforms the dto's to
 /// to models usable for the db layer.
 /// </summary>
-public sealed class CcrService
+public sealed partial class CcrService
 {
     private readonly IUnitOfWorkManager _uowManager;
     private readonly ICcrXmlProcessor _ccrXmlProcessor;
     private readonly IExternalRoleDefinitionPersistence _roleMapper;
     private readonly ILocationLookupProvider _locationLookupProvider;
+    private readonly ILogger<CcrService> _logger;
+    private readonly IOptionsMonitor<CcrServiceSettings> _options;
     private readonly TimeProvider _timeProvider;
 
     /// <summary>
@@ -32,12 +38,16 @@ public sealed class CcrService
         ICcrXmlProcessor ccrXmlProcessor,
         IExternalRoleDefinitionPersistence roleMapper,
         ILocationLookupProvider locationLookupProvider,
+        ILogger<CcrService> logger,
+        IOptionsMonitor<CcrServiceSettings> options,
         TimeProvider timeProvider)
     {
         _uowManager = uowManager;
         _ccrXmlProcessor = ccrXmlProcessor;
+        _logger = logger;
         _roleMapper = roleMapper;
         _locationLookupProvider = locationLookupProvider;
+        _options = options;
         _timeProvider = timeProvider;
     }
 
@@ -86,6 +96,40 @@ public sealed class CcrService
         }
 
         await uow.CommitAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Authorizes a CCR client based on the provided credentials and source IP address.
+    /// </summary>
+    /// <param name="userName">The username of the CCR client.</param>
+    /// <param name="password">The password of the CCR client.</param>
+    /// <param name="sourceIp">The source IP address of the CCR client.</param>
+    /// <returns><see langword="true"/> if the client is authorized; otherwise, <see langword="false"/>.</returns>
+    public bool AuthorizeCcrClient(
+        string userName,
+        string password,
+        IPAddress sourceIp)
+    {
+        if (!_options.CurrentValue.Clients.TryGetValue(userName, out CcrClientIdentitySettings? settings))
+        {
+            Log.UnknownCcrClient(_logger, userName, sourceIp);
+            return false;
+        }
+
+        if (settings.PasswordHash is null
+            || !PasswordHash.Validate(userName, password, settings.PasswordHash))
+        {
+            Log.InvalidCcrClientCredentials(_logger, userName, sourceIp);
+            return false;
+        }
+
+        if (!settings.AllowedSourceNetworks.Any(network => network.Contains(sourceIp)))
+        {
+            Log.InvalidCcrClientSourceIp(_logger, userName, sourceIp);
+            return false;
+        }
+
+        return true;
     }
 
     private static IEnumerable<CcrDbUpdate> MapToDbUpdates(IEnumerable<CcrOrganizationUpdate> updates, DateTimeOffset now)
@@ -210,4 +254,16 @@ public sealed class CcrService
     }
 
     private record struct CcrDbUpdate(OrganizationRecord Org, PartyExternalRoleAssignmentsUpdate? RolesUpdate);
+
+    private static partial class Log
+    {
+        [LoggerMessage(1, LogLevel.Warning, "Unknown CCR client with username '{UserName}' attempted to authenticate from IP address '{SourceIp}'.")]
+        public static partial void UnknownCcrClient(ILogger logger, string userName, IPAddress sourceIp);
+
+        [LoggerMessage(2, LogLevel.Warning, "CCR client with username '{UserName}' provided invalid credentials when attempting to authenticate from IP address '{SourceIp}'.")]
+        public static partial void InvalidCcrClientCredentials(ILogger logger, string userName, IPAddress sourceIp);
+
+        [LoggerMessage(3, LogLevel.Warning, "CCR client with username '{UserName}' attempted to authenticate from unauthorized IP address '{SourceIp}'.")]
+        public static partial void InvalidCcrClientSourceIp(ILogger logger, string userName, IPAddress sourceIp);
+    }
 }
