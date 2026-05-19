@@ -445,6 +445,8 @@ internal sealed class CcrXmlProcessor
             case ("UREG", _):
             case ("UVNO", _):
             case ("VEDT", _):
+            case ("VFOR", _):
+            case ("FORM", _):
             case ("naeringskode", _):
             case ("registrertHjemlandetsRegister", _):
             case ("underlagtHjemlandetsLovgivning", _):
@@ -722,9 +724,14 @@ internal sealed class CcrXmlProcessor
                     var kommunenr = rolleFields.TryGetValue("kommunenr", out var rkomm) ? rkomm : null;
                     var poststedIUtland = rolleFields.TryGetValue("poststed", out var rps) ? rps : null;
 
-                    if (!PersonIdentifier.TryParse(rolleFoedselsnr, null, out var personIdentifier))
+                    if (string.IsNullOrEmpty(rolleFoedselsnr))
                     {
                         ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required field 'rolleFoedselsnr' for role assignment in <samendringer> element.");
+                    }
+
+                    if (!PersonIdentifier.TryParse(rolleFoedselsnr, null, out var personIdentifier))
+                    {
+                        ThrowHelper.ThrowInvalidDataException("XmlReader: Invalid format for required field 'rolleFoedselsnr' for role assignment in <samendringer> element.");
                     }
 
                     // Convert CCR role code to Altinn role code
@@ -802,18 +809,23 @@ internal sealed class CcrXmlProcessor
             case ("K", "D"):
                 {
                     var knytningsOrgnr = rolleFields.TryGetValue("knytningOrganisasjonsnummer", out var kforn) ? kforn : null;
-                    var knytningsFratraadt = rolleFields.TryGetValue("knytningsFratraadt", out var kfratr) ? kfratr : null;
+                    var knytningFratraadt = rolleFields.TryGetValue("knytningFratraadt", out var kfratr) ? kfratr : null;
+
+                    if (string.IsNullOrEmpty(knytningsOrgnr))
+                    {
+                        ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required field 'knytningsOrgnr' for role assignment in <samendringer> element.");
+                    }
 
                     if (!OrganizationIdentifier.TryParse(knytningsOrgnr, null, out var organizationIdentifier))
                     {
                         ThrowHelper.ThrowInvalidDataException("XmlReader: Invalid 'knytningOrganisasjonsnummer' value for organizational role assignment in <samendringer> element. Value: " + knytningsOrgnr);
                     }
 
-                    switch (endringstype, knytningsFratraadt)
+                    switch (endringstype, knytningFratraadt)
                     {
-                        case (endringstype: _, knytningsFratraadt: "F"):
-                        case (endringstype: "U", knytningsFratraadt: _):
-                            removals.Add(CcrRoleAssignment.CreateConnection(felttype, organizationIdentifier));
+                        case (endringstype: _, knytningFratraadt: "F"):
+                        case (endringstype: "U", knytningFratraadt: _):
+                            removals.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode(felttype, roleDef), organizationIdentifier));
 
                             if (felttype == "KONT")
                             {
@@ -825,8 +837,8 @@ internal sealed class CcrXmlProcessor
 
                             break;
 
-                        case (endringstype: "N", knytningsFratraadt: _):
-                            additions.Add(CcrRoleAssignment.CreateConnection(felttype, organizationIdentifier));
+                        case (endringstype: "N", knytningFratraadt: _):
+                            additions.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode(felttype, roleDef), organizationIdentifier));
 
                             if (felttype == "KONT")
                             {
@@ -854,10 +866,16 @@ internal sealed class CcrXmlProcessor
                             break;
 
                         default:
-                            ThrowHelper.ThrowInvalidDataException($"XmlReader: Invalid combination of 'endringstype' and 'knytningsFratraadt' values for organizational role assignment in <samendringer> element. endringstype: '{endringstype}', knytningsFratraadt: '{knytningsFratraadt}'");
+                            ThrowHelper.ThrowInvalidDataException($"XmlReader: Invalid combination of 'endringstype' and 'knytningsFratraadt' values for organizational role assignment in <samendringer> element. endringstype: '{endringstype}', knytningsFratraadt: '{knytningFratraadt}'");
                             break;
                     }
 
+                    break;
+                }
+
+            case ("S", _) when endringstype == "N" || endringstype == "U":
+                {
+                    // We currently do not have a mapping for samendringsfritekst, whether new, update or delete.
                     break;
                 }
 

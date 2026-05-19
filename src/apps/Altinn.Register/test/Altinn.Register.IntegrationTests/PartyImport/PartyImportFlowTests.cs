@@ -21,7 +21,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Register.IntegrationTests.PartyImport;
 
-public class PartyImportFlowTests
+public partial class PartyImportFlowTests
     : IntegrationTestBase
 {
     [Fact]

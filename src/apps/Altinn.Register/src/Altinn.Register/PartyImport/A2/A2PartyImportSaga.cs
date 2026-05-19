@@ -20,6 +20,7 @@ public sealed partial class A2PartyImportSaga
     : ISaga<A2PartyImportSaga, A2PartyImportSaga.A2PartyImportSagaData>
     , ISagaStartedBy<A2PartyImportSaga, ImportA2PartyCommand, A2PartyImportSaga.A2PartyImportSagaData>
     , ISagaStartedBy<A2PartyImportSaga, ImportA2UserProfileCommand, A2PartyImportSaga.A2PartyImportSagaData>
+    , ISagaStartedBy<A2PartyImportSaga, ImportNprPartyCommand, A2PartyImportSaga.A2PartyImportSagaData>
     , ISagaHandles<A2PartyImportSaga, EnrichA2PartyImportSagaCommand, A2PartyImportSaga.A2PartyImportSagaData>
     , ISagaHandles<A2PartyImportSaga, CompleteA2PartyImportSagaCommand, A2PartyImportSaga.A2PartyImportSagaData>
     , ISagaHandles<A2PartyImportSaga, RetryA2PartyImportSagaCommand, A2PartyImportSaga.A2PartyImportSagaData>
@@ -243,7 +244,7 @@ public sealed partial class A2PartyImportSaga
             /// <summary>
             /// Gets or sets the collection of role assignments grouped by external role source.
             /// </summary>
-            public Dictionary<ExternalRoleSource, IReadOnlyList<UpsertExternalRoleAssignmentsCommand.Assignment>> RoleAssignments { get; set; } = new();
+            public Dictionary<ExternalRoleSource, IReadOnlyList<Assignment>> RoleAssignments { get; set; } = new();
 
             /// <summary>
             /// Gets or sets the remaining enrichers.
@@ -269,6 +270,22 @@ public sealed partial class A2PartyImportSaga
                         }),
                     Enrichers = Enrichers,
                 };
+            }
+
+            /// <summary>
+            /// Represents a role-assignment to a party.
+            /// </summary>
+            internal sealed record Assignment
+            {
+                /// <summary>
+                /// Gets the party which to assign the external role to.
+                /// </summary>
+                public required Guid ToPartyUuid { get; init; }
+
+                /// <summary>
+                /// Gets the role identifier.
+                /// </summary>
+                public required string Identifier { get; init; }
             }
         }
     }

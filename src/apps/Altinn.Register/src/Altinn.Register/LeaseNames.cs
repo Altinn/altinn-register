@@ -27,4 +27,9 @@ internal static class LeaseNames
     /// Lease name for party cleanup job.
     /// </summary>
     internal const string PartyCleanup = "db:party-cleanup";
+
+    /// <summary>
+    /// Lease name for NPR import job.
+    /// </summary>
+    internal const string NprImport = "npr-import";
 }

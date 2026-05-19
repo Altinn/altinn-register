@@ -5,6 +5,7 @@ using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ProblemDetails.Validation;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 
 namespace Altinn.Register.PartyImport.Validation;
@@ -21,6 +22,17 @@ public readonly struct PartyForImportValidator
     , IValidator<EnterpriseUserRecord, EnterpriseUserRecord>
     , IValidator<PartyUserRecord, PartyUserRecord>
 {
+    private readonly PersistenceFeatureFlag[] _flags;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PartyForImportValidator"/>.
+    /// </summary>
+    /// <param name="flags">Enabled feature flags.</param>
+    public PartyForImportValidator(PersistenceFeatureFlag[] flags)
+    {
+        _flags = flags;
+    }
+
     /// <inheritdoc/>
     public bool TryValidate(
         ref ValidationContext context,
@@ -197,10 +209,20 @@ public readonly struct PartyForImportValidator
 
     private void CheckCommon(ref ValidationContext context, PartyRecord input)
     {
-        CheckRequired(ref context, input.PartyUuid.HasValue, "/partyUuid");
+        var canCreateParties = _flags.Contains(PersistenceFeatureFlag.CreatePartyId);
+        if (!canCreateParties)
+        {
+            CheckRequired(ref context, input.PartyUuid.HasValue, "/partyUuid");
+            CheckRequired(ref context, input.DisplayName.HasValue, "/displayName");
+        }
+        else
+        {
+            Check(ref context, !input.PartyUuid.IsNull, ValidationErrors.Null, "/partyUuid");
+            Check(ref context, !input.DisplayName.IsNull, ValidationErrors.Null, "/displayName");
+        }
+
         CheckRequired(ref context, input.PartyType.HasValue, "/partyType");
         CheckRequired(ref context, input.ExternalUrn.IsSet, "/externalUrn");
-        CheckRequired(ref context, input.DisplayName.HasValue, "/displayName");
         CheckRequired(ref context, input.PersonIdentifier.IsSet, "/personIdentifier");
         CheckRequired(ref context, input.OrganizationIdentifier.IsSet, "/organizationIdentifier");
         CheckRequired(ref context, input.CreatedAt.HasValue, "/createdAt");
@@ -213,7 +235,14 @@ public readonly struct PartyForImportValidator
 
             if (type is PartyRecordType.Person or PartyRecordType.Organization or PartyRecordType.SelfIdentifiedUser)
             {
-                CheckRequired(ref context, input.PartyId.HasValue, "/partyId");
+                if (!canCreateParties)
+                {
+                    CheckRequired(ref context, input.PartyId.HasValue, "/partyId");
+                }
+                else
+                {
+                    Check(ref context, !input.PartyId.IsNull, ValidationErrors.Null, "/partyId");
+                }
             }
             else
             {

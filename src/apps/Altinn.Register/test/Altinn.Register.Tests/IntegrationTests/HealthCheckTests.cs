@@ -1,5 +1,6 @@
 using System.Net;
 using Altinn.Authorization.ServiceDefaults;
+using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Common.AccessTokenClient.Services;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.Location;
@@ -30,6 +31,7 @@ namespace Altinn.Register.Tests.IntegrationTests
                     services.AddSingleton<IExternalRoleDefinitionPersistence, MockExternalRoleDefinitionPersistence>();
                     services.AddSingleton<IRateLimitProvider, MockRateLimitProvider>();
                     services.AddSingleton<ILocationLookupProvider, MockLocationLookupProvider>();
+                    services.AddScoped<ICommandSender, NoOpCommandSender>();
                 });
             });
         }

@@ -16,6 +16,7 @@ using Altinn.Register.Configuration;
 using Altinn.Register.Conventions;
 using Altinn.Register.Core;
 using Altinn.Register.Core.A2;
+using Altinn.Register.Core.A2.SblProfile;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.PartyImport.A2;
@@ -25,6 +26,7 @@ using Altinn.Register.Model.Extensions;
 using Altinn.Register.ModelBinding;
 using Altinn.Register.PartyImport;
 using Altinn.Register.PartyImport.A2;
+using Altinn.Register.PartyImport.Npr;
 using Altinn.Register.PartyImport.SystemUser;
 using Altinn.Register.Services;
 using Altinn.Register.Services.Implementation;
@@ -185,6 +187,15 @@ internal static partial class RegisterHost
             .ConfigureBaseAddress("https+http://altinn-authentication/authentication/")
             .AddPlatformAccessTokenHandler();
 
+        services.AddHttpClient<ISblProfileBridgeClient, SblProfileBridgeClient>()
+            .ConfigureBaseAddressFromOptions(static (A2PartyImportSettings settings) => settings.BridgeApiEndpoint!)
+            .ReplaceResilienceHandler(static c =>
+            {
+                // Iteration-1 proxy: the caller (altinn-authentication) is synchronous;
+                // failures should surface immediately as 502 BadGateway, not get retried.
+                c.Retry.ShouldHandle = static _ => ValueTask.FromResult(false);
+            });
+
         services.AddNprClient()
             .ConfigureBaseAddress("https://folkeregisteret/")
             .AddMaskinPortenHandler("register-freg");
@@ -231,7 +242,7 @@ internal static partial class RegisterHost
             }
 
             var maxDbSizeInGib = config.GetValue("Altinn:register:PartyImport:A2:MaxDbSizeInGib", 20UL);
-            builder.AddDatabaseSizeJobCondition(maxSize: ByteSize.FromGibibytes(maxDbSizeInGib), jobTags: ["a2-import"]);
+            builder.AddDatabaseSizeJobCondition(maxSize: ByteSize.FromGibibytes(maxDbSizeInGib), jobTags: [A2PartyImportJobTag]);
             builder.Services.AddSingleton<JobCleanupHelper>();
 
             services.AddRecurringJob<A2PartyImportJob>(settings =>
@@ -264,6 +275,16 @@ internal static partial class RegisterHost
                 settings.Enabled = JobEnabledBuilder.Default
                     .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:SystemUsers:Enable")
                     .WithRequireImportJobFinished(A2PartyImportJob.JobName, threshold: 5_000);
+            });
+
+            services.AddRecurringJob<NprImportJob>(settings =>
+            {
+                settings.Tags.Add(A2PartyImportJobTag);
+                settings.LeaseName = NprImportJob.JobName;
+                settings.Interval = TimeSpan.FromMinutes(10);
+                settings.WaitForReady = waitForBus;
+                settings.Enabled = JobEnabledBuilder.Default
+                    .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:Npr:Enable");
             });
 
             services.AddOptions<SagaStateCleanupSettings>()

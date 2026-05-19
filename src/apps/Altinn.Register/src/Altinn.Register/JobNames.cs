@@ -29,4 +29,9 @@ internal static class JobNames
     /// Job name for saga state cleanup job.
     /// </summary>
     internal const string SagaStateCleanup = "saga-state-cleanup";
+
+    /// <summary>
+    /// Job name for NPR import job.
+    /// </summary>
+    internal const string NprImport = LeaseNames.NprImport;
 }

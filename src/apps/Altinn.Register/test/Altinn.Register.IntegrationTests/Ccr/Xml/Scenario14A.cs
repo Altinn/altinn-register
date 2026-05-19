@@ -7,12 +7,27 @@ using Altinn.Register.TestUtils.TestData;
 namespace Altinn.Register.IntegrationTests.Ccr.Xml;
 
 /// <summary>
-/// BEDR med EPOS-N + IADR-N + MTLF-U
+/// Provides a test scenario for applying and verifying XML-based updates to an organization record using the
+/// "batchAjourholdXML" format.
 /// </summary>
-public class Scenario14
+/// <remarks>This scenario sets up an organization with initial values, applies an XML update that modifies the
+/// email address and internet address, and verifies that the changes are correctly persisted. It is intended for use in
+/// integration or system tests that validate XML update processing logic.</remarks>
+public class Scenario14A
     : CcrXmlUpdateTestBase
 {
     private OrganizationRecord _org = null!;
+
+    protected override async ValueTask Setup(IUnitOfWork uow, CancellationToken cancellationToken)
+    {
+        // we can specify things we want here
+        _org = await uow.CreateOrg(
+            unitType: "BEDR",
+            emailAddress: "old@example.com",
+            internetAddress: FieldValue.Null,
+            mobileNumber: "12345678",
+            cancellationToken: cancellationToken);
+    }
 
     protected override string XmlToApply
         => $$"""
@@ -31,17 +46,6 @@ public class Scenario14
             <trai antallEnheter="1" avsender="ER" />
         </batchAjourholdXML>
         """;
-
-    protected override async ValueTask Setup(IUnitOfWork uow, CancellationToken cancellationToken)
-    {
-        // we can specify things we want here
-        _org = await uow.CreateOrg(
-            unitType: "BEDR",
-            emailAddress: "old@example.com",
-            internetAddress: FieldValue.Null,
-            mobileNumber: "12345678",
-            cancellationToken: cancellationToken);
-    }
 
     protected override async ValueTask Verify(IUnitOfWork uow, CancellationToken cancellationToken)
     {

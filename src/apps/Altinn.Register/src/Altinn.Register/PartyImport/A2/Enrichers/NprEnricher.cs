@@ -21,7 +21,7 @@ internal sealed class NprEnricher
 
     /// <inheritdoc/>
     public static bool IsEnabled(IConfiguration configuration)
-        => configuration.GetValue("Altinn:register:PartyImport:Npr:Guardianships:Enable", defaultValue: false);
+        => true;
 
     /// <inheritdoc/>
     public static bool CanEnrich(A2PartyImportSagaEnrichmentCheckContext context)

@@ -8,6 +8,7 @@ namespace Altinn.Register.PartyImport.A2;
 public sealed partial class A2PartyImportConsumer
     : IConsumer<ImportA2PartyCommand>
     , IConsumer<ImportA2UserProfileCommand>
+    , IConsumer<ImportNprPartyCommand>
     , IConsumer<CompleteA2PartyImportSagaCommand>
     , IConsumer<EnrichA2PartyImportSagaCommand>
     , IConsumer<RetryA2PartyImportSagaCommand>
@@ -29,6 +30,10 @@ public sealed partial class A2PartyImportConsumer
     /// <inheritdoc />
     public Task Consume(ConsumeContext<ImportA2UserProfileCommand> context)
         => _manager.StartSaga<A2PartyImportSaga, ImportA2UserProfileCommand, A2PartyImportSaga.A2PartyImportSagaData>(context);
+
+    /// <inheritdoc />
+    public Task Consume(ConsumeContext<ImportNprPartyCommand> context)
+        => _manager.StartSaga<A2PartyImportSaga, ImportNprPartyCommand, A2PartyImportSaga.A2PartyImportSagaData>(context);
 
     /// <inheritdoc />
     public Task Consume(ConsumeContext<CompleteA2PartyImportSagaCommand> context)

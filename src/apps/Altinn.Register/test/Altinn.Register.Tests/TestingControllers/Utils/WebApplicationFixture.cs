@@ -1,4 +1,6 @@
 using Altinn.Authorization.ServiceDefaults;
+using Altinn.Authorization.ServiceDefaults.MassTransit;
+using Altinn.Register.Tests.Mocks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -53,6 +55,10 @@ public class WebApplicationFixture
 
             builder.UseConfiguration(settings);
             builder.ConfigureLogging(builder => builder.ClearProviders());
+            builder.ConfigureTestServices(services =>
+            {
+                services.AddScoped<ICommandSender, NoOpCommandSender>();
+            });
 
             base.ConfigureWebHost(builder);
         }

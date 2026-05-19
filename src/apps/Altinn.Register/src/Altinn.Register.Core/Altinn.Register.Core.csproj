@@ -12,6 +12,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Cryptography.KeyDerivation" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
     <PackageReference Include="Nerdbank.Streams" />
     <PackageReference Include="Polly" />
     <PackageReference Include="System.Linq.AsyncEnumerable" />
