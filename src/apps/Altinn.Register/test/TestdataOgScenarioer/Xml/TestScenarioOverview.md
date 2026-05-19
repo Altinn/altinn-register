@@ -43,23 +43,45 @@ real format:
 These fixtures describe the **flat-file → XML** format. A second stage,
 [`CcrXmlProcessor`](../../../src/Altinn.Register.Integrations.Ccr.Xml/CcrXmlProcessor.cs),
 consumes that XML for the Register DB import and is a deliberately
-narrow subset of the legacy Altinn-2 flow. **No test feeds these
-`ScenarioN.xml` files into `CcrXmlProcessor`** — they are
-documentation-only; the processor test runs on the flat-file snapshot
-outputs instead. Applying the processor's contract to these fixtures:
+narrow subset of the legacy Altinn-2 flow.
+
+> **Update (post-merge).** The corpus is **no longer documentation-only.**
+> There is now an integration-test harness
+> [`CcrXmlUpdateTestBase`](../../Altinn.Register.IntegrationTests/Ccr/Xml/CcrXmlUpdateTestBase.cs)
+> with one test class per scenario (`Scenario01A`, …, `Scenario25A`,
+> plus a `ScenarioSamuXxx` class per `samendringUtgaar` family). Each
+> class runs **two** tests against a real DB:
+> - **`Run`** — feeds the scenario XML through `CcrService.UpdateFromCcr`
+>   and asserts the resulting party / role state.
+> - **`CallApi`** — wraps the same XML in a SOAP `SubmitERDataBasic`
+>   envelope and POSTs it to the new `enhets-registeret/api/v1/update.svc`
+>   endpoint (parsed by
+>   [`CcrUpdateEnvelopeReader`](../../../src/Altinn.Register.Integrations.Ccr.Xml/CcrUpdateEnvelopeReader.cs)),
+>   then asserts the same state.
+>
+> The separate **unit** test
+> [`CcrXmlProcessorTests`](../../Altinn.Register.Tests/UnitTests/CcrXmlProcessorTests.cs)
+> still runs on the **flat-file snapshot** outputs (not these
+> scenarios); its `test2` case remains `Skip = "Bad data?"`.
+
+Applying the processor's *current* contract to these fixtures (every
+row below now has a passing `Scenario..A` integration test):
 
 | Outcome | Scenarios |
 | --- | --- |
-| Processed (fields/roles mapped) | S1, S2, S3, S6, S7, S8, S9, S10, S13, S14, S18, S24 |
-| No-op (only skipped infotypes / dropped `<status>`) | S4, S5, S12, S16, S19, S20, S21, S25 |
+| Processed (fields/roles mapped) | S1, S2, S3, S6, S7, S8, S9, S10, S11, S13, S14, S18, S22, S23, S24 |
+| No-op (only skipped infotypes / `data="T"` text / dropped `<status>`) | S4, S5, S12, S15, S16, S19, S20, S21, S25 |
 | Partial (SAMU + role expiry OK, status dropped) | S17 |
-| **Throws** (unhandled construct) | S11, S15, S22, S23 |
+| **Throws** (unhandled construct) | *(none — I1 & I2 fixed since the merge)* |
 
 See
 [CcrXmlFormat.md → "XML → DB processing (`CcrXmlProcessor`)"](./CcrXmlFormat.md#xml--db-processing-ccrxmlprocessor)
 for the full consume/ignore/reject table and the **Known code issues**
-list (I1 `FORM`, I2 `data="T"`, I3 `endringstype="K"`, I4
-`knytningFratraadt` typo, I5 `<status>` disabled).
+list. Post-merge status: **I1** (`FORM`) and **I2** (`data="T"`
+free-text) are **fixed**; **I4** (`knytningFratraadt`) is **fixed**
+and extended with `fratraadt="F"` step-down handling; **I3**
+(`endringstype="K"` Kopi) and **I5** (`<status>` disabled, by design)
+remain.
 
 ## Scenario 1 — New accountant (regnskapsfører) registered for a NUF
 
