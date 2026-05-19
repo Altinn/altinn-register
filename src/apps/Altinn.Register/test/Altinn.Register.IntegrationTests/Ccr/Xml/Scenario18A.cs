@@ -22,6 +22,8 @@ public class Scenario18A
         // we can specify things we want here
         _org = await uow.CreateOrg(
             unitType: "BEDR",
+            emailAddress: "old.stuff@tobedeleted.nope",
+            telephoneNumber: "12345678",
             name: "Gammelt Bedriftsnavn AS",
             cancellationToken: cancellationToken);
     }

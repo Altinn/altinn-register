@@ -1,6 +1,8 @@
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties;
+using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
+using Altinn.Register.TestUtils.TestData;
 
 namespace Altinn.Register.IntegrationTests.Ccr.Xml;
 
@@ -13,10 +15,13 @@ public class Scenario11A
     : CcrXmlUpdateTestBase
 {
     private string _orgNumber = "316289371";
+    private PersonRecord _styreleder = null!;
 
     protected override async ValueTask Setup(IUnitOfWork uow, CancellationToken cancellationToken)
     {
-        // nothing for this scenario, it is a first registration
+        _styreleder = await uow.CreatePerson(
+            name: PersonName.Create("Forrige", "Regnskapsfører"),
+            cancellationToken: cancellationToken);
     }
 
     protected override string XmlToApply
@@ -47,7 +52,7 @@ public class Scenario11A
             <samendringer data="D" felttype="LEDE" endringstype="N" type="R">
               <rolleFratraadt>N</rolleFratraadt>
               <rolleRekkefoelge>4</rolleRekkefoelge>
-              <rolleFoedselsnr>22837242561</rolleFoedselsnr>
+              <rolleFoedselsnr>{{_styreleder.PersonIdentifier.Value}}</rolleFoedselsnr>
               <fornavn>Berit</fornavn>
               <slektsnavn>Testperson</slektsnavn>
               <postnr>1234</postnr>
@@ -112,11 +117,27 @@ public class Scenario11A
     protected override async ValueTask Verify(IUnitOfWork uow, CancellationToken cancellationToken)
     {
         var parties = uow.GetPartyPersistence();
+        var roles = uow.GetPartyExternalRolePersistence();
 
-        var updatedOrg = await parties.GetOrganizationByIdentifier(OrganizationIdentifier.Parse(_orgNumber), PartyFieldIncludes.Party | PartyFieldIncludes.Organization, cancellationToken)
+        var newOrg = await parties.GetOrganizationByIdentifier(OrganizationIdentifier.Parse(_orgNumber), PartyFieldIncludes.Party | PartyFieldIncludes.Organization, cancellationToken)
             .FirstOrDefaultAsync(cancellationToken);
 
-        updatedOrg.ShouldNotBeNull();
-        updatedOrg.DisplayName.Value.ShouldBe("TESTBY FYRFORENING");
+        newOrg.ShouldNotBeNull();
+        newOrg.DisplayName.Value?.Contains("TESTBY FYRFORENING").ShouldBeTrue();
+        newOrg.UnitType.Value.ShouldBe("FLI");
+        newOrg.BusinessAddress.Value?.Address?.Contains("c/o Berit Testperson").ShouldBeTrue();
+
+        var roleAssignments = await roles.GetExternalRoleAssignmentsFromParty(
+            partyUuid: newOrg.PartyUuid.Value,
+            cancellationToken: cancellationToken).
+            ToListAsync(cancellationToken);
+        roleAssignments.Count.ShouldBe(4);
+
+        var styreleder = roleAssignments.Where(r => r.Identifier == "styreleder").ToList();
+        styreleder.Count.ShouldBe(1);
+        styreleder[0].ToParty.ShouldBe(_styreleder.PartyUuid);
+
+        var medlemmer = roleAssignments.Where(r => r.Identifier == "styremedlem").ToList();
+        medlemmer.Count.ShouldBe(3);
     }
 }
