@@ -48,39 +48,7 @@ internal partial class PostgreSqlPartyPersistence
         _timeProvider = timeProvider;
         _logger = logger;
 
-        _flags = CreateFlags([
-            KeyValuePair.Create(PersistenceFeatureFlag.CreatePartyId, configuration.GetValue("Altinn:register:Party:CreatePartyId", defaultValue: false)),
-        ]);
-
-        static PersistenceFeatureFlag[] CreateFlags(params ReadOnlySpan<KeyValuePair<PersistenceFeatureFlag, bool>> flags)
-        {
-            var enabledCount = 0;
-            foreach (var kvp in flags)
-            {
-                if (kvp.Value)
-                {
-                    enabledCount++;
-                }
-            }
-
-            if (enabledCount == 0)
-            {
-                return [];
-            }
-
-            var result = new PersistenceFeatureFlag[enabledCount];
-            var index = 0;
-
-            foreach (var kvp in flags)
-            {
-                if (kvp.Value)
-                {
-                    result[index++] = kvp.Key;
-                }
-            }
-
-            return result;
-        }
+        _flags = PersistenceFeatureFlag.FromConfiguration(configuration);
     }
 
     #region Party

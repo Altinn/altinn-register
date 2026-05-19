@@ -1,5 +1,6 @@
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ProblemDetails.Validation;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.PartyImport.Validation;
 
@@ -14,12 +15,13 @@ public static class PartyImportHelper
     /// Validates that a party is valid for upserting.
     /// </summary>
     /// <param name="party">The party.</param>
+    /// <param name="flags">Enabled feature flags.</param>
     /// <exception cref="ProblemInstanceException">Thrown if the party is not valid.</exception>
-    public static void ValidatePartyForUpsert(PartyRecord party)
+    public static void ValidatePartyForUpsert(PartyRecord party, PersistenceFeatureFlag[] flags)
     {
         ValidationProblemBuilder builder = default;
 
-        builder.TryValidate(path: "/", party, default(PartyForImportValidator), out PartyRecord? _);
+        builder.TryValidate(path: "/", party, new PartyForImportValidator(flags), out PartyRecord? _);
 
         if (builder.TryBuild(out var error))
         {

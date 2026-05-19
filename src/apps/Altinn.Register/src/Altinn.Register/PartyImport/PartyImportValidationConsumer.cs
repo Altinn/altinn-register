@@ -1,4 +1,5 @@
 using Altinn.Authorization.ServiceDefaults.MassTransit;
+using Altinn.Register.Core.Parties;
 using MassTransit;
 
 namespace Altinn.Register.PartyImport;
@@ -10,13 +11,15 @@ public sealed class PartyImportValidationConsumer
     : IConsumer<UpsertPartyCommand>
 {
     private readonly ICommandSender _sender;
+    private readonly PersistenceFeatureFlag[] _flags;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PartyImportValidationConsumer"/> class.
     /// </summary>
-    public PartyImportValidationConsumer(ICommandSender sender)
+    public PartyImportValidationConsumer(ICommandSender sender, IConfiguration configuration)
     {
         _sender = sender;
+        _flags = PersistenceFeatureFlag.FromConfiguration(configuration);
     }
 
     /// <summary>
@@ -25,7 +28,7 @@ public sealed class PartyImportValidationConsumer
     /// <param name="context">The consume context.</param>
     public async Task Consume(ConsumeContext<UpsertPartyCommand> context)
     {
-        PartyImportHelper.ValidatePartyForUpsert(context.Message.Party);
+        PartyImportHelper.ValidatePartyForUpsert(context.Message.Party, _flags);
 
         await _sender.Send(UpsertValidatedPartyCommand.From(context.Message), context.CancellationToken);
     }
