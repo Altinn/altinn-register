@@ -11,7 +11,6 @@ using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
-using Altinn.Register.PartyImport;
 using Altinn.Register.Utils;
 using CommunityToolkit.Diagnostics;
 using MassTransit;

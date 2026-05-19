@@ -355,3 +355,4 @@ devenv.lock
 # AI tools
 .codex
 .claude
+*.lscache

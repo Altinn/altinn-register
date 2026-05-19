@@ -1,6 +1,5 @@
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
-using Altinn.Authorization.ProblemDetails.Validation;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.A2.SblProfile;
