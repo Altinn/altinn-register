@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.PartyImport;
 
@@ -16,8 +15,8 @@ public readonly record struct UpsertPartyTracking
     [SetsRequiredMembers]
     public UpsertPartyTracking(string jobName, ulong progress)
     {
-        Guard.IsNotNull(jobName);
-        Guard.IsGreaterThan(progress, 0);
+        ArgumentNullException.ThrowIfNull(jobName);
+        ArgumentOutOfRangeException.ThrowIfZero(progress);
 
         JobName = jobName;
         Progress = progress;
