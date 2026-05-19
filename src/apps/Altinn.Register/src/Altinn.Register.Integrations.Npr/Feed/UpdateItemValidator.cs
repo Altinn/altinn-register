@@ -27,11 +27,36 @@ public readonly struct UpdateItemValidator
             return false;
         }
 
-        context.TryValidateChild(
-            path: "/hendelse/folkeregisteridentifikator",
-            input: input.UpdateInfo.PersonIdentifier,
-            validator: default(PersonIdentifierValidator),
-            out PersonIdentifier? personIdentifier);
+        PersonIdentifier? personIdentifier = null;
+        DateTimeOffset? updateTime = null;
+        if (input.UpdateInfo is null)
+        {
+            context.AddChildProblem(StdValidationErrors.Required, "/hendelse");
+        }
+        else
+        {
+            if (input.UpdateInfo.PersonIdentifier is { } personIdentifierString)
+            {
+                context.TryValidateChild(
+                    path: "/hendelse/folkeregisteridentifikator",
+                    input: personIdentifierString,
+                    validator: default(PersonIdentifierValidator),
+                    out personIdentifier);
+            }
+            else
+            {
+                context.AddChildProblem(StdValidationErrors.Required, "/hendelse/folkeregisteridentifikator");
+            }
+
+            if (input.UpdateInfo.UpdateTime is { } updateTimeValue)
+            {
+                updateTime = updateTimeValue;
+            }
+            else
+            {
+                context.AddChildProblem(StdValidationErrors.Required, "/hendelse/ajourholdstidspunkt");
+            }
+        }
 
         if (context.HasErrors)
         {
@@ -40,11 +65,12 @@ public readonly struct UpdateItemValidator
         }
 
         Debug.Assert(personIdentifier is not null);
+        Debug.Assert(updateTime is not null);
         validated = new NprUpdate
         {
             SequenceNumber = input.SequenceNumber,
             PersonIdentifier = personIdentifier,
-            UpdateTime = input.UpdateInfo.UpdateTime,
+            UpdateTime = updateTime.Value,
         };
         return true;
     }

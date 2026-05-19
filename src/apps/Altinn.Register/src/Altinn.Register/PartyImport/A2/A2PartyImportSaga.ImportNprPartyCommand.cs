@@ -23,7 +23,9 @@ public partial class A2PartyImportSaga
     public async Task Handle(ImportNprPartyCommand message, CancellationToken cancellationToken)
     {
         var now = _timeProvider.GetUtcNow();
-        Debug.Assert(State.PartyIdentifier.TryGetValue(out PersonIdentifier? personIdentifier) && personIdentifier == message.PersonIdentifier);
+        State.PartyIdentifier.TryGetValue(out PersonIdentifier? personIdentifier);
+
+        Debug.Assert(personIdentifier is not null && personIdentifier == message.PersonIdentifier);
         State.Party = new PersonRecord
         {
             PartyUuid = FieldValue.Unset,

@@ -17,5 +17,5 @@ public sealed record UpdateItem
     /// Gets the update information.
     /// </summary>
     [JsonPropertyName("hendelse")]
-    public required UpdateInfo UpdateInfo { get; init; }
+    public UpdateInfo? UpdateInfo { get; init; }
 }

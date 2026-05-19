@@ -13,7 +13,6 @@ public sealed record NprUpdatePage
     : IReadOnlyList<NprUpdate>
 {
     private readonly ImmutableValueArray<NprUpdate> _updates;
-    private uint _seqMax;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NprUpdatePage"/> class with the specified updates.
@@ -21,11 +20,13 @@ public sealed record NprUpdatePage
     /// <param name="updates">The updates in the page. Must not be empty.</param>
     public NprUpdatePage(ImmutableValueArray<NprUpdate> updates)
     {
-        Guard.IsNotEmpty((IReadOnlyCollection<NprUpdate>)updates);
-        Debug.Assert(IsSorted(updates));
+        if (updates.IsDefault)
+        {
+            ThrowHelper.ThrowArgumentException(nameof(updates), "Updates must be provided.");
+        }
 
+        Debug.Assert(IsSorted(updates));
         _updates = updates;
-        _seqMax = updates[^1].SequenceNumber;
     }
 
     /// <inheritdoc/>
@@ -35,12 +36,6 @@ public sealed record NprUpdatePage
     /// <inheritdoc/>
     public int Count
         => _updates.Length;
-
-    /// <summary>
-    /// Gets the highest sequence number among the updates in this page.
-    /// </summary>
-    public uint SeqMax
-        => _seqMax;
 
     private static bool IsSorted(ImmutableValueArray<NprUpdate> updates)
     {

@@ -124,8 +124,10 @@ internal sealed class NprClient
 
             yield return page;
 
-            Assert(page.SeqMax >= fromInclusive);
-            fromInclusive = page.SeqMax + 1;
+            var seqMax = page[^1].SequenceNumber;
+            Assert(seqMax >= fromInclusive);
+            Assert(seqMax < uint.MaxValue);
+            fromInclusive = seqMax + 1;
         }
     }
 

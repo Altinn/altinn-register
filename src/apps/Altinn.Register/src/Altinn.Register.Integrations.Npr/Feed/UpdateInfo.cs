@@ -11,11 +11,11 @@ public sealed record UpdateInfo
     /// Gets the identifier of the person whose NPR data has been updated.
     /// </summary>
     [JsonPropertyName("folkeregisteridentifikator")]
-    public required string PersonIdentifier { get; init; }
+    public string? PersonIdentifier { get; init; }
 
     /// <summary>
     /// Gets the time when the update was made.
     /// </summary>
     [JsonPropertyName("ajourholdstidspunkt")]
-    public required DateTimeOffset UpdateTime { get; init; }
+    public DateTimeOffset? UpdateTime { get; init; }
 }
