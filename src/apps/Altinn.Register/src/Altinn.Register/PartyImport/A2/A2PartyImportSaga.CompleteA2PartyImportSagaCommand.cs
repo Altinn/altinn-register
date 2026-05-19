@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core.ImportJobs;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Utils;
 using CommunityToolkit.Diagnostics;
@@ -21,7 +22,7 @@ public partial class A2PartyImportSaga
             throw new InvalidOperationException("Party is not set");
         }
 
-        PartyImportHelper.ValidatePartyForUpsert(State.Party);
+        PartyImportHelper.ValidatePartyForUpsert(State.Party, PersistenceFeatureFlag.FromConfiguration(_configuration));
         var partyResult = await _parties.UpsertParty(State.Party, cancellationToken);
         partyResult.EnsureSuccess();
         Debug.Assert(partyResult.Value.PartyUuid.HasValue);

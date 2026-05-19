@@ -16,7 +16,6 @@ public class ScenarioSamuOpmv
     private OrganizationRecord _org = null!;
     private OrganizationRecord _orgOPMV = null!;
     private PersonRecord _personLede = null!;
-    private PersonRecord _personOPMV = null!;
 
     protected override async ValueTask Setup(IUnitOfWork uow, CancellationToken cancellationToken)
     {

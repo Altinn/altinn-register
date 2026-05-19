@@ -1,14 +1,20 @@
+using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http.Json;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ProblemDetails.Validation;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Location;
 using Altinn.Register.Core.Npr;
+using Altinn.Register.Integrations.Npr.Feed;
 using Altinn.Register.Integrations.Npr.Person;
+using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.Integrations.Npr;
 
@@ -20,7 +26,10 @@ internal sealed class NprClient
 {
     private static readonly JsonSerializerOptions _options = new(JsonSerializerDefaults.Web);
 
-    private const string BasePath = "folkeregisteret/offentlig-med-hjemmel/api/v1/personer";
+    private const int NprFeedPageSize = 1000;
+
+    private const string ApiRoot = "folkeregisteret/offentlig-med-hjemmel/api/v1";
+    private const string BasePath = $"{ApiRoot}/personer";
     private const string PartsQueryParams = "part=navn&part=foedsel&part=bostedsadresse&part=doedsfall&part=status&part=oppholdsadresse&part=familierelasjon&part=postadresse&part=postadresseIUtlandet&part=vergemaalEllerFremtidsfullmakt&part=sivilstand&part=statsborgerskap&part=historikk&part=identifikasjonsnummer&part=deltBosted&part=adressebeskyttelse&part=utenlandskPersonidentifikasjon&part=foreldreansvar&part=innflytting&part=utflytting&part=foedselINorge&part=opphold&part=RettsligHandleevne&part=bibehold&part=brukAvSamiskSpraak";
 
     private readonly HttpClient _client;
@@ -93,5 +102,64 @@ internal sealed class NprClient
 
         Debug.Assert(validated is not null);
         return validated;
+    }
+
+    /// <inheritdoc/>
+    public async IAsyncEnumerable<NprUpdatePage> GetUpdates(
+        uint fromInclusive = 1,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        NprUpdatePage page;
+        while (true)
+        {
+            var result = await GetUpdatePage(fromInclusive, cancellationToken);
+            result.EnsureSuccess(); // TODO: handle errors better
+
+            page = result.Value;
+
+            if (page.Count == 0)
+            {
+                yield break;
+            }
+
+            yield return page;
+
+            Assert(page.SeqMax >= fromInclusive);
+            fromInclusive = page.SeqMax + 1;
+        }
+    }
+
+    private async Task<Result<NprUpdatePage>> GetUpdatePage(uint fromInclusive, CancellationToken cancellationToken)
+    {
+        var url = $"{ApiRoot}/hendelser/feed?seq={fromInclusive}";
+
+        var builder = ImmutableArray.CreateBuilder<NprUpdate>(NprFeedPageSize);
+        var errors = default(ValidationProblemBuilder);
+        var index = 0;
+
+        await foreach (var item in _client.GetFromJsonAsAsyncEnumerable<UpdateItem>(url, _options, cancellationToken))
+        {
+            if (errors.TryValidate(path: $"/{index}", item, default(UpdateItemValidator), out NprUpdate? update))
+            {
+                builder.Add(update);
+            }
+
+            index++;
+        }
+
+        if (errors.TryBuild(out var error))
+        {
+            return error;
+        }
+
+        return new NprUpdatePage(builder.DrainToImmutableValueArray());
+    }
+
+    private static void Assert([DoesNotReturnIf(false)] bool condition, [CallerArgumentExpression(nameof(condition))] string? conditionString = null)
+    {
+        if (!condition)
+        {
+            ThrowHelper.ThrowInvalidOperationException($"Assertion failed: {conditionString}");
+        }
     }
 }

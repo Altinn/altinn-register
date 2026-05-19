@@ -1,3 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Configuration;
+
 namespace Altinn.Register.Core.Parties;
 
 /// <summary>
@@ -10,4 +13,56 @@ public enum PersistenceFeatureFlag
     /// Indicates that creating new party IDs is allowed.
     /// </summary>
     CreatePartyId = 1,
+}
+
+/// <summary>
+/// Extensions for <see cref="PersistenceFeatureFlag"/>.
+/// </summary>
+[SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1649:File name should match first type name", Justification = "It does...")]
+public static class PersistenceFeatureFlagExtensions
+{
+    extension(PersistenceFeatureFlag)
+    {
+        /// <summary>
+        /// Creates an array of enabled <see cref="PersistenceFeatureFlag"/>s based on the provided configuration.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <returns>An array of enabled <see cref="PersistenceFeatureFlag"/>s.</returns>
+        public static PersistenceFeatureFlag[] FromConfiguration(IConfiguration configuration)
+        {
+            return CreateFlags([
+                KeyValuePair.Create(PersistenceFeatureFlag.CreatePartyId, configuration.GetValue("Altinn:register:Party:CreatePartyId", defaultValue: false)),
+            ]);
+
+            static PersistenceFeatureFlag[] CreateFlags(params ReadOnlySpan<KeyValuePair<PersistenceFeatureFlag, bool>> flags)
+            {
+                var enabledCount = 0;
+                foreach (var kvp in flags)
+                {
+                    if (kvp.Value)
+                    {
+                        enabledCount++;
+                    }
+                }
+
+                if (enabledCount == 0)
+                {
+                    return [];
+                }
+
+                var result = new PersistenceFeatureFlag[enabledCount];
+                var index = 0;
+
+                foreach (var kvp in flags)
+                {
+                    if (kvp.Value)
+                    {
+                        result[index++] = kvp.Key;
+                    }
+                }
+
+                return result;
+            }
+        }
+    }
 }
