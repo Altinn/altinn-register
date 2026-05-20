@@ -27,12 +27,14 @@ namespace Altinn.Register.Controllers.V2;
 [ApiVersion(2.0)]
 [Authorize(Policy = "PlatformAccess")]
 [Route("register/api/v{version:apiVersion}/internal/users")]
-public sealed class UsersController : ControllerBase
+public sealed class UsersController
+    : ControllerBase
 {
     /// <summary>
     /// Gets the existing self-identified user for the supplied identity, or creates one if none exists.
     /// </summary>
     /// <param name="sender">The mediator request sender.</param>
+    /// <param name="accessManagementClient">The access management client.</param>
     /// <param name="request">The request body.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>The self-identified user.</returns>
@@ -42,6 +44,7 @@ public sealed class UsersController : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<SelfIdentifiedUser>> GetOrCreateSelfIdentifiedUser(
         [FromServices] IRequestSender<GetOrCreateSelfIdentifiedUserRequest, NewOrExisting<SelfIdentifiedUserRecord>> sender,
+        [FromServices] TempWorkarounds.AccessManagementClient accessManagementClient,
         [FromBody] SelfIdentifiedUserCreateRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -96,7 +99,11 @@ public sealed class UsersController : ControllerBase
 
         if (result.Value.IsNew)
         {
-            // call AM
+            await accessManagementClient.CreateSelfIdentifiedUser(
+                partyUuid: result.Value.Value.PartyUuid.Value,
+                type: result.Value.Value.SelfIdentifiedUserType.Value,
+                displayName: request.UserName,
+                cancellationToken: cancellationToken);
         }
 
         return Ok(result.Value.Value.ToPlatformModel());

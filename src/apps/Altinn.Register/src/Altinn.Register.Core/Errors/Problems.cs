@@ -51,4 +51,8 @@ public static class Problems
     /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
     public static ProblemDescriptor PersonNotFound { get; }
         = _factory.Create(9, HttpStatusCode.NotFound, "Person not found");
+
+    /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
+    public static ProblemDescriptor AccessManagementSelfIdentifiedUserPushFailed { get; }
+        = _factory.Create(10, HttpStatusCode.InternalServerError, "Failed to push self-identified user to access management");
 }
