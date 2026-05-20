@@ -126,6 +126,8 @@ public class UsersControllerTests
             .Expect(HttpMethod.Post, "/profile/api/users/create/")
             .Respond(() => JsonContent.Create(created, options: JsonOptions));
 
+        ExpectAccessManagementSelfIdentifiedUserCreate();
+
         using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl)
             .WithPlatformToken("unittest");
         request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
@@ -151,6 +153,8 @@ public class UsersControllerTests
         const string ExternalIdentity = "urn:altinn:person:idporten-email:bmV3QGV4YW1wbGUuY29t";
         const string UserName = "epost:new@example.com";
         const string Email = "new@example.com";
+
+        ExpectAccessManagementSelfIdentifiedUserCreate();
 
         using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl)
             .WithPlatformToken("unittest");
@@ -205,6 +209,8 @@ public class UsersControllerTests
             .Expect(HttpMethod.Post, "/profile/api/users/create/")
             .Respond(() => JsonContent.Create(created, options: JsonOptions));
 
+        ExpectAccessManagementSelfIdentifiedUserCreate();
+
         using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl)
             .WithPlatformToken("unittest");
         request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
@@ -232,6 +238,8 @@ public class UsersControllerTests
     {
         const string ExternalIdentity = "uidp-anonym:66a633c43ef2f656978f957532ce6d0de6f5e13f1e0618b37b4b2a70573e5551";
         const string UidpUserName = "uidp_newhash99x7";
+
+        ExpectAccessManagementSelfIdentifiedUserCreate();
 
         using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl)
             .WithPlatformToken("unittest");
@@ -458,5 +466,16 @@ public class UsersControllerTests
     {
         var value = source == TestApiSource.DB ? "true" : "false";
         Configuration["Altinn:register:Party:CreatePartyId"] = value;
+    }
+
+    private void ExpectAccessManagementSelfIdentifiedUserCreate()
+    {
+        FakeHttpHandlers.For<TempWorkarounds.AccessManagementClient>()
+            .Expect(HttpMethod.Post, "/api/v1/internal/party")
+            .Respond(HttpStatusCode.OK);
+
+        FakeHttpHandlers.For<TempWorkarounds.AccessManagementClient>()
+            .Expect(HttpMethod.Post, "/api/v1/internal/connections/selfidentifiedusers")
+            .Respond(HttpStatusCode.OK);
     }
 }
