@@ -5,9 +5,13 @@ using Altinn.Register.Contracts;
 using Altinn.Register.Core.A2.SblProfile;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Mediator;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
+using Altinn.Register.Core.UnitOfWork;
+using Altinn.Register.Core.Utils;
 using Altinn.Register.PartyImport.A2;
 using Altinn.Urn;
+using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.Logging;
 
 namespace Altinn.Register.Core.Operations;
@@ -17,26 +21,126 @@ namespace Altinn.Register.Core.Operations;
 /// <summary>
 /// Request to get an existing self-identified user, or create one if none exists.
 /// </summary>
-/// <param name="SelfIdentifiedUserType">
-/// The self-identified user type. Drives the response <c>ExternalUrn</c> shape; not used for identity construction.
-/// </param>
-/// <param name="ExternalIdentity">
-/// The bridge-shape external identity (pre-built by the caller). Required.
-/// </param>
-/// <param name="UserName">
-/// The username to assign on create. Required. The caller owns username generation;
-/// register does not transform it.
-/// </param>
-/// <param name="Email">
-/// The user's email. Required for <see cref="Contracts.SelfIdentifiedUserType.IdPortenEmail"/>;
-/// ignored otherwise.
-/// </param>
-public readonly record struct GetOrCreateSelfIdentifiedUserRequest(
-    SelfIdentifiedUserType SelfIdentifiedUserType,
-    string? ExternalIdentity,
-    string? UserName,
-    string? Email)
-    : IRequest<SelfIdentifiedUserRecord>;
+/// <remarks>
+/// This is a union type representing either a <see cref="GetOrCreateSelfIdentifiedEmailUserRequest"/>,
+/// or a <see cref="GetOrCreateSelfIdentifiedEduUserRequest"/>.
+/// </remarks>
+public readonly record struct GetOrCreateSelfIdentifiedUserRequest
+    : IRequest<NewOrExisting<SelfIdentifiedUserRecord>>
+{
+    /// <summary>
+    /// Creates a request to get or create a self-identified idporten-email user.
+    /// </summary>
+    /// <param name="email">The user email.</param>
+    /// <returns>A request to get or create a self-identified idporten-email user.</returns>
+    public static GetOrCreateSelfIdentifiedUserRequest Email(string email)
+        => new(email: new GetOrCreateSelfIdentifiedEmailUserRequest(email));
+
+    /// <summary>
+    /// Creates a request to get or create a self-identified educational user.
+    /// </summary>
+    /// <param name="extRef">The external reference for the educational user.</param>
+    /// <param name="username">The username for the educational user.</param>
+    /// <returns>A request to get or create a self-identified educational user.</returns>
+    public static GetOrCreateSelfIdentifiedUserRequest Educational(string extRef, string username)
+        => new(eduUser: new GetOrCreateSelfIdentifiedEduUserRequest(extRef, username));
+
+    private readonly SelfIdentifiedUserType _type;
+
+    private readonly GetOrCreateSelfIdentifiedEmailUserRequest _emailUser;
+
+    private readonly GetOrCreateSelfIdentifiedEduUserRequest _eduUser;
+
+    /// <summary>
+    /// Creates a new instance of <see cref="GetOrCreateSelfIdentifiedUserRequest"/> based on the provided email user request.
+    /// </summary>
+    /// <param name="email">The email user request.</param>
+    internal GetOrCreateSelfIdentifiedUserRequest(GetOrCreateSelfIdentifiedEmailUserRequest email)
+    {
+        _type = SelfIdentifiedUserType.IdPortenEmail;
+        _emailUser = email;
+    }
+
+    /// <summary>
+    /// Creates a new instance of <see cref="GetOrCreateSelfIdentifiedUserRequest"/> based on the provided educational user request.
+    /// </summary>
+    /// <param name="eduUser">The educational user request.</param>
+    internal GetOrCreateSelfIdentifiedUserRequest(GetOrCreateSelfIdentifiedEduUserRequest eduUser)
+    {
+        _type = SelfIdentifiedUserType.Educational;
+        _eduUser = eduUser;
+    }
+
+    /// <summary>
+    /// Implementation of the union type pattern.
+    /// </summary>
+    public object? Value => _type switch
+    {
+        SelfIdentifiedUserType.IdPortenEmail => _emailUser,
+        SelfIdentifiedUserType.Educational => _eduUser,
+        _ => null,
+    };
+
+    /// <summary>
+    /// Indicates whether this request has a value (i.e. is a valid request).
+    /// This will be <see langword="false"/> if the request was default-constructed or constructed with an unsupported type.
+    /// </summary>
+    public bool HasValue => _type switch
+    {
+        SelfIdentifiedUserType.IdPortenEmail => true,
+        SelfIdentifiedUserType.Educational => true,
+        _ => false,
+    };
+
+    /// <summary>
+    /// Tries to get the email user request if this is an email user request.
+    /// </summary>
+    /// <param name="emailUser">The email user request if this is an email user request.</param>
+    /// <returns><see langword="true"/> if this is an email user request, <see langword="false"/> otherwise.</returns>
+    public bool TryGetValue(out GetOrCreateSelfIdentifiedEmailUserRequest emailUser)
+    {
+        if (_type == SelfIdentifiedUserType.IdPortenEmail)
+        {
+            emailUser = _emailUser;
+            return true;
+        }
+
+        emailUser = default;
+        return false;
+    }
+
+    /// <summary>
+    /// Tries to get the educational user request if this is an educational user request.
+    /// </summary>
+    /// <param name="eduUser">The educational user request if this is an educational user request.</param>
+    /// <returns><see langword="true"/> if this is an educational user request, <see langword="false"/> otherwise.</returns>
+    public bool TryGetValue(out GetOrCreateSelfIdentifiedEduUserRequest eduUser)
+    {
+        if (_type == SelfIdentifiedUserType.Educational)
+        {
+            eduUser = _eduUser;
+            return true;
+        }
+
+        eduUser = default;
+        return false;
+    }
+}
+
+/// <summary>
+/// Request to get or create a self-identified user with an email (IdPorten) identity. The email is used as the unique identifier for the user.
+/// </summary>
+/// <param name="Email">The email of the user.</param>
+public readonly record struct GetOrCreateSelfIdentifiedEmailUserRequest(string Email)
+    : IRequest<NewOrExisting<SelfIdentifiedUserRecord>>;
+
+/// <summary>
+/// Request to get or create a self-identified educational user. The external reference is used as the unique identifier for the user.
+/// </summary>
+/// <param name="ExtRef">The external reference for the educational user.</param>
+/// <param name="UserName">The username for the educational user (only used for creation if the user does not already exist).</param>
+public readonly record struct GetOrCreateSelfIdentifiedEduUserRequest(string ExtRef, string UserName)
+    : IRequest<NewOrExisting<SelfIdentifiedUserRecord>>;
 
 /// <summary>
 /// Get-or-create self-identified user via SBL Bridge proxy (iteration 1).
@@ -50,39 +154,39 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
     ICommandSender commandSender,
     TimeProvider timeProvider,
     ILogger<GetOrCreateSelfIdentifiedUserFromBridgeHandler> logger)
-    : IRequestHandler<GetOrCreateSelfIdentifiedUserRequest, SelfIdentifiedUserRecord>
+    : IRequestHandler<GetOrCreateSelfIdentifiedUserRequest, NewOrExisting<SelfIdentifiedUserRecord>>
+    , IRequestHandler<GetOrCreateSelfIdentifiedEmailUserRequest, NewOrExisting<SelfIdentifiedUserRecord>>
+    , IRequestHandler<GetOrCreateSelfIdentifiedEduUserRequest, NewOrExisting<SelfIdentifiedUserRecord>>
 {
     private const int SbiUserTypeSelfIdentified = 2;
 
     /// <inheritdoc/>
-    public async ValueTask<Result<SelfIdentifiedUserRecord>> Handle(
+    public async ValueTask<Result<NewOrExisting<SelfIdentifiedUserRecord>>> Handle(
         GetOrCreateSelfIdentifiedUserRequest request,
         CancellationToken cancellationToken)
     {
-        ValidationProblemBuilder builder = default;
+        string externalIdentity, userName;
+        string? email;
 
-        if (string.IsNullOrWhiteSpace(request.ExternalIdentity))
+        if (request.TryGetValue(out GetOrCreateSelfIdentifiedEmailUserRequest emailRequest))
         {
-            builder.Add(StdValidationErrors.Required, "/externalIdentity");
+            externalIdentity = PartyExternalRefUrn.IDPortenEmail.Create(UrnEncoded.Create(emailRequest.Email)).ToString();
+            userName = $"email:{emailRequest.Email}";
+            email = emailRequest.Email;
+        }
+        else if (request.TryGetValue(out GetOrCreateSelfIdentifiedEduUserRequest eduRequest))
+        {
+            externalIdentity = eduRequest.ExtRef;
+            userName = eduRequest.UserName;
+            email = null;
+        }
+        else
+        {
+            return ThrowHelper.ThrowArgumentException<NewOrExisting<SelfIdentifiedUserRecord>>(
+                "Request contained no value");
         }
 
-        if (string.IsNullOrWhiteSpace(request.UserName))
-        {
-            builder.Add(StdValidationErrors.Required, "/userName");
-        }
-
-        if (request.SelfIdentifiedUserType == SelfIdentifiedUserType.IdPortenEmail
-            && string.IsNullOrWhiteSpace(request.Email))
-        {
-            builder.Add(StdValidationErrors.Required, "/email");
-        }
-
-        if (builder.TryBuild(out var error))
-        {
-            return error;
-        }
-
-        var lookupResult = await bridgeClient.LookupUser(request.ExternalIdentity!, cancellationToken);
+        var lookupResult = await bridgeClient.LookupUser(externalIdentity, cancellationToken);
         if (lookupResult.IsProblem)
         {
             return lookupResult.Problem;
@@ -90,13 +194,14 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
 
         if (lookupResult.Value.Found)
         {
-            return MapToRecord(lookupResult.Value.Profile, request);
+            return MapToRecord(lookupResult.Value.Profile, externalIdentity, email)
+                .Select(NewOrExisting.Existing);
         }
 
         var createRequest = new SblUserProfile
         {
-            ExternalIdentity = request.ExternalIdentity,
-            UserName = request.UserName,
+            ExternalIdentity = externalIdentity,
+            UserName = userName,
             UserType = SbiUserTypeSelfIdentified,
         };
 
@@ -106,15 +211,27 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
             return createResult.Problem;
         }
 
-        var mapped = MapToRecord(createResult.Value, request);
+        var mapped = MapToRecord(createResult.Value, externalIdentity, email);
         if (mapped.IsProblem)
         {
             return mapped.Problem;
         }
 
         await EnqueueLocalImport(mapped.Value.PartyUuid.Value, cancellationToken);
-        return mapped;
+        return mapped.Select(NewOrExisting.New);
     }
+
+    /// <inheritdoc/>
+    public ValueTask<Result<NewOrExisting<SelfIdentifiedUserRecord>>> Handle(
+        GetOrCreateSelfIdentifiedEmailUserRequest request,
+        CancellationToken cancellationToken)
+        => Handle(new GetOrCreateSelfIdentifiedUserRequest(request), cancellationToken);
+
+    /// <inheritdoc/>
+    public ValueTask<Result<NewOrExisting<SelfIdentifiedUserRecord>>> Handle(
+        GetOrCreateSelfIdentifiedEduUserRequest request,
+        CancellationToken cancellationToken)
+        => Handle(new GetOrCreateSelfIdentifiedUserRequest(request), cancellationToken);
 
     // The polling A2PartyImportJob will eventually pick up this party as a change
     // from SBL, but we enqueue the same command eagerly so authentication can read
@@ -142,7 +259,10 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
         }
     }
 
-    private Result<SelfIdentifiedUserRecord> MapToRecord(SblUserProfile profile, GetOrCreateSelfIdentifiedUserRequest request)
+    private Result<SelfIdentifiedUserRecord> MapToRecord(
+        SblUserProfile profile,
+        string externalIdentity,
+        string? email)
     {
         if (profile.UserUuid is null || profile.UserId <= 0 || profile.PartyId <= 0 || string.IsNullOrEmpty(profile.UserName))
         {
@@ -152,30 +272,31 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
             ]);
         }
 
-        FieldValue<PartyExternalRefUrn> externalUrn = request.SelfIdentifiedUserType switch
+        FieldValue<PartyExternalRefUrn> externalUrn = email switch
         {
-            SelfIdentifiedUserType.IdPortenEmail
-                => PartyExternalRefUrn.IDPortenEmail.Create(UrnEncoded.Create(request.Email!)),
-            SelfIdentifiedUserType.Legacy
-                => PartyExternalRefUrn.LegacySelfIdentifiedUsername.Create(UrnEncoded.Create(profile.UserName.ToLowerInvariant())),
-            SelfIdentifiedUserType.Educational => FieldValue.Null,
-            _ => FieldValue.Null,
+            null => FieldValue.Null,
+            _ => PartyExternalRefUrn.IDPortenEmail.Create(UrnEncoded.Create(email)),
         };
 
-        FieldValue<string> email = request.SelfIdentifiedUserType == SelfIdentifiedUserType.IdPortenEmail
-            ? request.Email!
-            : FieldValue.Null;
-
-        FieldValue<string> extRef = request.SelfIdentifiedUserType == SelfIdentifiedUserType.Educational
-            ? request.ExternalIdentity!
-            : FieldValue.Null;
+        FieldValue<string> extRef = email switch
+        {
+            null => FieldValue.Null,
+            _ => externalIdentity,
+        };
 
         var userId = checked((uint)profile.UserId);
-        var now = timeProvider.GetUtcNow();
 
-        var displayName = request.SelfIdentifiedUserType == SelfIdentifiedUserType.IdPortenEmail
-            ? request.Email!
-            : profile.UserName;
+        var displayName = email switch
+        {
+            null => profile.UserName,
+            _ => email,
+        };
+
+        var type = email switch
+        {
+            null => SelfIdentifiedUserType.Educational,
+            _ => SelfIdentifiedUserType.IdPortenEmail,
+        };
 
         return new SelfIdentifiedUserRecord
         {
@@ -189,12 +310,12 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
             DisplayName = displayName,
             PersonIdentifier = FieldValue.Null,
             OrganizationIdentifier = FieldValue.Null,
-            CreatedAt = now,
-            ModifiedAt = now,
+            CreatedAt = FieldValue.Unset, // will be imported later
+            ModifiedAt = FieldValue.Unset, // will be imported later
             User = new PartyUserRecord(userId, profile.UserName),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            SelfIdentifiedUserType = request.SelfIdentifiedUserType,
+            SelfIdentifiedUserType = type,
             Email = email,
             ExtRef = extRef,
         };
@@ -216,12 +337,72 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
 /// <remarks>
 /// Stubbed for now; switching to this handler is the iteration-2 cutover. See issue #863.
 /// </remarks>
-internal sealed class GetOrCreateSelfIdentifiedUserFromDBHandler
-    : IRequestHandler<GetOrCreateSelfIdentifiedUserRequest, SelfIdentifiedUserRecord>
+internal sealed class GetOrCreateSelfIdentifiedUserFromDBHandler(IUnitOfWorkManager manager)
+    : IRequestHandler<GetOrCreateSelfIdentifiedUserRequest, NewOrExisting<SelfIdentifiedUserRecord>>
+    , IRequestHandler<GetOrCreateSelfIdentifiedEmailUserRequest, NewOrExisting<SelfIdentifiedUserRecord>>
+    , IRequestHandler<GetOrCreateSelfIdentifiedEduUserRequest, NewOrExisting<SelfIdentifiedUserRecord>>
 {
     /// <inheritdoc/>
-    public ValueTask<Result<SelfIdentifiedUserRecord>> Handle(
+    public ValueTask<Result<NewOrExisting<SelfIdentifiedUserRecord>>> Handle(
         GetOrCreateSelfIdentifiedUserRequest request,
         CancellationToken cancellationToken)
-        => throw new NotImplementedException("Iteration 2: direct DB write not yet implemented. See issue #863.");
+    {
+        if (request.TryGetValue(out GetOrCreateSelfIdentifiedEmailUserRequest emailRequest))
+        {
+            return Handle(emailRequest, cancellationToken);
+        }
+        else if (request.TryGetValue(out GetOrCreateSelfIdentifiedEduUserRequest eduRequest))
+        {
+            return Handle(eduRequest, cancellationToken);
+        }
+        else
+        {
+            return ThrowHelper.ThrowArgumentException<ValueTask<Result<NewOrExisting<SelfIdentifiedUserRecord>>>>(
+                "Request contained no value");
+        }
+    }
+
+    /// <inheritdoc/>
+    public async ValueTask<Result<NewOrExisting<SelfIdentifiedUserRecord>>> Handle(
+        GetOrCreateSelfIdentifiedEmailUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        await using var uow = await manager.CreateAsync(
+            activityName: "get or create email user",
+            cancellationToken: cancellationToken);
+
+        var parties = uow.GetPartyPersistence();
+        var result = await parties.GetOrCreateSelfIdentifiedEmailUser(request.Email, cancellationToken);
+        if (result.IsProblem)
+        {
+            return result.Problem;
+        }
+
+        await uow.CommitAsync(cancellationToken);
+        return result.Value;
+    }
+
+    /// <inheritdoc/>
+    public async ValueTask<Result<NewOrExisting<SelfIdentifiedUserRecord>>> Handle(
+        GetOrCreateSelfIdentifiedEduUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        await using var uow = await manager.CreateAsync(
+            activityName: "get or create edu user",
+            cancellationToken: cancellationToken);
+
+        var parties = uow.GetPartyPersistence();
+        var result = await parties.GetOrCreateSelfIdentifiedEduUser(
+            request.ExtRef,
+            request.UserName,
+            cancellationToken);
+
+        if (result.IsProblem)
+        {
+            return result.Problem;
+        }
+
+        await uow.CommitAsync(cancellationToken);
+        return result.Value;
+    }
 }

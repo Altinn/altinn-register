@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Altinn.Authorization.ModelUtils;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties.Records;
 using V1Models = Altinn.Register.Contracts.V1;
 
@@ -48,7 +49,16 @@ internal static class V1PartyMapper
 
             case SelfIdentifiedUserRecord siUser:
                 ret.PartyTypeName = V1Models.PartyType.SelfIdentified;
-                ret.Name = siUser.User.SelectFieldValue(static u => u.Username).OrDefault(siUser.DisplayName.Value);
+
+                ret.Name = siUser.SelfIdentifiedUserType switch
+                {
+                    { HasValue: true, Value: SelfIdentifiedUserType.IdPortenEmail }
+                        => siUser.User.SelectFieldValue(static u => u.Username)
+                            .Or(siUser.Email.Select(static e => $"epost:{e}"))
+                            .OrDefault(siUser.DisplayName.Value),
+                    _ => siUser.User.SelectFieldValue(static u => u.Username)
+                            .OrDefault(siUser.DisplayName.Value),
+                };
                 break;
 
             default:

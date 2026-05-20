@@ -1,7 +1,9 @@
 using System.Diagnostics;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Core.Operations;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Register.Core.Mediator;
@@ -69,8 +71,18 @@ internal sealed class RegisterMediator
     // The DB handler is not yet implemented (iteration 2) and the global ApiSource feature flag
     // is already flipped to DB in non-prod environments, so we forward directly to the A2 bridge
     // handler until iteration 2 lands.
-    private ValueTask<Result<SelfIdentifiedUserRecord>> Send(GetOrCreateSelfIdentifiedUserRequest request, Sender sender, CancellationToken cancellationToken)
-        => sender.Services.GetRequiredService<GetOrCreateSelfIdentifiedUserFromBridgeHandler>()
+    private ValueTask<Result<NewOrExisting<SelfIdentifiedUserRecord>>> Send(GetOrCreateSelfIdentifiedUserRequest request, Sender sender, CancellationToken cancellationToken)
+        => RequestDispatcher<GetOrCreateSelfIdentifiedUserRequest, NewOrExisting<SelfIdentifiedUserRecord>>
+            .SelectHandler(
+                sender,
+                static (IConfiguration configuration, IServiceProvider services) =>
+                {
+                    return PersistenceFeatureFlag.CanCreatePartyId(configuration) switch
+                    {
+                        true => services.GetRequiredService<GetOrCreateSelfIdentifiedUserFromDBHandler>(),
+                        false => services.GetRequiredService<GetOrCreateSelfIdentifiedUserFromBridgeHandler>(),
+                    };
+                })
             .Handle(request, cancellationToken);
 
     private static class RequestDispatcher<TRequest, TResponse>
@@ -92,6 +104,17 @@ internal sealed class RegisterMediator
                 _ => throw new UnreachableException($"Unsupported API source: {source}"),
             };
         }
+
+        public static IRequestHandler<TRequest, TResponse> SelectHandler<T1, T2>(
+            Sender sender,
+            Func<T1, T2, IRequestHandler<TRequest, TResponse>> selector)
+            where T1 : notnull
+            where T2 : notnull
+        {
+            var d1 = sender.Services.GetRequiredService<T1>();
+            var d2 = sender.Services.GetRequiredService<T2>();
+            return selector(d1, d2);
+        }
     }
 
     /// <summary>
@@ -108,7 +131,7 @@ internal sealed class RegisterMediator
         , IRequestSender<GetV1PersonRequest, Contracts.V1.Person>
         , IRequestSender<LookupV1PartyRequest, Contracts.V1.Party>
         , IRequestSender<LookupV1PartyNamesRequest, Contracts.V1.PartyNamesLookupResult>
-        , IRequestSender<GetOrCreateSelfIdentifiedUserRequest, SelfIdentifiedUserRecord>
+        , IRequestSender<GetOrCreateSelfIdentifiedUserRequest, NewOrExisting<SelfIdentifiedUserRecord>>
     {
         private readonly RegisterMediator _mediator;
         private readonly IServiceProvider _services;
@@ -182,7 +205,7 @@ internal sealed class RegisterMediator
             => _mediator.Send(request, this, cancellationToken);
 
         /// <inheritdoc/>
-        public ValueTask<Result<SelfIdentifiedUserRecord>> Send(
+        public ValueTask<Result<NewOrExisting<SelfIdentifiedUserRecord>>> Send(
             GetOrCreateSelfIdentifiedUserRequest request,
             CancellationToken cancellationToken = default)
             => _mediator.Send(request, this, cancellationToken);

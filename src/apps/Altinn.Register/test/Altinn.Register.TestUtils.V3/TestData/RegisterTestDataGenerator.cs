@@ -541,7 +541,11 @@ public sealed partial class RegisterTestDataGenerator
             var userIds = userIdsEnumerable.Select(static id => (uint)id).OrderByDescending(static id => id).ToImmutableValueArray();
             var userId = userIds[0];
 
-            user = new PartyUserRecord(userId: userId, username: name, userIds: userIds);
+            var username = type is { IsNull: true } or { Value: SelfIdentifiedUserType.Legacy }
+                ? name
+                : FieldValue.Null;
+
+            user = new PartyUserRecord(userId: userId, username: username, userIds: userIds);
         }
 
         var now = _timeProvider.GetUtcNow();
