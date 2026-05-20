@@ -190,23 +190,9 @@ public class DebugController
     }
 
     /// <summary>
-    /// Manually trigger ingestion of a SIRE organization event.
-    /// </summary>
-    [HttpPost("sire/ingest")]
-    public async Task<IActionResult> IngestSireOrganization(
-        [FromBody] IngestSireEventCommand command,
-        [FromServices] ICommandSender sender,
-        CancellationToken cancellationToken = default)
-    {
-        await sender.Send(command, cancellationToken);
-
-        return Ok(command);
-    }
-
-    /// <summary>
     /// Manually trigger SIRE enrichment for an organization.
     /// </summary>
-    [HttpPost("sire/enrich/{orgNo}")]
+    [HttpPost("sire/org/{orgNo}")]
     public async Task<IActionResult> EnrichSireOrganization(
         string orgNo,
         [FromServices] ISireClient sireClient,
