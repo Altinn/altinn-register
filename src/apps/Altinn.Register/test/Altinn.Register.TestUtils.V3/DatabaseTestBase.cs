@@ -31,6 +31,12 @@ public abstract class DatabaseTestBase
     /// </summary>
     protected RegisterTestDataGenerator TestDataGenerator => GetRequiredService<RegisterTestDataGenerator>();
 
+    /// <summary>
+    /// Gets the application configuration.
+    /// </summary>
+    protected IConfigurationManager Configuration
+        => (IConfigurationManager)GetRequiredService<IConfiguration>();
+
     /// <inheritdoc/>
     protected override async ValueTask ConfigureHost(IHostApplicationBuilder builder)
     {
@@ -49,6 +55,9 @@ public abstract class DatabaseTestBase
             new("Altinn:Npgsql:register:Migrate:ConnectionString", _db.MigratorConnectionString),
             new("Altinn:Npgsql:register:Seed:ConnectionString", _db.SeederConnectionString),
             new("Altinn:Npgsql:register:Seed:Enabled", SeedData ? "true" : "false"),
+
+            // feature flags
+            new("Altinn:register:Party:CreatePartyId", "true"),
         ]);
 
         builder.AddRegisterPersistence();

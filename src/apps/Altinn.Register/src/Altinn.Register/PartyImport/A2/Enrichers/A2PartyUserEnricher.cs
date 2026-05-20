@@ -1,6 +1,7 @@
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
+using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.PartyImport.A2.Enrichers;
 
@@ -16,7 +17,8 @@ internal sealed class A2PartyUserEnricher
 
     /// <inheritdoc/>
     public static bool CanEnrich(A2PartyImportSagaEnrichmentCheckContext context)
-        => context.Party.PartyType.Value is (PartyRecordType.Person or PartyRecordType.SelfIdentifiedUser)
+        => context.PartyIdentifier.TryGetValue(out Guid _)
+        && context.Party.PartyType.Value is (PartyRecordType.Person or PartyRecordType.SelfIdentifiedUser)
         && context.Party.User.IsUnset;
 
     private readonly IA2PartyImportService _importService;
@@ -34,14 +36,19 @@ internal sealed class A2PartyUserEnricher
     /// <inheritdoc/>
     public async Task Run(A2PartyImportSagaEnrichmentRunContext context, CancellationToken cancellationToken)
     {
+        if (!context.PartyIdentifier.TryGetValue(out Guid partyUuid))
+        {
+            ThrowHelper.ThrowInvalidOperationException("PartyUserEnricher can only be run when PartyIdentifier is a PartyUuid");
+        }
+
         Result<A2ProfileRecord> userRecordResult;
         if (context.Party.PartyType.Value is PartyRecordType.Person)
         {
-            userRecordResult = await _importService.GetOrCreatePersonUser(context.PartyUuid, cancellationToken);
+            userRecordResult = await _importService.GetOrCreatePersonUser(partyUuid, cancellationToken);
         }
         else
         {
-            userRecordResult = await _importService.GetPartyUser(context.PartyUuid, cancellationToken);
+            userRecordResult = await _importService.GetPartyUser(partyUuid, cancellationToken);
         }
 
         userRecordResult.EnsureSuccess();

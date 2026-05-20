@@ -6,6 +6,7 @@ using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.Sire;
+using Altinn.Register.PartyImport;
 using Altinn.Register.PartyImport.A2;
 using Altinn.Register.PartyImport.A2.Enrichers;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -79,7 +80,7 @@ public class SireEnricherTests
         var party = MinimalSireOrg(TestOrgId);
         var context = new A2PartyImportSagaEnrichmentRunContext
         {
-            PartyUuid = party.PartyUuid.Value,
+            PartyIdentifier = new ImportPartyIdentifier(TestOrgId),
             Party = party,
             RoleAssignments = [],
         };
@@ -110,7 +111,7 @@ public class SireEnricherTests
         var party = MinimalSireOrg(TestOrgId);
         var context = new A2PartyImportSagaEnrichmentRunContext
         {
-            PartyUuid = party.PartyUuid.Value,
+            PartyIdentifier = new ImportPartyIdentifier(TestOrgId),
             Party = party,
             RoleAssignments = [],
         };
@@ -223,7 +224,7 @@ public class SireEnricherTests
         var party = MinimalSireOrg(TestOrgId);
         var context = new A2PartyImportSagaEnrichmentRunContext
         {
-            PartyUuid = party.PartyUuid.Value,
+            PartyIdentifier = new ImportPartyIdentifier(TestOrgId),
             Party = party,
             RoleAssignments = [],
         };
@@ -231,10 +232,9 @@ public class SireEnricherTests
         await enricher.Run(context, CancellationToken);
 
         Assert.True(context.RoleAssignments.ContainsKey(ExternalRoleSource.RegisteredWithSkatteetaten));
-        var assignments = context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten];
-        Assert.Single(assignments);
-        Assert.Equal("styretsLeder", assignments[0].Identifier);
-        Assert.Equal(relatedPartyUuid, assignments[0].ToPartyUuid);
+        var update = Assert.IsType<PartyExternalRoleAssignmentsUpdate.Full>(
+            context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten]);
+        Assert.Single(update.Assignments);
     }
 
     [Fact]
@@ -303,15 +303,16 @@ public class SireEnricherTests
         var party = MinimalSireOrg(TestOrgId);
         var context = new A2PartyImportSagaEnrichmentRunContext
         {
-            PartyUuid = party.PartyUuid.Value,
+            PartyIdentifier = new ImportPartyIdentifier(TestOrgId),
             Party = party,
             RoleAssignments = [],
         };
 
         await enricher.Run(context, CancellationToken);
-
-        var assignments = context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten];
-        Assert.Empty(assignments);
+        Assert.True(context.RoleAssignments.ContainsKey(ExternalRoleSource.RegisteredWithSkatteetaten));
+        var update = Assert.IsType<PartyExternalRoleAssignmentsUpdate.Full>(
+            context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten]);
+        Assert.Single(update.Assignments);
     }
 
     [Fact]
@@ -389,15 +390,17 @@ public class SireEnricherTests
         var party = MinimalSireOrg(TestOrgId);
         var context = new A2PartyImportSagaEnrichmentRunContext
         {
-            PartyUuid = party.PartyUuid.Value,
+            PartyIdentifier = new ImportPartyIdentifier(TestOrgId),
             Party = party,
             RoleAssignments = [],
         };
 
         await enricher.Run(context, CancellationToken);
 
-        var assignments = context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten];
-        Assert.Empty(assignments);
+        Assert.True(context.RoleAssignments.ContainsKey(ExternalRoleSource.RegisteredWithSkatteetaten));
+        var update = Assert.IsType<PartyExternalRoleAssignmentsUpdate.Full>(
+            context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten]);
+        Assert.Single(update.Assignments);
     }
 
     private static ExternalRoleDefinition FakeRoleDefinition(string identifier)

@@ -11,5 +11,27 @@ public sealed record CompleteA2PartyImportSagaCommand
     /// <summary>
     /// Gets the party UUID.
     /// </summary>
-    public required Guid PartyUuid { get; init; }
+    /// <remarks>
+    /// This is only used for easier debugging of failed messages.
+    /// </remarks>
+    [Obsolete("Use PartyIdentifier instead.")]
+    public Guid PartyUuid
+    {
+        get => PartyIdentifier.TryGetValue(out Guid partyUuid) ? partyUuid : Guid.Empty;
+        init
+        {
+            if (value != Guid.Empty && !PartyIdentifier.HasValue)
+            {
+                PartyIdentifier = value;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the party identifier.
+    /// </summary>
+    /// <remarks>
+    /// This is only used for easier debugging of failed messages.
+    /// </remarks>
+    public ImportPartyIdentifier PartyIdentifier { get; init; }
 }

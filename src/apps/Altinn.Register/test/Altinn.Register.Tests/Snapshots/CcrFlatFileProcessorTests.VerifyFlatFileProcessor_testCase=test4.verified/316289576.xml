@@ -11,7 +11,7 @@
     <infotype felttype="FADR" endringstype="N">
       <postnr>0662</postnr>
       <landkode>NO</landkode>
-      <kommunenr>8006</kommunenr>
+      <kommunenr>0301</kommunenr>
       <adresse2>Storgata 88</adresse2>
     </infotype>
     <infotype felttype="KJRP" endringstype="N">
@@ -26,7 +26,7 @@
       <rolleFoedselsnr>46836800303</rolleFoedselsnr>
       <fornavn>VÅRLIG</fornavn>
       <slektsnavn>ARTIKKEL</slektsnavn>
-      <postnr>8006</postnr>
+      <postnr>0301</postnr>
       <adresse1>Storgata 88</adresse1>
       <adresseLandkode>NO</adresseLandkode>
       <personstatus>L</personstatus>
@@ -37,7 +37,7 @@
       <rolleFoedselsnr>21834995635</rolleFoedselsnr>
       <fornavn>ROBUST</fornavn>
       <slektsnavn>SEKRETÆR</slektsnavn>
-      <postnr>8006</postnr>
+      <postnr>0301</postnr>
       <adresse1>Storgata 88</adresse1>
       <adresseLandkode>NO</adresseLandkode>
       <personstatus>L</personstatus>
@@ -45,10 +45,10 @@
     <samendringer data="D" felttype="MEDL" endringstype="N" type="R">
       <rolleFratraadt>N</rolleFratraadt>
       <rolleRekkefoelge>2</rolleRekkefoelge>
-      <rolleFoedselsnr>1686019716J</rolleFoedselsnr>
+      <rolleFoedselsnr>45811675095</rolleFoedselsnr>
       <fornavn>ORDNÆR</fornavn>
       <slektsnavn>LAGIDRETT</slektsnavn>
-      <postnr>8006</postnr>
+      <postnr>0301</postnr>
       <adresse1>Storgata 88</adresse1>
       <adresseLandkode>NO</adresseLandkode>
       <personstatus>L</personstatus>

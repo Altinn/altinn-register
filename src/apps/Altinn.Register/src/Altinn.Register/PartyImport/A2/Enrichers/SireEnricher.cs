@@ -89,7 +89,8 @@ internal sealed partial class SireEnricher
 
         if (relationships is not { Count: > 0 })
         {
-            context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten] = [];
+            context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten] = PartyExternalRoleAssignmentsUpdate.Full.Empty
+;
             return;
         }
 
@@ -121,7 +122,8 @@ internal sealed partial class SireEnricher
             .Where(p => p.OrganizationIdentifier.HasValue)
             .ToDictionary(p => p.OrganizationIdentifier.Value, p => p.PartyUuid.Value);
 
-        var mapped = new List<UpsertExternalRoleAssignmentsCommand.Assignment>(relationships.Count);
+        var mapped = new List<KeyValuePair<string, Guid>>(relationships.Count);
+        context.PartyIdentifier.TryGetValue(out Guid partyUuid);
         foreach (var rel in relationships)
         {
             var roleDef = await _roleDefinitions.TryGetRoleDefinition(
@@ -131,7 +133,7 @@ internal sealed partial class SireEnricher
 
             if (roleDef is null)
             {
-                Log.RoleDefinitionNotFound(_logger, rel.RelationshipType, context.PartyUuid);
+                Log.RoleDefinitionNotFound(_logger, rel.RelationshipType, partyUuid);
                 continue;
             }
 
@@ -140,7 +142,7 @@ internal sealed partial class SireEnricher
             {
                 if (!personPartyLookup.TryGetValue(personId, out toPartyUuid))
                 {
-                    Log.RelatedPartyNotFound(_logger, rel.RelationshipType, context.PartyUuid, personId.ToString());
+                    Log.RelatedPartyNotFound(_logger, rel.RelationshipType, partyUuid, personId.ToString());
                     continue;
                 }
             }
@@ -148,7 +150,7 @@ internal sealed partial class SireEnricher
             {
                 if (!orgPartyLookup.TryGetValue(orgId, out toPartyUuid))
                 {
-                    Log.RelatedPartyNotFound(_logger, rel.RelationshipType, context.PartyUuid, orgId.ToString());
+                    Log.RelatedPartyNotFound(_logger, rel.RelationshipType, partyUuid, orgId.ToString());
                     continue;
                 }
             }
@@ -157,15 +159,10 @@ internal sealed partial class SireEnricher
                 continue;
             }
 
-            mapped.Add(new()
-            {
-                Identifier = roleDef.Identifier,
-                ToPartyUuid = toPartyUuid,    // ← the related party
-                ////FromPartyUuid is context.PartyUuid, set by the saga when publishing UpsertExternalRoleAssignmentsCommand
-            });
+            mapped.Add(KeyValuePair.Create(roleDef.Identifier, toPartyUuid));
         }
 
-        context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten] = mapped;
+        context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten] = PartyExternalRoleAssignmentsUpdate.CreateFull(mapped);
     }
 
     private static partial class Log

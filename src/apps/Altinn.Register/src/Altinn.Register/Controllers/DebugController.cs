@@ -1,3 +1,8 @@
+using System.Buffers;
+using System.Diagnostics;
+using System.IO.Pipelines;
+using System.Net.Http.Headers;
+using System.Text.Json.Serialization;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
@@ -19,11 +24,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Nerdbank.Streams;
-using System.Buffers;
-using System.Diagnostics;
-using System.IO.Pipelines;
-using System.Net.Http.Headers;
-using System.Text.Json.Serialization;
 
 namespace Altinn.Register.Controllers;
 

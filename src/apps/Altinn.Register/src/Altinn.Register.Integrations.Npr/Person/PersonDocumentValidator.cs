@@ -11,6 +11,7 @@ using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Location;
 using Altinn.Register.Core.Npr;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.Utils;
 using Altinn.Register.Core.Validation;
@@ -30,7 +31,7 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
     , IValidator<BirthElement, Optional<DateOnly>>
     , IValidator<AddressProtectionElement, Optional<AddressConfidentialityLevel>>
     , IValidator<ResidentialAddressElement, Optional<StreetAddressRecord>>
-    , IValidator<NameElement, Optional<PersonDocumentValidator.PersonName>>
+    , IValidator<NameElement, Optional<PersonName>>
     , IValidator<DeathElement?, PersonDocumentValidator.PersonDeath>
     , IValidator<MailingAddressElement, Optional<PersonDocumentValidator.MailingAddressRecordExt>>
     , IValidator<CurrentStayAddressElement, Optional<PersonDocumentValidator.MailingAddressRecordExt>>
@@ -95,12 +96,7 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         }
         else
         {
-            personName = new PersonName(
-                FirstName: "Mangler",
-                MiddleName: null,
-                LastName: "Navn",
-                DisplayName: "Mangler Navn",
-                ShortName: "Mangler Navn");
+            personName = PersonName.Missing;
         }
 
         MailingAddressRecordExt? mailingAddress = null;
@@ -369,9 +365,9 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
 
         if (string.IsNullOrEmpty(input.DateOfBirth))
         {
-            context.AddChildProblem(StdValidationErrors.Required, path: PATH);
+            // there exist birth-elements with no date of birth, we treat these as if the element itself was missing
             validated = default;
-            return false;
+            return true;
         }
 
         if (!DateOnly.TryParseExact(input.DateOfBirth, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var validatedDate))
@@ -412,39 +408,14 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         }
 
         var shortName = input.ShortName;
-        if (shortName is null)
-        {
-            var sb = new StringBuilder(lastName);
-
-            sb.Append(' ').Append(firstName);
-
-            if (middleName is not null)
-            {
-                sb.Append(' ').Append(middleName);
-            }
-
-            shortName = sb.ToString();
-        }
-
-        var dn = new StringBuilder(firstName);
-
-        if (middleName is not null)
-        {
-            dn.Append(' ').Append(middleName);
-        }
-
-        dn.Append(' ').Append(lastName);
-
-        var displayName = dn.ToString();
 
         Debug.Assert(firstName is not null);
         Debug.Assert(lastName is not null);
-        validated = new PersonName(
-            FirstName: firstName,
-            MiddleName: middleName,
-            LastName: lastName,
-            ShortName: shortName,
-            DisplayName: displayName);
+        validated = PersonName.Create(
+            firstName: firstName,
+            middleName: middleName,
+            lastName: lastName,
+            shortName: shortName);
 
         return true;
     }
@@ -465,9 +436,8 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
 
         if (string.IsNullOrEmpty(input.DateOfDeath))
         {
-            context.AddChildProblem(StdValidationErrors.Required, path: PATH);
             validated = default;
-            return false;
+            return true;
         }
 
         if (!DateOnly.TryParseExact(input.DateOfDeath, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
@@ -571,12 +541,8 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             return false;
         }
 
-        context.AddChildProblem(
-            StdValidationErrors.Required,
-            path: ["/postadresseIFrittFormat", "/vegadresse", "/postboksadresse"]);
-
         validated = default;
-        return false;
+        return true;
     }
 
     /// <inheritdoc/>
@@ -639,12 +605,8 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             return false;
         }
 
-        context.AddChildProblem(
-            StdValidationErrors.Required,
-            path: ["/matrikkeladresse", "/vegadresse", "/utenlandskAdresse"]);
-
         validated = default;
-        return false;
+        return true;
     }
 
     /// <inheritdoc/>
@@ -701,12 +663,8 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             return false;
         }
 
-        context.AddChildProblem(
-            StdValidationErrors.Required,
-            path: ["/ukjentBosted", "/vegadresse", "/matrikkeladresse"]);
-
         validated = default;
-        return false;
+        return true;
     }
 
     /// <inheritdoc/>
@@ -760,12 +718,8 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             return false;
         }
 
-        context.AddChildProblem(
-            StdValidationErrors.Required,
-            path: ["/ukjentBosted", "/vegadresse", "/matrikkeladresse"]);
-
         validated = default;
-        return false;
+        return true;
     }
 
     /// <inheritdoc/>
@@ -810,12 +764,8 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             return false;
         }
 
-        context.AddChildProblem(
-            StdValidationErrors.Required,
-            path: ["/utenlandskAdresseIFrittFormat", "/utenlandskAdresse"]);
-
         validated = default;
-        return false;
+        return true;
     }
 
     /// <inheritdoc/>
@@ -830,23 +780,28 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             context.TryValidateChild(path: "/poststed", input.PostalArea, this, out postalInfo);
         }
 
-        if (input.AddressLines.IsDefaultOrEmpty)
-        {
-            context.AddChildProblem(StdValidationErrors.Required, path: "/adresselinje");
-        }
-
         if (context.HasErrors)
         {
             validated = default;
             return false;
         }
 
-        var address = string.Join(' ', input.AddressLines);
-        if (input.AddressLines.Length > 0 && (postalInfo.Code is null || !input.AddressLines[^1].StartsWith(postalInfo.Code, StringComparison.Ordinal)))
+        List<string> addressLines;
+        if (input.AddressLines.IsDefaultOrEmpty)
         {
-            address = $"{address} {postalInfo.Code} {postalInfo.Name}".Trim();
+            addressLines = [];
+        }
+        else
+        {
+            addressLines = [.. input.AddressLines];
         }
 
+        if (addressLines.Count > 0 && (postalInfo.Code is null || !addressLines[^1].StartsWith(postalInfo.Code, StringComparison.Ordinal)))
+        {
+            addressLines.Add($"{postalInfo.Code} {postalInfo.Name}".Trim());
+        }
+
+        var address = string.Join(' ', addressLines).Trim();
         validated = new MailingAddressRecordExt
         {
             Address = address,
@@ -950,16 +905,17 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
         InternationalFreeFormMailingAddress input,
         [NotNullWhen(true)] out MailingAddressRecordExt? validated)
     {
+        List<string> addressLines;
         if (input.AddressLines.IsDefaultOrEmpty)
         {
-            context.AddChildProblem(StdValidationErrors.Required, path: "/adresselinje");
-            validated = default;
-            return false;
+            addressLines = [];
+        }
+        else
+        {
+            addressLines = [.. input.AddressLines];
         }
 
         TryLookupCountryName(input.CountryCode, out string? countryDisplay);
-
-        List<string> addressLines = [.. input.AddressLines];
 
         var cityOrPlaceName = input.CityOrPlaceName?.Trim();
         if (!string.IsNullOrEmpty(cityOrPlaceName)
@@ -1187,13 +1143,6 @@ public sealed class PersonDocumentValidator(ILocationLookup lookup)
             Name: input.PostalName);
         return true;
     }
-
-    private readonly record struct PersonName(
-        string FirstName,
-        string? MiddleName,
-        string LastName,
-        string ShortName,
-        string DisplayName);
 
     private readonly record struct PersonDeath(DateOnly? DateOfDeath);
 

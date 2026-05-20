@@ -210,7 +210,6 @@ public static class RegisterPersistenceExtensions
         builder.MapEnum<OrganizationSource>("register.organization_source", new EnumNameTranslator<OrganizationSource>(static value => value switch
         {
             OrganizationSource.CentralCoordinatingRegister => "ccr",
-            OrganizationSource.BusinessAssessedPartnerships => "sdf",
             OrganizationSource.RegisteredWithSkatteetaten => "srs",
             _ => null,
         }));
@@ -275,6 +274,12 @@ public static class RegisterPersistenceExtensions
             _ => null,
         }));
 
+        builder.MapEnum<PersistenceFeatureFlag>("register.db_feature_flag", new EnumNameTranslator<PersistenceFeatureFlag>(static value => value switch
+        {
+            PersistenceFeatureFlag.CreatePartyId => "create_party_id",
+            _ => null,
+        }));
+
         builder.MapComposite<MailingAddressRecord>("register.co_mailing_address", new CompositeNameTranslator<MailingAddressRecord>(static member => member.Name switch
         {
             nameof(MailingAddressRecord.Address) => "address",
@@ -295,10 +300,30 @@ public static class RegisterPersistenceExtensions
             _ => null,
         }));
 
-        builder.MapComposite<ArgUpsertExternalRoleAssignment>("register.arg_upsert_external_role_assignment", new CompositeNameTranslator<ArgUpsertExternalRoleAssignment>(static member => member.Name switch
+        builder.MapComposite<ArgRolePartyRefPersonName>("register.arg_role_party_ref_person_name", new CompositeNameTranslator<ArgRolePartyRefPersonName>(static member => member.Name switch
         {
-            nameof(ArgUpsertExternalRoleAssignment.ToParty) => "to_party",
-            nameof(ArgUpsertExternalRoleAssignment.Identifier) => "identifier",
+            nameof(ArgRolePartyRefPersonName.FirstName) => "first_name",
+            nameof(ArgRolePartyRefPersonName.MiddleName) => "middle_name",
+            nameof(ArgRolePartyRefPersonName.LastName) => "last_name",
+            nameof(ArgRolePartyRefPersonName.ShortName) => "short_name",
+            nameof(ArgRolePartyRefPersonName.DisplayName) => "display_name",
+            _ => null,
+        }));
+
+        builder.MapComposite<ArgRolePartyRef>("register.arg_role_party_ref", new CompositeNameTranslator<ArgRolePartyRef>(static member => member.Name switch
+        {
+            nameof(ArgRolePartyRef.PartyUuid) => "party_uuid",
+            nameof(ArgRolePartyRef.PersonIdentifier) => "person_identifier",
+            nameof(ArgRolePartyRef.OrganizationNumber) => "organization_identifier",
+            nameof(ArgRolePartyRef.PersonName) => "person_name",
+            nameof(ArgRolePartyRef.MailingAddress) => "mailing_address",
+            _ => null,
+        }));
+
+        builder.MapComposite<ArgRoleAssignment>("register.arg_role_assignment", new CompositeNameTranslator<ArgRoleAssignment>(static member => member.Name switch
+        {
+            nameof(ArgRoleAssignment.Identifier) => "identifier",
+            nameof(ArgRoleAssignment.ToParty) => "to_party",
             _ => null,
         }));
 

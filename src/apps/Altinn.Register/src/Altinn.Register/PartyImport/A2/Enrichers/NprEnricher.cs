@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Diagnostics;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
@@ -89,7 +90,7 @@ internal sealed class NprEnricher
                 elementSelector: static p => p.PartyUuid.Value,
                 cancellationToken: cancellationToken);
 
-        var mapped = new List<UpsertExternalRoleAssignmentsCommand.Assignment>(roleCount);
+        var mapped = ImmutableArray.CreateBuilder<PartyExternalRoleAssignment>(roleCount);
         foreach (var guardianship in guardianships)
         {
             if (!guardians.TryGetValue(guardianship.Guardian, out var guardianUuid))
@@ -101,13 +102,15 @@ internal sealed class NprEnricher
             {
                 mapped.Add(new()
                 {
-                    Identifier = role,
-                    ToPartyUuid = guardianUuid,
+                    ExternalRoleIdentifier = role,
+
+                    // TODO: Replace with PartyExternalRoleAssignmentPartyRef.Person once the database logic is in place
+                    ToParty = new PartyExternalRoleAssignmentPartyRef.PartyUuid { Uuid = guardianUuid },
                 });
             }
         }
 
         // Note: For idempotency, this should not use Add, but rather overwrite any existing assignments from the same source
-        context.RoleAssignments[ExternalRoleSource.CivilRightsAuthority] = mapped;
+        context.RoleAssignments[ExternalRoleSource.CivilRightsAuthority] = new PartyExternalRoleAssignmentsUpdate.Full { Assignments = mapped.DrainToImmutableValueArray() };
     }
 }

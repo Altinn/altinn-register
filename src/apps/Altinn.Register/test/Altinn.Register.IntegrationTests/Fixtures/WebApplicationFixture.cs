@@ -124,6 +124,9 @@ public sealed class WebApplicationFixture
 
                 /* Party import */
                 new("Altinn:register:PartyImport:Npr:Guardianships:Enable", "true"),
+
+                // feature flags
+                new("Altinn:register:Party:CreatePartyId", "true"),
             ]);
             builder.UseConfiguration(settings.Build());
 

@@ -1,6 +1,7 @@
 using System.Net;
 using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Contracts;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Models;
 using Altinn.Register.TestUtils.TestData;
@@ -45,28 +46,28 @@ public class CustomersTests
                 commandId: Guid.CreateVersion7(),
                 partyUuid: org2.PartyUuid.Value,
                 roleSource: ExternalRoleSource.CentralCoordinatingRegister,
-                assignments: [
+                update: PartyExternalRoleAssignmentsUpdate.CreateFull([
                     new(roleIdentifier, org1.PartyUuid.Value),
                     new(role2.Identifier, org1.PartyUuid.Value),
-                ],
+                ]),
                 cancellationToken: ct);
 
             await persistence.UpsertExternalRolesFromPartyBySource(
                 commandId: Guid.CreateVersion7(),
                 partyUuid: org3.PartyUuid.Value,
                 roleSource: ExternalRoleSource.CentralCoordinatingRegister,
-                assignments: [
+                update: PartyExternalRoleAssignmentsUpdate.CreateFull([
                     new(roleIdentifier, org1.PartyUuid.Value),
-                ],
+                ]),
                 cancellationToken: ct);
 
             await persistence.UpsertExternalRolesFromPartyBySource(
                 commandId: Guid.CreateVersion7(),
                 partyUuid: org4.PartyUuid.Value,
                 roleSource: ExternalRoleSource.CentralCoordinatingRegister,
-                assignments: [
+                update: PartyExternalRoleAssignmentsUpdate.CreateFull([
                     new(role2.Identifier, org1.PartyUuid.Value),
-                ],
+                ]),
                 cancellationToken: ct);
 
             return (org1, org2, org3, org4);

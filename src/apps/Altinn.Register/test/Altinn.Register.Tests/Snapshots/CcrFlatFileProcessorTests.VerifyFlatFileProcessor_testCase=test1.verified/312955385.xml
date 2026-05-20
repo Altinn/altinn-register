@@ -3,8 +3,8 @@
   <head avsender="ER" dato="20260311" kjoerenr="05749" mottaker="ALT" type="A" />
   <enhet organisasjonsnummer="312955385" organisasjonsform="ENK" hovedsakstype="E" undersakstype="EN" foersteOverfoering="N" datoFoedt="20210313" datoSistEndret="20210320">
     <infotype felttype="NAVN" endringstype="N">
-      <navn1>SIVILISERT EVIG KATT MELDING RESERV</navn1>
-      <navn2>ERT AMBITA</navn2>
+      <navn1>SIVILISERT EVIG KATT MELDING</navn1>
+      <navn2>RESERVERT AMBITA</navn2>
       <rednavn>SIVILISERT EVIG KATT MELDING</rednavn>
     </infotype>
     <samendringer data="D" felttype="DAGL" endringstype="N" type="R">

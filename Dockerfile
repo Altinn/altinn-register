@@ -12,6 +12,9 @@ EXPOSE 5020
 WORKDIR /app
 COPY --from=build /app_output .
 
+# Install tzdata for timezone support, which is needed for correct handling of dates and times in the application
+RUN apk add --no-cache tzdata
+
 # setup the user and group
 # the user will have no password, using shell /bin/false and using the group dotnet
 RUN addgroup -g 3000 dotnet && adduser -u 1000 -G dotnet -D -s /bin/false dotnet

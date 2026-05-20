@@ -17,14 +17,8 @@ public enum OrganizationSource
     CentralCoordinatingRegister = 1,
 
     /// <summary>
-    /// SDF - Businesses assessed as partnerships - Skatteetaten-registrerte selskaper (Selskap med deltakerfastsetting)
-    /// </summary>
-    [JsonStringEnumMemberName("sdf")]
-    BusinessAssessedPartnerships,
-
-    /// <summary>
-    /// Skatteetaten Registered Companies (SIRE).
+    /// SRS - Skatteetaten-registrerte selskaper (SIRE)
     /// </summary>
     [JsonStringEnumMemberName("srs")]
-    RegisteredWithSkatteetaten,
+    RegisteredWithSkatteetaten
 }

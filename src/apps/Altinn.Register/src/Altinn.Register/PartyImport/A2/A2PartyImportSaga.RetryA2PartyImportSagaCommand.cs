@@ -8,13 +8,13 @@ public partial class A2PartyImportSaga
     /// <inheritdoc/>
     public async Task Handle(RetryA2PartyImportSagaCommand message, CancellationToken cancellationToken)
     {
-        if (State.PartyUuid == Guid.Empty)
+        if (!State.PartyIdentifier.HasValue)
         {
-            throw new InvalidOperationException("PartyUuid is not set");
+            throw new InvalidOperationException("PartyIdentifier is not set");
         }
 
         State.Clear();
-        if (await FetchParty(cancellationToken) == FlowControl.Break)
+        if (await FetchPartyFromA2(cancellationToken) == FlowControl.Break)
         {
             return;
         }

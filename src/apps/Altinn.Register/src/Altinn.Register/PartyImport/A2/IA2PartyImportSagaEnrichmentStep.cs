@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.PartyImport.A2.Enrichers;
 using CommunityToolkit.Diagnostics;
@@ -53,7 +54,7 @@ internal sealed class A2PartyImportSagaEnrichmentCheckContext
     /// <summary>
     /// Gets the unique identifier for the party.
     /// </summary>
-    public required Guid PartyUuid { get; init; }
+    public required ImportPartyIdentifier PartyIdentifier { get; init; }
 
     /// <summary>
     /// Gets the party being evaluated for enrichment.
@@ -69,7 +70,7 @@ internal sealed class A2PartyImportSagaEnrichmentRunContext
     /// <summary>
     /// Gets the unique identifier for the party.
     /// </summary>
-    public required Guid PartyUuid { get; init; }
+    public required ImportPartyIdentifier PartyIdentifier { get; init; }
 
     /// <summary>
     /// Gets or sets the party being enriched.
@@ -79,7 +80,7 @@ internal sealed class A2PartyImportSagaEnrichmentRunContext
     /// <summary>
     /// Gets or sets role-assignments from <see cref="Party"/>.
     /// </summary>
-    public required Dictionary<ExternalRoleSource, IReadOnlyList<UpsertExternalRoleAssignmentsCommand.Assignment>> RoleAssignments { get; init; }
+    public required Dictionary<ExternalRoleSource, PartyExternalRoleAssignmentsUpdate> RoleAssignments { get; init; }
 }
 
 /// <summary>
@@ -175,7 +176,7 @@ internal abstract class A2PartyImportSagaEnricher
         {
             var builder = ImmutableArray.CreateBuilder<A2PartyImportSagaEnricher>();
             builder.Add(new Impl<A2PartyUserEnricher>());
-            builder.Add(new Impl<CcrRoleAssignmentsEnricher>());
+            builder.Add(new Impl<CcrRoleAssignmentsFromA2Enricher>());
             builder.Add(new Impl<NprEnricher>());
             builder.Add(new Impl<SireEnricher>());
 
@@ -202,7 +203,7 @@ internal abstract class A2PartyImportSagaEnricher
             using var activity = RegisterTelemetry.StartActivity(
                 $"enrich {Name}",
                 tags: [
-                    new("party.uuid", context.PartyUuid),
+                    new("party.identifier", context.PartyIdentifier.ToLogSafeString()),
                     new("enrichment.name", Name),
                 ]);
 

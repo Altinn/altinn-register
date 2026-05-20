@@ -168,6 +168,8 @@ internal static partial class RegisterHost
             });
 
         services.AddRegisterCoreServices();
+        services.AddCcrFileProcessor();
+        services.AddCcrXmlProcessor();
         services.AddHttpClient<IOrganizationClient, OrganizationClient>();
         services.AddHttpClient<IPersonClient, PersonClient>();
         services.AddHttpClient<IV1PartyService, PartiesClient>();

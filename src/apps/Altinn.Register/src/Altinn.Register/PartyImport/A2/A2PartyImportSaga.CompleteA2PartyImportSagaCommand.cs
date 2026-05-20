@@ -1,7 +1,7 @@
+using System.Diagnostics;
 using Altinn.Register.Contracts.ExternalRoles;
 using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core.ImportJobs;
-using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Utils;
 using CommunityToolkit.Diagnostics;
@@ -24,28 +24,25 @@ public partial class A2PartyImportSaga
         PartyImportHelper.ValidatePartyForUpsert(State.Party);
         var partyResult = await _parties.UpsertParty(State.Party, cancellationToken);
         partyResult.EnsureSuccess();
+        Debug.Assert(partyResult.Value.PartyUuid.HasValue);
+        var partyUuid = partyResult.Value.PartyUuid.Value;
 
         await _context.Publish(
             new PartyUpdatedEvent
             {
-                Party = partyResult.Value.PartyUuid.Value.ToPartyReferenceContract(),
+                Party = partyUuid.ToPartyReferenceContract(),
             },
             cancellationToken);
 
-        var fromParty = State.PartyUuid;
         List<Task> publishTasks = [];
-        foreach (var (source, assignments) in State.RoleAssignments)
+        foreach (var (source, update) in State.RoleAssignments)
         {
             publishTasks.Clear();
             var upsertEvts = _roles.UpsertExternalRolesFromPartyBySource(
                 commandId: SagaId,
-                partyUuid: fromParty,
+                partyUuid: partyUuid,
                 roleSource: source,
-                assignments: assignments.Select(ra => new IPartyExternalRolePersistence.UpsertExternalRoleAssignment
-                {
-                    RoleIdentifier = ra.Identifier,
-                    ToParty = ra.ToPartyUuid,
-                }),
+                update: update,
                 cancellationToken: cancellationToken);
 
             await foreach (var upsertEvt in upsertEvts.WithCancellation(cancellationToken))
