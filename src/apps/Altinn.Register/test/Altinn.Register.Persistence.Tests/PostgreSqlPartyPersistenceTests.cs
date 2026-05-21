@@ -3355,6 +3355,119 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         updated.VersionId.ShouldHaveValue().ShouldBeGreaterThan(person.VersionId.Value);
     }
 
+    [Fact]
+    public async Task GetOrCreateSelfIdentifiedEmailUser_Returns_Existing_User()
+    {
+        const string Email = "existing-email@example.com";
+        var existing = await UoW.CreateSelfIdentifiedUser(
+            type: SelfIdentifiedUserType.IdPortenEmail,
+            email: Email,
+            cancellationToken: CancellationToken);
+
+        var result = await Persistence.GetOrCreateSelfIdentifiedEmailUser(Email, cancellationToken: CancellationToken);
+
+        var user = result.ShouldHaveValue();
+        user.IsNew.ShouldBeFalse();
+        user.Value.PartyUuid.ShouldBe(existing.PartyUuid);
+        user.Value.PartyId.ShouldBe(existing.PartyId);
+        user.Value.SelfIdentifiedUserType.ShouldBe(SelfIdentifiedUserType.IdPortenEmail);
+        user.Value.Email.ShouldBe(Email);
+        user.Value.ExtRef.ShouldBeNull();
+        user.Value.DisplayName.ShouldBe(existing.DisplayName);
+        var existingEmailUser = user.Value.User.ShouldHaveValue();
+        existingEmailUser.UserId.ShouldBe(existing.User.SelectFieldValue(static u => u.UserId));
+        existingEmailUser.Username.ShouldBe(existing.User.SelectFieldValue(static u => u.Username));
+    }
+
+    [Fact]
+    public async Task GetOrCreateSelfIdentifiedEmailUser_Creates_New_User()
+    {
+        const string Email = "new-email@example.com";
+
+        var result = await Persistence.GetOrCreateSelfIdentifiedEmailUser(Email, cancellationToken: CancellationToken);
+
+        var user = result.ShouldHaveValue();
+        user.IsNew.ShouldBeTrue();
+        user.Value.SelfIdentifiedUserType.ShouldBe(SelfIdentifiedUserType.IdPortenEmail);
+        user.Value.Email.ShouldBe(Email);
+        user.Value.ExtRef.ShouldBeNull();
+        user.Value.DisplayName.ShouldBe(Email);
+        user.Value.User.ShouldHaveValue().Username.ShouldBeNull();
+
+        var persisted = await Persistence.LookupParties(
+            selfIdentifiedEmails: [Email],
+            include: PartyFieldIncludes.Party | PartyFieldIncludes.User | PartyFieldIncludes.SelfIdentifiedUser,
+            cancellationToken: CancellationToken)
+            .FirstOrDefaultAsync(CancellationToken)
+            .AsTask();
+
+        var persistedUser = persisted.ShouldNotBeNull().ShouldBeOfType<SelfIdentifiedUserRecord>();
+        persistedUser.PartyUuid.ShouldBe(user.Value.PartyUuid);
+        persistedUser.PartyId.ShouldBe(user.Value.PartyId);
+        persistedUser.DisplayName.ShouldBe(user.Value.DisplayName);
+        persistedUser.SelfIdentifiedUserType.ShouldBe(SelfIdentifiedUserType.IdPortenEmail);
+        persistedUser.Email.ShouldBe(Email);
+        persistedUser.ExtRef.ShouldBeNull();
+        persistedUser.User.ShouldBe(user.Value.User);
+    }
+
+    [Fact]
+    public async Task GetOrCreateSelfIdentifiedEduUser_Returns_Existing_User()
+    {
+        const string ExtRef = "existing-edu-ref";
+        const string ExistingUsername = "existing-edu-user";
+        var existing = await UoW.CreateSelfIdentifiedUser(
+            type: SelfIdentifiedUserType.Educational,
+            extRef: ExtRef,
+            name: ExistingUsername,
+            cancellationToken: CancellationToken);
+
+        var result = await Persistence.GetOrCreateSelfIdentifiedEduUser(ExtRef, "ignored-new-username", cancellationToken: CancellationToken);
+
+        var user = result.ShouldHaveValue();
+        user.IsNew.ShouldBeFalse();
+        user.Value.PartyUuid.ShouldBe(existing.PartyUuid);
+        user.Value.PartyId.ShouldBe(existing.PartyId);
+        user.Value.SelfIdentifiedUserType.ShouldBe(SelfIdentifiedUserType.Educational);
+        user.Value.ExtRef.ShouldBe(ExtRef);
+        user.Value.Email.ShouldBeNull();
+        user.Value.DisplayName.ShouldBe(ExistingUsername);
+        var existingEduUser = user.Value.User.ShouldHaveValue();
+        existingEduUser.UserId.ShouldBe(existing.User.SelectFieldValue(static u => u.UserId));
+        existingEduUser.Username.ShouldBe(existing.User.SelectFieldValue(static u => u.Username));
+    }
+
+    [Fact]
+    public async Task GetOrCreateSelfIdentifiedEduUser_Creates_New_User()
+    {
+        const string ExtRef = "new-edu-ref";
+        const string Username = "new-edu-user";
+
+        var result = await Persistence.GetOrCreateSelfIdentifiedEduUser(ExtRef, Username, cancellationToken: CancellationToken);
+
+        var user = result.ShouldHaveValue();
+        user.IsNew.ShouldBeTrue();
+        user.Value.SelfIdentifiedUserType.ShouldBe(SelfIdentifiedUserType.Educational);
+        user.Value.ExtRef.ShouldBe(ExtRef);
+        user.Value.Email.ShouldBeNull();
+        user.Value.DisplayName.ShouldBe(Username);
+        user.Value.User.ShouldHaveValue().Username.ShouldBeNull();
+
+        var persisted = await Persistence
+            .GetPartyById(user.Value.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User | PartyFieldIncludes.SelfIdentifiedUser, cancellationToken: CancellationToken)
+            .FirstOrDefaultAsync(CancellationToken)
+            .AsTask();
+
+        var persistedUser = persisted.ShouldNotBeNull().ShouldBeOfType<SelfIdentifiedUserRecord>();
+        persistedUser.PartyUuid.ShouldBe(user.Value.PartyUuid);
+        persistedUser.PartyId.ShouldBe(user.Value.PartyId);
+        persistedUser.DisplayName.ShouldBe(user.Value.DisplayName);
+        persistedUser.SelfIdentifiedUserType.ShouldBe(SelfIdentifiedUserType.Educational);
+        persistedUser.ExtRef.ShouldBe(ExtRef);
+        persistedUser.Email.ShouldBeNull();
+        persistedUser.User.ShouldBe(user.Value.User);
+    }
+
     #endregion
 
     #region AsyncSingleton

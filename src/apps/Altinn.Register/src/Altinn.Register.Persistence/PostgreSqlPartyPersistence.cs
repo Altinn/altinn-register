@@ -435,6 +435,40 @@ internal partial class PostgreSqlPartyPersistence
     }
 
     /// <inheritdoc/>
+    public Task<Result<NewOrExisting<SelfIdentifiedUserRecord>>> GetOrCreateSelfIdentifiedEmailUser(
+        string email,
+        CancellationToken cancellationToken = default)
+    {
+        _handle.ThrowIfCompleted();
+
+        var now = _timeProvider.GetUtcNow();
+        return UpsertPartyQuery.GetOrCreateSelfIdentifiedEmailUser(
+            _connection,
+            email,
+            now,
+            _flags,
+            cancellationToken);
+    }
+
+    /// <inheritdoc/>
+    public Task<Result<NewOrExisting<SelfIdentifiedUserRecord>>> GetOrCreateSelfIdentifiedEduUser(
+        string extRef,
+        string username,
+        CancellationToken cancellationToken = default)
+    {
+        _handle.ThrowIfCompleted();
+
+        var now = _timeProvider.GetUtcNow();
+        return UpsertPartyQuery.GetOrCreateSelfIdentifiedEduUser(
+            _connection,
+            extRef,
+            username,
+            now,
+            _flags,
+            cancellationToken);
+    }
+
+    /// <inheritdoc/>
     public Task<Result<PartyUserRecord>> UpsertPartyUser(
         Guid partyUuid,
         PartyUserRecord user,
