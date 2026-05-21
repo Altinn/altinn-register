@@ -187,6 +187,10 @@ internal static partial class RegisterHost
             .ConfigureBaseAddress("https+http://altinn-authentication/authentication/")
             .AddPlatformAccessTokenHandler();
 
+        services.AddHttpClient<TempWorkarounds.AccessManagementClient>()
+            .ConfigureBaseAddress("https+http://altinn-access-management/accessmanagement/")
+            .AddPlatformAccessTokenHandler();
+
         services.AddHttpClient<ISblProfileBridgeClient, SblProfileBridgeClient>()
             .ConfigureBaseAddressFromOptions(static (A2PartyImportSettings settings) => settings.BridgeApiEndpoint!)
             .ReplaceResilienceHandler(static c =>

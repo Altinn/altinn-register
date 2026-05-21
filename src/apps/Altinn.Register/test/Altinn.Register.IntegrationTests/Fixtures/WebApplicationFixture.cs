@@ -210,6 +210,8 @@ public sealed class WebApplicationFixture
                     .PostConfigure(s => s.BridgeApiEndpoint = FakeHttpEndpoint.HttpsUri.ToString());
                 services.AddOptions<A2PartyImportSettings>()
                     .PostConfigure(s => s.BridgeApiEndpoint = FakeHttpEndpoint.HttpsUri);
+                services.AddHttpClient<TempWorkarounds.AccessManagementClient>()
+                    .ConfigureBaseAddress(FakeHttpEndpoint.HttpsUri);
                 services.AddHttpClient("a2:ccr").ConfigureBaseAddress(FakeHttpEndpoint.HttpsUri);
                 services.AddHttpClient<SystemUserImportService>().ConfigureBaseAddress(FakeHttpEndpoint.HttpsUri);
                 services.AddNprClient().ConfigureBaseAddress(FakeHttpEndpoint.HttpsUri);
