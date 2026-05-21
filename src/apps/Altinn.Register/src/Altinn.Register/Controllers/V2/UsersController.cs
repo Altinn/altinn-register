@@ -99,7 +99,8 @@ public sealed class UsersController
 
         if (result.Value.IsNew)
         {
-            await accessManagementClient.CreateSelfIdentifiedUser(
+            // ignore errors
+            _ = await accessManagementClient.CreateSelfIdentifiedUser(
                 partyUuid: result.Value.Value.PartyUuid.Value,
                 type: result.Value.Value.SelfIdentifiedUserType.Value,
                 displayName: request.UserName,
