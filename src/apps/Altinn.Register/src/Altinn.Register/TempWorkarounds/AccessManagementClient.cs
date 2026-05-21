@@ -49,7 +49,7 @@ public sealed class AccessManagementClient
         {
             return Problems.AccessManagementSelfIdentifiedUserPushFailed.Create([
                 new("party.uuid", partyUuid.ToString()),
-                new("http.status_code", createResponse.StatusCode.ToString()),
+                new("http.status_code", ((int)createResponse.StatusCode).ToString()),
                 new("request.name", "create self-identified user"),
             ]);
         }
@@ -60,7 +60,7 @@ public sealed class AccessManagementClient
         {
             return Problems.AccessManagementSelfIdentifiedUserPushFailed.Create([
                 new("party.uuid", partyUuid.ToString()),
-                new("http.status_code", selnResponse.StatusCode.ToString()),
+                new("http.status_code", ((int)selnResponse.StatusCode).ToString()),
                 new("request.name", "add SELN to self-identified user"),
             ]);
         }
