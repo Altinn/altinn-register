@@ -67,15 +67,14 @@ public sealed partial class CcrService
         ILocationLookup locationLookup = await _locationLookupProvider.GetLocationLookup(cancellationToken);
         IExternalRoleDefinitionLookup roleMap = await _roleMapper.GetRoleDefinitionLookup(cancellationToken);
         var updates = _ccrXmlProcessor.ProcessCcrXml(input, roleMap, locationLookup, cancellationToken);
-        var dbUpdates = MapToDbUpdates(updates, now);
-        List<Guid> resolvedPartyUuids = [];
+        var dbUpdates = MapToDbUpdates(updates, now).ToList();
 
         {
             await using var uowOrg = await _uowManager.CreateAsync(activityName: "update parties from ccr xml", cancellationToken: cancellationToken);
             var parties = uowOrg.GetRequiredService<IPartyPersistence>();
-            int count = 0;
-            foreach (CcrDbUpdate dbUpdate in dbUpdates)
+            for (int i = 0; i < dbUpdates.Count; i++)
             {
+                var dbUpdate = dbUpdates[i];
                 Debug.Assert(dbUpdate.Org.OrganizationIdentifier.HasValue);
                 using var activity = RegisterTelemetry.StartActivity(
                     name: "upsert party",
@@ -84,8 +83,7 @@ public sealed partial class CcrService
                 var result = await parties.UpsertParty(dbUpdate.Org, cancellationToken);
                 result.EnsureSuccess();
 
-                resolvedPartyUuids.Add(result.Value.PartyUuid.Value);
-                count++;
+                dbUpdates[i] = dbUpdate with { ResolvedOrgPartyUuid = result.Value.PartyUuid.Value };
             }
 
             await uowOrg.CommitAsync(cancellationToken);
@@ -94,7 +92,6 @@ public sealed partial class CcrService
         {
             await using var uowRoles = await _uowManager.CreateAsync(activityName: "update roles from ccr xml", cancellationToken: cancellationToken);
             var roles = uowRoles.GetRequiredService<IPartyExternalRolePersistence>();
-            int count = 0;
             foreach (CcrDbUpdate dbUpdate in dbUpdates)
             {
                 if (dbUpdate.RolesUpdate is null)
@@ -103,18 +100,17 @@ public sealed partial class CcrService
                 }
 
                 Debug.Assert(dbUpdate.Org.OrganizationIdentifier.HasValue);
+                Debug.Assert(dbUpdate.ResolvedOrgPartyUuid.HasValue);
                 using var activity = RegisterTelemetry.StartActivity(
                     name: "upsert roles",
                     tags: [new("org.id", dbUpdate.Org.OrganizationIdentifier.Value)]);
 
                 await roles.UpsertExternalRolesFromPartyBySource(
                     commandId: commandId,
-                    partyUuid: resolvedPartyUuids[count],
+                    partyUuid: dbUpdate.ResolvedOrgPartyUuid.Value,
                     roleSource: ExternalRoleSource.CentralCoordinatingRegister,
                     update: dbUpdate.RolesUpdate,
                     cancellationToken: cancellationToken);
-
-                count++;
             }
 
             await uowRoles.CommitAsync(cancellationToken);
@@ -159,7 +155,7 @@ public sealed partial class CcrService
     {
         foreach (var update in updates)
         {
-            CcrDbUpdate dbUpdate = new(MapOrganization(update, now), MapRolesUpdate(update));
+            CcrDbUpdate dbUpdate = new(MapOrganization(update, now), MapRolesUpdate(update), null);
             yield return dbUpdate;
         }
     }
@@ -276,7 +272,7 @@ public sealed partial class CcrService
         return new DateTimeOffset(local, _norwegianTimeZone.GetUtcOffset(local));
     }
 
-    private record struct CcrDbUpdate(OrganizationRecord Org, PartyExternalRoleAssignmentsUpdate? RolesUpdate);
+    private record struct CcrDbUpdate(OrganizationRecord Org, PartyExternalRoleAssignmentsUpdate? RolesUpdate, Guid? ResolvedOrgPartyUuid);
 
     private static partial class Log
     {
