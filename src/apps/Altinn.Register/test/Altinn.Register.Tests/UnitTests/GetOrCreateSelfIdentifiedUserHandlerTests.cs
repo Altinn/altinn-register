@@ -1,6 +1,5 @@
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
-using Altinn.Register.Contracts;
 using Altinn.Register.Core.A2.SblProfile;
 using Altinn.Register.Core.Operations;
 using Altinn.Register.PartyImport.A2;
@@ -16,7 +15,7 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
     [Fact]
     public async Task CreateSucceeds_ButEnqueueImportThrows_StillReturnsSuccess()
     {
-        const string ExternalIdentity = "urn:altinn:person:idporten-email:Zmxha3lAZXhhbXBsZS5jb20";
+        const string ExternalIdentity = "urn:altinn:person:idporten-email:flaky@example.com";
 
         var bridge = new Mock<ISblProfileBridgeClient>(MockBehavior.Strict);
         bridge.Setup(b => b.LookupUser(ExternalIdentity, It.IsAny<CancellationToken>()))
@@ -42,16 +41,12 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
             TimeProvider.System,
             NullLogger<GetOrCreateSelfIdentifiedUserFromBridgeHandler>.Instance);
 
-        var request = new GetOrCreateSelfIdentifiedUserRequest(
-            SelfIdentifiedUserType: SelfIdentifiedUserType.IdPortenEmail,
-            ExternalIdentity: ExternalIdentity,
-            UserName: "epost:flaky@example.com",
-            Email: "flaky@example.com");
+        var request = GetOrCreateSelfIdentifiedUserRequest.Email("flaky@example.com");
 
         var result = await handler.Handle(request, CancellationToken);
 
         result.IsProblem.ShouldBeFalse();
-        result.Value.User.Value.UserId.Value.ShouldBe(13u);
+        result.Value!.Value!.User!.Value!.UserId.Value.ShouldBe(13u);
         sender.Verify(s => s.Send(It.IsAny<ImportA2PartyCommand>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

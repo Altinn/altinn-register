@@ -24,6 +24,14 @@ public static class PersistenceFeatureFlagExtensions
     extension(PersistenceFeatureFlag)
     {
         /// <summary>
+        /// Checks if the configuration allows creating party IDs.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <returns><see langword="true"/> if creating party IDs is allowed; otherwise, <see langword="false"/>.</returns>
+        public static bool CanCreatePartyId(IConfiguration configuration)
+            => configuration.GetValue("Altinn:register:Party:CreatePartyId", defaultValue: false);
+
+        /// <summary>
         /// Creates an array of enabled <see cref="PersistenceFeatureFlag"/>s based on the provided configuration.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
@@ -31,7 +39,7 @@ public static class PersistenceFeatureFlagExtensions
         public static PersistenceFeatureFlag[] FromConfiguration(IConfiguration configuration)
         {
             return CreateFlags([
-                KeyValuePair.Create(PersistenceFeatureFlag.CreatePartyId, configuration.GetValue("Altinn:register:Party:CreatePartyId", defaultValue: false)),
+                KeyValuePair.Create(PersistenceFeatureFlag.CreatePartyId, CanCreatePartyId(configuration)),
             ]);
 
             static PersistenceFeatureFlag[] CreateFlags(params ReadOnlySpan<KeyValuePair<PersistenceFeatureFlag, bool>> flags)

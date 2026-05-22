@@ -90,6 +90,7 @@ public class PartiesControllerTests
     public async Task GetParty_ValidTokenRequestForExistingSelfIdentifiedUser_ReturnsParty(TestApiSource source)
     {
         var siUser = await Setup((uow, ct) => uow.CreateSelfIdentifiedUser(cancellationToken: ct));
+        var expectedName = V1PartyMapper.ToV1Party(siUser).Name;
 
         SetSource(source);
         if (source == TestApiSource.A2)
@@ -113,7 +114,7 @@ public class PartiesControllerTests
             (Contracts.V1.Party p) => p.PartyId.ShouldBe((int)siUser.PartyId.Value),
             (Contracts.V1.Party p) => p.PartyUuid.ShouldBe(siUser.PartyUuid.Value),
             (Contracts.V1.Party p) => p.PartyTypeName.ShouldBe(Contracts.V1.PartyType.SelfIdentified),
-            (Contracts.V1.Party p) => p.Name.ShouldBe(siUser.User.Value!.Username.Value!),
+            (Contracts.V1.Party p) => p.Name.ShouldBe(expectedName),
             (Contracts.V1.Party p) => p.Person.ShouldBeNull(),
             (Contracts.V1.Party p) => p.Organization.ShouldBeNull(),
         ]);
@@ -326,6 +327,7 @@ public class PartiesControllerTests
     public async Task GetPartyByUuid_ValidTokenRequestForExistingSelfIdentifiedUser_ReturnsParty(TestApiSource source)
     {
         var siUser = await Setup((uow, ct) => uow.CreateSelfIdentifiedUser(cancellationToken: ct));
+        var expectedName = V1PartyMapper.ToV1Party(siUser).Name;
 
         SetSource(source);
         if (source == TestApiSource.A2)
@@ -349,7 +351,7 @@ public class PartiesControllerTests
             (Contracts.V1.Party p) => p.PartyId.ShouldBe((int)siUser.PartyId.Value),
             (Contracts.V1.Party p) => p.PartyUuid.ShouldBe(siUser.PartyUuid.Value),
             (Contracts.V1.Party p) => p.PartyTypeName.ShouldBe(Contracts.V1.PartyType.SelfIdentified),
-            (Contracts.V1.Party p) => p.Name.ShouldBe(siUser.User.Value!.Username.Value!),
+            (Contracts.V1.Party p) => p.Name.ShouldBe(expectedName),
             (Contracts.V1.Party p) => p.Person.ShouldBeNull(),
             (Contracts.V1.Party p) => p.Organization.ShouldBeNull(),
         ]);

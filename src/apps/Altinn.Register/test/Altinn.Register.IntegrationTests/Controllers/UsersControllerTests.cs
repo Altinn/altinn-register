@@ -6,6 +6,7 @@ using Altinn.Register.Contracts;
 using Altinn.Register.Core.A2.SblProfile;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Models;
+using Altinn.Register.TestUtils.TestData;
 
 namespace Altinn.Register.IntegrationTests.Controllers;
 
@@ -15,8 +16,10 @@ public class UsersControllerTests
     private const string EndpointUrl = "register/api/v2/internal/users/self-identified";
 
     [Fact]
-    public async Task GetOrCreate_IdPortenEmail_LookupHit_ReturnsExisting()
+    public async Task A2_GetOrCreate_IdPortenEmail_LookupHit_ReturnsExisting()
     {
+        SetSource(TestApiSource.A2);
+
         const string ExternalIdentity = "urn:altinn:person:idporten-email:dXNlckBleGFtcGxlLmNvbQ";
 
         var existing = new SblUserProfile
@@ -49,7 +52,7 @@ public class UsersControllerTests
         var body = await response.ShouldHaveJsonContent<SelfIdentifiedUser>();
 
         body.ShouldNotBeNull();
-        body.User.Value.UserId.Value.ShouldBe(4242u);
+        body.User.Value!.UserId.Value.ShouldBe(4242u);
         body.PartyId.Value.ShouldBe(50001u);
         body.Uuid.ShouldBe(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         body.User.Value.Username.Value.ShouldBe("epost:user@example.com");
@@ -58,8 +61,48 @@ public class UsersControllerTests
     }
 
     [Fact]
-    public async Task GetOrCreate_IdPortenEmail_LookupMiss_CreatesUser()
+    public async Task GetOrCreate_IdPortenEmail_LookupHit_ReturnsExisting()
     {
+        const string ExternalIdentity = "urn:altinn:person:idporten-email:dXNlckBleGFtcGxlLmNvbQ";
+        const string Email = "user@example.com";
+
+        var existing = await Setup((uow, ct) => uow.CreateSelfIdentifiedUser(
+            type: SelfIdentifiedUserType.IdPortenEmail,
+            email: Email,
+            name: $"email:{Email}",
+            cancellationToken: ct));
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl)
+            .WithPlatformToken("unittest");
+        request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
+        {
+            SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
+            ExternalIdentity = ExternalIdentity,
+            UserName = Email,
+            Email = Email,
+        });
+
+        var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
+        var body = await response.ShouldHaveJsonContent<SelfIdentifiedUser>();
+
+        var existingUser = existing.User.Value!;
+        body.ShouldNotBeNull();
+        body.User.Value!.UserId.Value.ShouldBe(existingUser.UserId.Value);
+        body.PartyId.Value.ShouldBe(existing.PartyId.Value);
+        body.Uuid.ShouldBe(existing.PartyUuid.Value);
+        body.User.Value.Username.Value.ShouldBe(existingUser.Username.Value);
+        body.SelfIdentifiedUserType.Value.Value.ShouldBe(SelfIdentifiedUserType.IdPortenEmail);
+        body.Email.Value.ShouldBe(Email);
+        body.ExternalUrn.IsNull.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task A2_GetOrCreate_IdPortenEmail_LookupMiss_CreatesUser()
+    {
+        SetSource(TestApiSource.A2);
+
         // Caller builds the bridge-shape URN and chooses the username (see altinn-authentication's
         // selfregistered-email path: `epost:<email>` is the convention).
         const string ExternalIdentity = "urn:altinn:person:idporten-email:bmV3QGV4YW1wbGUuY29t";
@@ -83,6 +126,8 @@ public class UsersControllerTests
             .Expect(HttpMethod.Post, "/profile/api/users/create/")
             .Respond(() => JsonContent.Create(created, options: JsonOptions));
 
+        ExpectAccessManagementSelfIdentifiedUserCreate();
+
         using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl)
             .WithPlatformToken("unittest");
         request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
@@ -99,12 +144,46 @@ public class UsersControllerTests
         var body = await response.ShouldHaveJsonContent<SelfIdentifiedUser>();
 
         body.ShouldNotBeNull();
-        body.User.Value.UserId.Value.ShouldBe(9001u);
+        body.User.Value!.UserId.Value.ShouldBe(9001u);
     }
 
     [Fact]
-    public async Task GetOrCreate_Educational_LookupMiss_CreatesUser_WithNullExternalUrn()
+    public async Task GetOrCreate_IdPortenEmail_LookupMiss_CreatesUser()
     {
+        const string ExternalIdentity = "urn:altinn:person:idporten-email:bmV3QGV4YW1wbGUuY29t";
+        const string UserName = "epost:new@example.com";
+        const string Email = "new@example.com";
+
+        ExpectAccessManagementSelfIdentifiedUserCreate();
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl)
+            .WithPlatformToken("unittest");
+        request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
+        {
+            SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
+            ExternalIdentity = ExternalIdentity,
+            UserName = UserName,
+            Email = Email,
+        });
+
+        var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
+        var body = await response.ShouldHaveJsonContent<SelfIdentifiedUser>();
+
+        body.ShouldNotBeNull();
+        body.User.Value!.UserId.Value.ShouldBe(body.PartyId.Value);
+        body.User.Value.Username.IsNull.ShouldBeTrue();
+        body.SelfIdentifiedUserType.Value.Value.ShouldBe(SelfIdentifiedUserType.IdPortenEmail);
+        body.Email.Value.ShouldBe(Email);
+        body.ExternalUrn.IsNull.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task A2_GetOrCreate_Educational_LookupMiss_CreatesUser_WithNullExternalUrn()
+    {
+        SetSource(TestApiSource.A2);
+
         // Matches altinn-authentication's uidp-anonym provider (see appsettings.test.json):
         // Iss is the provider config key, ExternalSubject is a SHA-256 hex hash, UserName is
         // `uidp_` + hash segment + random suffix (see existing_uidpuser.json). The caller
@@ -130,6 +209,8 @@ public class UsersControllerTests
             .Expect(HttpMethod.Post, "/profile/api/users/create/")
             .Respond(() => JsonContent.Create(created, options: JsonOptions));
 
+        ExpectAccessManagementSelfIdentifiedUserCreate();
+
         using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl)
             .WithPlatformToken("unittest");
         request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
@@ -145,7 +226,7 @@ public class UsersControllerTests
         var body = await response.ShouldHaveJsonContent<SelfIdentifiedUser>();
 
         body.ShouldNotBeNull();
-        body.User.Value.UserId.Value.ShouldBe(11011u);
+        body.User.Value!.UserId.Value.ShouldBe(11011u);
         body.PartyId.Value.ShouldBe(50004u);
         body.Uuid.ShouldBe(Guid.Parse("44444444-4444-4444-4444-444444444444"));
         body.SelfIdentifiedUserType.Value.Value.ShouldBe(SelfIdentifiedUserType.Educational);
@@ -153,8 +234,42 @@ public class UsersControllerTests
     }
 
     [Fact]
-    public async Task GetOrCreate_Educational_LookupHit_ReturnsExisting_WithNullExternalUrn()
+    public async Task GetOrCreate_Educational_LookupMiss_CreatesUser_WithNullExternalUrn()
     {
+        const string ExternalIdentity = "uidp-anonym:66a633c43ef2f656978f957532ce6d0de6f5e13f1e0618b37b4b2a70573e5551";
+        const string UidpUserName = "uidp_newhash99x7";
+
+        ExpectAccessManagementSelfIdentifiedUserCreate();
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl)
+            .WithPlatformToken("unittest");
+        request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
+        {
+            SelfIdentifiedUserType = SelfIdentifiedUserType.Educational,
+            ExternalIdentity = ExternalIdentity,
+            UserName = UidpUserName,
+        });
+
+        var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
+        var body = await response.ShouldHaveJsonContent<SelfIdentifiedUser>();
+
+        body.ShouldNotBeNull();
+        body.User.Value!.UserId.Value.ShouldBe(body.PartyId.Value);
+        body.User.Value.Username.IsNull.ShouldBeTrue();
+        body.Uuid.ShouldNotBe(Guid.Empty);
+        body.DisplayName.Value.ShouldBe(UidpUserName);
+        body.SelfIdentifiedUserType.Value.Value.ShouldBe(SelfIdentifiedUserType.Educational);
+        body.ExternalUrn.IsNull.ShouldBeTrue();
+        body.Email.IsNull.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task A2_GetOrCreate_Educational_LookupHit_ReturnsExisting_WithNullExternalUrn()
+    {
+        SetSource(TestApiSource.A2);
+
         // Existing uidp/edu user — same shape as altinn-authentication's existing_uidpuser.json scenario.
         const string ExternalIdentity = "uidp-anonym:33a633c47ef2f656978f957532ce6d0de6f5e13f1e0618b37b4b2a70573e5551";
         const string UidpUserName = "uidp_ej2krar0cl833";
@@ -188,14 +303,55 @@ public class UsersControllerTests
         var body = await response.ShouldHaveJsonContent<SelfIdentifiedUser>();
 
         body.ShouldNotBeNull();
-        body.User.Value.UserId.Value.ShouldBe(11012u);
+        body.User.Value!.UserId.Value.ShouldBe(11012u);
         body.SelfIdentifiedUserType.Value.Value.ShouldBe(SelfIdentifiedUserType.Educational);
         body.ExternalUrn.IsNull.ShouldBeTrue();
     }
 
     [Fact]
-    public async Task GetOrCreate_MissingExternalIdentity_ReturnsBadRequest()
+    public async Task GetOrCreate_Educational_LookupHit_ReturnsExisting_WithNullExternalUrn()
     {
+        const string ExternalIdentity = "uidp-anonym:33a633c47ef2f656978f957532ce6d0de6f5e13f1e0618b37b4b2a70573e5551";
+        const string UidpUserName = "uidp_ej2krar0cl833";
+
+        var existing = await Setup((uow, ct) => uow.CreateSelfIdentifiedUser(
+            type: SelfIdentifiedUserType.Educational,
+            extRef: ExternalIdentity,
+            name: UidpUserName,
+            cancellationToken: ct));
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl)
+            .WithPlatformToken("unittest");
+        request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
+        {
+            SelfIdentifiedUserType = SelfIdentifiedUserType.Educational,
+            ExternalIdentity = ExternalIdentity,
+            UserName = UidpUserName,
+        });
+
+        var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
+        var body = await response.ShouldHaveJsonContent<SelfIdentifiedUser>();
+
+        var existingUser = existing.User.Value!;
+        body.ShouldNotBeNull();
+        body.User.Value!.UserId.Value.ShouldBe(existingUser.UserId.Value);
+        body.PartyId.Value.ShouldBe(existing.PartyId.Value);
+        body.Uuid.ShouldBe(existing.PartyUuid.Value);
+        body.User.Value.Username.Value.ShouldBe(existingUser.Username.Value);
+        body.DisplayName.Value.ShouldBe(UidpUserName);
+        body.SelfIdentifiedUserType.Value.Value.ShouldBe(SelfIdentifiedUserType.Educational);
+        body.ExternalUrn.IsNull.ShouldBeTrue();
+        body.Email.IsNull.ShouldBeTrue();
+    }
+
+    [Theory]
+    [CombinatorialData]
+    public async Task GetOrCreate_MissingExternalIdentity_ReturnsBadRequest(TestApiSource source)
+    {
+        SetSource(source);
+
         using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl)
             .WithPlatformToken("unittest");
         request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
@@ -213,9 +369,12 @@ public class UsersControllerTests
         problem.Errors.ShouldContain(e => e.ErrorCode == StdValidationErrors.Required.ErrorCode && e.Paths.Contains("/externalIdentity"));
     }
 
-    [Fact]
-    public async Task GetOrCreate_MissingUserName_ReturnsBadRequest()
+    [Theory]
+    [CombinatorialData]
+    public async Task GetOrCreate_MissingUserName_ReturnsBadRequest(TestApiSource source)
     {
+        SetSource(source);
+
         using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl)
             .WithPlatformToken("unittest");
         request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
@@ -233,9 +392,12 @@ public class UsersControllerTests
         problem.Errors.ShouldContain(e => e.ErrorCode == StdValidationErrors.Required.ErrorCode && e.Paths.Contains("/userName"));
     }
 
-    [Fact]
-    public async Task GetOrCreate_IdPortenEmail_MissingEmail_ReturnsBadRequest()
+    [Theory]
+    [CombinatorialData]
+    public async Task GetOrCreate_IdPortenEmail_MissingEmail_ReturnsBadRequest(TestApiSource source)
     {
+        SetSource(source);
+
         using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl)
             .WithPlatformToken("unittest");
         request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
@@ -254,8 +416,10 @@ public class UsersControllerTests
     }
 
     [Fact]
-    public async Task GetOrCreate_BridgeUnavailable_ReturnsProblem()
+    public async Task A2_GetOrCreate_BridgeUnavailable_ReturnsProblem()
     {
+        SetSource(TestApiSource.A2);
+
         FakeHttpHandlers.For<ISblProfileBridgeClient>()
             .Expect(HttpMethod.Post, "/profile/api/users/")
             .Respond(HttpStatusCode.InternalServerError);
@@ -277,9 +441,12 @@ public class UsersControllerTests
         problem.ErrorCode.ShouldBe(Problems.PartyFetchFailed.ErrorCode);
     }
 
-    [Fact]
-    public async Task GetOrCreate_Unauthorized_ReturnsUnauthorized()
+    [Theory]
+    [CombinatorialData]
+    public async Task GetOrCreate_Unauthorized_ReturnsUnauthorized(TestApiSource source)
     {
+        SetSource(source);
+
         using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl);
         request.Headers.Authorization = new("Bearer", "bogus");
         request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
@@ -293,5 +460,22 @@ public class UsersControllerTests
         var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
 
         await response.ShouldHaveStatusCode(HttpStatusCode.Unauthorized);
+    }
+
+    private void SetSource(TestApiSource source)
+    {
+        var value = source == TestApiSource.DB ? "true" : "false";
+        Configuration["Altinn:register:Party:CreatePartyId"] = value;
+    }
+
+    private void ExpectAccessManagementSelfIdentifiedUserCreate()
+    {
+        FakeHttpHandlers.For<TempWorkarounds.AccessManagementClient>()
+            .Expect(HttpMethod.Post, "/api/v1/internal/party")
+            .Respond(HttpStatusCode.OK);
+
+        FakeHttpHandlers.For<TempWorkarounds.AccessManagementClient>()
+            .Expect(HttpMethod.Post, "/api/v1/internal/connections/selfidentifiedusers")
+            .Respond(HttpStatusCode.OK);
     }
 }

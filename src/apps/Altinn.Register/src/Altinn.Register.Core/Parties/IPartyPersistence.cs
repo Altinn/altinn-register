@@ -76,6 +76,28 @@ public interface IPartyPersistence
         => UpsertParties(parties.ToAsyncEnumerable(), cancellationToken);
 
     /// <summary>
+    /// Gets a self-identified idporten-email user, or creates one if it does not exist.
+    /// </summary>
+    /// <param name="email">The email.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>The self-identified user record.</returns>
+    public Task<Result<NewOrExisting<SelfIdentifiedUserRecord>>> GetOrCreateSelfIdentifiedEmailUser(
+        string email,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a self-identified edu user, or creates one if it does not exist.
+    /// </summary>
+    /// <param name="extRef">The external reference for the edu user.</param>
+    /// <param name="username">The username to use if the edu user does not exist.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>The self-identified edu user record.</returns>
+    public Task<Result<NewOrExisting<SelfIdentifiedUserRecord>>> GetOrCreateSelfIdentifiedEduUser(
+        string extRef,
+        string username,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Attempts to upsert a party user.
     /// </summary>
     /// <param name="partyUuid">The party uuid.</param>
@@ -95,7 +117,7 @@ public interface IPartyPersistence
     /// <param name="username">The username.</param>
     /// <param name="isActive">Whether or not the user is active.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
-    /// <returns></returns>
+    /// <returns>The result of the upsert operation.</returns>
     public Task<Result<UpsertUserRecordResult>> UpsertUserRecord(
         Guid partyUuid,
         ulong userId,

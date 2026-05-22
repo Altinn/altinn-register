@@ -8,6 +8,7 @@ using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
+using Altinn.Urn;
 using CommunityToolkit.Diagnostics;
 using Npgsql;
 using NpgsqlTypes;
@@ -204,6 +205,104 @@ internal partial class PostgreSqlPartyPersistence
                 }
                 while (await reader.NextResultAsync(cancellationToken));
             }
+        }
+
+        /// <summary>
+        /// Gets or creates a self-identified email user based on email.
+        /// </summary>
+        /// <param name="connection">The connection.</param>
+        /// <param name="email">The email of the self-identified user.</param>
+        /// <param name="now">The current date and time.</param>
+        /// <param name="flags">The persistence feature-flags to use for this operation.</param>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+        /// <returns>The result of the operation.</returns>
+        public static async Task<Result<NewOrExisting<SelfIdentifiedUserRecord>>> GetOrCreateSelfIdentifiedEmailUser(
+            NpgsqlConnection connection,
+            string email,
+            DateTimeOffset now,
+            PersistenceFeatureFlag[] flags,
+            CancellationToken cancellationToken)
+        {
+            const string QUERY =
+                /*strpsql*/"""
+                SELECT *
+                FROM register.get_or_create_email_user(
+                    @flags,
+                    @extUrn,
+                    @now, -- created at
+                    @now, -- updated at
+                    @email)
+                """;
+
+            await using var cmd = connection.CreateCommand(QUERY);
+
+            cmd.Parameters.Add<PersistenceFeatureFlag[]>("flags").TypedValue = flags;
+            cmd.Parameters.Add<string>("extUrn", NpgsqlDbType.Text).TypedValue = PartyExternalRefUrn.IDPortenEmail.Create(UrnEncoded.Create(email)).ToString();
+            cmd.Parameters.Add<DateTimeOffset>("now", NpgsqlDbType.TimestampTz).TypedValue = now;
+            cmd.Parameters.Add<string>("email", NpgsqlDbType.Text).TypedValue = email;
+
+            await cmd.PrepareAsync(cancellationToken);
+            await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow | CommandBehavior.SingleResult, cancellationToken);
+
+            var read = await reader.ReadAsync(cancellationToken);
+            Debug.Assert(read, "Expected a row from get_or_create_email_user");
+
+            var isNew = await reader.GetFieldValueAsync<bool>("o_is_new", cancellationToken);
+            var siUser = await _si.ReadResult(reader, cancellationToken);
+
+            return isNew
+                ? NewOrExisting.New(siUser)
+                : NewOrExisting.Existing(siUser);
+        }
+
+        /// <summary>
+        /// Gets or creates a self-identified educational user based on an external reference.
+        /// </summary>
+        /// <param name="connection">The connection.</param>
+        /// <param name="extRef">The external reference of the self-identified educational user.</param>
+        /// <param name="username">The username of the self-identified educational user. This is only used if the user is created.</param>
+        /// <param name="now">The current date and time.</param>
+        /// <param name="flags">The persistence feature-flags to use for this operation.</param>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+        /// <returns>The result of the operation.</returns>
+        public static async Task<Result<NewOrExisting<SelfIdentifiedUserRecord>>> GetOrCreateSelfIdentifiedEduUser(
+            NpgsqlConnection connection,
+            string extRef,
+            string username,
+            DateTimeOffset now,
+            PersistenceFeatureFlag[] flags,
+            CancellationToken cancellationToken)
+        {
+            const string QUERY =
+                /*strpsql*/"""
+                SELECT *
+                FROM register.get_or_create_edu_user(
+                    @flags,
+                    @displayName,
+                    @now, -- created at
+                    @now, -- updated at
+                    @extRef)
+                """;
+
+            await using var cmd = connection.CreateCommand(QUERY);
+
+            cmd.Parameters.Add<PersistenceFeatureFlag[]>("flags").TypedValue = flags;
+            cmd.Parameters.Add<string>("displayName", NpgsqlDbType.Text).TypedValue = username;
+            cmd.Parameters.Add<DateTimeOffset>("now", NpgsqlDbType.TimestampTz).TypedValue = now;
+            cmd.Parameters.Add<string>("extRef", NpgsqlDbType.Text).TypedValue = extRef;
+
+            await cmd.PrepareAsync(cancellationToken);
+            await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow | CommandBehavior.SingleResult, cancellationToken);
+
+            var read = await reader.ReadAsync(cancellationToken);
+            Debug.Assert(read, "Expected a row from get_or_create_edu_user");
+
+            var isNew = await reader.GetFieldValueAsync<bool>("o_is_new", cancellationToken);
+            var siUser = await _si.ReadResult(reader, cancellationToken);
+
+            return isNew
+                ? NewOrExisting.New(siUser)
+                : NewOrExisting.Existing(siUser);
         }
 
         /// <summary>
