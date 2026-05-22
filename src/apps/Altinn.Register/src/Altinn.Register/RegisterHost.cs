@@ -121,7 +121,7 @@ internal static partial class RegisterHost
             })
             .ValidateDataAnnotations();
 
-        ////services.AddSingleton<IAuthorizationHandler, AccessTokenHandler>();
+        services.AddSingleton<IAuthorizationHandler, AccessTokenHandler>();
         services.AddScoped<IAuthorizationHandler, ScopeAccessHandler>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddSingleton<IPublicSigningKeyProvider, PublicSigningKeyProvider>();
@@ -192,11 +192,11 @@ internal static partial class RegisterHost
             .AddMaskinPortenHandler("register-freg");
 
         services.AddHttpClient<ISireClient, SireClient>()
-            .ConfigureBaseAddress("http://sire/")
-            .ConfigureHttpClient(client =>
-            {
-                client.DefaultRequestHeaders.Add("Host", "sire.localhost");
-            })
+            .ConfigureBaseAddress("https://sire/")
+            ////.ConfigureHttpClient(client =>
+            //{
+            //    client.DefaultRequestHeaders.Add("Host", "sire.localhost");
+            //})
             .AddMaskinPortenHandler("register-freg"); // we reuse the maskinporten client from freg
 
         services.AddHttpClient("a2:ccr")

@@ -4,7 +4,7 @@ using Altinn.Register.Core.Parties.Records;
 namespace Altinn.Register.Core.Sire;
 
 /// <summary>
-/// Represents an organization in SIRE. This is a subset of the properties returned by SIRE, and only contains the properties that are relevant for our use cases?.
+/// Represents an organization in SIRE. This is a subset of the properties returned by SIRE, and only contains the properties that are relevant for our use cases.
 /// </summary>
 public sealed record SireOrganization
 {
@@ -32,12 +32,6 @@ public sealed record SireOrganization
     /// Gets whether the organization is deleted.
     /// </summary>
     public required bool IsDeleted { get; init; }
-
-    /// <summary>
-    /// Gets the tax liability type (e.g. "selskap", "personligSkattepliktig").
-    /// Used for filtering — personally taxable entities are skipped.
-    /// </summary>
-    public required string? TaxLiabilityType { get; init; }
 
     /// <summary>
     /// Gets the mailing address, or null if no address is available.

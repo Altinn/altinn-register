@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Diagnostics;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
@@ -51,7 +52,7 @@ internal sealed partial class SireEnricher
             // Organization not found in SIRE — mark as deleted
             context.Party = ((OrganizationRecord)context.Party) with
             {
-                UnitStatus = "slettet",
+                UnitStatus = "S",
                 IsDeleted = true,
             };
             return;
@@ -61,10 +62,10 @@ internal sealed partial class SireEnricher
         var organization = result.Value;
 
         // Filter personally taxable entities - but i dont see this information on the SIRE organization model, so maybe this is not needed?
-        if (string.Equals(organization.TaxLiabilityType, "personligSkattepliktig", StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
+        //if (string.Equals(organization.TaxLiabilityType, "personligSkattepliktig", StringComparison.OrdinalIgnoreCase))
+        //{
+        //    return;
+        //}
 
         context.Party = ((OrganizationRecord)context.Party) with
         {
@@ -94,83 +95,40 @@ internal sealed partial class SireEnricher
             return;
         }
 
-        // Collect identifiers to resolve → ToPartyUuid
-        var personIdentifiers = relationships
-            .Where(r => r.RelatedPersonIdentifier is not null)
-            .Select(r => r.RelatedPersonIdentifier!)
-            .Distinct()
-            .ToList();
-
-        var orgIdentifiers = relationships
-            .Where(r => r.RelatedOrganizationIdentifier is not null)
-            .Select(r => r.RelatedOrganizationIdentifier!)
-            .Distinct()
-            .ToList();
-
-        var relatedParties = await _parties.LookupParties(
-            personIdentifiers: personIdentifiers.Count > 0 ? personIdentifiers : null,
-            organizationIdentifiers: orgIdentifiers.Count > 0 ? orgIdentifiers : null,
-            include: PartyFieldIncludes.PartyUuid | PartyFieldIncludes.PartyPersonIdentifier | PartyFieldIncludes.PartyOrganizationIdentifier,
-            cancellationToken: cancellationToken)
-            .ToListAsync(cancellationToken);
-
-        var personPartyLookup = relatedParties
-            .Where(p => p.PersonIdentifier.HasValue)
-            .ToDictionary(p => p.PersonIdentifier.Value!, p => p.PartyUuid.Value);
-
-        var orgPartyLookup = relatedParties
-            .Where(p => p.OrganizationIdentifier.HasValue)
-            .ToDictionary(p => p.OrganizationIdentifier.Value, p => p.PartyUuid.Value);
-
-        var mapped = new List<KeyValuePair<string, Guid>>(relationships.Count);
-        context.PartyIdentifier.TryGetValue(out Guid partyUuid);
+        var mapped = ImmutableArray.CreateBuilder<PartyExternalRoleAssignment>(relationships.Count);
         foreach (var rel in relationships)
         {
-            var roleDef = await _roleDefinitions.TryGetRoleDefinition(
-                ExternalRoleSource.RegisteredWithSkatteetaten,
-                rel.RelationshipType,
-                cancellationToken);
-
-            if (roleDef is null)
-            {
-                Log.RoleDefinitionNotFound(_logger, rel.RelationshipType, partyUuid);
-                continue;
-            }
-
-            Guid toPartyUuid;
+            PartyExternalRoleAssignmentPartyRef toParty;
             if (rel.RelatedPersonIdentifier is { } personId)
             {
-                if (!personPartyLookup.TryGetValue(personId, out toPartyUuid))
+                toParty = new PartyExternalRoleAssignmentPartyRef.Person
                 {
-                    Log.RelatedPartyNotFound(_logger, rel.RelationshipType, partyUuid, personId.ToString());
-                    continue;
-                }
+                    PersonIdentifier = personId,
+                    Name = null,
+                    MailingAddress = null,
+                };
             }
             else if (rel.RelatedOrganizationIdentifier is { } orgId)
             {
-                if (!orgPartyLookup.TryGetValue(orgId, out toPartyUuid))
+                toParty = new PartyExternalRoleAssignmentPartyRef.Organization
                 {
-                    Log.RelatedPartyNotFound(_logger, rel.RelationshipType, partyUuid, orgId.ToString());
-                    continue;
-                }
+                    OrganizationIdentifier = orgId,
+                };
             }
             else
             {
+                ////How should this be handled?
                 continue;
             }
 
-            mapped.Add(KeyValuePair.Create(roleDef.Identifier, toPartyUuid));
+            mapped.Add(new()
+            {
+                ExternalRoleIdentifier = rel.RoleIdentifier,
+                ToParty = toParty,
+            });
         }
 
-        context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten] = PartyExternalRoleAssignmentsUpdate.CreateFull(mapped);
-    }
-
-    private static partial class Log
-    {
-        [LoggerMessage(0, LogLevel.Warning, "SIRE role definition '{RelationshipType}' not found for party '{FromPartyUuid}'. Skipping assignment.")]
-        public static partial void RoleDefinitionNotFound(ILogger logger, string relationshipType, Guid fromPartyUuid);
-
-        [LoggerMessage(1, LogLevel.Warning, "Related party '{Identifier}' for role '{RelationshipType}' from party '{FromPartyUuid}' not found in register. Skipping.")]
-        public static partial void RelatedPartyNotFound(ILogger logger, string relationshipType, Guid fromPartyUuid, string identifier);
+        // Note: For idempotency, this should not use Add, but rather overwrite any existing assignments from the same source
+        context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten] = new PartyExternalRoleAssignmentsUpdate.Full { Assignments = mapped.DrainToImmutableValueArray() };
     }
 }

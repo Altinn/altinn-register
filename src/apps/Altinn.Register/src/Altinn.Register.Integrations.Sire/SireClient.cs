@@ -39,7 +39,11 @@ public sealed class SireClient
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
-            return Problems.OrganizationNotFound.Create([new("organization.source", "sire")]);
+            return Problems.OrganizationNotFound.Create(
+                [
+                    new("organization.source", "sire"), 
+                    new("organization.identifier", organizationIdentifier.ToString())
+                ]);
         }
 
         if (!response.IsSuccessStatusCode)
@@ -49,6 +53,7 @@ public sealed class SireClient
                 [
                     new("organization.source", "sire"),
                     new("http.status_code", ((int)response.StatusCode).ToString()),
+                    new("organization.identifier", organizationIdentifier.ToString())
                 ]);
         }
 
@@ -64,6 +69,7 @@ public sealed class SireClient
                 [
                     new("organization.source", "sire"),
                     new("json.error", ex.Message),
+                    new("organization.identifier", organizationIdentifier.ToString())
                 ]);
         }
 
@@ -73,6 +79,7 @@ public sealed class SireClient
                 detail: "Response deserialization resulted in null",
                 [
                     new("organization.source", "sire"),
+                    new("organization.identifier", organizationIdentifier.ToString())
                 ]);
         }
 

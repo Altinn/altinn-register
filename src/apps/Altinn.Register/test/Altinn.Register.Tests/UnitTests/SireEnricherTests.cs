@@ -60,7 +60,6 @@ public class SireEnricherTests
             UnitType = "AS",
             UnitStatus = null,
             IsDeleted = false,
-            TaxLiabilityType = "selskap",
             MailingAddress = new() { Address = "Testgata 1", PostalCode = "0001", City = "OSLO" },
             LastUpdated = DateTimeOffset.UtcNow,
             BusinessRelationships = [],
@@ -120,7 +119,7 @@ public class SireEnricherTests
 
         var result = Assert.IsType<OrganizationRecord>(context.Party);
         Assert.True(result.IsDeleted.Value);
-        Assert.Equal("slettet", result.UnitStatus.Value);
+        Assert.Equal("S", result.UnitStatus.Value);
     }
 
     [Fact]
@@ -136,14 +135,13 @@ public class SireEnricherTests
             UnitType = "AS",
             UnitStatus = null,
             IsDeleted = false,
-            TaxLiabilityType = "selskap",
             MailingAddress = null,
             LastUpdated = null,
             BusinessRelationships =
             [
                 new SireBusinessRelationship
                 {
-                    RelationshipType = "styretsLeder",
+                    RoleIdentifier = "styreleder",
                     RelatedPersonIdentifier = personId,
                     RelatedOrganizationIdentifier = null,
                     ValidFrom = null,
@@ -155,9 +153,9 @@ public class SireEnricherTests
         var roleDef = new ExternalRoleDefinition
         {
             Source = ExternalRoleSource.RegisteredWithSkatteetaten,
-            Identifier = "styretsLeder",
-            Name = FakeRoleDefinition("styretsLeder").Name,
-            Description = FakeRoleDefinition("styretsLeder").Description,
+            Identifier = "styreleder",
+            Name = FakeRoleDefinition("styreleder").Name,
+            Description = FakeRoleDefinition("styreleder").Description,
             Code = null,
         };
 
@@ -211,7 +209,7 @@ public class SireEnricherTests
         roleDefinitions
             .Setup(r => r.TryGetRoleDefinition(
                 ExternalRoleSource.RegisteredWithSkatteetaten,
-                "styretsLeder",
+                "styreleder",
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(roleDef);
 
@@ -238,84 +236,6 @@ public class SireEnricherTests
     }
 
     [Fact]
-    public async Task Run_RoleMapping_UnknownRoleDefinition_Skipped()
-    {
-        var personId = PersonIdentifier.Parse("25871999336");
-
-        var sireOrg = new SireOrganization
-        {
-            OrganizationIdentifier = TestOrgId,
-            Name = "Test AS",
-            UnitType = "AS",
-            UnitStatus = null,
-            IsDeleted = false,
-            TaxLiabilityType = "selskap",
-            MailingAddress = null,
-            LastUpdated = null,
-            BusinessRelationships =
-            [
-                new SireBusinessRelationship
-                {
-                    RelationshipType = "unknownRole",
-                    RelatedPersonIdentifier = personId,
-                    RelatedOrganizationIdentifier = null,
-                    ValidFrom = null,
-                    ValidTo = null,
-                }
-            ],
-        };
-
-        var sireClient = new Mock<ISireClient>();
-        sireClient
-            .Setup(c => c.GetOrganization(TestOrgId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Result<SireOrganization>)sireOrg);
-
-        // Must mock LookupParties — called before role definition lookup
-        var parties = new Mock<IPartyPersistence>();
-        parties
-            .Setup(p => p.LookupParties(
-                null, 
-                null, 
-                null, 
-                null,
-                It.IsAny<IReadOnlyList<PersonIdentifier>>(),
-                null, 
-                null, 
-                null,
-                It.IsAny<PartyFieldIncludes>(),
-                It.IsAny<CancellationToken>()))
-            .Returns(AsyncEnumerable.Empty<PartyRecord>());
-
-        var roleDefinitions = new Mock<IExternalRoleDefinitionPersistence>();
-        roleDefinitions
-            .Setup(r => r.TryGetRoleDefinition(
-                ExternalRoleSource.RegisteredWithSkatteetaten,
-                "unknownRole",
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ExternalRoleDefinition?)null);
-
-        var enricher = new SireEnricher(
-            sireClient.Object,
-            parties.Object,
-            roleDefinitions.Object,
-            NullLogger<SireEnricher>.Instance);
-
-        var party = MinimalSireOrg(TestOrgId);
-        var context = new A2PartyImportSagaEnrichmentRunContext
-        {
-            PartyIdentifier = new ImportPartyIdentifier(TestOrgId),
-            Party = party,
-            RoleAssignments = [],
-        };
-
-        await enricher.Run(context, CancellationToken);
-        Assert.True(context.RoleAssignments.ContainsKey(ExternalRoleSource.RegisteredWithSkatteetaten));
-        var update = Assert.IsType<PartyExternalRoleAssignmentsUpdate.Full>(
-            context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten]);
-        Assert.Single(update.Assignments);
-    }
-
-    [Fact]
     public async Task Run_RoleMapping_RelatedPartyNotInRegister_Skipped()
     {
         var personId = PersonIdentifier.Parse("25871999336");
@@ -327,16 +247,15 @@ public class SireEnricherTests
             UnitType = "AS",
             UnitStatus = null,
             IsDeleted = false,
-            TaxLiabilityType = "selskap",
             MailingAddress = null,
             LastUpdated = null,
             BusinessRelationships =
             [
                 new SireBusinessRelationship
                 {
-                    RelationshipType = "styretsLeder",
                     RelatedPersonIdentifier = personId,
                     RelatedOrganizationIdentifier = null,
+                    RoleIdentifier = "styreleder",
                     ValidFrom = null,
                     ValidTo = null,
                 }
@@ -346,9 +265,9 @@ public class SireEnricherTests
         var roleDef = new ExternalRoleDefinition
         {
             Source = ExternalRoleSource.RegisteredWithSkatteetaten,
-            Identifier = "styretsLeder",
-            Name = FakeRoleDefinition("styretsLeder").Name,
-            Description = FakeRoleDefinition("styretsLeder").Description,
+            Identifier = "styreleder",
+            Name = FakeRoleDefinition("styreleder").Name,
+            Description = FakeRoleDefinition("styreleder").Description,
             Code = null,
         };
 
@@ -377,7 +296,7 @@ public class SireEnricherTests
         roleDefinitions
             .Setup(r => r.TryGetRoleDefinition(
                 ExternalRoleSource.RegisteredWithSkatteetaten,
-                "styretsLeder",
+                "styreleder",
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(roleDef);
 

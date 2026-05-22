@@ -8,9 +8,9 @@ namespace Altinn.Register.Core.Sire;
 public sealed record SireBusinessRelationship
 {
     /// <summary>
-    /// Gets the relationship type (e.g. "styretsLeder").
+    /// Gets the external role identifier (e.g. "daglig-leder").
     /// </summary>
-    public required string RelationshipType { get; init; }
+    public required string RoleIdentifier { get; init; }
 
     /// <summary>
     /// Gets the related person identifier, if the related party is a person.

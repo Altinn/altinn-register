@@ -13,7 +13,7 @@ namespace Altinn.Register.Integrations.Sire.Organization;
 /// <summary>
 /// Validates and maps an <see cref="OrganizationDocument"/> to a <see cref="SireOrganization"/>.
 /// </summary>
-internal sealed class OrganizationDocumentValidator
+public sealed class OrganizationDocumentValidator
     : IValidator<OrganizationDocument, SireOrganization>
 {
     private readonly ILocationLookup _lookup;
@@ -48,17 +48,16 @@ internal sealed class OrganizationDocumentValidator
             return false;
         }
 
-        bool isDeleted = input.DeletedDate is not null;
+        bool isDeleted = !string.IsNullOrWhiteSpace(input.DeletedDate);
         MailingAddressRecord? mailingAddress = NormalizeAddress(input.PostalAddress);
 
         validated = new SireOrganization
         {
             OrganizationIdentifier = orgId,
             Name = input.CompanyName,
-            UnitType = input.OrganizationForm,
+            UnitType = SireOrganizationFormMapper.GetOrganizationFormOrDefault(input.OrganizationForm),
             UnitStatus = isDeleted ? "slettet" : null,
             IsDeleted = isDeleted,
-            TaxLiabilityType = input.TaxLiabilityType,
             MailingAddress = mailingAddress,
             LastUpdated = input.PostalAddress?.UpdatedAt,
             BusinessRelationships = MapBusinessRelationships(input.BusinessRelationships)
@@ -89,7 +88,7 @@ internal sealed class OrganizationDocumentValidator
 
     private static MailingAddressRecord? NormalizeNorwegianAddress(NorwegianAddress address)
     {
-        var lines = NormalizeAddressLines(address.AddressLines);
+        var lines = NormalizeAddressLines(address.AddressLines, isForeign: false);
         var postalCode = NormalizeNorwegianPostalCode(address.PostalCode);
         var city = address.City?.Trim();
 
@@ -108,7 +107,7 @@ internal sealed class OrganizationDocumentValidator
 
     private MailingAddressRecord? NormalizeInternationalAddress(InternationalAddress address)
     {
-        var lines = NormalizeAddressLines(address.AddressLines);
+        var lines = NormalizeAddressLines(address.AddressLines, isForeign: true);
         var postalCode = GetInternationalPostalCode(address.PostalCode, address.CountryCode);
         var city = address.City?.Trim();
 
@@ -137,7 +136,7 @@ internal sealed class OrganizationDocumentValidator
     /// <summary>
     /// Normalizes address lines by stripping C/O prefixes and normalizing postbox prefixes.
     /// </summary>
-    private static List<string> NormalizeAddressLines(IReadOnlyList<string>? addressLines)
+    private static List<string> NormalizeAddressLines(IReadOnlyList<string>? addressLines, bool isForeign)
     {
         var result = new List<string>();
         if (addressLines is null)
@@ -153,7 +152,7 @@ internal sealed class OrganizationDocumentValidator
             }
 
             var normalized = RemoveCareOfPrefix(line);
-            normalized = AddPostboxIfNeeded(normalized, isForeign: false);
+            normalized = AddPostboxIfNeeded(normalized, isForeign);
             result.Add(normalized);
         }
 
@@ -305,10 +304,7 @@ internal sealed class OrganizationDocumentValidator
             RelatedIdentifier? relatedId = rel.RelatedIdentifier;
             if (relatedId is { Value: not null })
             {
-                var isNorwegian = string.Equals(relatedId.CountryCode, "NO", StringComparison.OrdinalIgnoreCase)
-                    || string.IsNullOrEmpty(relatedId.CountryCode);
-
-                if (isNorwegian)
+                if (relatedId.IdentifierType is not null && relatedId.IdentifierType == "taxIdentificationNumber")
                 {
                     if (PersonIdentifier.TryParse(relatedId.Value, provider: null, out var parsedPerson))
                     {
@@ -318,14 +314,22 @@ internal sealed class OrganizationDocumentValidator
                     {
                         orgId = parsedOrg;
                     }
+                    else
+                    {
+                        ////Should we log this as a warning that the identifier value could not be parsed as either person or organization identifier? And notify SKD about it 
+                        ////or should we just ignore it since the identifier value is not valid according to our specifications for person and organization identifiers?
+                    }
                 }
-
-                // Foreign identifiers — not supported in 1st iterasjon, skip
+                else
+                {
+                    ////SKD wants us to log any identifiertype that is not taxidentificationnumber and notify SKD about it because they mentioned that only taxidentificaitonnumber is expected here.
+                    //// Find out how to log this in a good way and notify SKD about it.
+                }
             }
 
             result.Add(new SireBusinessRelationship
             {
-                RelationshipType = rel.RelationshipType,
+                RoleIdentifier = SireRoleMapper.GetRoleIdentifier(rel.RelationshipType),
                 RelatedPersonIdentifier = personId,
                 RelatedOrganizationIdentifier = orgId,
                 ValidFrom = rel.ValidFrom,

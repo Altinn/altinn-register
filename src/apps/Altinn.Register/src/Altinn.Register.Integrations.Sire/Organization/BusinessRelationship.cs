@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace Altinn.Register.Integrations.Sire.Organization
 {
     /// <summary>
-    /// Represents a business relationship from the SIRE API (iteration 2 - not mapped yet).
+    /// Represents a business relationship from the SIRE API 
     /// </summary>
     public sealed record BusinessRelationship
     {
