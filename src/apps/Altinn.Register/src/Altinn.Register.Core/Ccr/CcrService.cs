@@ -54,8 +54,8 @@ public sealed partial class CcrService
     /// <summary>
     /// Processes a CCR XML batch and upserts all party updates into the database.
     /// </summary>
-    /// <param name="commandId">Idempotency disambiguation id for queueing</param>
-    /// <param name="input">The raw CCR XML byte sequence.</param>
+    /// <param name="commandId">Idempotency disambiguation id for queueing. Together with the Org.PartyUuid refers to a unique upsert. Is a db requirement! </param>
+    /// <param name="input">The raw CCR/ER XML byte sequence, without Soap envelope. Normally only one Org is in each XML, but we support several.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     public async Task UpdateFromCcr(
         Guid commandId,
@@ -68,34 +68,57 @@ public sealed partial class CcrService
         IExternalRoleDefinitionLookup roleMap = await _roleMapper.GetRoleDefinitionLookup(cancellationToken);
         var updates = _ccrXmlProcessor.ProcessCcrXml(input, roleMap, locationLookup, cancellationToken);
         var dbUpdates = MapToDbUpdates(updates, now);
+        List<Guid> resolvedPartyUuids = [];
 
-        await using var uow = await _uowManager.CreateAsync(activityName: "update parties from ccr xml", cancellationToken: cancellationToken);
-
-        var parties = uow.GetRequiredService<IPartyPersistence>();
-        var roles = uow.GetRequiredService<IPartyExternalRolePersistence>();
-
-        foreach (CcrDbUpdate dbUpdate in dbUpdates)
         {
-            Debug.Assert(dbUpdate.Org.OrganizationIdentifier.HasValue);
-            using var activity = RegisterTelemetry.StartActivity(
-                name: "upsert party and roles",
-                tags: [new("org.id", dbUpdate.Org.OrganizationIdentifier.Value)]);
-
-            var result = await parties.UpsertParty(dbUpdate.Org, cancellationToken);
-            result.EnsureSuccess();
-
-            if (dbUpdate.RolesUpdate is not null)
+            await using var uowOrg = await _uowManager.CreateAsync(activityName: "update parties from ccr xml", cancellationToken: cancellationToken);
+            var parties = uowOrg.GetRequiredService<IPartyPersistence>();
+            int count = 0;
+            foreach (CcrDbUpdate dbUpdate in dbUpdates)
             {
-                await roles.UpsertExternalRolesFromPartyBySource(
-                    commandId,
-                    partyUuid: result.Value.PartyUuid.Value,
-                    ExternalRoleSource.CentralCoordinatingRegister,
-                    dbUpdate.RolesUpdate,
-                    cancellationToken);
+                Debug.Assert(dbUpdate.Org.OrganizationIdentifier.HasValue);
+                using var activity = RegisterTelemetry.StartActivity(
+                    name: "upsert party",
+                    tags: [new("org.id", dbUpdate.Org.OrganizationIdentifier.Value)]);
+
+                var result = await parties.UpsertParty(dbUpdate.Org, cancellationToken);
+                result.EnsureSuccess();
+
+                resolvedPartyUuids.Add(result.Value.PartyUuid.Value);
+                count++;
             }
+
+            await uowOrg.CommitAsync(cancellationToken);
         }
 
-        await uow.CommitAsync(cancellationToken);
+        {
+            await using var uowRoles = await _uowManager.CreateAsync(activityName: "update roles from ccr xml", cancellationToken: cancellationToken);
+            var roles = uowRoles.GetRequiredService<IPartyExternalRolePersistence>();
+            int count = 0;
+            foreach (CcrDbUpdate dbUpdate in dbUpdates)
+            {
+                if (dbUpdate.RolesUpdate is null)
+                {
+                    continue;
+                }
+
+                Debug.Assert(dbUpdate.Org.OrganizationIdentifier.HasValue);
+                using var activity = RegisterTelemetry.StartActivity(
+                    name: "upsert roles",
+                    tags: [new("org.id", dbUpdate.Org.OrganizationIdentifier.Value)]);
+
+                await roles.UpsertExternalRolesFromPartyBySource(
+                    commandId: commandId,
+                    partyUuid: resolvedPartyUuids[count],
+                    roleSource: ExternalRoleSource.CentralCoordinatingRegister,
+                    update: dbUpdate.RolesUpdate,
+                    cancellationToken: cancellationToken);
+
+                count++;
+            }
+
+            await uowRoles.CommitAsync(cancellationToken);
+        }
     }
 
     /// <summary>
