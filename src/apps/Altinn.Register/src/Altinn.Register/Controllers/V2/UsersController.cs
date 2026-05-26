@@ -26,7 +26,7 @@ namespace Altinn.Register.Controllers.V2;
 [ApiController]
 [ApiVersion(2.0)]
 [Authorize(Policy = "PlatformAccess")]
-[Route("register/api/v{version:apiVersion}/internal/users")]
+[Route("register/api/v{version:apiVersion}/internal/parties/self-identified")]
 public sealed class UsersController
     : ControllerBase
 {
@@ -38,7 +38,7 @@ public sealed class UsersController
     /// <param name="request">The request body.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>The self-identified user.</returns>
-    [HttpPost("self-identified")]
+    [HttpPost("")]
     [ProducesResponseType<SelfIdentifiedUser>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]

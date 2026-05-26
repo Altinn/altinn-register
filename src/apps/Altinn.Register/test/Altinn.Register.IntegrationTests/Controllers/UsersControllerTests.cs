@@ -13,7 +13,7 @@ namespace Altinn.Register.IntegrationTests.Controllers;
 public class UsersControllerTests
     : IntegrationTestBase
 {
-    private const string EndpointUrl = "register/api/v2/internal/users/self-identified";
+    private const string EndpointUrl = "register/api/v2/internal/parties/self-identified";
 
     [Fact]
     public async Task A2_GetOrCreate_IdPortenEmail_LookupHit_ReturnsExisting()
