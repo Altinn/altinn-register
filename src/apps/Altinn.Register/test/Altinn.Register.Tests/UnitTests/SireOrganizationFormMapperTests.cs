@@ -23,11 +23,11 @@ public class SireOrganizationFormMapperTests
     /// </summary>
     [Theory]
     [InlineData("")]
-    [InlineData("AS")]                                  // common Norwegian form, but not in this kodeliste
+    [InlineData("AS")] // common Norwegian form, but not in this kodeliste
     [InlineData("notAForm")]
-    [InlineData("KS")]                                  // SL-code (output of the mapper, mistakenly fed back in)
-    [InlineData("KOMMANDITTSELSKAP")]                   // case mismatch
-    [InlineData("kommandittselskap ")]                  // trailing whitespace
+    [InlineData("KS")] // SL-code (output of the mapper, mistakenly fed back in)
+    [InlineData("KOMMANDITTSELSKAP")] // case mismatch
+    [InlineData("kommandittselskap ")] // trailing whitespace
     public void GetOrganizationForm_ThrowsForUnknown(string organisasjonsform)
     {
         Assert.Throws<ArgumentException>(() => SireOrganizationFormMapper.GetOrganizationForm(organisasjonsform));

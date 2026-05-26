@@ -43,7 +43,7 @@ public sealed class SireClient
         {
             return Problems.OrganizationNotFound.Create(
                 [
-                    new("organization.source", "sire"), 
+                    new("organization.source", "sire"),
                     new("organization.identifier", organizationIdentifier.ToString())
                 ]);
         }
