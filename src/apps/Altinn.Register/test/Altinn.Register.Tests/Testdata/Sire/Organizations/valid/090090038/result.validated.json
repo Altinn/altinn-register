@@ -1,0 +1,18 @@
+{
+  "organizationIdentifier": "090090038",
+  "name": "Test Expired AS",
+  "unitType": "KS",
+  "unitStatus": "E",
+  "isDeleted": false,
+  "mailingAddress": null,
+  "lastUpdated": "2020-01-01T00:00:00\u002B01:00",
+  "businessRelationships": [
+    {
+      "roleIdentifier": "komplementar",
+      "relatedPersonIdentifier": "22874897462",
+      "relatedOrganizationIdentifier": null,
+      "validFrom": "2024-09-17T12:01:18\u002B02:00",
+      "validTo": null
+    }
+  ]
+}

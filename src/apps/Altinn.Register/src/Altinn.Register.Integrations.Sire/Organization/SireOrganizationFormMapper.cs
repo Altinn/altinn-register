@@ -17,7 +17,7 @@ public static class SireOrganizationFormMapper
     /// Default SL-code applied when SIRE omits the <c>organisasjonsform</c> field. <c>IS</c>
     /// (<c>indreSelskap</c>) — the most common entity form.
     /// </summary>
-    public const string DefaultOrganizationForm = "IS"; // Skatt checks and comes back on default value as there is no value avaialble currently
+    public const string DefaultOrganizationForm = "IS"; // Default when SIRE omits organisasjonsform — confirm with Skatteetaten that this is the right fallback.
 
     /// <summary>
     /// Maps a SIRE <c>organisasjonsform</c> technical name to its SL-code (or applies the

@@ -17,16 +17,27 @@ public sealed class OrganizationDocumentValidator
     : IValidator<OrganizationDocument, SireOrganization>
 {
     private readonly ILocationLookup _lookup;
+    private readonly TimeProvider _timeProvider;
 
     /// <summary>
     /// Initializes a new instance of the OrganizationDocumentValidator class using the specified location lookup
-    /// service.
+    /// service and time source.
     /// </summary>
-    /// <param name="lookup">The location lookup service used to validate organization document locations. Cannot be null.</param>
-    public OrganizationDocumentValidator(ILocationLookup lookup)
+    /// <param name="lookup">The location lookup service used to validate organization document locations.</param>
+    /// <param name="timeProvider">The clock used to filter out expired postadresse and virksomhetsrelasjon entries.</param>
+    public OrganizationDocumentValidator(ILocationLookup lookup, TimeProvider timeProvider)
     {
         _lookup = lookup;
+        _timeProvider = timeProvider;
     }
+
+    /// <summary>
+    /// Returns true when the validTo indicates the
+    /// entity is still currently valid as of now means
+    /// "no termination set, still valid". A non-null value in the past means expired.
+    /// </summary>
+    private static bool IsStillValid(DateTimeOffset? validTo, DateTimeOffset now)
+        => validTo is not { } endsAt || endsAt > now;
 
     /// <inheritdoc/>
     public bool TryValidate(
@@ -56,11 +67,11 @@ public sealed class OrganizationDocumentValidator
             OrganizationIdentifier = orgId,
             Name = input.CompanyName,
             UnitType = SireOrganizationFormMapper.GetOrganizationFormOrDefault(input.OrganizationForm),
-            UnitStatus = isDeleted ? "slettet" : null,
+            UnitStatus = isDeleted ? "S" : "E",
             IsDeleted = isDeleted,
             MailingAddress = mailingAddress,
             LastUpdated = input.PostalAddress?.UpdatedAt,
-            BusinessRelationships = MapBusinessRelationships(input.BusinessRelationships)
+            BusinessRelationships = MapBusinessRelationships(input.BusinessRelationships, _timeProvider.GetUtcNow())
         };
 
         return true;
@@ -69,6 +80,14 @@ public sealed class OrganizationDocumentValidator
     private MailingAddressRecord? NormalizeAddress(PostalAddress? postalAddress)
     {
         if (postalAddress is null)
+        {
+            return null;
+        }
+
+        // If the address itself has been terminated, treat it as no address. Downstream
+        // consumers already handle MailingAddress = null, and a stale address is worse than
+        // none for things like mail/letter delivery.
+        if (!IsStillValid(postalAddress.ValidTo, _timeProvider.GetUtcNow()))
         {
             return null;
         }
@@ -282,7 +301,8 @@ public sealed class OrganizationDocumentValidator
     }
 
     private static IReadOnlyList<SireBusinessRelationship> MapBusinessRelationships(
-    IReadOnlyList<BusinessRelationship>? relationships)
+        IReadOnlyList<BusinessRelationship>? relationships,
+        DateTimeOffset now)
     {
         if (relationships is null or { Count: 0 })
         {
@@ -293,6 +313,13 @@ public sealed class OrganizationDocumentValidator
         foreach (var rel in relationships)
         {
             if (string.IsNullOrWhiteSpace(rel.RelationshipType))
+            {
+                continue;
+            }
+
+            // Skip terminated relationships. We rely on full-upsert downstream to clear any
+            // previously-known assignments not present in this fresh document.
+            if (!IsStillValid(rel.ValidTo, now))
             {
                 continue;
             }

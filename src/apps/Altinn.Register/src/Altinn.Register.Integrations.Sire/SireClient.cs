@@ -22,14 +22,16 @@ public sealed class SireClient
 
     private readonly HttpClient _client;
     private readonly ILocationLookupProvider _lookupProvider;
+    private readonly TimeProvider _timeProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SireClient"/> class.
     /// </summary>
-    public SireClient(HttpClient client, ILocationLookupProvider lookupProvider)
+    public SireClient(HttpClient client, ILocationLookupProvider lookupProvider, TimeProvider timeProvider)
     {
         _client = client;
         _lookupProvider = lookupProvider;
+        _timeProvider = timeProvider;
     }
 
     /// <inheritdoc/>
@@ -86,7 +88,7 @@ public sealed class SireClient
         var lookup = await _lookupProvider.GetLocationLookup(cancellationToken);
 
         ValidationProblemBuilder builder = default;
-        builder.TryValidate(path: "/", document, new OrganizationDocumentValidator(lookup), out SireOrganization? validated);
+        builder.TryValidate(path: "/", document, new OrganizationDocumentValidator(lookup, _timeProvider), out SireOrganization? validated);
 
         if (builder.TryBuild(out var error))
         {

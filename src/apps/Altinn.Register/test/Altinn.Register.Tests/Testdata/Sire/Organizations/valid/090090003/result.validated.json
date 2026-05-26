@@ -2,7 +2,7 @@
   "organizationIdentifier": "090090003",
   "name": "Test AS",
   "unitType": "KS",
-  "unitStatus": null,
+  "unitStatus": "E",
   "isDeleted": false,
   "mailingAddress": {
     "address": "Storgata 1",

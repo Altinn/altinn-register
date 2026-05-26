@@ -10,6 +10,7 @@ using Altinn.Register.Core.Sire;
 using Altinn.Register.Integrations.Sire.Organization;
 using Altinn.Register.Tests.Utils;
 using Altinn.Register.TestUtils;
+using Microsoft.Extensions.Time.Testing;
 using Xunit.Sdk;
 
 namespace Altinn.Register.Tests.UnitTests;
@@ -39,7 +40,7 @@ public class SireOrganizationParsingTests
     public async Task ParseOrganizationDocument(ValidOrganizationCase validCase)
     {
         var lookup = await LookupProvider.GetLocationLookup(TestContext.Current.CancellationToken);
-        var validator = new OrganizationDocumentValidator(lookup);
+        var validator = new OrganizationDocumentValidator(lookup, FakeTimeProvider.System);
 
         using var source = await validCase.ReadSireJson();
 

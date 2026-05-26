@@ -1,0 +1,22 @@
+{
+  "organizationIdentifier": "090080334",
+  "name": "Knut-Olavs Synkroniseringstest IS",
+  "unitType": "IS",
+  "unitStatus": "E",
+  "isDeleted": false,
+  "mailingAddress": {
+    "address": "Smågehaugen 14",
+    "postalCode": "6480",
+    "city": "AUKRA"
+  },
+  "lastUpdated": "2026-05-12T09:09:54.350534\u002B02:00",
+  "businessRelationships": [
+    {
+      "roleIdentifier": "daglig-leder",
+      "relatedPersonIdentifier": "19865997747",
+      "relatedOrganizationIdentifier": null,
+      "validFrom": "2026-05-18T12:37:57.1729912\u002B02:00",
+      "validTo": null
+    }
+  ]
+}

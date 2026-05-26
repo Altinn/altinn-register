@@ -193,10 +193,6 @@ internal static partial class RegisterHost
 
         services.AddHttpClient<ISireClient, SireClient>()
             .ConfigureBaseAddress("https://sire/")
-            ////.ConfigureHttpClient(client =>
-            //{
-            //    client.DefaultRequestHeaders.Add("Host", "sire.localhost");
-            //})
             .AddMaskinPortenHandler("register-freg"); // we reuse the maskinporten client from freg
 
         services.AddHttpClient("a2:ccr")

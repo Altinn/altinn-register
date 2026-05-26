@@ -3,7 +3,6 @@ using System.Diagnostics;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
-using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.Sire;
@@ -24,18 +23,14 @@ internal sealed partial class SireEnricher
         => context.Party is OrganizationRecord { Source.Value: OrganizationSource.RegisteredWithSkatteetaten };
 
     private readonly ISireClient _sireClient;
-    private readonly IPartyPersistence _parties;
-    private readonly IExternalRoleDefinitionPersistence _roleDefinitions;
     private readonly ILogger<SireEnricher> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SireEnricher"/> class.
     /// </summary>
-    public SireEnricher(ISireClient sireClient, IPartyPersistence parties, IExternalRoleDefinitionPersistence roleDefinitions, ILogger<SireEnricher> logger)
+    public SireEnricher(ISireClient sireClient, ILogger<SireEnricher> logger)
     {
         _sireClient = sireClient;
-        _parties = parties;
-        _roleDefinitions = roleDefinitions;
         _logger = logger;
     }
 
@@ -60,12 +55,6 @@ internal sealed partial class SireEnricher
 
         result.EnsureSuccess();
         var organization = result.Value;
-
-        // Filter personally taxable entities - but i dont see this information on the SIRE organization model, so maybe this is not needed?
-        //if (string.Equals(organization.TaxLiabilityType, "personligSkattepliktig", StringComparison.OrdinalIgnoreCase))
-        //{
-        //    return;
-        //}
 
         context.Party = ((OrganizationRecord)context.Party) with
         {

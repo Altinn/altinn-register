@@ -204,6 +204,7 @@ public static class RegisterPersistenceExtensions
         {
             PartySource.CentralCoordinatingRegister => "ccr",
             PartySource.NationalPopulationRegister => "npr",
+            PartySource.RegisteredWithSkatteetaten => "srs",
             _ => null,
         }));
 
