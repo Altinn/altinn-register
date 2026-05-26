@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text;
-using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
@@ -20,9 +19,6 @@ public class SireClientTests
 {
     private static readonly OrganizationIdentifier TestOrgId
         = OrganizationIdentifier.Parse("090090003");
-
-    private static CancellationToken CancellationToken
-        => TestContext.Current.CancellationToken;
 
     // ILocationLookupProvider isn't registered in HostTestBase, so we stub it. The validator
     // only consults the lookup for international-address country resolution, which none of
