@@ -168,4 +168,117 @@ public class SireEnricherTests
             context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten]);
         Assert.Single(update.Assignments);
     }
+
+    /// <summary>
+    /// Covers the <c>RelatedOrganizationIdentifier</c> branch in MapRoleAssignments — when SIRE
+    /// reports a relationship to another organization rather than a person.
+    /// </summary>
+    [Fact]
+    public async Task Run_RoleMapping_OrganizationIdentifier_MapsToAssignment()
+    {
+        var relatedOrgId = OrganizationIdentifier.Parse("090090011");
+
+        var sireOrg = new SireOrganization
+        {
+            OrganizationIdentifier = TestOrgId,
+            Name = "Test AS",
+            UnitType = "KS",
+            UnitStatus = null,
+            IsDeleted = false,
+            MailingAddress = null,
+            LastUpdated = null,
+            BusinessRelationships =
+            [
+                new SireBusinessRelationship
+                {
+                    RoleIdentifier = "komplementar",
+                    RelatedPersonIdentifier = null,
+                    RelatedOrganizationIdentifier = relatedOrgId,
+                    ValidFrom = null,
+                    ValidTo = null,
+                }
+            ],
+        };
+
+        var sireClient = new Mock<ISireClient>();
+        sireClient
+            .Setup(c => c.GetOrganization(TestOrgId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Result<SireOrganization>)sireOrg);
+
+        var enricher = new SireEnricher(
+            sireClient.Object,
+            NullLogger<SireEnricher>.Instance);
+
+        var party = MinimalSireOrg(TestOrgId);
+        var context = new A2PartyImportSagaEnrichmentRunContext
+        {
+            PartyIdentifier = new ImportPartyIdentifier(TestOrgId),
+            Party = party,
+            RoleAssignments = [],
+        };
+
+        await enricher.Run(context, CancellationToken);
+
+        Assert.True(context.RoleAssignments.ContainsKey(ExternalRoleSource.RegisteredWithSkatteetaten));
+        var update = Assert.IsType<PartyExternalRoleAssignmentsUpdate.Full>(
+            context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten]);
+        var assignment = Assert.Single(update.Assignments);
+        Assert.Equal("komplementar", assignment.ExternalRoleIdentifier);
+        var orgRef = Assert.IsType<PartyExternalRoleAssignmentPartyRef.Organization>(assignment.ToParty);
+        Assert.Equal(relatedOrgId, orgRef.OrganizationIdentifier);
+    }
+
+    /// <summary>
+    /// Covers the silent-skip branch in MapRoleAssignments when a relationship has neither
+    /// a related person identifier nor a related organization identifier — should be dropped.
+    /// </summary>
+    [Fact]
+    public async Task Run_RoleMapping_NoIdentifier_Skipped()
+    {
+        var sireOrg = new SireOrganization
+        {
+            OrganizationIdentifier = TestOrgId,
+            Name = "Test AS",
+            UnitType = "KS",
+            UnitStatus = null,
+            IsDeleted = false,
+            MailingAddress = null,
+            LastUpdated = null,
+            BusinessRelationships =
+            [
+                new SireBusinessRelationship
+                {
+                    RoleIdentifier = "komplementar",
+                    RelatedPersonIdentifier = null,
+                    RelatedOrganizationIdentifier = null,
+                    ValidFrom = null,
+                    ValidTo = null,
+                }
+            ],
+        };
+
+        var sireClient = new Mock<ISireClient>();
+        sireClient
+            .Setup(c => c.GetOrganization(TestOrgId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Result<SireOrganization>)sireOrg);
+
+        var enricher = new SireEnricher(
+            sireClient.Object,
+            NullLogger<SireEnricher>.Instance);
+
+        var party = MinimalSireOrg(TestOrgId);
+        var context = new A2PartyImportSagaEnrichmentRunContext
+        {
+            PartyIdentifier = new ImportPartyIdentifier(TestOrgId),
+            Party = party,
+            RoleAssignments = [],
+        };
+
+        await enricher.Run(context, CancellationToken);
+
+        Assert.True(context.RoleAssignments.ContainsKey(ExternalRoleSource.RegisteredWithSkatteetaten));
+        var update = Assert.IsType<PartyExternalRoleAssignmentsUpdate.Full>(
+            context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten]);
+        Assert.Empty(update.Assignments);
+    }
 }
