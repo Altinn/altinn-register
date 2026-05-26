@@ -66,7 +66,7 @@ public class SireRoleMapperTests
         { "denPersonligeKonkursenAngaar",        "personlige-konkurs" },    // KENK
 
         // e — kodeliste spells READ with capital E ("ErRevisoradresseFor")
-        { "ErRevisoradresseFor",               "revisoradressat" },               // READ
+        { "erRevisoradresseFor",               "revisoradressat" },               // READ
         { "eierkommune",                        "eierkommune" },                   // EIKM
         { "erBedriftTil",                       "hovedenhet" },                    // BEDR
         { "erFrivilligRegistrertUtleiebyggFor", "utleiebygg" },                    // UTBG
