@@ -93,10 +93,19 @@ public abstract class IntegrationTestBase
             return null;
         });
 
+    /// <summary>
+    /// Allows derived tests to add or override configuration in the test host. Called while the
+    /// host is being built.
+    /// </summary>
+    /// <param name="configuration">The <see cref="IConfigurationBuilder"/>.</param>
+    protected virtual void ConfigureConfiguration(IConfigurationBuilder configuration)
+    {
+    }
+
     protected override async ValueTask InitializeAsync()
     {
         await base.InitializeAsync();
-        _webApp = await TestWebApplication.Create();
+        _webApp = await TestWebApplication.Create(ConfigureConfiguration);
         _scope = _webApp.Services.CreateAsyncScope();
         _client = _webApp.CreateClient();
         _timeProvider = _webApp.Services.GetRequiredService<FakeTimeProvider>();

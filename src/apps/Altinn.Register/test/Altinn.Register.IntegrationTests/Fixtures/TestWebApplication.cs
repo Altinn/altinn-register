@@ -9,6 +9,7 @@ using MassTransit;
 using MassTransit.Testing;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Mvc.Testing.Handlers;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Altinn.Register.IntegrationTests.Fixtures;
@@ -19,11 +20,11 @@ public sealed class TestWebApplication
     // random link-local IPv6 address
     public static readonly IPAddress RemoteTestIpAddress = IPAddress.Parse("fe80::215:5dff:fe8f:4e7f");
 
-    public static async Task<TestWebApplication> Create()
+    public static async Task<TestWebApplication> Create(Action<IConfigurationBuilder>? configureConfiguration = null)
     {
         var fixture = await TestContext.Current.GetRequiredFixture<WebApplicationFixture>();
 
-        return await fixture.CreateServer();
+        return await fixture.CreateServer(configureConfiguration: configureConfiguration);
     }
 
     private readonly WebApplicationFactory<Program> _factory;

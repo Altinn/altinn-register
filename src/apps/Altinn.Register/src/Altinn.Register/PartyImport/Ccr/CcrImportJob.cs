@@ -20,7 +20,7 @@ internal sealed partial class CcrImportJob
     , IHasJobName<CcrImportJob>
 {
     /// <inheritdoc/>
-    public static string JobName => JobNames.NprImport;
+    public static string JobName => JobNames.CcrImport;
 
     private readonly ILogger<CcrImportJob> _logger;
     private readonly IImportJobTracker _tracker;

@@ -14,8 +14,10 @@
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <PackageReference Include="Nerdbank.Streams" />
     <PackageReference Include="Npgsql" />
+    <PackageReference Include="SSH.NET" />
     <PackageReference Include="System.Linq.AsyncEnumerable" />
     <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Testcontainers.Sftp" />
   </ItemGroup>
 
   <ItemGroup>
