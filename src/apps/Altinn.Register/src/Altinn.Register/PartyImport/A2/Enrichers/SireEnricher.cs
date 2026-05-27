@@ -77,14 +77,14 @@ internal sealed partial class SireEnricher
     {
         var relationships = organization.BusinessRelationships;
 
-        if (relationships is not { Count: > 0 })
+        if (relationships is not { Length: > 0 })
         {
             context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten] = PartyExternalRoleAssignmentsUpdate.Full.Empty
 ;
             return;
         }
 
-        var mapped = ImmutableArray.CreateBuilder<PartyExternalRoleAssignment>(relationships.Count);
+        var mapped = ImmutableArray.CreateBuilder<PartyExternalRoleAssignment>(relationships.Length);
         foreach (var rel in relationships)
         {
             PartyExternalRoleAssignmentPartyRef toParty;
@@ -106,8 +106,12 @@ internal sealed partial class SireEnricher
             }
             else
             {
-                ////How should this be handled?
-                continue;
+                // Unreachable: OrganizationDocumentValidator rejects any SIRE relationship
+                // that doesn't carry exactly one of RelatedPersonIdentifier or
+                // RelatedOrganizationIdentifier. Asserting here turns drift in that contract
+                // into a loud failure instead of a silent data loss.
+                throw new InvalidOperationException(
+                    "SireBusinessRelationship must have either RelatedPersonIdentifier or RelatedOrganizationIdentifier set.");
             }
 
             mapped.Add(new()

@@ -229,11 +229,13 @@ public class SireEnricherTests
     }
 
     /// <summary>
-    /// Covers the silent-skip branch in MapRoleAssignments when a relationship has neither
-    /// a related person identifier nor a related organization identifier — should be dropped.
+    /// OrganizationDocumentValidator rejects relationships that have neither a person nor an
+    /// org identifier, so this state never reaches the enricher in production. If it ever
+    /// does (bug or test plumbing bypassing the validator), the enricher must fail loudly
+    /// rather than silently dropping data.
     /// </summary>
     [Fact]
-    public async Task Run_RoleMapping_NoIdentifier_Skipped()
+    public async Task Run_RoleMapping_NoIdentifier_ThrowsInvariantViolation()
     {
         var sireOrg = new SireOrganization
         {
@@ -274,11 +276,7 @@ public class SireEnricherTests
             RoleAssignments = [],
         };
 
-        await enricher.Run(context, CancellationToken);
-
-        Assert.True(context.RoleAssignments.ContainsKey(ExternalRoleSource.RegisteredWithSkatteetaten));
-        var update = Assert.IsType<PartyExternalRoleAssignmentsUpdate.Full>(
-            context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten]);
-        Assert.Empty(update.Assignments);
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => enricher.Run(context, CancellationToken));
     }
 }

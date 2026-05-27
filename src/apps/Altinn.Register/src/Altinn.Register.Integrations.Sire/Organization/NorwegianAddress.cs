@@ -1,28 +1,27 @@
 using System.Text.Json.Serialization;
 
-namespace Altinn.Register.Integrations.Sire.Organization
+namespace Altinn.Register.Integrations.Sire.Organization;
+
+/// <summary>
+/// Represents a Norwegian address from the SIRE API.
+/// </summary>
+public sealed record NorwegianAddress
 {
     /// <summary>
-    /// Represents a Norwegian address from the SIRE API.
+    /// Gets the address lines.
     /// </summary>
-    public sealed record NorwegianAddress
-    {
-        /// <summary>
-        /// Gets the address lines.
-        /// </summary>
-        [JsonPropertyName("adressetekst")]
-        public IReadOnlyList<string>? AddressLines { get; init; }
+    [JsonPropertyName("adressetekst")]
+    public IReadOnlyList<string>? AddressLines { get; init; }
 
-        /// <summary>
-        /// Gets the postal code.
-        /// </summary>
-        [JsonPropertyName("postnummer")]
-        public string? PostalCode { get; init; }
+    /// <summary>
+    /// Gets the postal code.
+    /// </summary>
+    [JsonPropertyName("postnummer")]
+    public string? PostalCode { get; init; }
 
-        /// <summary>
-        /// Gets the postal place name.
-        /// </summary>
-        [JsonPropertyName("poststedsnavn")]
-        public string? City { get; init; }
-    }
+    /// <summary>
+    /// Gets the postal place name.
+    /// </summary>
+    [JsonPropertyName("poststedsnavn")]
+    public string? City { get; init; }
 }

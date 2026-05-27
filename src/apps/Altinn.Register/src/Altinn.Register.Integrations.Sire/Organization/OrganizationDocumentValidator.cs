@@ -1,5 +1,7 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ProblemDetails.Validation;
 using Altinn.Register.Contracts;
@@ -45,33 +47,48 @@ public sealed class OrganizationDocumentValidator
         OrganizationDocument input,
         [NotNullWhen(true)] out SireOrganization? validated)
     {
+        OrganizationIdentifier? orgId = null;
         if (string.IsNullOrWhiteSpace(input.Identifier))
         {
             context.AddChildProblem(StdValidationErrors.Required, "/identifikator");
+        }
+        else if (!OrganizationIdentifier.TryParse(input.Identifier, provider: null, out var parsedOrgId))
+        {
+            context.AddChildProblem(ValidationErrors.InvalidOrganizationNumber, "/identifikator");
+        }
+        else
+        {
+            orgId = parsedOrgId;
+        }
+
+        // Validate business relationships up-front so any per-relationship problems
+        // are added to the context before we decide whether to bail out.
+        var businessRelationships = MapBusinessRelationships(
+            ref context,
+            input.BusinessRelationships,
+            _timeProvider.GetUtcNow());
+
+        if (context.HasErrors)
+        {
             validated = null;
             return false;
         }
 
-        if (!OrganizationIdentifier.TryParse(input.Identifier, provider: null, out var orgId))
-        {
-            context.AddChildProblem(ValidationErrors.InvalidOrganizationNumber, "/identifikator");
-            validated = null;
-            return false;
-        }
+        Debug.Assert(orgId is not null);
 
         bool isDeleted = !string.IsNullOrWhiteSpace(input.DeletedDate);
         MailingAddressRecord? mailingAddress = NormalizeAddress(input.PostalAddress);
 
         validated = new SireOrganization
         {
-            OrganizationIdentifier = orgId,
+            OrganizationIdentifier = orgId!,
             Name = input.CompanyName,
             UnitType = SireOrganizationFormMapper.GetOrganizationFormOrDefault(input.OrganizationForm),
             UnitStatus = isDeleted ? "S" : "E",
             IsDeleted = isDeleted,
             MailingAddress = mailingAddress,
             LastUpdated = input.PostalAddress?.UpdatedAt,
-            BusinessRelationships = MapBusinessRelationships(input.BusinessRelationships, _timeProvider.GetUtcNow())
+            BusinessRelationships = businessRelationships,
         };
 
         return true;
@@ -300,7 +317,8 @@ public sealed class OrganizationDocumentValidator
         return input;
     }
 
-    private static IReadOnlyList<SireBusinessRelationship> MapBusinessRelationships(
+    private static ImmutableValueArray<SireBusinessRelationship> MapBusinessRelationships(
+        ref ValidationContext context,
         IReadOnlyList<BusinessRelationship>? relationships,
         DateTimeOffset now)
     {
@@ -309,49 +327,56 @@ public sealed class OrganizationDocumentValidator
             return [];
         }
 
-        var result = new List<SireBusinessRelationship>(relationships.Count);
-        foreach (var rel in relationships)
+        var result = ImmutableArray.CreateBuilder<SireBusinessRelationship>(relationships.Count);
+        for (var i = 0; i < relationships.Count; i++)
         {
+            var rel = relationships[i];
+            var path = $"/virksomhetsrelasjon/{i}";
+
             if (string.IsNullOrWhiteSpace(rel.RelationshipType))
             {
+                context.AddChildProblem(StdValidationErrors.Required, path + "/relasjonstype");
                 continue;
             }
 
-            // Skip terminated relationships. We rely on full-upsert downstream to clear any
-            // previously-known assignments not present in this fresh document.
+            // Expired entries are deliberately filtered, not invalid. Full-upsert downstream
+            // clears any previously-known assignments not present in this fresh document.
             if (!IsStillValid(rel.ValidTo, now))
             {
                 continue;
             }
 
+            var relatedId = rel.RelatedIdentifier;
+            if (relatedId is null || string.IsNullOrWhiteSpace(relatedId.Value))
+            {
+                context.AddChildProblem(StdValidationErrors.Required, path + "/relatertIdentifikator");
+                continue;
+            }
+
+            if (!string.Equals(relatedId.IdentifierType, "taxIdentificationNumber", StringComparison.Ordinal))
+            {
+                context.AddChildProblem(
+                    ValidationErrors.InvalidValue,
+                    path + "/relatertIdentifikator/identifikatortype");
+                continue;
+            }
+
             PersonIdentifier? personId = null;
             OrganizationIdentifier? orgId = null;
-
-            // RelatedIdentifier is the integration project's model
-            RelatedIdentifier? relatedId = rel.RelatedIdentifier;
-            if (relatedId is { Value: not null })
+            if (PersonIdentifier.TryParse(relatedId.Value, provider: null, out var parsedPerson))
             {
-                if (relatedId.IdentifierType is not null && relatedId.IdentifierType == "taxIdentificationNumber")
-                {
-                    if (PersonIdentifier.TryParse(relatedId.Value, provider: null, out var parsedPerson))
-                    {
-                        personId = parsedPerson;
-                    }
-                    else if (OrganizationIdentifier.TryParse(relatedId.Value, provider: null, out var parsedOrg))
-                    {
-                        orgId = parsedOrg;
-                    }
-                    else
-                    {
-                        ////Should we log this as a warning that the identifier value could not be parsed as either person or organization identifier? And notify SKD about it 
-                        ////or should we just ignore it since the identifier value is not valid according to our specifications for person and organization identifiers?
-                    }
-                }
-                else
-                {
-                    ////SKD wants us to log any identifiertype that is not taxidentificationnumber and notify SKD about it because they mentioned that only taxidentificaitonnumber is expected here.
-                    //// Find out how to log this in a good way and notify SKD about it.
-                }
+                personId = parsedPerson;
+            }
+            else if (OrganizationIdentifier.TryParse(relatedId.Value, provider: null, out var parsedOrg))
+            {
+                orgId = parsedOrg;
+            }
+            else
+            {
+                context.AddChildProblem(
+                    ValidationErrors.InvalidValue,
+                    path + "/relatertIdentifikator/verdi");
+                continue;
             }
 
             result.Add(new SireBusinessRelationship
@@ -364,6 +389,6 @@ public sealed class OrganizationDocumentValidator
             });
         }
 
-        return result;
+        return result.DrainToImmutableValueArray();
     }
 }

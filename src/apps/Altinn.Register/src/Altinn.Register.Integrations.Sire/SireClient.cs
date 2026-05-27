@@ -36,7 +36,7 @@ public sealed class SireClient
 
     /// <inheritdoc/>
     public async Task<Result<SireOrganization>> GetOrganization(OrganizationIdentifier organizationIdentifier, CancellationToken cancellationToken)
-    { 
+    {
         using var response = await _client.GetAsync(
             $"v1/digdir/{Uri.EscapeDataString(organizationIdentifier.ToString())}",
             cancellationToken);
@@ -66,13 +66,12 @@ public sealed class SireClient
         {
             document = await response.Content.ReadFromJsonAsync<OrganizationDocument>(_options, cancellationToken);
         }
-        catch (JsonException ex)
+        catch (JsonException)
         {
             return Problems.PartyFetchFailed.Create(
                 detail: "Response deserialization failed",
                 [
                     new("organization.source", "sire"),
-                    new("json.error", ex.Message),
                     new("organization.identifier", organizationIdentifier.ToString())
                 ]);
         }

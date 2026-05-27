@@ -1,18 +1,17 @@
 using System.Text.Json.Serialization;
 using Altinn.Authorization.ModelUtils;
 
-namespace Altinn.Register.Integrations.Sire.Organization
+namespace Altinn.Register.Integrations.Sire.Organization;
+
+/// <summary>
+/// Specifies the source of a person-party.
+/// </summary>
+[StringEnumConverter]
+public enum IdentifierType
 {
     /// <summary>
-    /// Specifies the source of a person-party.
+    /// The Norwegian National Population Register.
     /// </summary>
-    [StringEnumConverter]
-    public enum IdentifierType
-    {
-        /// <summary>
-        /// The Norwegian National Population Register.
-        /// </summary>
-        [JsonStringEnumMemberName("taxIdentificationNumber")]
-        TaxIdentificationNumber = 1,
-    }
+    [JsonStringEnumMemberName("taxIdentificationNumber")]
+    TaxIdentificationNumber = 1,
 }

@@ -1,34 +1,33 @@
 using System.Text.Json.Serialization;
 
-namespace Altinn.Register.Integrations.Sire.Organization
+namespace Altinn.Register.Integrations.Sire.Organization;
+
+/// <summary>
+/// Represents an international address from the SIRE API.
+/// </summary>
+public sealed record InternationalAddress
 {
     /// <summary>
-    /// Represents an international address from the SIRE API.
+    /// Gets the address lines.
     /// </summary>
-    public sealed record InternationalAddress
-    {
-        /// <summary>
-        /// Gets the address lines.
-        /// </summary>
-        [JsonPropertyName("adressetekst")]
-        public IReadOnlyList<string>? AddressLines { get; init; }
+    [JsonPropertyName("adressetekst")]
+    public IReadOnlyList<string>? AddressLines { get; init; }
 
-        /// <summary>
-        /// Gets the postal code.
-        /// </summary>
-        [JsonPropertyName("postkode")]
-        public string? PostalCode { get; init; }
+    /// <summary>
+    /// Gets the postal code.
+    /// </summary>
+    [JsonPropertyName("postkode")]
+    public string? PostalCode { get; init; }
 
-        /// <summary>
-        /// Gets the city or place name.
-        /// </summary>
-        [JsonPropertyName("byEllerStedsnavn")]
-        public string? City { get; init; }
+    /// <summary>
+    /// Gets the city or place name.
+    /// </summary>
+    [JsonPropertyName("byEllerStedsnavn")]
+    public string? City { get; init; }
 
-        /// <summary>
-        /// Gets the ISO country code.
-        /// </summary>
-        [JsonPropertyName("landkode")]
-        public string? CountryCode { get; init; }
-    }
+    /// <summary>
+    /// Gets the ISO country code.
+    /// </summary>
+    [JsonPropertyName("landkode")]
+    public string? CountryCode { get; init; }
 }

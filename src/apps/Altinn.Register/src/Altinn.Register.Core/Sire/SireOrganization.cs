@@ -1,3 +1,4 @@
+using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties.Records;
 
@@ -46,5 +47,5 @@ public sealed record SireOrganization
     /// <summary>
     /// Gets the business relationships (virksomhetsrelasjon).
     /// </summary>
-    public required IReadOnlyList<SireBusinessRelationship> BusinessRelationships { get; init; }
+    public required ImmutableValueArray<SireBusinessRelationship> BusinessRelationships { get; init; }
 }

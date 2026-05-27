@@ -1,28 +1,27 @@
 using System.Text.Json.Serialization;
 
-namespace Altinn.Register.Integrations.Sire.Organization
+namespace Altinn.Register.Integrations.Sire.Organization;
+
+/// <summary>
+/// Represents an identifier for a related party in the SIRE API.
+/// </summary>
+public sealed record RelatedIdentifier
 {
     /// <summary>
-    /// Represents an identifier for a related party in the SIRE API.
+    /// Gets the identifier type (e.g. "taxIdentificationNumber").
     /// </summary>
-    public sealed record RelatedIdentifier
-    {
-        /// <summary>
-        /// Gets the identifier type (e.g. "taxIdentificationNumber").
-        /// </summary>
-        [JsonPropertyName("identifikatortype")]
-        public string? IdentifierType { get; init; }
+    [JsonPropertyName("identifikatortype")]
+    public string? IdentifierType { get; init; }
 
-        /// <summary>
-        /// Gets the identifier value.
-        /// </summary>
-        [JsonPropertyName("verdi")]
-        public string? Value { get; init; }
+    /// <summary>
+    /// Gets the identifier value.
+    /// </summary>
+    [JsonPropertyName("verdi")]
+    public string? Value { get; init; }
 
-        /// <summary>
-        /// Gets the country code.
-        /// </summary>
-        [JsonPropertyName("landkode")]
-        public string? CountryCode { get; init; }
-    }
+    /// <summary>
+    /// Gets the country code.
+    /// </summary>
+    [JsonPropertyName("landkode")]
+    public string? CountryCode { get; init; }
 }
