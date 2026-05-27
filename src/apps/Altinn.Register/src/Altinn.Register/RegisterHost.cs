@@ -26,6 +26,7 @@ using Altinn.Register.Model.Extensions;
 using Altinn.Register.ModelBinding;
 using Altinn.Register.PartyImport;
 using Altinn.Register.PartyImport.A2;
+using Altinn.Register.PartyImport.Ccr;
 using Altinn.Register.PartyImport.Npr;
 using Altinn.Register.PartyImport.SystemUser;
 using Altinn.Register.Services;
@@ -300,6 +301,15 @@ internal static partial class RegisterHost
             {
                 settings.LeaseName = SagaStateCleanupJob.JobName;
                 settings.Interval = TimeSpan.FromMinutes(15);
+            });
+
+            services.AddRecurringJob<CcrImportJob>(settingv =>
+            {
+                settingv.LeaseName = CcrImportJob.JobName;
+                settingv.Interval = TimeSpan.FromMinutes(15);
+                settingv.WaitForReady = waitForBus;
+                settingv.Enabled = JobEnabledBuilder.Default
+                    .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:Ccr:Enable");
             });
         }
         else if (initOnly && mtEnabled)

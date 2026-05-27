@@ -127,6 +127,7 @@ public sealed class WebApplicationFixture
 
                 /* Party import */
                 new("Altinn:register:PartyImport:Npr:Guardianships:Enable", "true"),
+                new("Altinn:register:PartyImport:Ccr:Enable", "true"),
 
                 // feature flags
                 new("Altinn:register:Party:CreatePartyId", "true"),

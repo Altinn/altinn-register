@@ -1,4 +1,5 @@
 using System.IO.Pipelines;
+using Altinn.Register.Core.Ccr;
 using Renci.SshNet;
 using Renci.SshNet.Sftp;
 
@@ -7,7 +8,7 @@ namespace Altinn.Register.Integrations.Ccr.FileImport;
 /// <summary>
 /// Client for retrieving SFTP files from BRG.
 /// </summary>
-internal sealed class CcrDataTransfer
+public sealed class CcrDataTransfer : ICcrDataTransfer
 {
     private readonly string _remotePath;
     private readonly ISftpClient _client;
@@ -43,8 +44,8 @@ internal sealed class CcrDataTransfer
     }
 
     /// <summary>
-    /// Retrieves the next file from the SFTP server based on the last processed runId. 
-    /// It checks for files in the specified remote path, and if a file's runId is exactly one greater than the last processed runId, 
+    /// Retrieves the next file from the SFTP server based on the last processed runId.
+    /// It checks for files in the specified remote path, and if a file's runId is exactly one greater than the last processed runId,
     /// it downloads the file and marks it as downloaded by renaming it. The method returns a tuple containing the filename and its content as a stream.
     /// Warning: If you give the number 5778 as last file, you will retrieve 5779. Once processing is done, you should then mark file 5779 as downloaded.
     /// </summary>
