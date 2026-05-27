@@ -89,21 +89,4 @@ public class ExternalRoleAssignmentTests
             }
             """);
     }
-
-    /// <summary>
-    /// Covers the <c>srs</c> arm of <c>ExternalRoleSource.ToUrnFragment</c> by building a
-    /// role reference whose source is <see cref="ExternalRoleSource.RegisteredWithSkatteetaten"/>
-    /// and asserting the resulting URN.
-    /// </summary>
-    [Fact]
-    public void Urn_ForRegisteredWithSkatteetatenSource_UsesSrsFragment()
-    {
-        var roleRef = new ExternalRoleRef
-        {
-            Source = ExternalRoleSource.RegisteredWithSkatteetaten,
-            Identifier = "daglig-leder",
-        };
-
-        Assert.Equal("urn:altinn:external-role:srs:daglig-leder", roleRef.Urn);
-    }
 }

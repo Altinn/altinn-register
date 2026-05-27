@@ -15,7 +15,7 @@ namespace Altinn.Register.Integrations.Sire.Organization;
 /// <summary>
 /// Validates and maps an <see cref="OrganizationDocument"/> to a <see cref="SireOrganization"/>.
 /// </summary>
-public sealed class OrganizationDocumentValidator
+internal sealed class OrganizationDocumentValidator
     : IValidator<OrganizationDocument, SireOrganization>
 {
     private readonly ILocationLookup _lookup;
@@ -34,12 +34,32 @@ public sealed class OrganizationDocumentValidator
     }
 
     /// <summary>
-    /// Returns true when the validTo indicates the
-    /// entity is still currently valid as of now means
-    /// "no termination set, still valid". A non-null value in the past means expired.
+    /// Maximum tolerated drift between SIRE's clock and ours before a non-null
+    /// <c>opphoerstidspunkt</c> in the future is treated as bad data.
     /// </summary>
-    private static bool IsStillValid(DateTimeOffset? validTo, DateTimeOffset now)
-        => validTo is not { } endsAt || endsAt > now;
+    private static readonly TimeSpan ValidToFutureGrace = TimeSpan.FromMinutes(10);
+
+    /// <summary>
+    /// SIRE's <c>opphoerstidspunkt</c> is treated as binary: <see langword="null"/> means
+    /// "still in force", any value means "terminated, ignore this entry". We don't carry
+    /// future-dated terminations forward — by the time the date arrives we will have
+    /// re-fetched the document. If SIRE does send a <c>validTo</c> sitting meaningfully
+    /// in the future, that's data we don't know how to safely process, so we add a
+    /// validation error rather than silently picking an interpretation. The
+    /// <see cref="ValidToFutureGrace"/> window absorbs ordinary clock skew between SIRE
+    /// and us so a few-minute drift doesn't trip the check.
+    /// </summary>
+    private static void ValidateValidToNotFarFuture(
+        ref ValidationContext context,
+        DateTimeOffset? validTo,
+        DateTimeOffset now,
+        string path)
+    {
+        if (validTo is { } endsAt && endsAt > now + ValidToFutureGrace)
+        {
+            context.AddChildProblem(ValidationErrors.InvalidValue, path);
+        }
+    }
 
     /// <inheritdoc/>
     public bool TryValidate(
@@ -61,12 +81,28 @@ public sealed class OrganizationDocumentValidator
             orgId = parsedOrgId;
         }
 
+        // Map organisasjonsform via the validator so unknown values aggregate as errors
+        // at "/organisasjonsform" rather than throwing. Missing/empty input yields the
+        // default SL-code and succeeds.
+        context.TryValidateChild(
+            path: "/organisasjonsform",
+            input.OrganizationForm,
+            default(SireOrganizationFormMapper),
+            out string? unitType);
+
+        var now = _timeProvider.GetUtcNow();
+
+        // Refuse to carry forward any future-dated termination on the postal address —
+        // see ValidateValidToNotFarFuture for the rationale. NormalizeAddress treats
+        // any non-null opphoerstidspunkt as "no current address" regardless of date.
+        ValidateValidToNotFarFuture(ref context, input.PostalAddress?.ValidTo, now, "/postadresse/opphoerstidspunkt");
+
         // Validate business relationships up-front so any per-relationship problems
         // are added to the context before we decide whether to bail out.
         var businessRelationships = MapBusinessRelationships(
             ref context,
             input.BusinessRelationships,
-            _timeProvider.GetUtcNow());
+            now);
 
         if (context.HasErrors)
         {
@@ -75,6 +111,7 @@ public sealed class OrganizationDocumentValidator
         }
 
         Debug.Assert(orgId is not null);
+        Debug.Assert(unitType is not null);
 
         bool isDeleted = !string.IsNullOrWhiteSpace(input.DeletedDate);
         MailingAddressRecord? mailingAddress = NormalizeAddress(input.PostalAddress);
@@ -83,7 +120,7 @@ public sealed class OrganizationDocumentValidator
         {
             OrganizationIdentifier = orgId!,
             Name = input.CompanyName,
-            UnitType = SireOrganizationFormMapper.GetOrganizationFormOrDefault(input.OrganizationForm),
+            UnitType = unitType,
             UnitStatus = isDeleted ? "S" : "E",
             IsDeleted = isDeleted,
             MailingAddress = mailingAddress,
@@ -101,10 +138,12 @@ public sealed class OrganizationDocumentValidator
             return null;
         }
 
-        // If the address itself has been terminated, treat it as no address. Downstream
-        // consumers already handle MailingAddress = null, and a stale address is worse than
-        // none for things like mail/letter delivery.
-        if (!IsStillValid(postalAddress.ValidTo, _timeProvider.GetUtcNow()))
+        // Any non-null opphoerstidspunkt means SIRE has marked this address as
+        // terminated; treat it as no current address. Downstream consumers already
+        // handle MailingAddress = null, and a stale address is worse than none for
+        // mail delivery. (TryValidate has already added an error if the date sits
+        // unreasonably far in the future — see ValidateValidToNotFarFuture.)
+        if (postalAddress.ValidTo is not null)
         {
             return null;
         }
@@ -339,10 +378,13 @@ public sealed class OrganizationDocumentValidator
                 continue;
             }
 
-            // Expired entries are deliberately filtered, not invalid. Full-upsert downstream
-            // clears any previously-known assignments not present in this fresh document.
-            if (!IsStillValid(rel.ValidTo, now))
+            // Any non-null opphoerstidspunkt means SIRE has terminated this relationship;
+            // skip it. Far-future validTo values are flagged as bad data — see
+            // ValidateValidToNotFarFuture for the rationale. Full-upsert downstream clears
+            // any previously-known assignments not present in this fresh document.
+            if (rel.ValidTo is not null)
             {
+                ValidateValidToNotFarFuture(ref context, rel.ValidTo, now, path + "/opphoerstidspunkt");
                 continue;
             }
 
@@ -379,13 +421,23 @@ public sealed class OrganizationDocumentValidator
                 continue;
             }
 
+            // Map relasjonstype via the validator so an unknown value adds an aggregated
+            // error at "/virksomhetsrelasjon/{i}/relasjonstype" instead of throwing — this
+            // lets a single SIRE response surface every unrecognised relasjonstype at once.
+            if (!context.TryValidateChild(
+                path: path + "/relasjonstype",
+                rel.RelationshipType,
+                default(SireRoleMapper),
+                out string? roleIdentifier))
+            {
+                continue;
+            }
+
             result.Add(new SireBusinessRelationship
             {
-                RoleIdentifier = SireRoleMapper.GetRoleIdentifier(rel.RelationshipType),
+                RoleIdentifier = roleIdentifier,
                 RelatedPersonIdentifier = personId,
                 RelatedOrganizationIdentifier = orgId,
-                ValidFrom = rel.ValidFrom,
-                ValidTo = rel.ValidTo,
             });
         }
 

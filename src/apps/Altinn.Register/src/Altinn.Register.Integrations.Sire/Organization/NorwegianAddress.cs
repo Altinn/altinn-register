@@ -5,7 +5,7 @@ namespace Altinn.Register.Integrations.Sire.Organization;
 /// <summary>
 /// Represents a Norwegian address from the SIRE API.
 /// </summary>
-public sealed record NorwegianAddress
+internal sealed record NorwegianAddress
 {
     /// <summary>
     /// Gets the address lines.

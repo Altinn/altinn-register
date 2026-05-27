@@ -5,7 +5,7 @@ namespace Altinn.Register.Integrations.Sire.Organization;
 /// <summary>
 /// Represents an international address from the SIRE API.
 /// </summary>
-public sealed record InternationalAddress
+internal sealed record InternationalAddress
 {
     /// <summary>
     /// Gets the address lines.

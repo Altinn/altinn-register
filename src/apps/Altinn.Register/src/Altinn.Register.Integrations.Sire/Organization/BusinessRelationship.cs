@@ -5,7 +5,7 @@ namespace Altinn.Register.Integrations.Sire.Organization;
 /// <summary>
 /// Represents a business relationship from the SIRE API 
 /// </summary>
-public sealed record BusinessRelationship
+internal sealed record BusinessRelationship
 {
     /// <summary>
     /// Gets the timestamp when the relationship was last updated.

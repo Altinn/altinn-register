@@ -14,16 +14,12 @@
     {
       "roleIdentifier": "styremedlem",
       "relatedPersonIdentifier": "03815698966",
-      "relatedOrganizationIdentifier": null,
-      "validFrom": "2024-09-17T12:01:18.2216427\u002B02:00",
-      "validTo": null
+      "relatedOrganizationIdentifier": null
     },
     {
       "roleIdentifier": "varamedlem",
       "relatedPersonIdentifier": "22874897462",
-      "relatedOrganizationIdentifier": null,
-      "validFrom": "2024-09-17T12:01:18.2216427\u002B02:00",
-      "validTo": null
+      "relatedOrganizationIdentifier": null
     }
   ]
 }

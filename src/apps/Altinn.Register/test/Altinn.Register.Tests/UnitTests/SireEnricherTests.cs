@@ -138,8 +138,6 @@ public class SireEnricherTests
                     RoleIdentifier = "styreleder",
                     RelatedPersonIdentifier = personId,
                     RelatedOrganizationIdentifier = null,
-                    ValidFrom = null,
-                    ValidTo = null,
                 }
             ],
         };
@@ -163,9 +161,9 @@ public class SireEnricherTests
 
         await enricher.Run(context, CancellationToken);
 
-        Assert.True(context.RoleAssignments.ContainsKey(ExternalRoleSource.RegisteredWithSkatteetaten));
+        Assert.True(context.RoleAssignments.ContainsKey(ExternalRoleSource.CentralCoordinatingRegister));
         var update = Assert.IsType<PartyExternalRoleAssignmentsUpdate.Full>(
-            context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten]);
+            context.RoleAssignments[ExternalRoleSource.CentralCoordinatingRegister]);
         Assert.Single(update.Assignments);
     }
 
@@ -194,8 +192,6 @@ public class SireEnricherTests
                     RoleIdentifier = "komplementar",
                     RelatedPersonIdentifier = null,
                     RelatedOrganizationIdentifier = relatedOrgId,
-                    ValidFrom = null,
-                    ValidTo = null,
                 }
             ],
         };
@@ -219,9 +215,9 @@ public class SireEnricherTests
 
         await enricher.Run(context, CancellationToken);
 
-        Assert.True(context.RoleAssignments.ContainsKey(ExternalRoleSource.RegisteredWithSkatteetaten));
+        Assert.True(context.RoleAssignments.ContainsKey(ExternalRoleSource.CentralCoordinatingRegister));
         var update = Assert.IsType<PartyExternalRoleAssignmentsUpdate.Full>(
-            context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten]);
+            context.RoleAssignments[ExternalRoleSource.CentralCoordinatingRegister]);
         var assignment = Assert.Single(update.Assignments);
         Assert.Equal("komplementar", assignment.ExternalRoleIdentifier);
         var orgRef = Assert.IsType<PartyExternalRoleAssignmentPartyRef.Organization>(assignment.ToParty);
@@ -253,8 +249,6 @@ public class SireEnricherTests
                     RoleIdentifier = "komplementar",
                     RelatedPersonIdentifier = null,
                     RelatedOrganizationIdentifier = null,
-                    ValidFrom = null,
-                    ValidTo = null,
                 }
             ],
         };

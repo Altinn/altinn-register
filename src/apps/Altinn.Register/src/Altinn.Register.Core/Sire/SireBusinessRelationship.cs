@@ -21,14 +21,4 @@ public sealed record SireBusinessRelationship
     /// Gets the related organization identifier, if the related party is an organization.
     /// </summary>
     public required OrganizationIdentifier? RelatedOrganizationIdentifier { get; init; }
-
-    /// <summary>
-    /// Gets the validity start timestamp.
-    /// </summary>
-    public required DateTimeOffset? ValidFrom { get; init; }
-
-    /// <summary>
-    /// Gets the validity end timestamp.
-    /// </summary>
-    public required DateTimeOffset? ValidTo { get; init; }
 }

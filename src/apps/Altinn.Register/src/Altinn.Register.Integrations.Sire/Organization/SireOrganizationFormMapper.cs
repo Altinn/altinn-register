@@ -1,4 +1,6 @@
-using CommunityToolkit.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using Altinn.Authorization.ProblemDetails.Validation;
+using Altinn.Register.Core.Errors;
 
 namespace Altinn.Register.Integrations.Sire.Organization;
 
@@ -11,7 +13,8 @@ namespace Altinn.Register.Integrations.Sire.Organization;
 /// <c>SireOrganization.UnitType</c> to stay consistent with how organization forms from
 /// other sources (CCR's "AS", "ENK", "NUF", …) are stored.
 /// </remarks>
-public static class SireOrganizationFormMapper
+internal readonly struct SireOrganizationFormMapper
+    : IValidator<string?, string>
 {
     /// <summary>
     /// Default SL-code applied when SIRE omits the <c>organisasjonsform</c> field. <c>IS</c>
@@ -19,38 +22,41 @@ public static class SireOrganizationFormMapper
     /// </summary>
     public const string DefaultOrganizationForm = "IS"; // Default when SIRE omits organisasjonsform — confirm with Skatteetaten that this is the right fallback.
 
-    /// <summary>
-    /// Maps a SIRE <c>organisasjonsform</c> technical name to its SL-code (or applies the
-    /// default when the input is missing).
-    /// </summary>
-    /// <param name="organisasjonsform">The camelCase technical name from SIRE</param>
-    /// <returns>The matching SL-code (e.g. "IS"); <see cref="DefaultOrganizationForm"/> if input was missing.</returns>
-    /// <exception cref="ArgumentException">Thrown when a non-empty value is not in the kodeliste.</exception>
-    public static string GetOrganizationFormOrDefault(string? organisasjonsform)
-        => string.IsNullOrWhiteSpace(organisasjonsform)
-            ? DefaultOrganizationForm
-            : GetOrganizationForm(organisasjonsform);
-
-    /// <summary>
-    /// Maps a SIRE <c>organisasjonsform</c> technical name to its SL-code.
-    /// </summary>
-    /// <param name="organisasjonsform">The camelCase technical name from SIRE (e.g. "kommandittselskap").</param>
-    /// <returns>The matching SL-code (e.g. "KS").</returns>
-    /// <exception cref="ArgumentException">Thrown when the value is not in the kodeliste.</exception>
-    public static string GetOrganizationForm(string organisasjonsform) => organisasjonsform switch
+    /// <inheritdoc/>
+    public bool TryValidate(
+        ref ValidationContext context,
+        string? input,
+        [NotNullWhen(true)] out string? validated)
     {
-        // Technical name (camelCase) -> SL-code.
-        "ansvarligSelskapMedSolidariskAnsvar" => "ANS",
-        "ansvarligSelskapMedDeltAnsvar" => "DA",
-        "indreSelskap" => "IS",
-        "kommandittselskap" => "KS",
-        "norskkontrollertUtenlandskSelskap" => "NOKUS",
-        "partrederi" => "PRE",
-        "tingsrettsligSameie" => "SAM",
-        "utenlandskAnsvarligSelskap" => "UTLANS",
-        "virksomhetDrevetIFellesskap" => "VIFE",
-        _ => ThrowHelper.ThrowArgumentException<string>(
-            nameof(organisasjonsform),
-            $"Unknown SIRE organisasjonsform: '{organisasjonsform}'."),
-    };
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            validated = DefaultOrganizationForm;
+            return true;
+        }
+
+        validated = input switch
+        {
+            // Technical name (camelCase) -> SL-code.
+            "ansvarligSelskapMedSolidariskAnsvar" => "ANS",
+            "ansvarligSelskapMedDeltAnsvar" => "DA",
+            "indreSelskap" => "IS",
+            "kommandittselskap" => "KS",
+            "norskkontrollertUtenlandskSelskap" => "NOKUS",
+            "partrederi" => "PRE",
+            "tingsrettsligSameie" => "SAM",
+            "utenlandskAnsvarligSelskap" => "UTLANS",
+            "virksomhetDrevetIFellesskap" => "VIFE",
+            _ => null,
+        };
+
+        if (validated is null)
+        {
+            context.AddProblem(
+                ValidationErrors.UnknownEnumValue,
+                detail: $"Unknown SIRE organisasjonsform: '{input}'.");
+            return false;
+        }
+
+        return true;
+    }
 }

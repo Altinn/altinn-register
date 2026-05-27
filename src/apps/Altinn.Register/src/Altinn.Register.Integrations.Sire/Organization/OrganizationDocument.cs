@@ -5,7 +5,7 @@ namespace Altinn.Register.Integrations.Sire.Organization;
 /// <summary>
 /// Represents a company from the SIRE lookup API (v1.0.1).
 /// </summary>
-public sealed record OrganizationDocument
+internal sealed record OrganizationDocument
 {
     /// <summary>
     /// Gets the 9-digit organization identifier.
@@ -36,12 +36,6 @@ public sealed record OrganizationDocument
     /// </summary>
     [JsonPropertyName("slettetdato")]
     public string? DeletedDate { get; init; }
-
-    /// <summary>
-    /// Gets the tax liability type (e.g. "selskap", "personligSkattepliktig").
-    /// </summary>
-    [JsonPropertyName("typeSkattepliktig")]
-    public string? TaxLiabilityType { get; init; }
 
     /// <summary>
     /// Gets the postal address.

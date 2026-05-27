@@ -204,14 +204,14 @@ public static class RegisterPersistenceExtensions
         {
             PartySource.CentralCoordinatingRegister => "ccr",
             PartySource.NationalPopulationRegister => "npr",
-            PartySource.RegisteredWithSkatteetaten => "srs",
+            PartySource.RegisteredWithSkatteetaten => "sire",
             _ => null,
         }));
 
         builder.MapEnum<OrganizationSource>("register.organization_source", new EnumNameTranslator<OrganizationSource>(static value => value switch
         {
             OrganizationSource.CentralCoordinatingRegister => "ccr",
-            OrganizationSource.RegisteredWithSkatteetaten => "srs",
+            OrganizationSource.RegisteredWithSkatteetaten => "sire",
             _ => null,
         }));
 
@@ -227,7 +227,6 @@ public static class RegisterPersistenceExtensions
             ExternalRoleSource.NationalPopulationRegister => "npr",
             ExternalRoleSource.EmployersEmployeeRegister => "aar",
             ExternalRoleSource.CivilRightsAuthority => "cra",
-            ExternalRoleSource.RegisteredWithSkatteetaten => "srs",
             _ => null,
         }));
 

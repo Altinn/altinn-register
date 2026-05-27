@@ -5,7 +5,7 @@ namespace Altinn.Register.Integrations.Sire.Organization;
 /// <summary>
 /// Represents an identifier for a related party in the SIRE API.
 /// </summary>
-public sealed record RelatedIdentifier
+internal sealed record RelatedIdentifier
 {
     /// <summary>
     /// Gets the identifier type (e.g. "taxIdentificationNumber").

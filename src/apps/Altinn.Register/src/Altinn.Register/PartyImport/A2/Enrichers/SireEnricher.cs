@@ -6,6 +6,7 @@ using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.Sire;
+using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.PartyImport.A2.Enrichers;
 
@@ -67,20 +68,21 @@ internal sealed partial class SireEnricher
             MailingAddress = organization.MailingAddress,
         };
 
-        await MapRoleAssignments(context, organization, cancellationToken);
+        MapRoleAssignments(context, organization);
     }
 
-    private async Task MapRoleAssignments(
+    private static void MapRoleAssignments(
         A2PartyImportSagaEnrichmentRunContext context,
-        SireOrganization organization,
-        CancellationToken cancellationToken)
+        SireOrganization organization)
     {
         var relationships = organization.BusinessRelationships;
 
         if (relationships is not { Length: > 0 })
         {
-            context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten] = PartyExternalRoleAssignmentsUpdate.Full.Empty
-;
+            // SIRE role identifiers are drawn from the CCR role catalog, so assignments
+            // are stored under ExternalRoleSource.CentralCoordinatingRegister. The party's
+            // OrganizationSource = RegisteredWithSkatteetaten preserves provenance.
+            context.RoleAssignments[ExternalRoleSource.CentralCoordinatingRegister] = PartyExternalRoleAssignmentsUpdate.Full.Empty;
             return;
         }
 
@@ -109,8 +111,9 @@ internal sealed partial class SireEnricher
                 // Unreachable: OrganizationDocumentValidator rejects any SIRE relationship
                 // that doesn't carry exactly one of RelatedPersonIdentifier or
                 // RelatedOrganizationIdentifier. Asserting here turns drift in that contract
-                // into a loud failure instead of a silent data loss.
-                throw new InvalidOperationException(
+                // into a loud failure instead of a silent data loss. The generic overload
+                // is used so the compiler accepts `toParty` as definitely assigned below.
+                toParty = ThrowHelper.ThrowInvalidOperationException<PartyExternalRoleAssignmentPartyRef>(
                     "SireBusinessRelationship must have either RelatedPersonIdentifier or RelatedOrganizationIdentifier set.");
             }
 
@@ -121,7 +124,8 @@ internal sealed partial class SireEnricher
             });
         }
 
-        // Note: For idempotency, this should not use Add, but rather overwrite any existing assignments from the same source
-        context.RoleAssignments[ExternalRoleSource.RegisteredWithSkatteetaten] = new PartyExternalRoleAssignmentsUpdate.Full { Assignments = mapped.DrainToImmutableValueArray() };
+        // Note: For idempotency, this overwrites any existing assignments from the same source.
+        // Bucket is CentralCoordinatingRegister because SIRE role identifiers come from the CCR catalog.
+        context.RoleAssignments[ExternalRoleSource.CentralCoordinatingRegister] = new PartyExternalRoleAssignmentsUpdate.Full { Assignments = mapped.DrainToImmutableValueArray() };
     }
 }

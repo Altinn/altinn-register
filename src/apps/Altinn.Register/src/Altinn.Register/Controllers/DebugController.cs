@@ -190,6 +190,7 @@ public class DebugController
     /// Manually trigger SIRE enrichment for an organization.
     /// </summary>
     [HttpPost("sire/org/{orgNo}")]
+    [Authorize(Policy = "Debug")]
     public async Task<IActionResult> EnrichSireOrganization(
         string orgNo,
         [FromServices] ISireClient sireClient,

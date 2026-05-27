@@ -7,7 +7,7 @@ namespace Altinn.Register.Integrations.Sire.Organization;
 /// Specifies the source of a person-party.
 /// </summary>
 [StringEnumConverter]
-public enum IdentifierType
+internal enum IdentifierType
 {
     /// <summary>
     /// The Norwegian National Population Register.

@@ -1,3 +1,5 @@
+using Altinn.Authorization.ProblemDetails;
+using Altinn.Authorization.ProblemDetails.Validation;
 using Altinn.Register.Integrations.Sire.Organization;
 
 namespace Altinn.Register.Tests.UnitTests;
@@ -12,72 +14,68 @@ public class SireOrganizationFormMapperTests
     /// </summary>
     [Theory]
     [MemberData(nameof(KnownOrganizationFormMappings))]
-    public void GetOrganizationForm_MapsKnownValue(string organisasjonsform, string expectedSlCode)
+    public void TryValidate_MapsKnownValue(string organisasjonsform, string expectedSlCode)
     {
-        var actual = SireOrganizationFormMapper.GetOrganizationForm(organisasjonsform);
-        Assert.Equal(expectedSlCode, actual);
+        ValidationProblemBuilder builder = default;
+        var ok = builder.TryValidate(
+            path: "/organisasjonsform",
+            organisasjonsform,
+            default(SireOrganizationFormMapper),
+            out string? result);
+
+        Assert.True(ok);
+        Assert.Equal(expectedSlCode, result);
+        Assert.False(builder.TryBuild(out _));
     }
 
     /// <summary>
-    /// Anything outside the kodeliste throws — keeps us loud when Skatt adds a new form.
-    /// </summary>
-    [Theory]
-    [InlineData("")]
-    [InlineData("AS")] // common Norwegian form, but not in this kodeliste
-    [InlineData("notAForm")]
-    [InlineData("KS")] // SL-code (output of the mapper, mistakenly fed back in)
-    [InlineData("KOMMANDITTSELSKAP")] // case mismatch
-    [InlineData("kommandittselskap ")] // trailing whitespace
-    public void GetOrganizationForm_ThrowsForUnknown(string organisasjonsform)
-    {
-        Assert.Throws<ArgumentException>(() => SireOrganizationFormMapper.GetOrganizationForm(organisasjonsform));
-    }
-
-    /// <summary>
-    /// Null input falls through to the throw branch.
-    /// </summary>
-    [Fact]
-    public void GetOrganizationForm_NullInput_Throws()
-    {
-        Assert.Throws<ArgumentException>(() => SireOrganizationFormMapper.GetOrganizationForm(null!));
-    }
-
-    /// <summary>
-    /// Missing or whitespace input on the default-aware overload yields the documented default
-    /// SL-code (<c>IS</c>), reflecting that SIRE often omits the field.
+    /// Missing/whitespace input yields the documented default SL-code (<c>IS</c>) and is
+    /// treated as a successful match — SIRE often omits the field for indre selskap, so
+    /// this is by design, not a fallback for unknown values.
     /// </summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void GetOrganizationFormOrDefault_MissingInput_ReturnsDefault(string? organisasjonsform)
+    public void TryValidate_MissingInput_ReturnsDefault(string? organisasjonsform)
     {
-        var actual = SireOrganizationFormMapper.GetOrganizationFormOrDefault(organisasjonsform);
-        Assert.Equal(SireOrganizationFormMapper.DefaultOrganizationForm, actual);
-        Assert.Equal("IS", actual);
+        ValidationProblemBuilder builder = default;
+        var ok = builder.TryValidate(
+            path: "/organisasjonsform",
+            organisasjonsform,
+            default(SireOrganizationFormMapper),
+            out string? result);
+
+        Assert.True(ok);
+        Assert.Equal(SireOrganizationFormMapper.DefaultOrganizationForm, result);
+        Assert.Equal("IS", result);
+        Assert.False(builder.TryBuild(out _));
     }
 
     /// <summary>
-    /// When the value is present and known, the default-aware overload should map it to its
-    /// SL-code the same way as <see cref="SireOrganizationFormMapper.GetOrganizationForm"/>.
+    /// Anything outside the kodeliste produces a validation error rather than throwing.
+    /// The default only applies to the missing case (covered by
+    /// <see cref="TryValidate_MissingInput_ReturnsDefault"/>), never as a silent fallback
+    /// for unrecognised non-empty values.
     /// </summary>
     [Theory]
-    [MemberData(nameof(KnownOrganizationFormMappings))]
-    public void GetOrganizationFormOrDefault_MapsPresentKnownValue(string organisasjonsform, string expectedSlCode)
+    [InlineData("AS")] // common Norwegian form, but not in this kodeliste
+    [InlineData("notAForm")]
+    [InlineData("KS")] // SL-code (output of the mapper, mistakenly fed back in)
+    [InlineData("KOMMANDITTSELSKAP")] // case mismatch
+    [InlineData("kommandittselskap ")] // trailing whitespace
+    public void TryValidate_AddsProblemForUnknown(string organisasjonsform)
     {
-        var actual = SireOrganizationFormMapper.GetOrganizationFormOrDefault(organisasjonsform);
-        Assert.Equal(expectedSlCode, actual);
-    }
+        ValidationProblemBuilder builder = default;
+        var ok = builder.TryValidate(
+            path: "/organisasjonsform",
+            organisasjonsform,
+            default(SireOrganizationFormMapper),
+            out string? result);
 
-    /// <summary>
-    /// Unknown but non-empty input still throws on the default-aware overload — the default
-    /// only applies to the missing case, never as a silent fallback for unrecognized values.
-    /// </summary>
-    [Fact]
-    public void GetOrganizationFormOrDefault_UnknownNonEmptyValue_Throws()
-    {
-        Assert.Throws<ArgumentException>(
-            () => SireOrganizationFormMapper.GetOrganizationFormOrDefault("notARealForm"));
+        Assert.False(ok);
+        Assert.Null(result);
+        Assert.True(builder.TryBuild(out _));
     }
 
     /// <summary>

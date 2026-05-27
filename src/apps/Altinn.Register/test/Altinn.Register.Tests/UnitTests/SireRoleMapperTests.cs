@@ -1,3 +1,5 @@
+using Altinn.Authorization.ProblemDetails;
+using Altinn.Authorization.ProblemDetails.Validation;
 using Altinn.Register.Integrations.Sire.Organization;
 
 namespace Altinn.Register.Tests.UnitTests;
@@ -14,14 +16,24 @@ public class SireRoleMapperTests
     /// </summary>
     [Theory]
     [MemberData(nameof(KnownRelasjonstyper))]
-    public void GetRoleIdentifier_MapsKnownRelasjonstype(string relasjonstype, string expected)
+    public void TryValidate_MapsKnownRelasjonstype(string relasjonstype, string expected)
     {
-        var actual = SireRoleMapper.GetRoleIdentifier(relasjonstype);
-        Assert.Equal(expected, actual);
+        ValidationProblemBuilder builder = default;
+        var ok = builder.TryValidate(
+            path: "/relasjonstype",
+            relasjonstype,
+            default(SireRoleMapper),
+            out string? result);
+
+        Assert.True(ok);
+        Assert.Equal(expected, result);
+        Assert.False(builder.TryBuild(out _));
     }
 
     /// <summary>
-    /// Anything not in the kodeliste throws — keeps us loud when Skatt adds a new value.
+    /// Anything outside the kodeliste produces a validation error at the supplied path
+    /// rather than throwing — that's the whole point of the IValidator refactor: multiple
+    /// unknowns in a single document aggregate instead of failing on the first.
     /// </summary>
     [Theory]
     [InlineData("")]
@@ -30,24 +42,24 @@ public class SireRoleMapperTests
     [InlineData("daglig-leder")] // role identifier (output, mistakenly fed back in)
     [InlineData("KOMPLEMENTAR")] // case mismatch — switch is case-sensitive
     [InlineData("komplementar ")] // trailing whitespace — caller forgot to trim
-    public void GetRoleIdentifier_ThrowsForUnknown(string relasjonstype)
+    public void TryValidate_AddsProblemForUnknown(string relasjonstype)
     {
-        Assert.Throws<ArgumentException>(() => SireRoleMapper.GetRoleIdentifier(relasjonstype));
-    }
+        ValidationProblemBuilder builder = default;
+        var ok = builder.TryValidate(
+            path: "/relasjonstype",
+            relasjonstype,
+            default(SireRoleMapper),
+            out string? result);
 
-    /// <summary>
-    /// Null input falls through to the throw branch (string interpolation handles null safely).
-    /// </summary>
-    [Fact]
-    public void GetRoleIdentifier_NullInput_Throws()
-    {
-        Assert.Throws<ArgumentException>(() => SireRoleMapper.GetRoleIdentifier(null!));
+        Assert.False(ok);
+        Assert.Null(result);
+        Assert.True(builder.TryBuild(out _));
     }
 
     /// <summary>
     /// Authoritative table of all 52 SIRE relasjonstype → Altinn role identifier mappings.
     /// SL-codes (KOMP, DAGL, …) are noted in comments above each block for traceability against
-    /// the Skatteetaten kodeliste
+    /// the Skatteetaten kodeliste.
     /// </summary>
     public static TheoryData<string, string> KnownRelasjonstyper => new()
     {

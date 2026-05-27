@@ -17,8 +17,8 @@ public enum OrganizationSource
     CentralCoordinatingRegister = 1,
 
     /// <summary>
-    /// SRS - Skatteetaten-registrerte selskaper (SIRE)
+    /// Skatteetaten-registrerte selskaper (SIRE)
     /// </summary>
-    [JsonStringEnumMemberName("srs")]
+    [JsonStringEnumMemberName("sire")]
     RegisteredWithSkatteetaten
 }

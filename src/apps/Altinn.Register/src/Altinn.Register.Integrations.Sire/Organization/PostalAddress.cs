@@ -5,7 +5,7 @@ namespace Altinn.Register.Integrations.Sire.Organization;
 /// <summary>
 /// Represents a postal address from the SIRE API.
 /// </summary>
-public sealed record PostalAddress
+internal sealed record PostalAddress
 {
     /// <summary>
     /// Gets the timestamp when the address record was last updated in SIRE.

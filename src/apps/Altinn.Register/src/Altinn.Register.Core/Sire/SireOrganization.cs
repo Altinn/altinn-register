@@ -25,7 +25,7 @@ public sealed record SireOrganization
     public required string UnitType { get; init; }
 
     /// <summary>
-    /// Gets the unit status. Set to "slettet" when the organization has been deleted.
+    /// Gets the unit status. Set to "S" when the organization has been deleted and 'E' for all other cases.
     /// </summary>
     public required string? UnitStatus { get; init; }
 
