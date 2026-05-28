@@ -12,5 +12,7 @@
     "BaseArtifactsPath",
     "ArtifactsPath",
     "VersionFilePath"
-  ]
+  ],
+  "csharp.debug.justMyCode": false,
+  "csharp.debug.requireExactSource": false
 }
