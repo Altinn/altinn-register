@@ -38,7 +38,7 @@ public sealed class SireClient
     public async Task<Result<SireOrganization>> GetOrganization(OrganizationIdentifier organizationIdentifier, CancellationToken cancellationToken)
     {
         using var response = await _client.GetAsync(
-            $"v1/digdir/{Uri.EscapeDataString(organizationIdentifier.ToString())}",
+            $"v1/digdir/{organizationIdentifier}",
             cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NotFound)

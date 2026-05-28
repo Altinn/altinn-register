@@ -148,7 +148,7 @@ public class DebugController
         Debug.Assert(organizationIdentifier is not null);
         using var client = httpClientFactory.CreateClient(nameof(ISireClient));
         using var response = await client.GetAsync(
-            $"v1/digdir/{Uri.EscapeDataString(organizationIdentifier!.ToString())}",
+            $"v1/digdir/{organizationIdentifier}",
             cancellationToken);
 
         Response.StatusCode = (int)response.StatusCode;

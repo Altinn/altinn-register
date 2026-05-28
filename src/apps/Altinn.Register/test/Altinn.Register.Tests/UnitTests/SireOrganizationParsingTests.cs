@@ -10,7 +10,6 @@ using Altinn.Register.Core.Sire;
 using Altinn.Register.Integrations.Sire.Organization;
 using Altinn.Register.Tests.Utils;
 using Altinn.Register.TestUtils;
-using Microsoft.Extensions.Time.Testing;
 using Xunit.Sdk;
 
 namespace Altinn.Register.Tests.UnitTests;
