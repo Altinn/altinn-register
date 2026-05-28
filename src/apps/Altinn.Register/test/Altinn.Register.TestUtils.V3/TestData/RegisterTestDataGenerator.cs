@@ -174,7 +174,7 @@ public sealed partial class RegisterTestDataGenerator
             User = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
-            Source = identifier.Value.ToString().StartsWith('0') ? OrganizationSource.BusinessAssessedPartnerships : OrganizationSource.CentralCoordinatingRegister,
+            Source = identifier.Value.ToString().StartsWith('0') ? OrganizationSource.RegisteredWithSkatteetaten : OrganizationSource.CentralCoordinatingRegister,
             UnitStatus = unitStatus.HasValue ? unitStatus.Value : "N",
             UnitType = unitType.HasValue ? unitType.Value : "AS",
             TelephoneNumber = telephoneNumber.IsSet ? telephoneNumber.Value : "99999999",

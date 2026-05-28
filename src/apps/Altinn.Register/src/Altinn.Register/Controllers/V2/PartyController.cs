@@ -500,8 +500,11 @@ public class PartyController
             count++;
         }
 
+        using var activity = RegisterTelemetry.StartActivity("query parties");
+
         if (count == 0)
         {
+            activity?.AddTag("query.empty", "true");
             return StatusCode(StatusCodes.Status200OK, ListObject.Create<PartyRecord>([]));
         }
 
@@ -512,9 +515,11 @@ public class PartyController
 
         if (errors.TryToActionResult(out var actionResult))
         {
+            activity?.AddTag("query.error", "validation");
             return actionResult;
         }
 
+        activity?.AddTag("query.count", count);
         await using var uow = await _uowManager.CreateAsync(cancellationToken);
         var persistence = uow.GetPartyPersistence();
 
@@ -534,18 +539,34 @@ public class PartyController
         // TODO: rewrite this to give out which inputs matched which outputs
         // see https://github.com/Altinn/altinn-register/issues/659
         var statusCode = StatusCodes.Status200OK;
-        var anyMissing = ids.OrEmpty().Any(id => !result.Any(p => p.PartyId.Value == id))
-            || uuids.OrEmpty().Any(uuid => !result.Any(p => p.Uuid == uuid))
-            || orgIds.OrEmpty().Any(orgId => !result.Any(p => p is Organization o && o.OrganizationIdentifier == orgId))
-            || personIds.OrEmpty().Any(personId => !result.Any(p => p is Person pp && pp.PersonIdentifier == personId))
-            || userIds.OrEmpty().Any(uid => !result.Any(p => p.User.HasValue && p.User.Value.UserIds.HasValue && p.User.Value.UserIds.Value.Contains(uid)))
-            || usernames.OrEmpty().Any(username => !result.Any(p => p.User.HasValue && p.User.Value.Username.HasValue && string.Equals(p.User.Value.Username.Value, username, StringComparison.OrdinalIgnoreCase)));
+        var missingById = ids.OrEmpty().Any(id => !result.Any(p => p.PartyId.Value == id));
+        var missingByUuid = uuids.OrEmpty().Any(uuid => !result.Any(p => p.Uuid == uuid));
+        var missingByOrgId = orgIds.OrEmpty().Any(orgId => !result.Any(p => p is Organization o && o.OrganizationIdentifier == orgId));
+        var missingByPersonId = personIds.OrEmpty().Any(personId => !result.Any(p => p is Person pp && pp.PersonIdentifier == personId));
+        var missingByUserId = userIds.OrEmpty().Any(uid => !result.Any(p => p.User.HasValue && p.User.Value.UserIds.HasValue && p.User.Value.UserIds.Value.Contains(uid)));
+        var missingByUsername = usernames.OrEmpty().Any(username => !result.Any(p => p.User.HasValue && p.User.Value.Username.HasValue && string.Equals(p.User.Value.Username.Value, username, StringComparison.OrdinalIgnoreCase)));
+        var missingByIdpEmail = idpEmails.OrEmpty().Any(email => !result.Any(p => p is SelfIdentifiedUser s && s.Email.HasValue && string.Equals(s.Email.Value, email, StringComparison.OrdinalIgnoreCase)));
+        var anyMissing = missingById || missingByUuid || missingByOrgId || missingByPersonId || missingByUserId || missingByUsername || missingByIdpEmail;
 
         if (anyMissing)
         {
+            // in case we requested a single item, it was not found, and the item was an organization, we log the query
+            if (count == 1 && orgIds is { Count: 1 })
+            {
+                activity?.AddTag("query.urn", parties.Items.First().ToString());
+            }
+
+            activity?.AddTag("query.missing.by-id", missingById);
+            activity?.AddTag("query.missing.by-uuid", missingByUuid);
+            activity?.AddTag("query.missing.by-org-id", missingByOrgId);
+            activity?.AddTag("query.missing.by-person-id", missingByPersonId);
+            activity?.AddTag("query.missing.by-user-id", missingByUserId);
+            activity?.AddTag("query.missing.by-username", missingByUsername);
+            activity?.AddTag("query.missing.by-idp-email", missingByIdpEmail);
             statusCode = StatusCodes.Status206PartialContent;
         }
 
+        activity?.AddTag("query.resultCount", result.Count);
         return StatusCode(statusCode, ListObject.Create(result));
     }
 

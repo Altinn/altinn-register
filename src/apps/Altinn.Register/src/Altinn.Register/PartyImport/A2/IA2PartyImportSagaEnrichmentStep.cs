@@ -178,6 +178,7 @@ internal abstract class A2PartyImportSagaEnricher
             builder.Add(new Impl<A2PartyUserEnricher>());
             builder.Add(new Impl<CcrRoleAssignmentsFromA2Enricher>());
             builder.Add(new Impl<NprEnricher>());
+            builder.Add(new Impl<SireEnricher>());
 
             Enrichers = builder.DrainToImmutable();
             ByName = Enrichers.ToFrozenDictionary(e => e.Name);

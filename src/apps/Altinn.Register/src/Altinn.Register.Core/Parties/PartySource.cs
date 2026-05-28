@@ -14,4 +14,9 @@ public enum PartySource
     /// The Norwegian National Population Register.
     /// </summary>
     NationalPopulationRegister,
+
+    /// <summary>
+    /// Registered with Skatteetaten.
+    /// </summary>
+    RegisteredWithSkatteetaten
 }
