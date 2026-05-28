@@ -88,8 +88,12 @@ public sealed class SireClient
 
         var lookup = await _lookupProvider.GetLocationLookup(cancellationToken);
 
+        // Snapshot "now" once so every validity check inside the document compares
+        // against the same instant — independent of how long the validator's loop takes.
+        var now = _timeProvider.GetUtcNow();
+
         ValidationProblemBuilder builder = default;
-        builder.TryValidate(path: "/", document, new OrganizationDocumentValidator(lookup, _timeProvider), out SireOrganization? validated);
+        builder.TryValidate(path: "/", document, new OrganizationDocumentValidator(lookup, now), out SireOrganization? validated);
 
         if (builder.TryBuild(out var error))
         {

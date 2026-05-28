@@ -3,9 +3,9 @@
   "name": "Knut-Olavs Synkroniseringstest IS",
   "unitType": "IS",
   "unitStatus": "E",
-  "isDeleted": false,
+  "deletedAt": null,
   "mailingAddress": {
-    "address": "Smågehaugen 14",
+    "address": "Smågehaugen 14 6480 AUKRA",
     "postalCode": "6480",
     "city": "AUKRA"
   },

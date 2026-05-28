@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ProblemDetails.Validation;
@@ -9,6 +10,7 @@ using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Location;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.Sire;
+using Altinn.Register.Core.Validation;
 
 namespace Altinn.Register.Integrations.Sire.Organization;
 
@@ -19,43 +21,43 @@ internal sealed class OrganizationDocumentValidator
     : IValidator<OrganizationDocument, SireOrganization>
 {
     private readonly ILocationLookup _lookup;
-    private readonly TimeProvider _timeProvider;
+    private readonly DateTimeOffset _now;
 
     /// <summary>
-    /// Initializes a new instance of the OrganizationDocumentValidator class using the specified location lookup
-    /// service and time source.
+    /// Initializes a new instance of the OrganizationDocumentValidator with the specified
+    /// location lookup and a single snapshot of "now".
     /// </summary>
     /// <param name="lookup">The location lookup service used to validate organization document locations.</param>
-    /// <param name="timeProvider">The clock used to filter out expired postadresse and virksomhetsrelasjon entries.</param>
-    public OrganizationDocumentValidator(ILocationLookup lookup, TimeProvider timeProvider)
+    /// <param name="now">
+    /// A single moment-in-time used for every validity check across this document.
+    /// </param>
+    public OrganizationDocumentValidator(ILocationLookup lookup, DateTimeOffset now)
     {
         _lookup = lookup;
-        _timeProvider = timeProvider;
+        _now = now;
     }
 
     /// <summary>
-    /// Maximum tolerated drift between SIRE's clock and ours before a non-null
-    /// <c>opphoerstidspunkt</c> in the future is treated as bad data.
+    /// Maximum tolerated drift between SIRE's clock and ours before an
+    /// <c>opphoerstidspunkt</c> sitting in the future is treated as bad data.
     /// </summary>
-    private static readonly TimeSpan ValidToFutureGrace = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan FutureDateGrace = TimeSpan.FromMinutes(10);
 
     /// <summary>
-    /// SIRE's <c>opphoerstidspunkt</c> is treated as binary: <see langword="null"/> means
-    /// "still in force", any value means "terminated, ignore this entry". We don't carry
-    /// future-dated terminations forward — by the time the date arrives we will have
-    /// re-fetched the document. If SIRE does send a <c>validTo</c> sitting meaningfully
-    /// in the future, that's data we don't know how to safely process, so we add a
-    /// validation error rather than silently picking an interpretation. The
-    /// <see cref="ValidToFutureGrace"/> window absorbs ordinary clock skew between SIRE
+    /// Sanity check for <c>opphoerstidspunkt</c>: that field's semantics determine
+    /// whether an entry is still in force, so a future-dated value is data we don't
+    /// know how to safely process. We don't carry future-dated terminations forward —
+    /// by the time the date arrives we'll have re-fetched the document. The
+    /// <see cref="FutureDateGrace"/> window absorbs ordinary clock skew between SIRE
     /// and us so a few-minute drift doesn't trip the check.
     /// </summary>
-    private static void ValidateValidToNotFarFuture(
+    private static void ValidateNotFarFuture(
         ref ValidationContext context,
-        DateTimeOffset? validTo,
+        DateTimeOffset? date,
         DateTimeOffset now,
         string path)
     {
-        if (validTo is { } endsAt && endsAt > now + ValidToFutureGrace)
+        if (date is { } at && at > now + FutureDateGrace)
         {
             context.AddChildProblem(ValidationErrors.InvalidValue, path);
         }
@@ -72,13 +74,18 @@ internal sealed class OrganizationDocumentValidator
         {
             context.AddChildProblem(StdValidationErrors.Required, "/identifikator");
         }
-        else if (!OrganizationIdentifier.TryParse(input.Identifier, provider: null, out var parsedOrgId))
-        {
-            context.AddChildProblem(ValidationErrors.InvalidOrganizationNumber, "/identifikator");
-        }
         else
         {
-            orgId = parsedOrgId;
+            context.TryValidateChild(
+                path: "/identifikator",
+                input.Identifier,
+                default(OrganizationIdentifierValidator),
+                out orgId);
+        }
+
+        if (string.IsNullOrWhiteSpace(input.CompanyName))
+        {
+            context.AddChildProblem(StdValidationErrors.Required, "/selskapetsNavn");
         }
 
         // Map organisasjonsform via the validator so unknown values aggregate as errors
@@ -90,15 +97,28 @@ internal sealed class OrganizationDocumentValidator
             default(SireOrganizationFormMapper),
             out string? unitType);
 
-        var now = _timeProvider.GetUtcNow();
+        var now = _now;
 
-        // Refuse to carry forward any future-dated termination on the postal address —
-        // see ValidateValidToNotFarFuture for the rationale. NormalizeAddress treats
-        // any non-null opphoerstidspunkt as "no current address" regardless of date.
-        ValidateValidToNotFarFuture(ref context, input.PostalAddress?.ValidTo, now, "/postadresse/opphoerstidspunkt");
+        DateTimeOffset? deletedAt = null;
+        if (!string.IsNullOrWhiteSpace(input.DeletedDate))
+        {
+            if (DateOnly.TryParseExact(input.DeletedDate, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDeletedOn))
+            {
+                deletedAt = new DateTimeOffset(parsedDeletedOn, TimeOnly.MinValue, TimeSpan.Zero);
+            }
+            else
+            {
+                context.AddChildProblem(
+                    ValidationErrors.InvalidDate,
+                    "/slettetdato",
+                    detail: $"The value '{input.DeletedDate}' is not a valid date.");
+            }
+        }
+
+        ValidateNotFarFuture(ref context, input.PostalAddress?.ValidTo, now, "/postadresse/opphoerstidspunkt");
 
         // Validate business relationships up-front so any per-relationship problems
-        // are added to the context before we decide whether to bail out.
+        // are added to the context before we decide whether to bail out.        
         var businessRelationships = MapBusinessRelationships(
             ref context,
             input.BusinessRelationships,
@@ -112,8 +132,8 @@ internal sealed class OrganizationDocumentValidator
 
         Debug.Assert(orgId is not null);
         Debug.Assert(unitType is not null);
+        Debug.Assert(!string.IsNullOrWhiteSpace(input.CompanyName));
 
-        bool isDeleted = !string.IsNullOrWhiteSpace(input.DeletedDate);
         MailingAddressRecord? mailingAddress = NormalizeAddress(input.PostalAddress);
 
         validated = new SireOrganization
@@ -121,8 +141,8 @@ internal sealed class OrganizationDocumentValidator
             OrganizationIdentifier = orgId!,
             Name = input.CompanyName,
             UnitType = unitType,
-            UnitStatus = isDeleted ? "S" : "E",
-            IsDeleted = isDeleted,
+            UnitStatus = deletedAt is not null ? "S" : "E",
+            DeletedAt = deletedAt,
             MailingAddress = mailingAddress,
             LastUpdated = input.PostalAddress?.UpdatedAt,
             BusinessRelationships = businessRelationships,
@@ -142,7 +162,7 @@ internal sealed class OrganizationDocumentValidator
         // terminated; treat it as no current address. Downstream consumers already
         // handle MailingAddress = null, and a stale address is worse than none for
         // mail delivery. (TryValidate has already added an error if the date sits
-        // unreasonably far in the future — see ValidateValidToNotFarFuture.)
+        // unreasonably far in the future — see ValidateNotFarFuture.)
         if (postalAddress.ValidTo is not null)
         {
             return null;
@@ -167,6 +187,19 @@ internal sealed class OrganizationDocumentValidator
         var postalCode = NormalizeNorwegianPostalCode(address.PostalCode);
         var city = address.City?.Trim();
 
+        // Mirror FREG/ER: surface the postal-code/city as a trailing address line for
+        // display, but only when there are already address lines and the postal code
+        // isn't already at the start of the last line. The PostalCode/City fields still
+        // carry the structured values separately.
+        if (lines.Count > 0 && (postalCode is null || !lines[^1].StartsWith(postalCode, StringComparison.Ordinal)))
+        {
+            var postalLine = $"{postalCode} {city}".Trim();
+            if (postalLine.Length > 0)
+            {
+                lines.Add(postalLine);
+            }
+        }
+
         if (lines.Count == 0 && postalCode is null && city is null)
         {
             return null;
@@ -186,7 +219,16 @@ internal sealed class OrganizationDocumentValidator
         var postalCode = GetInternationalPostalCode(address.PostalCode, address.CountryCode);
         var city = address.City?.Trim();
 
-        // Add country name if not already present in address lines
+        // Mirror FREG/ER: surface city in address lines if not already present anywhere
+        // in them (Contains, not StartsWith — international layouts vary, the city may
+        // appear in the middle of a line such as "1600 Pennsylvania Avenue Washington").
+        if (!string.IsNullOrEmpty(city)
+            && !lines.Any(line => line.Contains(city, StringComparison.OrdinalIgnoreCase)))
+        {
+            lines.Add(city);
+        }
+
+        // Add country name if not already present in address lines.
         if (TryLookupCountryName(address.CountryCode, out var countryName))
         {
             if (!lines.Any(line => line.Contains(countryName, StringComparison.OrdinalIgnoreCase)))
@@ -219,6 +261,7 @@ internal sealed class OrganizationDocumentValidator
             return result;
         }
 
+        bool isFirstLine = true;
         foreach (var line in addressLines)
         {
             if (string.IsNullOrWhiteSpace(line))
@@ -226,7 +269,19 @@ internal sealed class OrganizationDocumentValidator
                 continue;
             }
 
-            var normalized = RemoveCareOfPrefix(line);
+            var normalized = line;
+
+            // C/O prefixes are a first-line convention in Norwegian addressing — mirrors
+            // NPR, which only ever calls RemoveCareOfPrefix on the value destined for
+            // line 0 (its dedicated CareOfAddressName field). For SIRE's freeform
+            // adressetekst we apply the same first-line-only rule so that a later line
+            // accidentally starting with "CO" or "V/" isn't stripped.
+            if (isFirstLine)
+            {
+                normalized = RemoveCareOfPrefix(normalized);
+                isFirstLine = false;
+            }
+
             normalized = AddPostboxIfNeeded(normalized, isForeign);
             result.Add(normalized);
         }
@@ -380,11 +435,11 @@ internal sealed class OrganizationDocumentValidator
 
             // Any non-null opphoerstidspunkt means SIRE has terminated this relationship;
             // skip it. Far-future validTo values are flagged as bad data — see
-            // ValidateValidToNotFarFuture for the rationale. Full-upsert downstream clears
+            // ValidateNotFarFuture for the rationale. Full-upsert downstream clears
             // any previously-known assignments not present in this fresh document.
             if (rel.ValidTo is not null)
             {
-                ValidateValidToNotFarFuture(ref context, rel.ValidTo, now, path + "/opphoerstidspunkt");
+                ValidateNotFarFuture(ref context, rel.ValidTo, now, path + "/opphoerstidspunkt");
                 continue;
             }
 

@@ -3,7 +3,6 @@ using Altinn.Authorization.ProblemDetails.Validation;
 using Altinn.Register.Core.Location;
 using Altinn.Register.Core.Sire;
 using Altinn.Register.Integrations.Sire.Organization;
-using Microsoft.Extensions.Time.Testing;
 using Moq;
 
 namespace Altinn.Register.Tests.UnitTests;
@@ -12,7 +11,7 @@ namespace Altinn.Register.Tests.UnitTests;
 /// Focused unit tests for <see cref="OrganizationDocumentValidator"/> covering the
 /// <c>opphoerstidspunkt</c> (validTo) handling semantics: SIRE treats any non-null
 /// validTo as "terminated, drop this entry", and a validTo sitting more than
-/// <c>ValidToFutureGrace</c> in the future is flagged as bad data rather than silently
+/// <c>FutureDateGrace</c> in the future is flagged as bad data rather than silently
 /// carried forward.
 /// </summary>
 /// <remarks>
@@ -32,11 +31,7 @@ public class OrganizationDocumentValidatorTests
     private const string TestFnr = "25871999336";
 
     private static OrganizationDocumentValidator CreateValidator()
-    {
-        var timeProvider = new FakeTimeProvider();
-        timeProvider.SetUtcNow(Now);
-        return new OrganizationDocumentValidator(Mock.Of<ILocationLookup>(), timeProvider);
-    }
+        => new(Mock.Of<ILocationLookup>(), Now);
 
     private static (SireOrganization? Validated, bool HasError) Run(OrganizationDocument document)
     {
@@ -88,6 +83,27 @@ public class OrganizationDocumentValidatorTests
             ],
         };
 
+    private static OrganizationDocument DocWithDeletedDate(string? deletedDate)
+        => new()
+        {
+            Identifier = TestOrgNo,
+            CompanyName = "Test AS",
+            OrganizationForm = "indreSelskap",
+            DeletedDate = deletedDate,
+            PostalAddress = null,
+            BusinessRelationships = [],
+        };
+
+    private static OrganizationDocument DocWithCompanyName(string? companyName)
+        => new()
+        {
+            Identifier = TestOrgNo,
+            CompanyName = companyName,
+            OrganizationForm = "indreSelskap",
+            PostalAddress = null,
+            BusinessRelationships = [],
+        };
+
     /// <summary>
     /// Null <c>opphoerstidspunkt</c> means the address is still in force, so it should
     /// be carried through to <c>MailingAddress</c>.
@@ -100,7 +116,7 @@ public class OrganizationDocumentValidatorTests
         Assert.False(hasError);
         Assert.NotNull(validated);
         Assert.NotNull(validated.MailingAddress);
-        Assert.Equal("Testgata 1", validated.MailingAddress.Address);
+        Assert.Equal("Testgata 1 0001 OSLO", validated.MailingAddress.Address);
     }
 
     /// <summary>
@@ -196,5 +212,89 @@ public class OrganizationDocumentValidatorTests
 
         Assert.True(hasError);
         Assert.Null(validated);
+    }
+
+    /// <summary>
+    /// Null, empty, or whitespace <c>slettetdato</c> means the organization is not
+    /// deleted — no error, <c>DeletedAt</c> is null.
+    /// </summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void DeletedDate_MissingInput_NotDeleted(string? deletedDate)
+    {
+        var (validated, hasError) = Run(DocWithDeletedDate(deletedDate));
+
+        Assert.False(hasError);
+        Assert.NotNull(validated);
+        Assert.Null(validated.DeletedAt);
+        Assert.Equal("E", validated.UnitStatus);
+    }
+
+    /// <summary>
+    /// A well-formed ISO date (<c>yyyy-MM-dd</c>) parses into <c>DeletedAt</c> at
+    /// midnight UTC and flips <c>UnitStatus</c> to "S".
+    /// </summary>
+    [Fact]
+    public void DeletedDate_ValidIsoDate_ParsesToMidnightUtc()
+    {
+        var (validated, hasError) = Run(DocWithDeletedDate("2025-09-09"));
+
+        Assert.False(hasError);
+        Assert.NotNull(validated);
+        Assert.Equal(new DateTimeOffset(2025, 9, 9, 0, 0, 0, TimeSpan.Zero), validated.DeletedAt);
+        Assert.Equal("S", validated.UnitStatus);
+    }
+
+    /// <summary>
+    /// Anything that doesn't match the strict <c>yyyy-MM-dd</c> format is rejected with
+    /// an <see cref="ValidationErrors.InvalidDate"/> error rather than silently being
+    /// treated as "not deleted" or coerced via a more lenient parse. This mirrors NPR's
+    /// pattern for DateOfBirth/DateOfDeath: pin the format, surface the bad value.
+    /// </summary>
+    [Theory]
+    [InlineData("2025/09/09")] // wrong separator
+    [InlineData("09-09-2025")] // wrong order (dd-MM-yyyy)
+    [InlineData("2025-09-09T00:00:00Z")] // includes time component
+    [InlineData("2025-9-9")] // missing leading zeros
+    [InlineData("2025-13-01")] // invalid month
+    [InlineData("notADate")]
+    public void DeletedDate_InvalidFormat_AddsValidationError(string deletedDate)
+    {
+        var (validated, hasError) = Run(DocWithDeletedDate(deletedDate));
+
+        Assert.True(hasError);
+        Assert.Null(validated);
+    }
+
+    /// <summary>
+    /// <c>selskapetsNavn</c> is core data we can't reasonably default — null, empty,
+    /// or whitespace input must surface as a <see cref="StdValidationErrors.Required"/>
+    /// error rather than producing a record with a blank name.
+    /// </summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void CompanyName_MissingInput_AddsRequiredError(string? companyName)
+    {
+        var (validated, hasError) = Run(DocWithCompanyName(companyName));
+
+        Assert.True(hasError);
+        Assert.Null(validated);
+    }
+
+    /// <summary>
+    /// A present <c>selskapetsNavn</c> flows through unchanged to <c>SireOrganization.Name</c>.
+    /// </summary>
+    [Fact]
+    public void CompanyName_Present_FlowsThrough()
+    {
+        var (validated, hasError) = Run(DocWithCompanyName("Real Company AS"));
+
+        Assert.False(hasError);
+        Assert.NotNull(validated);
+        Assert.Equal("Real Company AS", validated.Name);
     }
 }

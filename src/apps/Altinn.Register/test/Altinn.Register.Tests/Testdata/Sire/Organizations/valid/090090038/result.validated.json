@@ -3,7 +3,7 @@
   "name": "Test Expired AS",
   "unitType": "KS",
   "unitStatus": "E",
-  "isDeleted": false,
+  "deletedAt": null,
   "mailingAddress": null,
   "lastUpdated": "2020-01-01T00:00:00\u002B01:00",
   "businessRelationships": [

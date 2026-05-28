@@ -3,9 +3,9 @@
   "name": "Test AS",
   "unitType": "KS",
   "unitStatus": "E",
-  "isDeleted": false,
+  "deletedAt": null,
   "mailingAddress": {
-    "address": "Storgata 1",
+    "address": "Storgata 1 0155 OSLO",
     "postalCode": "0155",
     "city": "OSLO"
   },

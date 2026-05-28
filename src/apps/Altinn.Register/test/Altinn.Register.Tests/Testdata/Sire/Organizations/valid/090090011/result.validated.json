@@ -3,9 +3,9 @@
   "name": "Somatisk Deltagende Får ",
   "unitType": "IS",
   "unitStatus": "S",
-  "isDeleted": true,
+  "deletedAt": "2025-09-09T00:00:00+00:00",
   "mailingAddress": {
-    "address": "Sverrestien 1",
+    "address": "Sverrestien 1 1365 BLOMMENHOLM",
     "postalCode": "1365",
     "city": "BLOMMENHOLM"
   },

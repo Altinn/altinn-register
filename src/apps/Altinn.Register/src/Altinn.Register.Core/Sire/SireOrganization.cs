@@ -30,9 +30,11 @@ public sealed record SireOrganization
     public required string? UnitStatus { get; init; }
 
     /// <summary>
-    /// Gets whether the organization is deleted.
+    /// Gets the moment the organization was deleted, or <see langword="null"/> if it has
+    /// not been deleted. Derived from SIRE's <c>slettetdato</c> (date-only) field by
+    /// interpreting it as midnight UTC.
     /// </summary>
-    public required bool IsDeleted { get; init; }
+    public required DateTimeOffset? DeletedAt { get; init; }
 
     /// <summary>
     /// Gets the mailing address, or null if no address is available.

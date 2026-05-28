@@ -146,10 +146,10 @@ public class SireClientTests
         Assert.Equal(TestOrgId, org.OrganizationIdentifier);
         Assert.Equal("Test AS", org.Name);
         Assert.Equal("KS", org.UnitType);
-        Assert.False(org.IsDeleted);
+        Assert.Null(org.DeletedAt);
         Assert.Equal("E", org.UnitStatus);
         Assert.NotNull(org.MailingAddress);
-        Assert.Equal("Storgata 1", org.MailingAddress!.Address);
+        Assert.Equal("Storgata 1 0155 OSLO", org.MailingAddress!.Address);
         Assert.Equal("0155", org.MailingAddress.PostalCode);
         Assert.Equal("OSLO", org.MailingAddress.City);
         Assert.Single(org.BusinessRelationships);

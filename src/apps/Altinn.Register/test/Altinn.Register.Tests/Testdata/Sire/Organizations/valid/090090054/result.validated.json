@@ -3,7 +3,7 @@
   "name": "Test International AS",
   "unitType": "UTLANS",
   "unitStatus": "E",
-  "isDeleted": false,
+  "deletedAt": null,
   "mailingAddress": {
     "address": "3 Jervois Quay, Wellington Central NEW ZEALAND",
     "postalCode": "NZ-6011",

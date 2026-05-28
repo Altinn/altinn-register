@@ -58,7 +58,7 @@ public class SireEnricherTests
             Name = "Test AS",
             UnitType = "AS",
             UnitStatus = null,
-            IsDeleted = false,
+            DeletedAt = null,
             MailingAddress = new() { Address = "Testgata 1", PostalCode = "0001", City = "OSLO" },
             LastUpdated = DateTimeOffset.UtcNow,
             BusinessRelationships = [],
@@ -128,7 +128,7 @@ public class SireEnricherTests
             Name = "Test AS",
             UnitType = "AS",
             UnitStatus = null,
-            IsDeleted = false,
+            DeletedAt = null,
             MailingAddress = null,
             LastUpdated = null,
             BusinessRelationships =
@@ -182,7 +182,7 @@ public class SireEnricherTests
             Name = "Test AS",
             UnitType = "KS",
             UnitStatus = null,
-            IsDeleted = false,
+            DeletedAt = null,
             MailingAddress = null,
             LastUpdated = null,
             BusinessRelationships =
@@ -239,7 +239,7 @@ public class SireEnricherTests
             Name = "Test AS",
             UnitType = "KS",
             UnitStatus = null,
-            IsDeleted = false,
+            DeletedAt = null,
             MailingAddress = null,
             LastUpdated = null,
             BusinessRelationships =

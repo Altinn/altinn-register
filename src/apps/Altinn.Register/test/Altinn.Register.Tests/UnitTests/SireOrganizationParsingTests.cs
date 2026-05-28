@@ -40,7 +40,7 @@ public class SireOrganizationParsingTests
     public async Task ParseOrganizationDocument(ValidOrganizationCase validCase)
     {
         var lookup = await LookupProvider.GetLocationLookup(TestContext.Current.CancellationToken);
-        var validator = new OrganizationDocumentValidator(lookup, FakeTimeProvider.System);
+        var validator = new OrganizationDocumentValidator(lookup, DateTimeOffset.UtcNow);
 
         using var source = await validCase.ReadSireJson();
 
