@@ -1,6 +1,8 @@
 using Altinn.Authorization.ServiceDefaults.Jobs;
+using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.PartyImport.Ccr;
 using Altinn.Register.TestUtils;
+using Altinn.Register.TestUtils.MassTransit;
 using Altinn.Register.TestUtils.Sftp;
 using Microsoft.Extensions.Configuration;
 
@@ -48,7 +50,23 @@ public class CcrImportJobTests
     public async Task RunAsync_FetchesAndProcessesCcrFileFromSftp()
     {
         var job = GetRequiredService<CcrImportJob>();
+        var tracker = GetRequiredService<IImportJobTracker>();
 
-        await Should.NotThrowAsync(async () => await ((IJob)job).RunAsync(CancellationToken));
+        var before = await tracker.GetStatus(CcrImportJob.JobName, CancellationToken);
+        before.EnqueuedMax.ShouldBe(0UL);
+
+        await ((IJob)job).RunAsync(CancellationToken);
+
+        // The tracker only advances after the file is fetched and the parser has actually
+        // produced (and the job has enqueued) at least one organization update. A silent
+        // early-exit path (no file / parse incomplete) would leave EnqueuedMax at 0.
+        var after = await tracker.GetStatus(CcrImportJob.JobName, CancellationToken);
+        after.EnqueuedMax.ShouldBe(1UL);
+
+        // And at least one organization update was published to the bus.
+        var anyPublished = await TestHarness.Sent
+            .SelectExisting(m => m.MessageObject is ImportCcrPartyCommand)
+            .AnyAsync(CancellationToken);
+        anyPublished.ShouldBeTrue();
     }
 }
