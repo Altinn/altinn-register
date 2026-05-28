@@ -17,7 +17,7 @@ public sealed class CcrFileImportSettings
     /// Gets or sets the port of the SFTP server to connect to.
     /// </summary>
     [Range(1, 65535)]
-    public int Port { get; set; } = 22;
+    public ushort Port { get; set; } = 22;
 
     /// <summary>
     /// Gets or sets the username used to authenticate against the SFTP server.
@@ -40,6 +40,6 @@ public sealed class CcrFileImportSettings
     /// <summary>
     /// Gets or sets the connection timeout, in seconds.
     /// </summary>
-    [Range(1, 600)]
-    public int TimeoutSeconds { get; set; } = 30;
+    [Range(typeof(TimeSpan), "00:00:01", "00:10:00")]
+    public TimeSpan Timeout { get; set; }
 }

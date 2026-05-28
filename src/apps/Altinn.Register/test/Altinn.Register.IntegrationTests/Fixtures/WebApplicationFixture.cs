@@ -122,7 +122,11 @@ public sealed class WebApplicationFixture
 
                 /* Party import */
                 new("Altinn:register:PartyImport:Npr:Guardianships:Enable", "true"),
-                new("Altinn:register:PartyImport:Ccr:Enable", "true"),
+
+                // CCR import is opt-in per-test: it requires the SFTP test-container settings to
+                // be configured, and otherwise the background scheduler would resolve and validate
+                // SftpClientSettings, failing every non-CCR integration test.
+                new("Altinn:register:PartyImport:Ccr:Enable", "false"),
 
                 // feature flags
                 new("Altinn:register:Party:CreatePartyId", "true"),

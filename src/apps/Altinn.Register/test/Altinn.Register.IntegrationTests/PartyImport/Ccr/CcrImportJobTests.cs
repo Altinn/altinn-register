@@ -40,18 +40,8 @@ public class CcrImportJobTests
 
     protected override void ConfigureConfiguration(IConfigurationBuilder configuration)
     {
-        // Point the production-registered ICcrDataTransfer at the SFTP test-container, and disable
-        // the recurring scheduler for this job. The test drives RunAsync explicitly; letting the
-        // background scheduler also run it leaves in-flight SFTP work that doesn't cancel promptly
-        // and stalls host shutdown.
-        configuration.AddInMemoryCollection([
-            new("Altinn:register:PartyImport:Ccr:Sftp:Host", _server.Host),
-            new("Altinn:register:PartyImport:Ccr:Sftp:Port", _server.Port.ToString()),
-            new("Altinn:register:PartyImport:Ccr:Sftp:User", _server.Username),
-            new("Altinn:register:PartyImport:Ccr:Sftp:Password", _server.Password),
-            new("Altinn:register:PartyImport:Ccr:Sftp:RemotePath", _server.UploadDirectory),
-            new("Altinn:register:PartyImport:Ccr:Enable", "false"),
-        ]);
+        // Point the production-registered SftpClientSettings at this test's SFTP container dir.
+        _server.Configure(configuration, "Altinn:register:PartyImport:Ccr:Sftp");
     }
 
     [Fact]
