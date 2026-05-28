@@ -102,6 +102,8 @@ public sealed class UsersController
             // ignore errors
             _ = await accessManagementClient.CreateSelfIdentifiedUser(
                 partyUuid: result.Value.Value.PartyUuid.Value,
+                partyId: result.Value.Value.PartyId.Value,
+                userId: result.Value.Value.User.Value!.UserId.Value,
                 type: result.Value.Value.SelfIdentifiedUserType.Value,
                 displayName: request.UserName,
                 cancellationToken: cancellationToken);

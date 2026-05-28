@@ -25,16 +25,26 @@ public sealed class AccessManagementClient
     /// Encourages access-management to create a self-identified user.
     /// </summary>
     /// <param name="partyUuid">The party uuid.</param>
+    /// <param name="partyId">The party id.</param>
+    /// <param name="userId">The user id.</param>
     /// <param name="type">The self-identified user type.</param>
     /// <param name="displayName">The display name of the user.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The result of the operation.</returns>
-    public async Task<Result> CreateSelfIdentifiedUser(Guid partyUuid, SelfIdentifiedUserType type, string displayName, CancellationToken cancellationToken)
+    public async Task<Result> CreateSelfIdentifiedUser(
+        Guid partyUuid,
+        uint partyId,
+        uint userId,
+        SelfIdentifiedUserType type,
+        string displayName,
+        CancellationToken cancellationToken)
     {
         using var createResponse = await _client.PostAsJsonAsync(
             requestUri: "api/v1/internal/party",
             value: new CreateSelfIdentifiedUserRequest(
                 PartyUuid: partyUuid,
+                PartyId: partyId,
+                UserId: userId,
                 EntityType: "Selvidentifisert",
                 EntityVariantType: type switch
                 {
@@ -70,6 +80,8 @@ public sealed class AccessManagementClient
 
     private record CreateSelfIdentifiedUserRequest(
         [property: JsonPropertyName("PartyUuid")] Guid PartyUuid,
+        [property: JsonPropertyName("PartyId")] uint PartyId,
+        [property: JsonPropertyName("UserId")] uint UserId,
         [property: JsonPropertyName("EntityType")] string EntityType,
         [property: JsonPropertyName("EntityVariantType")] string EntityVariantType,
         [property: JsonPropertyName("DisplayName")] string DisplayName);
