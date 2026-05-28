@@ -24,15 +24,13 @@ internal sealed partial class SireEnricher
         => context.Party is OrganizationRecord { Source.Value: OrganizationSource.RegisteredWithSkatteetaten };
 
     private readonly ISireClient _sireClient;
-    private readonly ILogger<SireEnricher> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SireEnricher"/> class.
     /// </summary>
-    public SireEnricher(ISireClient sireClient, ILogger<SireEnricher> logger)
+    public SireEnricher(ISireClient sireClient)
     {
         _sireClient = sireClient;
-        _logger = logger;
     }
 
     /// <inheritdoc/>
@@ -65,7 +63,6 @@ internal sealed partial class SireEnricher
             IsDeleted = organization.DeletedAt is not null,
             DeletedAt = FieldValue.From(organization.DeletedAt),
             Source = OrganizationSource.RegisteredWithSkatteetaten,
-            ModifiedAt = FieldValue.From(organization.LastUpdated),
             MailingAddress = organization.MailingAddress,
         };
 

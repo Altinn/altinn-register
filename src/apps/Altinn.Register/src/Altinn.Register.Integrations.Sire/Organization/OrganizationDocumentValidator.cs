@@ -44,10 +44,11 @@ internal sealed class OrganizationDocumentValidator
     private static readonly TimeSpan FutureDateGrace = TimeSpan.FromMinutes(10);
 
     /// <summary>
-    /// Sanity check for <c>opphoerstidspunkt</c>: that field's semantics determine
-    /// whether an entry is still in force, so a future-dated value is data we don't
-    /// know how to safely process. We don't carry future-dated terminations forward —
-    /// by the time the date arrives we'll have re-fetched the document. The
+    /// Sanity check for <c>opphoerstidspunkt</c>. Per Skatteetaten's contract for SIRE,
+    /// <c>gyldighetstidspunkt</c> and <c>opphoerstidspunkt</c> can only be in the present
+    /// or past — never the future — and the response only contains currently-effective
+    /// entries. A future-dated value therefore violates that contract; we surface it as
+    /// a validation error rather than silently picking an interpretation. The
     /// <see cref="FutureDateGrace"/> window absorbs ordinary clock skew between SIRE
     /// and us so a few-minute drift doesn't trip the check.
     /// </summary>
@@ -59,7 +60,10 @@ internal sealed class OrganizationDocumentValidator
     {
         if (date is { } at && at > now + FutureDateGrace)
         {
-            context.AddChildProblem(ValidationErrors.InvalidValue, path);
+            context.AddChildProblem(
+                ValidationErrors.InvalidValue,
+                path,
+                detail: $"The provided value '{at:O}' is more than {(int)FutureDateGrace.TotalMinutes} minutes into the future.");
         }
     }
 
@@ -229,12 +233,10 @@ internal sealed class OrganizationDocumentValidator
         }
 
         // Add country name if not already present in address lines.
-        if (TryLookupCountryName(address.CountryCode, out var countryName))
+        if (TryLookupCountryName(address.CountryCode, out var countryName)
+            && !lines.Any(line => line.Contains(countryName, StringComparison.OrdinalIgnoreCase)))
         {
-            if (!lines.Any(line => line.Contains(countryName, StringComparison.OrdinalIgnoreCase)))
-            {
-                lines.Add(countryName);
-            }
+            lines.Add(countryName);
         }
 
         if (lines.Count == 0 && postalCode is null && city is null)
@@ -367,15 +369,12 @@ internal sealed class OrganizationDocumentValidator
 
     private static string RemoveCareOfPrefix(string input)
     {
-        foreach (var prefix in CareOfPrefixes)
-        {
-            if (input.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-            {
-                return input[prefix.Length..].Trim();
-            }
-        }
+        var prefix = CareOfPrefixes.FirstOrDefault(
+            p => input.StartsWith(p, StringComparison.OrdinalIgnoreCase));
 
-        return input.Trim();
+        return prefix is null
+            ? input.Trim()
+            : input[prefix.Length..].Trim();
     }
 
     private static readonly ImmutableArray<string> PostBoxPrefixes
@@ -398,17 +397,17 @@ internal sealed class OrganizationDocumentValidator
 
     private static string AddPostboxIfNeeded(string input, bool isForeign)
     {
-        foreach (var prefix in PostBoxPrefixes)
+        var prefix = PostBoxPrefixes.FirstOrDefault(
+            p => input.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+
+        if (prefix is null)
         {
-            if (input.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-            {
-                var remainder = input[prefix.Length..].Trim();
-                var postBoxPrefix = isForeign ? "Postbox" : "Postboks";
-                return $"{postBoxPrefix} {remainder}".Trim();
-            }
+            return input;
         }
 
-        return input;
+        var remainder = input[prefix.Length..].Trim();
+        var postBoxPrefix = isForeign ? "Postbox" : "Postboks";
+        return $"{postBoxPrefix} {remainder}".Trim();
     }
 
     private static ImmutableValueArray<SireBusinessRelationship> MapBusinessRelationships(
@@ -424,78 +423,121 @@ internal sealed class OrganizationDocumentValidator
         var result = ImmutableArray.CreateBuilder<SireBusinessRelationship>(relationships.Count);
         for (var i = 0; i < relationships.Count; i++)
         {
-            var rel = relationships[i];
             var path = $"/virksomhetsrelasjon/{i}";
-
-            if (string.IsNullOrWhiteSpace(rel.RelationshipType))
+            if (TryMapBusinessRelationship(ref context, relationships[i], now, path, out var mapped))
             {
-                context.AddChildProblem(StdValidationErrors.Required, path + "/relasjonstype");
-                continue;
+                result.Add(mapped);
             }
-
-            // Any non-null opphoerstidspunkt means SIRE has terminated this relationship;
-            // skip it. Far-future validTo values are flagged as bad data — see
-            // ValidateNotFarFuture for the rationale. Full-upsert downstream clears
-            // any previously-known assignments not present in this fresh document.
-            if (rel.ValidTo is not null)
-            {
-                ValidateNotFarFuture(ref context, rel.ValidTo, now, path + "/opphoerstidspunkt");
-                continue;
-            }
-
-            var relatedId = rel.RelatedIdentifier;
-            if (relatedId is null || string.IsNullOrWhiteSpace(relatedId.Value))
-            {
-                context.AddChildProblem(StdValidationErrors.Required, path + "/relatertIdentifikator");
-                continue;
-            }
-
-            if (!string.Equals(relatedId.IdentifierType, "taxIdentificationNumber", StringComparison.Ordinal))
-            {
-                context.AddChildProblem(
-                    ValidationErrors.InvalidValue,
-                    path + "/relatertIdentifikator/identifikatortype");
-                continue;
-            }
-
-            PersonIdentifier? personId = null;
-            OrganizationIdentifier? orgId = null;
-            if (PersonIdentifier.TryParse(relatedId.Value, provider: null, out var parsedPerson))
-            {
-                personId = parsedPerson;
-            }
-            else if (OrganizationIdentifier.TryParse(relatedId.Value, provider: null, out var parsedOrg))
-            {
-                orgId = parsedOrg;
-            }
-            else
-            {
-                context.AddChildProblem(
-                    ValidationErrors.InvalidValue,
-                    path + "/relatertIdentifikator/verdi");
-                continue;
-            }
-
-            // Map relasjonstype via the validator so an unknown value adds an aggregated
-            // error at "/virksomhetsrelasjon/{i}/relasjonstype" instead of throwing — this
-            // lets a single SIRE response surface every unrecognised relasjonstype at once.
-            if (!context.TryValidateChild(
-                path: path + "/relasjonstype",
-                rel.RelationshipType,
-                default(SireRoleMapper),
-                out string? roleIdentifier))
-            {
-                continue;
-            }
-
-            result.Add(new SireBusinessRelationship
-            {
-                RoleIdentifier = roleIdentifier,
-                RelatedPersonIdentifier = personId,
-                RelatedOrganizationIdentifier = orgId,
-            });
         }
 
         return result.DrainToImmutableValueArray();
+    }
+
+    /// <summary>
+    /// Validates and maps a single SIRE business relationship. Returns false when the
+    /// entry should be skipped (either because validation added an error or because the
+    /// relationship is terminated). All branches that bail out add a problem to the
+    /// context at the appropriate sub-path.
+    /// </summary>
+    private static bool TryMapBusinessRelationship(
+        ref ValidationContext context,
+        BusinessRelationship rel,
+        DateTimeOffset now,
+        string path,
+        [NotNullWhen(true)] out SireBusinessRelationship? mapped)
+    {
+        mapped = null;
+
+        if (string.IsNullOrWhiteSpace(rel.RelationshipType))
+        {
+            context.AddChildProblem(StdValidationErrors.Required, path + "/relasjonstype");
+            return false;
+        }
+
+        // Any non-null opphoerstidspunkt means SIRE has terminated this relationship;
+        // skip it. Far-future validTo values are flagged as bad data — see
+        // ValidateNotFarFuture for the rationale. Full-upsert downstream clears any
+        // previously-known assignments not present in this fresh document.
+        if (rel.ValidTo is not null)
+        {
+            ValidateNotFarFuture(ref context, rel.ValidTo, now, path + "/opphoerstidspunkt");
+            return false;
+        }
+
+        if (!TryValidateRelatedIdentifier(ref context, rel.RelatedIdentifier, path, out var personId, out var orgId))
+        {
+            return false;
+        }
+
+        // Map relasjonstype via the validator so an unknown value adds an aggregated
+        // error at "/relasjonstype" instead of throwing — this lets a single SIRE
+        // response surface every unrecognised relasjonstype at once.
+        if (!context.TryValidateChild(
+            path: path + "/relasjonstype",
+            rel.RelationshipType,
+            default(SireRoleMapper),
+            out string? roleIdentifier))
+        {
+            return false;
+        }
+
+        mapped = new SireBusinessRelationship
+        {
+            RoleIdentifier = roleIdentifier,
+            RelatedPersonIdentifier = personId,
+            RelatedOrganizationIdentifier = orgId,
+        };
+        return true;
+    }
+
+    /// <summary>
+    /// Validates a SIRE <c>relatertIdentifikator</c> and parses its value into either a
+    /// <see cref="PersonIdentifier"/> or an <see cref="OrganizationIdentifier"/> based on
+    /// the wire-format <c>verdi</c>. Returns false (and adds a problem) when the
+    /// identifier element is missing, the identifier type is unsupported, or the value
+    /// cannot be parsed as either a person- or org-number.
+    /// </summary>
+    private static bool TryValidateRelatedIdentifier(
+        ref ValidationContext context,
+        RelatedIdentifier? relatedId,
+        string path,
+        out PersonIdentifier? personId,
+        out OrganizationIdentifier? orgId)
+    {
+        personId = null;
+        orgId = null;
+
+        if (relatedId is null || string.IsNullOrWhiteSpace(relatedId.Value))
+        {
+            context.AddChildProblem(StdValidationErrors.Required, path + "/relatertIdentifikator");
+            return false;
+        }
+
+        if (!string.Equals(relatedId.IdentifierType, "taxIdentificationNumber", StringComparison.Ordinal))
+        {
+            context.AddChildProblem(
+                ValidationErrors.InvalidValue,
+                path + "/relatertIdentifikator/identifikatortype",
+                detail: $"Expected 'taxIdentificationNumber', got '{relatedId.IdentifierType}'.");
+            return false;
+        }
+
+        if (PersonIdentifier.TryParse(relatedId.Value, provider: null, out var parsedPerson))
+        {
+            personId = parsedPerson;
+            return true;
+        }
+
+        if (OrganizationIdentifier.TryParse(relatedId.Value, provider: null, out var parsedOrg))
+        {
+            orgId = parsedOrg;
+            return true;
+        }
+
+        context.AddChildProblem(
+            ValidationErrors.InvalidValue,
+            path + "/relatertIdentifikator/verdi",
+            detail: $"The value '{relatedId.Value}' is not a valid person or organization number.");
+        return false;
     }
 }

@@ -26,9 +26,10 @@ public class SireClientTests
     private static ILocationLookupProvider CreateLookupProvider()
     {
         var provider = new Mock<ILocationLookupProvider>();
+
         provider
             .Setup(p => p.GetLocationLookup(It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(Mock.Of<ILocationLookup>()));
+            .Returns(() => ValueTask.FromResult(Mock.Of<ILocationLookup>()));
         return provider.Object;
     }
 

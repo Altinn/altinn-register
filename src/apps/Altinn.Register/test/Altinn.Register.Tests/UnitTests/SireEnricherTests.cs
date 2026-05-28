@@ -8,7 +8,6 @@ using Altinn.Register.Core.Sire;
 using Altinn.Register.PartyImport;
 using Altinn.Register.PartyImport.A2;
 using Altinn.Register.PartyImport.A2.Enrichers;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace Altinn.Register.Tests.UnitTests;
@@ -69,9 +68,7 @@ public class SireEnricherTests
             .Setup(c => c.GetOrganization(TestOrgId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((Result<SireOrganization>)sireOrg);
 
-        var enricher = new SireEnricher(
-            sireClient.Object,
-            NullLogger<SireEnricher>.Instance);
+        var enricher = new SireEnricher(sireClient.Object);
 
         var party = MinimalSireOrg(TestOrgId);
         var context = new A2PartyImportSagaEnrichmentRunContext
@@ -98,9 +95,7 @@ public class SireEnricherTests
             .Setup(c => c.GetOrganization(TestOrgId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Problems.OrganizationNotFound.Create());
 
-        var enricher = new SireEnricher(
-            sireClient.Object,
-            NullLogger<SireEnricher>.Instance);
+        var enricher = new SireEnricher(sireClient.Object);
 
         var party = MinimalSireOrg(TestOrgId);
         var context = new A2PartyImportSagaEnrichmentRunContext
@@ -147,9 +142,7 @@ public class SireEnricherTests
             .Setup(c => c.GetOrganization(TestOrgId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((Result<SireOrganization>)sireOrg);
 
-        var enricher = new SireEnricher(
-            sireClient.Object,
-            NullLogger<SireEnricher>.Instance);
+        var enricher = new SireEnricher(sireClient.Object);
 
         var party = MinimalSireOrg(TestOrgId);
         var context = new A2PartyImportSagaEnrichmentRunContext
@@ -201,9 +194,7 @@ public class SireEnricherTests
             .Setup(c => c.GetOrganization(TestOrgId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((Result<SireOrganization>)sireOrg);
 
-        var enricher = new SireEnricher(
-            sireClient.Object,
-            NullLogger<SireEnricher>.Instance);
+        var enricher = new SireEnricher(sireClient.Object);
 
         var party = MinimalSireOrg(TestOrgId);
         var context = new A2PartyImportSagaEnrichmentRunContext
@@ -258,9 +249,7 @@ public class SireEnricherTests
             .Setup(c => c.GetOrganization(TestOrgId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((Result<SireOrganization>)sireOrg);
 
-        var enricher = new SireEnricher(
-            sireClient.Object,
-            NullLogger<SireEnricher>.Instance);
+        var enricher = new SireEnricher(sireClient.Object);
 
         var party = MinimalSireOrg(TestOrgId);
         var context = new A2PartyImportSagaEnrichmentRunContext

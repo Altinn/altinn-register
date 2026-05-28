@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ProblemDetails.Validation;
 using Altinn.Register.Core.Errors;
 
@@ -16,12 +17,6 @@ namespace Altinn.Register.Integrations.Sire.Organization;
 internal readonly struct SireOrganizationFormMapper
     : IValidator<string?, string>
 {
-    /// <summary>
-    /// Default SL-code applied when SIRE omits the <c>organisasjonsform</c> field. <c>IS</c>
-    /// (<c>indreSelskap</c>) — the most common entity form.
-    /// </summary>
-    public const string DefaultOrganizationForm = "IS"; // Default when SIRE omits organisasjonsform — confirm with Skatteetaten that this is the right fallback.
-
     /// <inheritdoc/>
     public bool TryValidate(
         ref ValidationContext context,
@@ -30,8 +25,9 @@ internal readonly struct SireOrganizationFormMapper
     {
         if (string.IsNullOrWhiteSpace(input))
         {
-            validated = DefaultOrganizationForm;
-            return true;
+            context.AddProblem(StdValidationErrors.Required);
+            validated = null;
+            return false;
         }
 
         validated = input switch

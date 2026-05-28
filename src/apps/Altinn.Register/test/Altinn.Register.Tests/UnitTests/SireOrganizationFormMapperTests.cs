@@ -14,7 +14,7 @@ public class SireOrganizationFormMapperTests
     /// </summary>
     [Theory]
     [MemberData(nameof(KnownOrganizationFormMappings))]
-    public void TryValidate_MapsKnownValue(string organisasjonsform, string expectedSlCode)
+    public void TryValidate_MapsKnownValue(string? organisasjonsform, string expectedSlCode)
     {
         ValidationProblemBuilder builder = default;
         var ok = builder.TryValidate(
@@ -29,15 +29,15 @@ public class SireOrganizationFormMapperTests
     }
 
     /// <summary>
-    /// Missing/whitespace input yields the documented default SL-code (<c>IS</c>) and is
-    /// treated as a successful match — SIRE often omits the field for indre selskap, so
-    /// this is by design, not a fallback for unknown values.
+    /// Missing/whitespace <c>organisasjonsform</c> is treated as a Required-error rather
+    /// than silently falling back to a default SL-code. SIRE may omit the field for some
+    /// orgs, but we want to surface that as data we can't act on instead of guessing.
     /// </summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void TryValidate_MissingInput_ReturnsDefault(string? organisasjonsform)
+    public void TryValidate_MissingInput_AddsRequiredError(string? organisasjonsform)
     {
         ValidationProblemBuilder builder = default;
         var ok = builder.TryValidate(
@@ -46,10 +46,9 @@ public class SireOrganizationFormMapperTests
             default(SireOrganizationFormMapper),
             out string? result);
 
-        Assert.True(ok);
-        Assert.Equal(SireOrganizationFormMapper.DefaultOrganizationForm, result);
-        Assert.Equal("IS", result);
-        Assert.False(builder.TryBuild(out _));
+        Assert.False(ok);
+        Assert.Null(result);
+        Assert.True(builder.TryBuild(out _));
     }
 
     /// <summary>
@@ -64,7 +63,7 @@ public class SireOrganizationFormMapperTests
     [InlineData("KS")] // SL-code (output of the mapper, mistakenly fed back in)
     [InlineData("KOMMANDITTSELSKAP")] // case mismatch
     [InlineData("kommandittselskap ")] // trailing whitespace
-    public void TryValidate_AddsProblemForUnknown(string organisasjonsform)
+    public void TryValidate_AddsProblemForUnknown(string? organisasjonsform)
     {
         ValidationProblemBuilder builder = default;
         var ok = builder.TryValidate(
