@@ -36,6 +36,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Altinn.Register.Core\Altinn.Register.Core.csproj" />
     <ProjectReference Include="..\Altinn.Register.Integrations.Npr\Altinn.Register.Integrations.Npr.csproj" />
+    <ProjectReference Include="..\Altinn.Register.Integrations.Sire\Altinn.Register.Integrations.Sire.csproj" />
     <ProjectReference Include="..\Altinn.Register.Persistence\Altinn.Register.Persistence.csproj" />
     <ProjectReference Include="..\ServiceDefaults.Jobs\Altinn.Authorization.ServiceDefaults.Jobs.csproj" />
     <ProjectReference Include="..\ServiceDefaults.MassTransit\Altinn.Authorization.ServiceDefaults.MassTransit.csproj" />

@@ -35,6 +35,8 @@ var rabbitMq = builder.AddRabbitMQ("rabbitmq", userName: rabbitMqUsername, port:
 var authentication = builder.AddExternalService("altinn-authentication", $"https://platform.{authenticationEnvFragment}.altinn.cloud/");
 var accessManagement = builder.AddExternalService("altinn-access-management", $"https://platform.{authenticationEnvFragment}.altinn.cloud/");
 var freg = builder.AddExternalService("folkeregisteret", "https://folkeregisteret-api-konsument.sits.no/");
+var sire = builder.AddExternalService("sire", "https://skatteetatenregistrertselskap.api.skatteetaten-test.no/");
+var sireEvents = builder.AddExternalService("sire-events", "https://skatteetatenregistrertselskaphendelser.api.skatteetaten-test.no/");
 var altinn2 = builder.AddExternalService("altinn2", $"https://{authenticationEnvFragment}.altinn.cloud/");
 
 // environment callbacks
@@ -70,6 +72,8 @@ var registerApi = builder.AddProject<Projects.Altinn_Register>("register")
     .WithReference(authentication)
     .WithReference(accessManagement)
     .WithReference(freg)
+    .WithReference(sire)
+    .WithReference(sireEvents)
     .WithReference(altinn2)
     .WaitFor(rabbitMq)
     .WaitForCompletion(registerInit)

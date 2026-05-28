@@ -765,7 +765,7 @@ internal sealed partial class A2PartyImportService
                 // organization fields
                 Source = organizationNumber.ToString() switch
                 {
-                    var s when s.StartsWith('0') => OrganizationSource.BusinessAssessedPartnerships,
+                    var s when s.StartsWith('0') => OrganizationSource.RegisteredWithSkatteetaten,
                     _ => OrganizationSource.CentralCoordinatingRegister,
                 },
                 UnitStatus = unitStatus,

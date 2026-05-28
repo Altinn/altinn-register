@@ -20,9 +20,11 @@ using Altinn.Register.Core.A2.SblProfile;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.PartyImport.A2;
+using Altinn.Register.Core.Sire;
 using Altinn.Register.Core.Utils;
 using Altinn.Register.Extensions;
 using Altinn.Register.Integrations.Ccr.FileImport;
+using Altinn.Register.Integrations.Sire;
 using Altinn.Register.Model.Extensions;
 using Altinn.Register.ModelBinding;
 using Altinn.Register.PartyImport;
@@ -208,6 +210,10 @@ internal static partial class RegisterHost
         services.AddNprClient()
             .ConfigureBaseAddress("https://folkeregisteret/")
             .AddMaskinPortenHandler("register-freg");
+
+        services.AddHttpClient<ISireClient, SireClient>()
+            .ConfigureBaseAddress("https://sire/")
+            .AddMaskinPortenHandler("register-freg"); // we reuse the maskinporten client from freg
 
         services.AddHttpClient("a2:ccr")
             .ConfigureBaseAddress("https://altinn2/");
