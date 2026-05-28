@@ -57,6 +57,38 @@ public class CcrDataTransferSftpTests
         processor.Content.ShouldBe(expected);
     }
 
+    [Fact]
+    public async Task ProcessNextFile_ReturnsNoFilesWhenSftpDirectoryIsEmpty()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var sftp = await TestContext.Current.GetRequiredFixture<SftpServerFixture>();
+        var server = await sftp.CreateTestServer();
+
+        // Wire the production DefaultSftpClientFactory + CcrDataTransfer via real named-options
+        // binding, so this also exercises the production DI/options path.
+        await using var provider = new ServiceCollection()
+            .AddOptions<SftpClientSettings>(nameof(ICcrFlatFileService))
+                .Configure(s =>
+                {
+                    s.Host = server.Host;
+                    s.Port = checked((ushort)server.Port);
+                    s.User = server.Username;
+                    s.Password = server.Password;
+                    s.RemotePath = server.UploadDirectory;
+                })
+                .Services
+            .BuildServiceProvider();
+
+        var optionsMonitor = provider.GetRequiredService<IOptionsMonitor<SftpClientSettings>>();
+        ICcrFlatFileService service = new CcrDataTransfer(new DefaultSftpClientFactory(optionsMonitor));
+
+        var processor = new CapturingProcessor();
+        var result = await service.ProcessNextFile(processor, lastRunId: 0, ct);
+
+        result.IsProblem.ShouldBeFalse();
+        result.Value.ShouldBe(CcrFlatFileOperationResult.NoFileToProcess);
+    }
+
     private static async Task<byte[]> ReadAllBytesAsync(IFileInfo file, CancellationToken cancellationToken)
     {
         using var stream = file.CreateReadStream();

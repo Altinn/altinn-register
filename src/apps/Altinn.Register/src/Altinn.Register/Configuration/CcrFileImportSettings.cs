@@ -1,10 +1,12 @@
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Altinn.Register.Configuration;
 
 /// <summary>
 /// Settings for importing CCR flat files from the BRG SFTP server.
 /// </summary>
+[ExcludeFromCodeCoverage]
 public sealed class CcrFileImportSettings
 {
     /// <summary>
