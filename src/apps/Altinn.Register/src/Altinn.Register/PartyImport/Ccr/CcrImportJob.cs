@@ -1,14 +1,12 @@
 using System.Buffers;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Metrics;
-using System.IO.Pipelines;
 using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Authorization.ServiceDefaults.Telemetry;
-using Altinn.Register.Core;
 using Altinn.Register.Core.Ccr;
 using Altinn.Register.Core.ImportJobs;
+using Altinn.Register.Core.ImportJobs.FileProcessing;
 
 namespace Altinn.Register.PartyImport.Ccr;
 
@@ -26,8 +24,7 @@ internal sealed partial class CcrImportJob
     private readonly ILogger<CcrImportJob> _logger;
     private readonly IImportJobTracker _tracker;
     private readonly ICommandSender _sender;
-    private readonly ICcrDataTransfer _sftpClient;
-    private readonly JobCleanupHelper _cleanupHelper;
+    private readonly ICcrFlatFileService _ccrFlatFileService;
     private readonly TimeProvider _timeProvider;
     private readonly ImportMeters _meters;
     private readonly ICcrFlatFileProcessor _fileproc;
@@ -39,7 +36,7 @@ internal sealed partial class CcrImportJob
         ILogger<CcrImportJob> logger,
         IImportJobTracker tracker,
         ICommandSender sender,
-        ICcrDataTransfer client,
+        ICcrFlatFileService ccrFlatFileService,
         JobCleanupHelper cleanupHelper,
         TimeProvider timeProvider,
         IMetricsProvider metricsProvider,
@@ -48,8 +45,7 @@ internal sealed partial class CcrImportJob
         _logger = logger;
         _tracker = tracker;
         _sender = sender;
-        _sftpClient = client;
-        _cleanupHelper = cleanupHelper;
+        _ccrFlatFileService = ccrFlatFileService;
         _timeProvider = timeProvider;
         _meters = metricsProvider.Get<ImportMeters>();
         _fileproc = fileproc;
@@ -61,54 +57,11 @@ internal sealed partial class CcrImportJob
         var start = _timeProvider.GetTimestamp();
 
         var track = await _tracker.GetStatus(JobName, cancellationToken);
-        int lastrunId = (int)track.ProcessedMax;
+        uint lastRunId = checked((uint)track.EnqueuedMax);
 
-        var pipe = new Pipe();
-        PipeWriter writer = pipe.Writer;
-        PipeReader reader = pipe.Reader;
+        var processor = new FileProcessor(_sender, _fileproc, _tracker, _meters);
 
-        Log.StartingPartyImport(_logger);
-
-        using var activity = RegisterTelemetry.StartActivity("import ccr parties from file", ActivityKind.Internal);
-
-        bool fileReadSuccessfully = await _sftpClient.GetNextFileAsync(writer, lastrunId, cancellationToken);
-
-        if (!fileReadSuccessfully)
-        {
-            Log.FinishedPartyImport(_logger, _timeProvider.GetElapsedTime(start));
-            return;
-        }
-
-        var parties = await _fileproc
-            .ProcessCcrFlatFile(reader, cancellationToken)
-            .ToListAsync(cancellationToken);
-
-        try
-        {
-            var commands = new List<ImportCcrPartyCommand>(parties.Count);
-            foreach (var party in parties)
-            {
-                commands.Add(new ImportCcrPartyCommand
-                {
-                    OrganizationIdentifier = party.OrganizationIdentifier,
-                    Document = party.Document.ToArray(),
-                });
-            }
-
-            if (commands.Count > 0)
-            {
-                await _sender.Send(commands, cancellationToken);
-                Log.EnqueuedPartiesForImport(_logger, commands.Count);
-                _meters.PartiesEnqueued.Add(commands.Count);
-            }
-        }
-        finally
-        {
-            foreach (var party in parties)
-            {
-                party.Dispose();
-            }
-        }
+        await _ccrFlatFileService.ProcessNextFile(processor, lastRunId, cancellationToken);
 
         Log.FinishedPartyImport(_logger, _timeProvider.GetElapsedTime(start));
     }
@@ -140,5 +93,27 @@ internal sealed partial class CcrImportJob
         /// <inheritdoc/>
         public static ImportMeters Create(Meter meter)
             => new ImportMeters(meter);
+    }
+
+    private sealed class FileProcessor(ICommandSender sender, ICcrFlatFileProcessor processor, IImportJobTracker tracker, ImportMeters meter)
+        : IFileProcessor<CcrOpenedFileInfo>
+    {
+        public async Task ProcessFileAsync(CcrOpenedFileInfo fileInfo, CancellationToken cancellationToken)
+        {
+            await foreach (var item in processor.ProcessCcrFlatFile(fileInfo.Reader, cancellationToken))
+            {
+                var cmd = new ImportCcrPartyCommand
+                {
+                    BatchId = fileInfo.SequenceNumber,
+                    OrganizationIdentifier = item.OrganizationIdentifier,
+                    Document = item.Document.ToArray(),
+                };
+
+                await sender.Send(cmd, cancellationToken);
+                meter.PartiesEnqueued.Add(1);
+            }
+
+            await tracker.TrackQueueStatus(JobName, new() { SourceMax = null, EnqueuedMax = fileInfo.SequenceNumber }, cancellationToken);
+        }
     }
 }

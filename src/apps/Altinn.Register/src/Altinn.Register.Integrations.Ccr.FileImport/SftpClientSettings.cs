@@ -5,7 +5,7 @@ namespace Altinn.Register.Integrations.Ccr.FileImport;
 /// <summary>
 /// Settings for transferring CCR flat files, including the host, user, password, remote path, port, and timeout for the file transfer.
 /// </summary>
-internal sealed class CcrDataTransferSettings
+internal sealed class SftpClientSettings
 {
     /// <summary>
     /// Gets or sets the host to connect to for transferring CCR flat files.

@@ -10,14 +10,14 @@ namespace Altinn.Register.Integrations.Ccr.FileImport;
 internal sealed class DefaultSftpClientFactory
     : INetworkFileSystemClientFactory
 {
-    private readonly IOptionsMonitor<CcrDataTransferSettings> _options;
+    private readonly IOptionsMonitor<SftpClientSettings> _options;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultSftpClientFactory"/> class with the specified settings.
     /// The settings are provided through an <see cref="IOptionsMonitor{T}"/>, allowing for dynamic configuration changes if needed.
     /// </summary>
-    /// <param name="options">Options monitor for <see cref="CcrDataTransferSettings"/>.</param>
-    public DefaultSftpClientFactory(IOptionsMonitor<CcrDataTransferSettings> options)
+    /// <param name="options">Options monitor for <see cref="SftpClientSettings"/>.</param>
+    public DefaultSftpClientFactory(IOptionsMonitor<SftpClientSettings> options)
     {
         _options = options;
     }

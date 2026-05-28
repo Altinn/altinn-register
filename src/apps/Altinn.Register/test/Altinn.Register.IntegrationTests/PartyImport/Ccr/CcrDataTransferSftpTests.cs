@@ -1,8 +1,12 @@
 using System.IO.Pipelines;
+using Altinn.Register.Core.Ccr;
+using Altinn.Register.Core.ImportJobs.FileProcessing;
 using Altinn.Register.Integrations.Ccr.FileImport;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Sftp;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
 
 namespace Altinn.Register.IntegrationTests.PartyImport.Ccr;
 
@@ -15,7 +19,7 @@ public class CcrDataTransferSftpTests
     private static readonly TestDataFileProvider _ccrFiles = TestDataFileProvider.For("Ccr/FlatFile");
 
     [Fact]
-    public async Task GetNextFileAsync_DownloadsUploadedFileFromSftp()
+    public async Task ProcessNextFile_DownloadsUploadedFileFromSftp()
     {
         var ct = TestContext.Current.CancellationToken;
         var sftp = await TestContext.Current.GetRequiredFixture<SftpServerFixture>();
@@ -24,22 +28,33 @@ public class CcrDataTransferSftpTests
         var expected = await ReadAllBytesAsync(_ccrFiles.GetFileInfo("baj00001.txt"), ct);
         await SftpServerFixture.UploadFilesAsync(server, [("baj00001.txt", expected)], ct);
 
-        var transfer = new CcrDataTransfer(
-            user: server.Username,
-            password: server.Password,
-            host: server.Host,
-            remotePath: server.UploadDirectory,
-            port: server.Port);
+        // Wire the production DefaultSftpClientFactory + CcrDataTransfer via real named-options
+        // binding, so this also exercises the production DI/options path.
+        await using var provider = new ServiceCollection()
+            .AddOptions<SftpClientSettings>(nameof(ICcrFlatFileService))
+                .Configure(s =>
+                {
+                    s.Host = server.Host;
+                    s.Port = checked((ushort)server.Port);
+                    s.User = server.Username;
+                    s.Password = server.Password;
+                    s.RemotePath = server.UploadDirectory;
+                })
+                .Services
+            .BuildServiceProvider();
 
-        var pipe = new Pipe();
+        var optionsMonitor = provider.GetRequiredService<IOptionsMonitor<SftpClientSettings>>();
+        ICcrFlatFileService service = new CcrDataTransfer(new DefaultSftpClientFactory(optionsMonitor));
 
-        // lastRunId 0 -> the file with runId 1 ("baj00001.txt") is the next one to fetch.
-        var found = await transfer.GetNextFileAsync(pipe.Writer, lastRunId: 0, ct);
+        var processor = new CapturingProcessor();
+        var result = await service.ProcessNextFile(processor, lastRunId: 0, ct);
 
-        found.ShouldBeTrue();
+        result.IsProblem.ShouldBeFalse();
+        result.Value.ShouldBe(CcrFlatFileOperationResult.FileProcessed);
 
-        var downloaded = await ReadAllBytesAsync(pipe.Reader, ct);
-        downloaded.ShouldBe(expected);
+        processor.FileName.ShouldBe("baj00001.txt");
+        processor.SequenceNumber.ShouldBe(1U);
+        processor.Content.ShouldBe(expected);
     }
 
     private static async Task<byte[]> ReadAllBytesAsync(IFileInfo file, CancellationToken cancellationToken)
@@ -72,5 +87,26 @@ public class CcrDataTransferSftpTests
 
         await reader.CompleteAsync();
         return buffer.ToArray();
+    }
+
+    /// <summary>
+    /// Captures the file name, sequence number and full byte content from a single
+    /// <see cref="ICcrFlatFileService.ProcessNextFile"/> invocation.
+    /// </summary>
+    private sealed class CapturingProcessor
+        : IFileProcessor<CcrOpenedFileInfo>
+    {
+        public string? FileName { get; private set; }
+
+        public uint SequenceNumber { get; private set; }
+
+        public byte[]? Content { get; private set; }
+
+        public async Task ProcessFileAsync(CcrOpenedFileInfo fileInfo, CancellationToken cancellationToken)
+        {
+            FileName = fileInfo.Name;
+            SequenceNumber = fileInfo.SequenceNumber;
+            Content = await ReadAllBytesAsync(fileInfo.Reader, cancellationToken);
+        }
     }
 }

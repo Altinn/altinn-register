@@ -17,7 +17,6 @@ using Altinn.Register.Conventions;
 using Altinn.Register.Core;
 using Altinn.Register.Core.A2;
 using Altinn.Register.Core.A2.SblProfile;
-using Altinn.Register.Core.Ccr;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.PartyImport.A2;
@@ -41,7 +40,6 @@ using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OpenTelemetry.Metrics;
@@ -172,26 +170,11 @@ internal static partial class RegisterHost
             });
 
         services.AddRegisterCoreServices();
+
         services.AddCcrFileProcessor();
         services.AddCcrXmlProcessor();
+        services.AddCcrFileImportServices();
 
-        // SFTP client used by the CCR import job to fetch flat files from BRG. Bound lazily, so a
-        // missing/invalid configuration only fails when the import job actually runs (when enabled),
-        // not at startup for hosts that don't use it.
-        services.AddOptions<CcrFileImportSettings>()
-            .BindConfiguration("Altinn:register:PartyImport:Ccr:Sftp")
-            .ValidateDataAnnotations();
-        services.TryAddSingleton<ICcrDataTransfer>(sp =>
-        {
-            var settings = sp.GetRequiredService<IOptions<CcrFileImportSettings>>().Value;
-            return new CcrDataTransfer(
-                user: settings.User,
-                password: settings.Password,
-                host: settings.Host,
-                remotePath: settings.RemotePath,
-                port: settings.Port,
-                timeoutSeconds: settings.TimeoutSeconds);
-        });
         services.AddHttpClient<IOrganizationClient, OrganizationClient>();
         services.AddHttpClient<IPersonClient, PersonClient>();
         services.AddHttpClient<IV1PartyService, PartiesClient>();

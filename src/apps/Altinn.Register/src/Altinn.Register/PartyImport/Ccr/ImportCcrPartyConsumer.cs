@@ -34,10 +34,9 @@ public sealed partial class ImportCcrPartyConsumer
 
         Log.ConsumingCcrUpdate(_logger, message.OrganizationIdentifier);
 
-        var payload = new ReadOnlySequence<byte>(message.Document);
         return _ccrService.UpdateFromCcr(
             commandId: message.CommandId,
-            input: payload,
+            input: new ReadOnlySequence<byte>(message.Document),
             cancellationToken: context.CancellationToken);
     }
 
