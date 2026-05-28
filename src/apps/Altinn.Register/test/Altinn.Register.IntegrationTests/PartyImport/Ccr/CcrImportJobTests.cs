@@ -18,7 +18,7 @@ public class CcrImportJobTests
 {
     private static readonly TestDataFileProvider _ccrFiles = TestDataFileProvider.For("Ccr/FlatFile");
 
-    private SftpServerInfo _server = null!;
+    private SftpServerInfo? _server;
 
     protected override async ValueTask InitializeAsync()
     {
@@ -42,6 +42,11 @@ public class CcrImportJobTests
 
     protected override void ConfigureConfiguration(IConfigurationBuilder configuration)
     {
+        if (_server is null)
+        {
+            throw new InvalidOperationException("SFTP server was not initialized.");
+        }
+
         // Point the production-registered SftpClientSettings at this test's SFTP container dir.
         _server.Configure(configuration, "Altinn:register:PartyImport:Ccr:Sftp");
     }
