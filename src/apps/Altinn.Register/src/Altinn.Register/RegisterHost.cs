@@ -23,7 +23,6 @@ using Altinn.Register.Core.PartyImport.A2;
 using Altinn.Register.Core.Sire;
 using Altinn.Register.Core.Utils;
 using Altinn.Register.Extensions;
-using Altinn.Register.Integrations.Ccr.FileImport;
 using Altinn.Register.Integrations.Sire;
 using Altinn.Register.Model.Extensions;
 using Altinn.Register.ModelBinding;
