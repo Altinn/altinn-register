@@ -43,12 +43,6 @@ internal sealed partial class SireEnricher
 
         if (result.IsProblem && result.Problem.ErrorCode == Problems.OrganizationNotFound.ErrorCode)
         {
-            // Organization not found in SIRE — mark as deleted
-            context.Party = ((OrganizationRecord)context.Party) with
-            {
-                UnitStatus = "S",
-                IsDeleted = true,
-            };
             return;
         }
 

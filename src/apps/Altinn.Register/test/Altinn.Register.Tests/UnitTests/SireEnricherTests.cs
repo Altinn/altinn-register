@@ -88,7 +88,7 @@ public class SireEnricherTests
     }
 
     [Fact]
-    public async Task Run_OrganizationNotFound_MarksAsDeleted()
+    public async Task Run_OrganizationNotFound_LeavesPartyUnchanged()
     {
         var sireClient = new Mock<ISireClient>();
         sireClient
@@ -107,9 +107,9 @@ public class SireEnricherTests
 
         await enricher.Run(context, CancellationToken);
 
-        var result = Assert.IsType<OrganizationRecord>(context.Party);
-        Assert.True(result.IsDeleted.Value);
-        Assert.Equal("S", result.UnitStatus.Value);
+        // The party reference should be exactly the same instance we started with —
+        // the enricher must not synthesise a deletion state from a 404.
+        Assert.Same(party, context.Party);
     }
 
     [Fact]
