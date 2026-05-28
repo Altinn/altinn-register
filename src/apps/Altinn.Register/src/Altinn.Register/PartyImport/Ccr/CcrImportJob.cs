@@ -12,7 +12,7 @@ using Altinn.Register.Core.ImportJobs;
 namespace Altinn.Register.PartyImport.Ccr;
 
 /// <summary>
-/// A job that imports NPR data.
+/// A job that imports CCR data.
 /// </summary>
 [ExcludeFromCodeCoverage]
 internal sealed partial class CcrImportJob
@@ -76,14 +76,9 @@ internal sealed partial class CcrImportJob
             return;
         }
 
-        var partiesResult = _fileproc.ProcessCcrFlatFile(reader, cancellationToken).ToListAsync(cancellationToken);
-        if (!partiesResult.IsCompletedSuccessfully)
-        {
-            Log.FinishedPartyImport(_logger, TimeSpan.Zero);
-            return;
-        }
-
-        var parties = partiesResult.Result;
+        var parties = await _fileproc
+            .ProcessCcrFlatFile(reader, cancellationToken)
+            .ToListAsync(cancellationToken);
 
         // TODO: put on the bus
         foreach (var party in parties)
