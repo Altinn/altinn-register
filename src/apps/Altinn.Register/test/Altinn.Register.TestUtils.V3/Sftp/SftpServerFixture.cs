@@ -16,12 +16,11 @@ public sealed class SftpServerFixture
     /// <summary>The username used to authenticate against the SFTP server.</summary>
     public const string Username = "ccr";
 
-    /// <summary>The password used to authenticate against the SFTP server.</summary>
-    public const string Password = "ccr-password";
-
     // The atmoz/sftp user is chrooted to its home directory, so the writable upload
     // directory configured below is exposed to clients at "/{UploadDirectory}".
     private const string UploadDirectory = "upload";
+
+    private string password = Guid.NewGuid().ToString("N");
 
     private readonly SftpContainer _container;
 
@@ -29,7 +28,7 @@ public sealed class SftpServerFixture
     {
         var builder = new SftpBuilder("atmoz/sftp:alpine")
             .WithUsername(Username)
-            .WithPassword(Password)
+            .WithPassword(password)
             .WithUploadDirectory(UploadDirectory)
             .WithCleanUp(true);
 
@@ -59,7 +58,7 @@ public sealed class SftpServerFixture
 
         var uploadDirectory = $"{UploadRootPath}/{Guid.NewGuid():N}";
 
-        using var client = new SftpClient(Host, Port, Username, Password);
+        using var client = new SftpClient(Host, Port, Username, password);
         await client.ConnectAsync(cancellationToken);
         try
         {
@@ -70,7 +69,7 @@ public sealed class SftpServerFixture
             client.Disconnect();
         }
 
-        return new SftpServerInfo(Host, Port, Username, Password, uploadDirectory);
+        return new SftpServerInfo(Host, Port, Username, password, uploadDirectory);
     }
 
     /// <summary>Gets the host the SFTP server is reachable on.</summary>
