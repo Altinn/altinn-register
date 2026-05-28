@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Metrics;
@@ -57,6 +58,8 @@ internal sealed partial class CcrImportJob
     /// <inheritdoc/>
     protected override async Task RunAsync(CancellationToken cancellationToken = default)
     {
+        var start = _timeProvider.GetTimestamp();
+
         var track = await _tracker.GetStatus(JobName, cancellationToken);
         int lastrunId = (int)track.ProcessedMax;
 
@@ -72,7 +75,7 @@ internal sealed partial class CcrImportJob
 
         if (!fileReadSuccessfully)
         {
-            Log.FinishedPartyImport(_logger, TimeSpan.Zero);
+            Log.FinishedPartyImport(_logger, _timeProvider.GetElapsedTime(start));
             return;
         }
 
@@ -80,12 +83,34 @@ internal sealed partial class CcrImportJob
             .ProcessCcrFlatFile(reader, cancellationToken)
             .ToListAsync(cancellationToken);
 
-        // TODO: put on the bus
-        foreach (var party in parties)
+        try
         {
+            var commands = new List<ImportCcrPartyCommand>(parties.Count);
+            foreach (var party in parties)
+            {
+                commands.Add(new ImportCcrPartyCommand
+                {
+                    OrganizationIdentifier = party.OrganizationIdentifier,
+                    Document = party.Document.ToArray(),
+                });
+            }
+
+            if (commands.Count > 0)
+            {
+                await _sender.Send(commands, cancellationToken);
+                Log.EnqueuedPartiesForImport(_logger, commands.Count);
+                _meters.PartiesEnqueued.Add(commands.Count);
+            }
+        }
+        finally
+        {
+            foreach (var party in parties)
+            {
+                party.Dispose();
+            }
         }
 
-        Log.FinishedPartyImport(_logger, TimeSpan.Zero);
+        Log.FinishedPartyImport(_logger, _timeProvider.GetElapsedTime(start));
     }
 
     private static partial class Log

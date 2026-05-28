@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Altinn.Register.TestUtils.Tracing;
+using DotNet.Testcontainers.Containers;
 using Renci.SshNet;
 using Testcontainers.Sftp;
 
@@ -40,6 +41,38 @@ public sealed class SftpServerFixture
         _container = builder.Build();
     }
 
+    /// <summary>
+    /// Allocates connection details for use by a single test, including a freshly created unique
+    /// upload directory under <see cref="UploadRootPath"/> so concurrent tests sharing this server
+    /// don't interfere with each other.
+    /// </summary>
+    /// <returns>An <see cref="SftpServerInfo"/> whose <see cref="SftpServerInfo.UploadDirectory"/>
+    /// is the absolute remote path of the directory created for this caller.</returns>
+    public async Task<SftpServerInfo> CreateTestServer()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        if (_container.State != TestcontainersStates.Running)
+        {
+            await _container.StartAsync(cancellationToken);
+        }
+
+        var uploadDirectory = $"{UploadRootPath}/{Guid.NewGuid():N}";
+
+        using var client = new SftpClient(Host, Port, Username, Password);
+        await client.ConnectAsync(cancellationToken);
+        try
+        {
+            client.CreateDirectory(uploadDirectory);
+        }
+        finally
+        {
+            client.Disconnect();
+        }
+
+        return new SftpServerInfo(Host, Port, Username, Password, uploadDirectory);
+    }
+
     /// <summary>Gets the host the SFTP server is reachable on.</summary>
     public string Host => _container.Hostname;
 
@@ -52,35 +85,31 @@ public sealed class SftpServerFixture
     public string UploadRootPath => $"/{UploadDirectory}";
 
     /// <summary>
-    /// Uploads the given files to a fresh, uniquely named directory under <see cref="UploadRootPath"/>,
-    /// so that tests sharing this server don't interfere with each other.
+    /// Uploads the given files into the upload directory of the supplied <paramref name="server"/>
+    /// (typically obtained from <see cref="CreateTestServer"/>).
     /// </summary>
+    /// <param name="server">The test-server info pointing at the target upload directory.</param>
     /// <param name="files">The files to upload, as <c>(name, content)</c> pairs.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
-    /// <returns>The absolute remote path of the directory the files were uploaded to.</returns>
-    public async Task<string> UploadToNewDirectoryAsync(
+    public static async Task UploadFilesAsync(
+        SftpServerInfo server,
         IEnumerable<(string Name, byte[] Content)> files,
         CancellationToken cancellationToken = default)
     {
-        var remoteDir = $"{UploadRootPath}/{Guid.NewGuid():N}";
-
-        using var client = new SftpClient(Host, Port, Username, Password);
+        using var client = new SftpClient(server.Host, server.Port, server.Username, server.Password);
         await client.ConnectAsync(cancellationToken);
         try
         {
-            client.CreateDirectory(remoteDir);
             foreach (var (name, content) in files)
             {
                 using var stream = new MemoryStream(content);
-                client.UploadFile(stream, $"{remoteDir}/{name}");
+                client.UploadFile(stream, $"{server.UploadDirectory}/{name}");
             }
         }
         finally
         {
             client.Disconnect();
         }
-
-        return remoteDir;
     }
 
     async ValueTask IAsyncLifetime.InitializeAsync()

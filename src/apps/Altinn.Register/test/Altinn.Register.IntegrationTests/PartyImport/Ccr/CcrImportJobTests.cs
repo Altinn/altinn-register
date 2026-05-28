@@ -14,17 +14,26 @@ namespace Altinn.Register.IntegrationTests.PartyImport.Ccr;
 public class CcrImportJobTests
     : IntegrationTestBase
 {
-    private SftpServerFixture _sftp = null!;
-    private string _remoteDir = null!;
+    private static readonly TestDataFileProvider _ccrFiles = TestDataFileProvider.For("Ccr/FlatFile");
+
+    private SftpServerInfo _server = null!;
 
     protected override async ValueTask InitializeAsync()
     {
-        // Upload the CCR file before the host is built, so the SFTP settings can point at this
-        // test's isolated remote directory.
-        _sftp = await TestContext.Current.GetRequiredFixture<SftpServerFixture>();
+        // Allocate a unique SFTP upload directory and stage the CCR file before the host is built,
+        // so ConfigureConfiguration can point the SFTP settings at this test's isolated directory.
+        var sftp = await TestContext.Current.GetRequiredFixture<SftpServerFixture>();
+        _server = await sftp.CreateTestServer();
 
-        var fileContent = await CcrFlatFileTestData.ReadBytesAsync("baj00001.txt", CancellationToken);
-        _remoteDir = await _sftp.UploadToNewDirectoryAsync([("baj00001.txt", fileContent)], CancellationToken);
+        byte[] fileContent;
+        using (var stream = _ccrFiles.GetFileInfo("baj00001.txt").CreateReadStream())
+        using (var buffer = new MemoryStream())
+        {
+            await stream.CopyToAsync(buffer, CancellationToken);
+            fileContent = buffer.ToArray();
+        }
+
+        await SftpServerFixture.UploadFilesAsync(_server, [("baj00001.txt", fileContent)], CancellationToken);
 
         await base.InitializeAsync();
     }
@@ -36,11 +45,11 @@ public class CcrImportJobTests
         // background scheduler also run it leaves in-flight SFTP work that doesn't cancel promptly
         // and stalls host shutdown.
         configuration.AddInMemoryCollection([
-            new("Altinn:register:PartyImport:Ccr:Sftp:Host", _sftp.Host),
-            new("Altinn:register:PartyImport:Ccr:Sftp:Port", _sftp.Port.ToString()),
-            new("Altinn:register:PartyImport:Ccr:Sftp:User", SftpServerFixture.Username),
-            new("Altinn:register:PartyImport:Ccr:Sftp:Password", SftpServerFixture.Password),
-            new("Altinn:register:PartyImport:Ccr:Sftp:RemotePath", _remoteDir),
+            new("Altinn:register:PartyImport:Ccr:Sftp:Host", _server.Host),
+            new("Altinn:register:PartyImport:Ccr:Sftp:Port", _server.Port.ToString()),
+            new("Altinn:register:PartyImport:Ccr:Sftp:User", _server.Username),
+            new("Altinn:register:PartyImport:Ccr:Sftp:Password", _server.Password),
+            new("Altinn:register:PartyImport:Ccr:Sftp:RemotePath", _server.UploadDirectory),
             new("Altinn:register:PartyImport:Ccr:Enable", "false"),
         ]);
     }

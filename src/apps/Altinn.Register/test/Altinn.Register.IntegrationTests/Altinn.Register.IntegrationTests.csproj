@@ -3,17 +3,20 @@
   <PropertyGroup>
     <IsTestProject>true</IsTestProject>
     <XUnitVersion>v3</XUnitVersion>
+	  <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+		<PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Testdata\**">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+		<EmbeddedResource Include="Testdata/**/*.json" />
+		<EmbeddedResource Include="Testdata/**/*.txt" />
+		<EmbeddedResource Include="Testdata/**/*.xml" />
+		<EmbeddedResource Include="Snapshots/**/*.xml" />
   </ItemGroup>
 
   <ItemGroup>

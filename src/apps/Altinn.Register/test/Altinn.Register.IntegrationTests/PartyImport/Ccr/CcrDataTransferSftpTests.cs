@@ -2,6 +2,7 @@ using System.IO.Pipelines;
 using Altinn.Register.Integrations.Ccr.FileImport;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Sftp;
+using Microsoft.Extensions.FileProviders;
 
 namespace Altinn.Register.IntegrationTests.PartyImport.Ccr;
 
@@ -11,21 +12,24 @@ namespace Altinn.Register.IntegrationTests.PartyImport.Ccr;
 /// </summary>
 public class CcrDataTransferSftpTests
 {
+    private static readonly TestDataFileProvider _ccrFiles = TestDataFileProvider.For("Ccr/FlatFile");
+
     [Fact]
     public async Task GetNextFileAsync_DownloadsUploadedFileFromSftp()
     {
         var ct = TestContext.Current.CancellationToken;
         var sftp = await TestContext.Current.GetRequiredFixture<SftpServerFixture>();
+        var server = await sftp.CreateTestServer();
 
-        var expected = await CcrFlatFileTestData.ReadBytesAsync("baj00001.txt", ct);
-        var remoteDir = await sftp.UploadToNewDirectoryAsync([("baj00001.txt", expected)], ct);
+        var expected = await ReadAllBytesAsync(_ccrFiles.GetFileInfo("baj00001.txt"), ct);
+        await SftpServerFixture.UploadFilesAsync(server, [("baj00001.txt", expected)], ct);
 
         var transfer = new CcrDataTransfer(
-            user: SftpServerFixture.Username,
-            password: SftpServerFixture.Password,
-            host: sftp.Host,
-            remotePath: remoteDir,
-            port: sftp.Port);
+            user: server.Username,
+            password: server.Password,
+            host: server.Host,
+            remotePath: server.UploadDirectory,
+            port: server.Port);
 
         var pipe = new Pipe();
 
@@ -36,6 +40,14 @@ public class CcrDataTransferSftpTests
 
         var downloaded = await ReadAllBytesAsync(pipe.Reader, ct);
         downloaded.ShouldBe(expected);
+    }
+
+    private static async Task<byte[]> ReadAllBytesAsync(IFileInfo file, CancellationToken cancellationToken)
+    {
+        using var stream = file.CreateReadStream();
+        using var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer, cancellationToken);
+        return buffer.ToArray();
     }
 
     private static async Task<byte[]> ReadAllBytesAsync(PipeReader reader, CancellationToken cancellationToken)
