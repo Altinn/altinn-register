@@ -18,36 +18,21 @@ public class CcrDataTransferSftpTests
 {
     private static readonly TestDataFileProvider _ccrFiles = TestDataFileProvider.For("Ccr/FlatFile");
 
+    private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
+
     [Fact]
     public async Task ProcessNextFile_DownloadsUploadedFileFromSftp()
     {
-        var ct = TestContext.Current.CancellationToken;
+        await using var context = await CreateSftpTestContextAsync();
+
         var sftp = await TestContext.Current.GetRequiredFixture<SftpServerFixture>();
         var server = await sftp.CreateTestServer();
 
-        var expected = await ReadAllBytesAsync(_ccrFiles.GetFileInfo("baj00001.txt"), ct);
-        await SftpServerFixture.UploadFilesAsync(server, [("baj00001.txt", expected)], ct);
-
-        // Wire the production DefaultSftpClientFactory + CcrDataTransfer via real named-options
-        // binding, so this also exercises the production DI/options path.
-        await using var provider = new ServiceCollection()
-            .AddOptions<SftpClientSettings>(nameof(ICcrFlatFileService))
-                .Configure(s =>
-                {
-                    s.Host = server.Host;
-                    s.Port = checked((ushort)server.Port);
-                    s.User = server.Username;
-                    s.Password = server.Password;
-                    s.RemotePath = server.UploadDirectory;
-                })
-                .Services
-            .BuildServiceProvider();
-
-        var optionsMonitor = provider.GetRequiredService<IOptionsMonitor<SftpClientSettings>>();
-        ICcrFlatFileService service = new CcrDataTransfer(new DefaultSftpClientFactory(optionsMonitor));
+        var expected = await ReadAllBytesAsync(_ccrFiles.GetFileInfo("baj00001.txt"), CancellationToken);
+        await context.UploadFilesAsync([("baj00001.txt", expected)], CancellationToken);
 
         var processor = new CapturingProcessor();
-        var result = await service.ProcessNextFile(processor, lastRunId: 0, ct);
+        var result = await context.Service.ProcessNextFile(processor, lastRunId: 0, CancellationToken);
 
         result.IsProblem.ShouldBeFalse();
         result.Value.ShouldBe(CcrFlatFileOperationResult.FileProcessed);
@@ -60,13 +45,21 @@ public class CcrDataTransferSftpTests
     [Fact]
     public async Task ProcessNextFile_ReturnsNoFilesWhenSftpDirectoryIsEmpty()
     {
-        var ct = TestContext.Current.CancellationToken;
+        await using var context = await CreateSftpTestContextAsync();
+
+        var processor = new CapturingProcessor();
+        var result = await context.Service.ProcessNextFile(processor, lastRunId: 0, CancellationToken);
+
+        result.IsProblem.ShouldBeFalse();
+        result.Value.ShouldBe(CcrFlatFileOperationResult.NoFileToProcess);
+    }
+
+    private static async Task<SftpTestContext> CreateSftpTestContextAsync()
+    {
         var sftp = await TestContext.Current.GetRequiredFixture<SftpServerFixture>();
         var server = await sftp.CreateTestServer();
 
-        // Wire the production DefaultSftpClientFactory + CcrDataTransfer via real named-options
-        // binding, so this also exercises the production DI/options path.
-        await using var provider = new ServiceCollection()
+        var provider = new ServiceCollection()
             .AddOptions<SftpClientSettings>(nameof(ICcrFlatFileService))
                 .Configure(s =>
                 {
@@ -82,11 +75,10 @@ public class CcrDataTransferSftpTests
         var optionsMonitor = provider.GetRequiredService<IOptionsMonitor<SftpClientSettings>>();
         ICcrFlatFileService service = new CcrDataTransfer(new DefaultSftpClientFactory(optionsMonitor));
 
-        var processor = new CapturingProcessor();
-        var result = await service.ProcessNextFile(processor, lastRunId: 0, ct);
-
-        result.IsProblem.ShouldBeFalse();
-        result.Value.ShouldBe(CcrFlatFileOperationResult.NoFileToProcess);
+        return new SftpTestContext(
+            service,
+            provider,
+            (files, cancellationToken) => SftpServerFixture.UploadFilesAsync(server, files, cancellationToken));
     }
 
     private static async Task<byte[]> ReadAllBytesAsync(IFileInfo file, CancellationToken cancellationToken)
@@ -140,5 +132,30 @@ public class CcrDataTransferSftpTests
             SequenceNumber = fileInfo.SequenceNumber;
             Content = await ReadAllBytesAsync(fileInfo.Reader, cancellationToken);
         }
+    }
+
+    private sealed class SftpTestContext
+        : IAsyncDisposable
+    {
+        private readonly ServiceProvider _provider;
+        private readonly Func<(string FileName, byte[] Content)[], CancellationToken, Task> _uploadFiles;
+
+        public SftpTestContext(
+            ICcrFlatFileService service,
+            ServiceProvider provider,
+            Func<(string FileName, byte[] Content)[], CancellationToken, Task> uploadFiles)
+        {
+            Service = service;
+            _provider = provider;
+            _uploadFiles = uploadFiles;
+        }
+
+        public ICcrFlatFileService Service { get; }
+
+        public Task UploadFilesAsync((string FileName, byte[] Content)[] files, CancellationToken cancellationToken)
+            => _uploadFiles(files, cancellationToken);
+
+        public ValueTask DisposeAsync()
+            => _provider.DisposeAsync();
     }
 }

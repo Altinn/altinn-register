@@ -36,5 +36,5 @@ internal static class LeaseNames
     /// <summary>
     /// Lease name for CCR import job.
     /// </summary>
-    internal const string CcrImport = "ccr-import";
+    internal const string CcrImport = "ccr-file-import";
 }
