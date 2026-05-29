@@ -130,6 +130,9 @@ public partial class CcrController
         {
             var receivedAt = _timeProvider.GetUtcNow();
             await UpdateFromCcr(cancellationToken);
+
+            //// TODO: Publish event
+
             await WriteAltinnSoapSuccess(receivedAt);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

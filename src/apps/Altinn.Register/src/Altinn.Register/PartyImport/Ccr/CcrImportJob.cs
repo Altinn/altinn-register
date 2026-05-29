@@ -102,7 +102,7 @@ internal sealed partial class CcrImportJob
         {
             await foreach (var item in processor.ProcessCcrFlatFile(fileInfo.Reader, cancellationToken))
             {
-                var cmd = new ImportCcrPartyCommand
+                var cmd = new ImportCcrXmlCommand
                 {
                     BatchId = fileInfo.SequenceNumber,
                     OrganizationIdentifier = item.OrganizationIdentifier,

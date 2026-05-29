@@ -1,6 +1,4 @@
 using System.Diagnostics;
-using Altinn.Register.TestUtils.Tracing;
-using DotNet.Testcontainers.Containers;
 using Renci.SshNet;
 using Testcontainers.Sftp;
 
@@ -23,6 +21,8 @@ public sealed class SftpServerFixture
     private string password = Guid.NewGuid().ToString("N");
 
     private readonly SftpContainer _container;
+    private Task? _startedTask = null;
+    private readonly Lock _lock = new();
 
     public SftpServerFixture()
     {
@@ -51,10 +51,7 @@ public sealed class SftpServerFixture
     {
         var cancellationToken = TestContext.Current.CancellationToken;
 
-        if (_container.State != TestcontainersStates.Running)
-        {
-            await _container.StartAsync(cancellationToken);
-        }
+        await EnsureContainerStartedAsync(cancellationToken);
 
         var uploadDirectory = $"{UploadRootPath}/{Guid.NewGuid():N}";
 
@@ -111,17 +108,53 @@ public sealed class SftpServerFixture
         }
     }
 
-    async ValueTask IAsyncLifetime.InitializeAsync()
+    /// <summary>
+    /// Lazily starts the underlying container exactly once, on the first call to
+    /// <see cref="CreateTestServer"/>. Tests that never request a server (the majority in the
+    /// assembly) don't pay the container-startup cost.
+    /// </summary>
+    private Task EnsureContainerStartedAsync(CancellationToken cancellationToken)
     {
-        TestContext.Current.TestOutputHelper?.WriteLine("Starting SFTP container...");
+        var task = Volatile.Read(ref _startedTask);
+        if (task is not null)
+        {
+            return task.WaitAsync(cancellationToken);
+        }
 
-        using var rootActivity = TestUtilsActivities.Source.StartActivity(ActivityKind.Internal, name: "start sftp server");
-        await _container.StartAsync(TestContext.Current.CancellationToken);
+        lock (_lock)
+        {
+            task = Volatile.Read(ref _startedTask);
+            if (task is not null)
+            {
+                return task.WaitAsync(cancellationToken);
+            }
+
+            task = StartContainerAsync(_container);
+            Volatile.Write(ref _startedTask, task);
+            return task.WaitAsync(cancellationToken);
+        }
+
+        static async Task StartContainerAsync(SftpContainer container)
+        {
+            await Task.Yield();
+            await container.StartAsync(CancellationToken.None);
+        }
     }
+
+    ValueTask IAsyncLifetime.InitializeAsync() => ValueTask.CompletedTask;
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        TestContext.Current.TestOutputHelper?.WriteLine("Disposing SFTP container...");
+        Task? task;
+        lock (_lock)
+        {
+            task = Volatile.Read(ref _startedTask);
+        }
+
+        if (task is not null)
+        {
+            await task;
+        }
 
         await _container.DisposeAsync();
     }

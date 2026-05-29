@@ -7,7 +7,7 @@ namespace Altinn.Register.PartyImport.Ccr;
 /// A command carrying a single organization update parsed from a CCR flat file, to be applied by
 /// the <see cref="Altinn.Register.Core.Ccr.CcrService"/>.
 /// </summary>
-public sealed record ImportCcrPartyCommand
+public sealed record ImportCcrXmlCommand
     : CommandBase
 {
     /// <summary>

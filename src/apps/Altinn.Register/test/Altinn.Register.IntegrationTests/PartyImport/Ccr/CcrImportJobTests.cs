@@ -1,5 +1,7 @@
 using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Register.Contracts;
+using Altinn.Register.Contracts.ExternalRoles;
+using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.UnitOfWork;
@@ -7,6 +9,7 @@ using Altinn.Register.PartyImport.Ccr;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.MassTransit;
 using Altinn.Register.TestUtils.Sftp;
+using MassTransit.Testing;
 using Microsoft.Extensions.Configuration;
 
 namespace Altinn.Register.IntegrationTests.PartyImport.Ccr;
@@ -55,9 +58,10 @@ public class CcrImportJobTests
     }
 
     [Fact]
-    public async Task RunAsync_FetchesAndProcessesCcrFileFromSftp()
+    public async Task RunAsync_PersistsExactlyOneDaglRoleAssignmentPerOrganization()
     {
         var job = GetRequiredService<CcrImportJob>();
+
         var tracker = GetRequiredService<IImportJobTracker>();
 
         var before = await tracker.GetStatus(CcrImportJob.JobName, CancellationToken);
@@ -71,63 +75,6 @@ public class CcrImportJobTests
         var after = await tracker.GetStatus(CcrImportJob.JobName, CancellationToken);
         after.EnqueuedMax.ShouldBe(1UL);
 
-        // And at least one organization update was published to the bus.
-        var anyPublished = await TestHarness.Sent
-            .SelectExisting(m => m.MessageObject is ImportCcrPartyCommand)
-            .AnyAsync(CancellationToken);
-        anyPublished.ShouldBeTrue();
-    }
-
-    [Fact]
-    public async Task RunAsync_PersistsImportedOrganizationsToDatabase()
-    {
-        var job = GetRequiredService<CcrImportJob>();
-
-        // Run the job: fetches the SFTP file, parses it, and sends one ImportCcrPartyCommand per
-        // organization. The MassTransit test harness drives the in-process ImportCcrPartyConsumer,
-        // which calls CcrService.UpdateFromCcr to write each org to the DB.
-        await ((IJob)job).RunAsync(CancellationToken);
-
-        // Wait for the harness to drain every dispatched command through the consumer.
-        await TestHarness.InactivityTask;
-
-        // No ImportCcrPartyCommand should have faulted - if any did, the DB write never happened
-        // for that org and the assertion below would be confusingly empty.
-        var faulted = await TestHarness.Consumed
-            .SelectExisting(m => m.MessageObject is ImportCcrPartyCommand && m.Exception is not null)
-            .AnyAsync(CancellationToken);
-        faulted.ShouldBeFalse();
-
-        // The first organization in test1.txt (ENH 210690182) should now exist in the DB,
-        // which proves the full pipeline ran: SFTP fetch -> parse -> bus dispatch -> consumer ->
-        // CcrService -> IPartyPersistence.UpsertParty -> commit.
-        await Check(async (uow, ct) =>
-        {
-            var parties = uow.GetPartyPersistence();
-            var orgIdentifier = OrganizationIdentifier.Parse("210690182");
-
-            var party = await parties
-                .GetOrganizationByIdentifier(orgIdentifier, PartyFieldIncludes.Party | PartyFieldIncludes.Organization, ct)
-                .FirstOrDefaultAsync(ct);
-
-            party.ShouldNotBeNull();
-            party.OrganizationIdentifier.Value.ShouldBe(orgIdentifier);
-        });
-    }
-
-    [Fact]
-    public async Task RunAsync_PersistsExactlyOneDaglRoleAssignmentPerOrganization()
-    {
-        var job = GetRequiredService<CcrImportJob>();
-
-        await ((IJob)job).RunAsync(CancellationToken);
-        await TestHarness.InactivityTask;
-
-        var faulted = await TestHarness.Consumed
-            .SelectExisting(m => m.MessageObject is ImportCcrPartyCommand && m.Exception is not null)
-            .AnyAsync(CancellationToken);
-        faulted.ShouldBeFalse();
-
         // Every ENH record in test1.txt has exactly one DAGL ("daglig-leder") sub-record.
         // After the consumer commits, each org should hold exactly one CCR-source
         // "daglig-leder" assignment in the DB.
@@ -136,6 +83,26 @@ public class CcrImportJobTests
             "311952153", "312105802", "312955385", "313316661", "313351033",
             "313704688", "313887162", "313993108", "315268729", "315676002",
         ];
+
+        foreach (var orgNumber in orgIdentifiers)
+        {
+            var conversation = await TestHarness.Conversation<ImportCcrXmlCommand>(cmd => cmd.OrganizationIdentifier == OrganizationIdentifier.Parse(orgNumber), CancellationToken);
+            conversation.ShouldNotBeNull();
+
+            var completedEvent = await conversation.Events.OfType<CcrXmlImportCompletedEvent>().FirstOrDefaultAsync(CancellationToken);
+            var command = await conversation.Commands.Completed.OfType<ImportCcrXmlCommand>().FirstOrDefaultAsync(CancellationToken);
+            command.ShouldNotBeNull();
+            command.BatchId.ShouldBe(1U);
+
+            var orgUpdatedEvent = await conversation.Events.Completed.OfType<PartyUpdatedEvent>().FirstOrDefaultAsync(CancellationToken);
+            orgUpdatedEvent.ShouldNotBeNull();
+
+            var roleAddedEvents = await conversation.Events.Completed.OfType<ExternalRoleAssignmentAddedEvent>().ToListAsync(CancellationToken);
+            roleAddedEvents.Count.ShouldBe(1);
+
+            var roleRemovedEvents = await conversation.Events.Completed.OfType<ExternalRoleAssignmentRemovedEvent>().ToListAsync(CancellationToken);
+            roleRemovedEvents.Count.ShouldBe(0);
+        }
 
         await Check(async (uow, ct) =>
         {
