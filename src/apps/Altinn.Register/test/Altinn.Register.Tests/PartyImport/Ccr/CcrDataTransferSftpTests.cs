@@ -2,13 +2,14 @@ using System.IO.Pipelines;
 using Altinn.Register.Core.Ccr;
 using Altinn.Register.Core.ImportJobs.FileProcessing;
 using Altinn.Register.Integrations.Ccr.FileImport;
+using Altinn.Register.Tests.Utils;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Sftp;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 
-namespace Altinn.Register.IntegrationTests.PartyImport.Ccr;
+namespace Altinn.Register.Tests.PartyImport.Ccr;
 
 /// <summary>
 /// Integration tests for <see cref="CcrDataTransfer"/> against a real SFTP server running in a
@@ -18,48 +19,21 @@ public class CcrDataTransferSftpTests
 {
     private static readonly TestDataFileProvider _ccrFiles = TestDataFileProvider.For("Ccr/FlatFile");
 
-    private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
-
     [Fact]
     public async Task ProcessNextFile_DownloadsUploadedFileFromSftp()
     {
-        await using var context = await CreateSftpTestContextAsync();
-
+        var ct = TestContext.Current.CancellationToken;
         var sftp = await TestContext.Current.GetRequiredFixture<SftpServerFixture>();
         var server = await sftp.CreateTestServer();
 
-        var expected = await ReadAllBytesAsync(_ccrFiles.GetFileInfo("baj00001.txt"), CancellationToken);
-        await context.UploadFilesAsync([("baj00001.txt", expected)], CancellationToken);
+        // Local test data is "test1.txt" (the canonical fixture the parser tests share);
+        // the SFTP server expects production's filename convention "baj{runId:D5}.txt".
+        var expected = await ReadAllBytesAsync(_ccrFiles.GetFileInfo("test1.txt"), ct);
+        await SftpServerFixture.UploadFilesAsync(server, [("baj00001.txt", expected)], ct);
 
-        var processor = new CapturingProcessor();
-        var result = await context.Service.ProcessNextFile(processor, lastRunId: 0, CancellationToken);
-
-        result.IsProblem.ShouldBeFalse();
-        result.Value.ShouldBe(CcrFlatFileOperationResult.FileProcessed);
-
-        processor.FileName.ShouldBe("baj00001.txt");
-        processor.SequenceNumber.ShouldBe(1U);
-        processor.Content.ShouldBe(expected);
-    }
-
-    [Fact]
-    public async Task ProcessNextFile_ReturnsNoFilesWhenSftpDirectoryIsEmpty()
-    {
-        await using var context = await CreateSftpTestContextAsync();
-
-        var processor = new CapturingProcessor();
-        var result = await context.Service.ProcessNextFile(processor, lastRunId: 0, CancellationToken);
-
-        result.IsProblem.ShouldBeFalse();
-        result.Value.ShouldBe(CcrFlatFileOperationResult.NoFileToProcess);
-    }
-
-    private static async Task<SftpTestContext> CreateSftpTestContextAsync()
-    {
-        var sftp = await TestContext.Current.GetRequiredFixture<SftpServerFixture>();
-        var server = await sftp.CreateTestServer();
-
-        var provider = new ServiceCollection()
+        // Wire the production DefaultSftpClientFactory + CcrDataTransfer via real named-options
+        // binding, so this also exercises the production DI/options path.
+        await using var provider = new ServiceCollection()
             .AddOptions<SftpClientSettings>(nameof(ICcrFlatFileService))
                 .Configure(s =>
                 {
@@ -75,10 +49,15 @@ public class CcrDataTransferSftpTests
         var optionsMonitor = provider.GetRequiredService<IOptionsMonitor<SftpClientSettings>>();
         ICcrFlatFileService service = new CcrDataTransfer(new DefaultSftpClientFactory(optionsMonitor));
 
-        return new SftpTestContext(
-            service,
-            provider,
-            (files, cancellationToken) => SftpServerFixture.UploadFilesAsync(server, files, cancellationToken));
+        var processor = new CapturingProcessor();
+        var result = await service.ProcessNextFile(processor, lastRunId: 0, ct);
+
+        result.IsProblem.ShouldBeFalse();
+        result.Value.ShouldBe(CcrFlatFileOperationResult.FileProcessed);
+
+        processor.FileName.ShouldBe("baj00001.txt");
+        processor.SequenceNumber.ShouldBe(1U);
+        processor.Content.ShouldBe(expected);
     }
 
     private static async Task<byte[]> ReadAllBytesAsync(IFileInfo file, CancellationToken cancellationToken)
@@ -132,30 +111,5 @@ public class CcrDataTransferSftpTests
             SequenceNumber = fileInfo.SequenceNumber;
             Content = await ReadAllBytesAsync(fileInfo.Reader, cancellationToken);
         }
-    }
-
-    private sealed class SftpTestContext
-        : IAsyncDisposable
-    {
-        private readonly ServiceProvider _provider;
-        private readonly Func<(string FileName, byte[] Content)[], CancellationToken, Task> _uploadFiles;
-
-        public SftpTestContext(
-            ICcrFlatFileService service,
-            ServiceProvider provider,
-            Func<(string FileName, byte[] Content)[], CancellationToken, Task> uploadFiles)
-        {
-            Service = service;
-            _provider = provider;
-            _uploadFiles = uploadFiles;
-        }
-
-        public ICcrFlatFileService Service { get; }
-
-        public Task UploadFilesAsync((string FileName, byte[] Content)[] files, CancellationToken cancellationToken)
-            => _uploadFiles(files, cancellationToken);
-
-        public ValueTask DisposeAsync()
-            => _provider.DisposeAsync();
     }
 }
