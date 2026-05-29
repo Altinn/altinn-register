@@ -114,4 +114,51 @@ public class CcrImportJobTests
             party.OrganizationIdentifier.Value.ShouldBe(orgIdentifier);
         });
     }
+
+    [Fact]
+    public async Task RunAsync_PersistsExactlyOneDaglRoleAssignmentPerOrganization()
+    {
+        var job = GetRequiredService<CcrImportJob>();
+
+        await ((IJob)job).RunAsync(CancellationToken);
+        await TestHarness.InactivityTask;
+
+        var faulted = await TestHarness.Consumed
+            .SelectExisting(m => m.MessageObject is ImportCcrPartyCommand && m.Exception is not null)
+            .AnyAsync(CancellationToken);
+        faulted.ShouldBeFalse();
+
+        // Every ENH record in test1.txt has exactly one DAGL ("daglig-leder") sub-record.
+        // After the consumer commits, each org should hold exactly one CCR-source
+        // "daglig-leder" assignment in the DB.
+        string[] orgIdentifiers = [
+            "210690182", "213167022", "310146420", "311196073", "311258524",
+            "311952153", "312105802", "312955385", "313316661", "313351033",
+            "313704688", "313887162", "313993108", "315268729", "315676002",
+        ];
+
+        await Check(async (uow, ct) =>
+        {
+            var parties = uow.GetPartyPersistence();
+            var roles = uow.GetPartyExternalRolePersistence();
+
+            foreach (var orgNumber in orgIdentifiers)
+            {
+                var orgIdentifier = OrganizationIdentifier.Parse(orgNumber);
+
+                var org = await parties
+                    .GetOrganizationByIdentifier(orgIdentifier, PartyFieldIncludes.Party | PartyFieldIncludes.Organization, ct)
+                    .FirstOrDefaultAsync(ct);
+
+                org.ShouldNotBeNull($"organization {orgNumber} should be persisted");
+
+                var assignments = await roles
+                    .GetExternalRoleAssignmentsFromParty(partyUuid: org.PartyUuid.Value, cancellationToken: ct)
+                    .ToListAsync(ct);
+
+                var daglCount = assignments.Count(a => a.Identifier == "daglig-leder");
+                daglCount.ShouldBe(1, customMessage: $"organization {orgNumber} should have exactly one daglig-leder role assignment, but had {daglCount}");
+            }
+        });
+    }
 }
