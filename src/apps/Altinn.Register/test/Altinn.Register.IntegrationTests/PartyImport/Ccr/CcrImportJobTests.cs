@@ -1,5 +1,8 @@
 using Altinn.Authorization.ServiceDefaults.Jobs;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.ImportJobs;
+using Altinn.Register.Core.Parties;
+using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.PartyImport.Ccr;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.MassTransit;
@@ -73,5 +76,42 @@ public class CcrImportJobTests
             .SelectExisting(m => m.MessageObject is ImportCcrPartyCommand)
             .AnyAsync(CancellationToken);
         anyPublished.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task RunAsync_PersistsImportedOrganizationsToDatabase()
+    {
+        var job = GetRequiredService<CcrImportJob>();
+
+        // Run the job: fetches the SFTP file, parses it, and sends one ImportCcrPartyCommand per
+        // organization. The MassTransit test harness drives the in-process ImportCcrPartyConsumer,
+        // which calls CcrService.UpdateFromCcr to write each org to the DB.
+        await ((IJob)job).RunAsync(CancellationToken);
+
+        // Wait for the harness to drain every dispatched command through the consumer.
+        await TestHarness.InactivityTask;
+
+        // No ImportCcrPartyCommand should have faulted - if any did, the DB write never happened
+        // for that org and the assertion below would be confusingly empty.
+        var faulted = await TestHarness.Consumed
+            .SelectExisting(m => m.MessageObject is ImportCcrPartyCommand && m.Exception is not null)
+            .AnyAsync(CancellationToken);
+        faulted.ShouldBeFalse();
+
+        // The first organization in test1.txt (ENH 210690182) should now exist in the DB,
+        // which proves the full pipeline ran: SFTP fetch -> parse -> bus dispatch -> consumer ->
+        // CcrService -> IPartyPersistence.UpsertParty -> commit.
+        await Check(async (uow, ct) =>
+        {
+            var parties = uow.GetPartyPersistence();
+            var orgIdentifier = OrganizationIdentifier.Parse("210690182");
+
+            var party = await parties
+                .GetOrganizationByIdentifier(orgIdentifier, PartyFieldIncludes.Party | PartyFieldIncludes.Organization, ct)
+                .FirstOrDefaultAsync(ct);
+
+            party.ShouldNotBeNull();
+            party.OrganizationIdentifier.Value.ShouldBe(orgIdentifier);
+        });
     }
 }
