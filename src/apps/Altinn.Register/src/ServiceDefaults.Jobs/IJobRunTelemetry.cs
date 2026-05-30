@@ -37,6 +37,12 @@ internal interface IJobRunTelemetry
     public void JobCompleted(TimeSpan duration);
 
     /// <summary>
+    /// Emits telemetry for a job that failed during disposal with the given exception.
+    /// </summary>
+    /// <param name="exception">The exception.</param>
+    public void JobDisposalFailed(Exception exception);
+
+    /// <summary>
     /// Starts an activity for the ShouldRun check of a job.
     /// </summary>
     /// <returns>The activity for the ShouldRun check.</returns>

@@ -291,13 +291,20 @@ public static class JobsServiceCollectionExtensions
     private sealed class JobRegistrationFromServiceProvider<T>(
         string jobName,
         string? leaseName,
-        TimeSpan interval,
+        TimeSpan? interval,
         JobHostLifecycles runAt,
         IEnumerable<string> tags,
         Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>? enabled,
         Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady,
         object? serviceKey)
-        : JobRegistration<Unit>(jobName, leaseName, new ConstantDelayStrategy<Unit>(interval), runAt, tags, enabled, waitForReady)
+        : JobRegistration<Unit>(
+            jobName,
+            leaseName,
+            interval is null ? null : new ConstantDelayStrategy<Unit>(interval.Value),
+            runAt,
+            tags,
+            enabled,
+            waitForReady)
         where T : IJob<Unit>
     {
         protected sealed override IJob<Unit> Create(IServiceProvider services)
@@ -314,7 +321,7 @@ public static class JobsServiceCollectionExtensions
         public string? LeaseName { get; set; } = null;
 
         /// <inheritdoc/>
-        public TimeSpan Interval { get; set; } = TimeSpan.Zero;
+        public TimeSpan? Interval { get; set; } = null;
 
         /// <inheritdoc/>
         public JobHostLifecycles RunAt { get; set; } = JobHostLifecycles.None;

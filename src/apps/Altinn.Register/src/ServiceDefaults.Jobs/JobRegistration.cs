@@ -247,7 +247,7 @@ public abstract class JobRegistration<T>(
                 if (!shouldRun.ShouldRun)
                 {
                     telemetry.JobSkipped(shouldRun.Reason);
-                    var delay = _delayStrategy.GetDelay(JobOutcome.Disabled);
+                    var delay = _delayStrategy.GetDelay(JobOutcome.Skipped);
                     return JobRunResult.Skipped(delay: delay);
                 }
             }
@@ -286,8 +286,6 @@ public abstract class JobRegistration<T>(
             }
             catch (Exception e)
             {
-                var elapsed = timeProvider.GetElapsedTime(start);
-
                 telemetry.JobFailed(e);
                 activity?.SetStatus(ActivityStatusCode.Error, e.Message);
 
@@ -298,13 +296,20 @@ public abstract class JobRegistration<T>(
         }
         finally
         {
-            if (job is IAsyncDisposable asyncDisposable)
+            try
             {
-                await asyncDisposable.DisposeAsync();
+                if (job is IAsyncDisposable asyncDisposable)
+                {
+                    await asyncDisposable.DisposeAsync();
+                }
+                else if (job is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
             }
-            else if (job is IDisposable disposable)
+            catch (Exception e)
             {
-                disposable.Dispose();
+                telemetry.JobDisposalFailed(e);
             }
         }
     }

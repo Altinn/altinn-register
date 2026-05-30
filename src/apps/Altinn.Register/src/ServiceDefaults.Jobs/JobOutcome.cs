@@ -22,6 +22,12 @@ public static class JobOutcome
         => default;
 
     /// <summary>
+    /// A sentinel value representing a skipped job that did not run.
+    /// </summary>
+    public static JobSkippedSentinel Skipped
+        => default;
+
+    /// <summary>
     /// A sentinel value representing a successful job that ran and returned the given result.
     /// </summary>
     /// <param name="exception">The exception thrown by the job.</param>
@@ -52,6 +58,12 @@ public static class JobOutcome
     public readonly record struct JobDisabledSentinel;
 
     /// <summary>
+    /// A sentinel value representing a skipped job that did not run.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public readonly record struct JobSkippedSentinel;
+
+    /// <summary>
     /// A sentinel value representing a failed job that ran and threw the given exception.
     /// </summary>
     /// <param name="Exception">The job exception.</param>
@@ -73,9 +85,29 @@ public static class JobOutcome
     internal enum Outcome
         : byte
     {
+        /// <summary>
+        /// Initial state before any job run has occurred.
+        /// </summary>
         None,
+
+        /// <summary>
+        /// Job is disabled, typically by configuration.
+        /// </summary>
         JobDisabled,
+
+        /// <summary>
+        /// Job was skipped, <see cref="IJob{T}.ShouldRun(CancellationToken)"/> did not return <see cref="JobShouldRunResult.Yes"/>.
+        /// </summary>
+        JobSkipped,
+
+        /// <summary>
+        /// Job ran and failed with an exception.
+        /// </summary>
         JobFailure,
+
+        /// <summary>
+        /// Job ran and succeeded.
+        /// </summary>
         JobSuccess,
     }
 }
@@ -112,6 +144,12 @@ public readonly record struct JobOutcome<T>
     /// </summary>
     public bool IsJobDisabled
         => _outcome == JobOutcome.Outcome.JobDisabled;
+
+    /// <summary>
+    /// Gets whether the job was skipped because <see cref="IJob{T}.ShouldRun(CancellationToken)"/> did not return <see cref="JobShouldRunResult.Yes"/>.
+    /// </summary>
+    public bool IsJobSkipped
+        => _outcome == JobOutcome.Outcome.JobSkipped;
 
     /// <summary>
     /// Gets whether the job ran and failed with an exception.
@@ -152,6 +190,13 @@ public readonly record struct JobOutcome<T>
     [DebuggerStepThrough]
     public static implicit operator JobOutcome<T>(JobOutcome.JobDisabledSentinel _)
         => new JobOutcome<T>(JobOutcome.Outcome.JobDisabled, default, default);
+
+    /// <summary>
+    /// Implicitly converts a <see cref="JobOutcome.JobSkippedSentinel"/> to a <see cref="JobOutcome{T}"/> representing a skipped job.
+    /// </summary>
+    [DebuggerStepThrough]
+    public static implicit operator JobOutcome<T>(JobOutcome.JobSkippedSentinel _)
+        => new JobOutcome<T>(JobOutcome.Outcome.JobSkipped, default, default);
 
     /// <summary>
     /// Implicitly converts a <see cref="JobOutcome.JobFailedSentinel"/> to a <see cref="JobOutcome{T}"/> representing a failed job with the given exception.

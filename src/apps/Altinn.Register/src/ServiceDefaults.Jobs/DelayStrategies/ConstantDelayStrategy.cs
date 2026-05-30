@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Authorization.ServiceDefaults.Jobs.DelayStrategies;
@@ -52,11 +53,7 @@ internal sealed class ConstantDelayStrategy<T>
             return _disabledDelay;
         }
 
-        if (outcome.IsJobFailure)
-        {
-            return _failureDelay;
-        }
-
+        Debug.Assert(outcome.IsJobSkipped | outcome.IsJobSuccess | outcome.IsJobFailure);
         return _successDelay;
     }
 }

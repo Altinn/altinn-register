@@ -504,7 +504,7 @@ internal sealed partial class RecurringJobHostedService
                         Debug.Assert(releaseResult is not null);
                         if (releaseResult is { IsReleased: true, LastReleasedAt: { } lastReleasedAt })
                         {
-                            lastCompleted = releaseResult.LastReleasedAt.Value;
+                            lastCompleted = lastReleasedAt;
                         }
                         else
                         {
@@ -627,6 +627,11 @@ internal sealed partial class RecurringJobHostedService
         {
             service._jobsStarted.Add(1, tags.AsSpan());
             Log.JobStarting(service._logger, registration.JobName);
+        }
+
+        public void JobDisposalFailed(Exception exception)
+        {
+            Log.JobDisposalFailed(service._logger, registration.JobName, exception);
         }
 
         public Activity? StartRun()
@@ -1029,5 +1034,8 @@ internal sealed partial class RecurringJobHostedService
 
         [LoggerMessage(17, LogLevel.Trace, "Finished sleep job {JobName}, expected sleep duration: {ExpectedDuration}, actual sleep duration: {ActualDuration}, cancellation token is cancelled: {IsCancelled}")]
         public static partial void RecordSleep(ILogger logger, string jobName, TimeSpan expectedDuration, TimeSpan actualDuration, bool isCancelled);
+
+        [LoggerMessage(18, LogLevel.Error, "Job {JobName} disposal failed")]
+        public static partial void JobDisposalFailed(ILogger logger, string jobName, Exception exception);
     }
 }
