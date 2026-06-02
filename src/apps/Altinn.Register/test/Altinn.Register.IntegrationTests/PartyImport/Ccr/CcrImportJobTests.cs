@@ -57,7 +57,7 @@ public class CcrImportJobTests
         var before = await tracker.GetStatus(CcrImportJob.JobName, CancellationToken);
         before.EnqueuedMax.ShouldBe(0UL);
 
-        await ((IJob)job).RunAsync(CancellationToken);
+        await ((IJob<Unit>)job).RunAsync(CancellationToken);
 
         // The tracker only advances after the file is fetched and the parser has actually
         // produced (and the job has enqueued) at least one organization update. A silent
