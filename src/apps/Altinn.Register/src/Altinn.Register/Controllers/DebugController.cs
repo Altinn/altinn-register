@@ -234,7 +234,7 @@ public class DebugController
 
         try
         {
-            await ((IJob)job).RunAsync(cancellationToken);
+            await ((Altinn.Authorization.ServiceDefaults.Jobs.IJob)job).RunAsync(cancellationToken);
             return Ok(new { status = "completed", message = "SireImportJob ran one cycle." });
         }
         catch (Exception ex)
