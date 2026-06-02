@@ -4,6 +4,7 @@ using System.IO.Pipelines;
 using System.Net.Http.Headers;
 using System.Text.Json.Serialization;
 using Altinn.Authorization.ProblemDetails;
+using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Configuration;
 using Altinn.Register.Contracts;
@@ -12,6 +13,7 @@ using Altinn.Register.Core.Errors;
 using Altinn.Register.Core.Npr;
 using Altinn.Register.Core.Sire;
 using Altinn.Register.PartyImport.A2;
+using Altinn.Register.PartyImport.Sire;
 using Asp.Versioning;
 using CommunityToolkit.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
@@ -215,6 +217,30 @@ public class DebugController
     {
         [JsonPropertyName("sekvensnummer")]
         public required uint SequenceNumber { get; init; }
+    }
+
+    /// <summary>
+    /// Manually trigger one run of the SIRE import job (poll feed + enqueue commands).
+    /// Useful for local testing without waiting for the 10-minute scheduled interval.
+    /// </summary>
+    [HttpPost("sire/import/trigger")]
+    [Authorize(Policy = "Debug")]
+    public async Task<IActionResult> TriggerSireImport(
+        [FromServices] IServiceProvider services,
+        CancellationToken cancellationToken)
+    {
+        await using var scope = services.CreateAsyncScope();
+        var job = ActivatorUtilities.CreateInstance<SireImportJob>(scope.ServiceProvider);
+
+        try
+        {
+            await ((IJob)job).RunAsync(cancellationToken);
+            return Ok(new { status = "completed", message = "SireImportJob ran one cycle." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.GetType().Name, message = ex.Message });
+        }
     }
 
     /// <summary>
