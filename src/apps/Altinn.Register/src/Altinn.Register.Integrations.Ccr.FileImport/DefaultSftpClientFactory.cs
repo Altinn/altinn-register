@@ -37,9 +37,8 @@ internal sealed class DefaultSftpClientFactory
         try
         {
             await client.ConnectAsync(cancellationToken);
-            await client.ChangeDirectoryAsync(settings.RemotePath, cancellationToken);
 
-            var ret = new SftpNetworkFileSystemClient(client);
+            var ret = new SftpNetworkFileSystemClient(client, settings.RemotePath);
             client = null;
             return ret;
         }

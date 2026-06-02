@@ -10,22 +10,29 @@ internal sealed class SftpNetworkFileSystemClient
     : INetworkFileSystemClient
 {
     private readonly ISftpClient _sftpClient;
+    private readonly string _basePath;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SftpNetworkFileSystemClient"/> class with the specified <see cref="ISftpClient"/>.
+    /// Initializes a new instance of the <see cref="SftpNetworkFileSystemClient"/> class.
     /// </summary>
     /// <param name="sftpClient">The sftp client.</param>
-    public SftpNetworkFileSystemClient(ISftpClient sftpClient)
+    /// <param name="basePath">
+    /// The remote base directory to resolve relative paths against. May be empty or "/" to leave
+    /// relative paths unresolved (they will then be interpreted by the server against its own
+    /// session cwd, typically the user's home).
+    /// </param>
+    public SftpNetworkFileSystemClient(ISftpClient sftpClient, string basePath)
     {
         _sftpClient = sftpClient;
+        _basePath = basePath;
     }
 
     /// <inheritdoc/>
     public async Task<Stream> OpenReadAsync(string path, CancellationToken cancellationToken = default)
     {
         // SftpClient.OpenAsync sends the path to the server verbatim - unlike most other methods
-        // on SftpClient, it doesn't prepend WorkingDirectory for relative paths. Resolve it here
-        // so callers can use relative paths against the working directory set by ChangeDirectory.
+        // on SftpClient, it doesn't prepend the working directory for relative paths. Resolve it
+        // here so callers can use relative paths against the base path supplied at construction.
         var fullPath = Resolve(path);
         try
         {
@@ -37,6 +44,17 @@ internal sealed class SftpNetworkFileSystemClient
         }
     }
 
+    /// <inheritdoc/>
+    public Task RenameFileAsync(string sourcePath, string destinationPath, CancellationToken cancellationToken = default)
+        => _sftpClient.RenameFileAsync(Resolve(sourcePath), Resolve(destinationPath), cancellationToken);
+
+    /// <inheritdoc/>
+    public ValueTask DisposeAsync()
+    {
+        _sftpClient.Dispose(); // does not support async disposal currently
+        return ValueTask.CompletedTask;
+    }
+
     private string Resolve(string path)
     {
         if (string.IsNullOrEmpty(path) || path[0] == '/')
@@ -44,25 +62,13 @@ internal sealed class SftpNetworkFileSystemClient
             return path;
         }
 
-        var workingDirectory = _sftpClient.WorkingDirectory;
-        if (string.IsNullOrEmpty(workingDirectory))
+        if (string.IsNullOrEmpty(_basePath))
         {
             return path;
         }
 
-        return workingDirectory[^1] == '/'
-            ? $"{workingDirectory}{path}"
-            : $"{workingDirectory}/{path}";
-    }
-
-    /// <inheritdoc/>
-    public Task RenameFileAsync(string sourcePath, string destinationPath, CancellationToken cancellationToken = default)
-        => _sftpClient.RenameFileAsync(sourcePath, destinationPath, cancellationToken);
-
-    /// <inheritdoc/>
-    public ValueTask DisposeAsync()
-    {
-        _sftpClient.Dispose(); // does not support async disposal currently
-        return ValueTask.CompletedTask;
+        return _basePath[^1] == '/'
+            ? $"{_basePath}{path}"
+            : $"{_basePath}/{path}";
     }
 }
