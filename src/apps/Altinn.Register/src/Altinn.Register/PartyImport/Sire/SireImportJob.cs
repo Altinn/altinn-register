@@ -52,6 +52,16 @@ internal sealed partial class SireImportJob
         _meters = metricsProvider.Get<ImportMeters>();
     }
 
+    /// <summary>
+    /// Runs the job once, bypassing the schedule gate. Intended for the debug-only
+    /// "trigger" endpoint so we can exercise the import pipeline on demand. Calling
+    /// this through the <c>IJob</c> interface would otherwise collide with the
+    /// generic <c>IJob&lt;T&gt;</c> from <c>Altinn.Authorization.ServiceDefaults</c>
+    /// at CI restore time.
+    /// </summary>
+    public Task RunOnceAsync(CancellationToken cancellationToken)
+        => RunAsync(cancellationToken);
+
     /// <inheritdoc/>
     protected override async Task RunAsync(CancellationToken cancellationToken = default)
     {

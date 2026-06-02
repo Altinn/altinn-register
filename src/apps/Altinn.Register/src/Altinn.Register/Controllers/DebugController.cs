@@ -4,7 +4,6 @@ using System.IO.Pipelines;
 using System.Net.Http.Headers;
 using System.Text.Json.Serialization;
 using Altinn.Authorization.ProblemDetails;
-using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Configuration;
 using Altinn.Register.Contracts;
@@ -234,7 +233,7 @@ public class DebugController
 
         try
         {
-            await ((Altinn.Authorization.ServiceDefaults.Jobs.IJob)job).RunAsync(cancellationToken);
+            await job.RunOnceAsync(cancellationToken);
             return Ok(new { status = "completed", message = "SireImportJob ran one cycle." });
         }
         catch (Exception ex)
