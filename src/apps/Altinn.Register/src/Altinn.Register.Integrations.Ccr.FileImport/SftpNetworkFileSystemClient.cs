@@ -67,8 +67,6 @@ internal sealed class SftpNetworkFileSystemClient
             return path;
         }
 
-        return _basePath[^1] == '/'
-            ? $"{_basePath}{path}"
-            : $"{_basePath}/{path}";
+        return $"{_basePath}/{path}";
     }
 }
