@@ -36,7 +36,7 @@ public record class SftpServerInfo(
     /// <param name="fileName">The file name (without any path component).</param>
     /// <param name="content">A stream positioned at the start of the bytes to upload.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
-    public async Task UploadFileAsync(string fileName, Stream content, CancellationToken cancellationToken = default)
+    internal async Task UploadFileAsync(string fileName, Stream content, CancellationToken cancellationToken = default)
     {
         using var client = new SftpClient(Host, Port, Username, Password);
         await client.ConnectAsync(cancellationToken);

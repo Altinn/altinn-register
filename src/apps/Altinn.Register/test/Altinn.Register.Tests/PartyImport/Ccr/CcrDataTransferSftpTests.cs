@@ -5,8 +5,6 @@ using Altinn.Register.Integrations.Ccr.FileImport;
 using Altinn.Register.Tests.Utils;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Sftp;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace Altinn.Register.Tests.PartyImport.Ccr;
 
@@ -40,22 +38,19 @@ public class CcrDataTransferSftpTests
 
         var expected = stream.ToArray();
 
-        // Wire the production DefaultSftpClientFactory + CcrDataTransfer via real named-options
-        // binding, so this also exercises the production DI/options path.
-        await using var provider = new ServiceCollection()
-            .AddOptions<SftpClientSettings>(nameof(ICcrFlatFileService))
-                .Configure(s =>
-                {
-                    s.Host = server.Host;
-                    s.Port = checked((ushort)server.Port);
-                    s.User = server.Username;
-                    s.Password = server.Password;
-                    s.RemotePath = server.UploadDirectory;
-                })
-                .Services
-            .BuildServiceProvider();
+        // Hand DefaultSftpClientFactory a TestOptionsMonitor preloaded with this test's SFTP
+        // settings under the production-expected named-options key.
+        var optionsMonitor = new TestOptionsMonitor<SftpClientSettings>(
+            nameof(ICcrFlatFileService),
+            new SftpClientSettings
+            {
+                Host = server.Host,
+                Port = checked((ushort)server.Port),
+                User = server.Username,
+                Password = server.Password,
+                RemotePath = server.UploadDirectory,
+            });
 
-        var optionsMonitor = provider.GetRequiredService<IOptionsMonitor<SftpClientSettings>>();
         ICcrFlatFileService service = new CcrDataTransfer(new DefaultSftpClientFactory(optionsMonitor));
 
         var processor = new CapturingProcessor();
