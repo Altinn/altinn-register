@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Microsoft.Extensions.Hosting;
 
 namespace Altinn.Authorization.ServiceDefaults.Jobs;
@@ -45,4 +46,10 @@ public enum JobHostLifecycles
     /// Run the job at the <see cref="IHostedLifecycleService.StoppedAsync(CancellationToken)"/> point.
     /// </summary>
     Stopped = 1 << 5,
+
+    /// <summary>
+    /// Run the job at a schedule, in addition to the host lifecycle events.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    Scheduled = 1 << 6,
 }

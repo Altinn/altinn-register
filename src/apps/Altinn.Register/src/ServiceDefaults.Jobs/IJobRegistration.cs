@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-
 namespace Altinn.Authorization.ServiceDefaults.Jobs;
 
 /// <summary>
@@ -11,24 +9,4 @@ public interface IJobRegistration
     /// Gets the name of the job.
     /// </summary>
     public string JobName { get; }
-
-    /// <summary>
-    /// Gets the name of the lease that should be acquired before running the job.
-    /// </summary>
-    public string? LeaseName { get; }
-
-    /// <summary>
-    /// Gets the interval at which the job should run.
-    /// </summary>
-    public TimeSpan Interval { get; }
-
-    /// <summary>
-    /// Gets the <see cref="JobHostLifecycles"/> that the job should run at.
-    /// </summary>
-    public JobHostLifecycles RunAt { get; }
-
-    /// <summary>
-    /// Gets the tags associated with the job.
-    /// </summary>
-    public ImmutableArray<string> Tags { get; }
 }

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Altinn.Authorization.ServiceDefaults.Jobs;
+using Altinn.Authorization.ServiceDefaults.Jobs.DelayStrategies;
 using Altinn.Register.Jobs;
 using CommunityToolkit.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -20,7 +21,7 @@ public static class JobsServiceCollectionExtensions
     /// <param name="configure">A configuration delegate.</param>
     /// <returns><paramref name="services"/>.</returns>
     public static IJobRegistration AddRecurringJob<T>(this IServiceCollection services, Action<IJobSettings> configure)
-        where T : class, IJob
+        where T : class, IJob<Unit>
         => services.AddRecurringJob<T>(serviceKey: null, configure);
 
     /// <summary>
@@ -32,7 +33,7 @@ public static class JobsServiceCollectionExtensions
     /// <param name="configure">A configuration delegate.</param>
     /// <returns><paramref name="services"/>.</returns>
     public static IJobRegistration AddRecurringJob<T>(this IServiceCollection services, object? serviceKey, Action<IJobSettings> configure)
-        where T : class, IJob
+        where T : class, IJob<Unit>
     {
         Guard.IsNotNull(services);
         Guard.IsNotNull(configure);
@@ -45,7 +46,7 @@ public static class JobsServiceCollectionExtensions
     }
 
     private static IJobRegistration AddRecurringJob<T>(this IServiceCollection services, JobSettings settings, object? serviceKey)
-        where T : IJob
+        where T : class, IJob<Unit>
     {
         Guard.IsNotNull(services);
         if (settings.Interval <= TimeSpan.Zero && settings.RunAt == JobHostLifecycles.None)
@@ -53,7 +54,7 @@ public static class JobsServiceCollectionExtensions
             ThrowHelper.ThrowArgumentException(nameof(settings), "Interval must be greater than zero or RunAt must be set.");
         }
 
-        var registration = new JobRegistration<T>(settings.JobName, settings.LeaseName, settings.Interval, settings.RunAt, settings.Tags, settings.Enabled, settings.WaitForReady, serviceKey);
+        var registration = new JobRegistrationFromServiceProvider<T>(settings.JobName, settings.LeaseName, settings.Interval, settings.RunAt, settings.Tags, settings.Enabled, settings.WaitForReady, serviceKey);
         return services.AddRecurringJob(registration);
     }
 
@@ -287,19 +288,26 @@ public static class JobsServiceCollectionExtensions
         return services;
     }
 
-    private sealed class JobRegistration<T>(
+    private sealed class JobRegistrationFromServiceProvider<T>(
         string jobName,
         string? leaseName,
-        TimeSpan interval,
+        TimeSpan? interval,
         JobHostLifecycles runAt,
         IEnumerable<string> tags,
         Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>? enabled,
         Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady,
         object? serviceKey)
-        : JobRegistration(jobName, leaseName, interval, runAt, tags, enabled, waitForReady)
-        where T : IJob
+        : JobRegistration<Unit>(
+            jobName,
+            leaseName,
+            interval is null ? null : new ConstantDelayStrategy<Unit>(interval.Value),
+            runAt,
+            tags,
+            enabled,
+            waitForReady)
+        where T : IJob<Unit>
     {
-        public override IJob Create(IServiceProvider services)
+        protected sealed override IJob<Unit> Create(IServiceProvider services)
             => services.GetRequiredKeyedService<T>(serviceKey);
     }
 
@@ -313,7 +321,7 @@ public static class JobsServiceCollectionExtensions
         public string? LeaseName { get; set; } = null;
 
         /// <inheritdoc/>
-        public TimeSpan Interval { get; set; } = TimeSpan.Zero;
+        public TimeSpan? Interval { get; set; } = null;
 
         /// <inheritdoc/>
         public JobHostLifecycles RunAt { get; set; } = JobHostLifecycles.None;

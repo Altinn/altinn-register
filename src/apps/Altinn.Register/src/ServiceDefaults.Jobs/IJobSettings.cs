@@ -21,9 +21,9 @@ public interface IJobSettings
     string? LeaseName { get; set; }
 
     /// <summary>
-    /// Gets or sets the interval at which the job should run. Set to <see cref="TimeSpan.Zero"/> to disable running on an interval.
+    /// Gets or sets the interval at which the job should run. Set to <see langword="null"/> to disable running on an interval.
     /// </summary>
-    TimeSpan Interval { get; set; }
+    TimeSpan? Interval { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="JobHostLifecycles"/> that the job should run at.

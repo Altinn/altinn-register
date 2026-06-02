@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Data;
 using Altinn.Authorization.ServiceDefaults.Jobs;
+using Altinn.Authorization.ServiceDefaults.Jobs.DelayStrategies;
 using Altinn.Authorization.ServiceDefaults.Leases;
 using Altinn.Authorization.ServiceDefaults.Npgsql;
 using Altinn.Register.Core.UnitOfWork;
@@ -43,7 +44,7 @@ public class RecurringJobHostedServiceTests
     private ILeaseProvider Provider
         => _provider!;
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task CanRun_WithNo_JobRegistrations()
     {
         await using var sut = CreateService([]);
@@ -51,7 +52,7 @@ public class RecurringJobHostedServiceTests
         await Run(sut, CancellationToken);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task CanRun_JobAt_Starting()
     {
         var counter = new AtomicCounter();
@@ -70,7 +71,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(1U);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task CanRun_JobAt_Start()
     {
         var counter = new AtomicCounter();
@@ -90,7 +91,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(1U);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task CanRun_JobAt_Started()
     {
         var counter = new AtomicCounter();
@@ -110,7 +111,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(1U);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task CanRun_JobAt_Stopping()
     {
         var counter = new AtomicCounter();
@@ -130,7 +131,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(1U);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task CanRun_JobAt_Stop()
     {
         var counter = new AtomicCounter();
@@ -150,7 +151,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(1U);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task CanRun_JobAt_Stopped()
     {
         var counter = new AtomicCounter();
@@ -167,7 +168,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(1U);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task CanRun_JobAt_All()
     {
         var counter = new AtomicCounter();
@@ -190,7 +191,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(6U);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task Cannot_UseLease_At_Starting()
     {
         var counter = new AtomicCounter();
@@ -199,7 +200,7 @@ public class RecurringJobHostedServiceTests
         await Should.ThrowAsync<InvalidOperationException>(() => sut.StartingAsync(CancellationToken));
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task Can_UseLease_At_Start()
     {
         var counter = new AtomicCounter();
@@ -218,7 +219,7 @@ public class RecurringJobHostedServiceTests
         lease.LastReleasedAt.ShouldBe(end);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task Can_UseLease_At_Started()
     {
         var counter = new AtomicCounter();
@@ -237,7 +238,7 @@ public class RecurringJobHostedServiceTests
         lease.LastReleasedAt.ShouldBe(end);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task Can_UseLease_At_Stopping()
     {
         var counter = new AtomicCounter();
@@ -256,7 +257,7 @@ public class RecurringJobHostedServiceTests
         lease.LastReleasedAt.ShouldBe(end);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task Can_UseLease_At_Stop()
     {
         var counter = new AtomicCounter();
@@ -275,7 +276,7 @@ public class RecurringJobHostedServiceTests
         lease.LastReleasedAt.ShouldBe(end);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task Can_UseLease_At_Stopped()
     {
         var counter = new AtomicCounter();
@@ -294,7 +295,7 @@ public class RecurringJobHostedServiceTests
         lease.LastReleasedAt.ShouldBe(end);
     }
 
-    [Theory]
+    [Theory(Timeout = 10_000)]
     [InlineData(JobHostLifecycles.Starting)]
     [InlineData(JobHostLifecycles.Start)]
     [InlineData(JobHostLifecycles.Started)]
@@ -303,13 +304,13 @@ public class RecurringJobHostedServiceTests
     [InlineData(JobHostLifecycles.Stopped)]
     public async Task LifecycleJobs_Propagate_Errors(JobHostLifecycles lifecycle)
     {
-        await using var sut = CreateService([Registration.RunAt(lifecycle, new Func<IServiceProvider, Task>(_ => throw new InvalidOperationException("I died miserably")), services => ValueTask.FromResult(true))]);
+        await using var sut = CreateService([Registration.RunAt(lifecycle, new Func<IServiceProvider, Task>(_ => throw new InvalidOperationException("I died miserably")), services => ValueTask.FromResult(JobShouldRunResult.Yes))]);
 
         var assert = await Should.ThrowAsync<InvalidOperationException>(() => Run(sut, CancellationToken));
         assert.Message.ShouldBe("I died miserably");
     }
 
-    [Theory]
+    [Theory(Timeout = 10_000)]
     [InlineData(JobHostLifecycles.Starting)]
     [InlineData(JobHostLifecycles.Start)]
     [InlineData(JobHostLifecycles.Started)]
@@ -324,7 +325,7 @@ public class RecurringJobHostedServiceTests
         assert.Message.ShouldBe("I died miserably (shouldrun)");
     }
 
-    [Theory]
+    [Theory(Timeout = 10_000)]
     [InlineData(JobHostLifecycles.Starting)]
     [InlineData(JobHostLifecycles.Start)]
     [InlineData(JobHostLifecycles.Started)]
@@ -344,7 +345,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(0U);
     }
 
-    [Theory]
+    [Theory(Timeout = 10_000)]
     [InlineData(JobHostLifecycles.Starting)]
     [InlineData(JobHostLifecycles.Start)]
     [InlineData(JobHostLifecycles.Started)]
@@ -365,7 +366,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(1U);
     }
 
-    [Theory]
+    [Theory(Timeout = 10_000)]
     [InlineData(JobHostLifecycles.Starting)]
     [InlineData(JobHostLifecycles.Start)]
     [InlineData(JobHostLifecycles.Started)]
@@ -386,7 +387,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(0U);
     }
 
-    [Theory]
+    [Theory(Timeout = 10_000)]
     [InlineData(JobHostLifecycles.Starting)]
     [InlineData(JobHostLifecycles.Start)]
     [InlineData(JobHostLifecycles.Started)]
@@ -413,7 +414,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(1U);
     }
 
-    [Theory]
+    [Theory(Timeout = 10_000)]
     [InlineData(JobHostLifecycles.Start)]
     [InlineData(JobHostLifecycles.Started)]
     [InlineData(JobHostLifecycles.Stopping)]
@@ -431,7 +432,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(0U);
     }
 
-    [Theory]
+    [Theory(Timeout = 10_000)]
     [InlineData(JobHostLifecycles.Start)]
     [InlineData(JobHostLifecycles.Started)]
     [InlineData(JobHostLifecycles.Stopping)]
@@ -459,7 +460,7 @@ public class RecurringJobHostedServiceTests
         postLeaseInfo.ShouldBe(initialLeaseInfo);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task DisposableJobs_AreDisposed()
     {
         var job1Dispose = new AtomicCounter();
@@ -483,7 +484,7 @@ public class RecurringJobHostedServiceTests
         job3DisposeAsync.Value.ShouldBe(1U);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task ScheduledJobs_WithoutLease_CanBeDisabled()
     {
         var counter = new AtomicCounter();
@@ -499,7 +500,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(0U);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task ScheduledJobs_WithoutLease_AreNotRunImmediately()
     {
         var counter = new AtomicCounter();
@@ -513,7 +514,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(0U);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task ScheduledJobs_WithoutLease_CanWaitFor()
     {
         var counter = new AtomicCounter();
@@ -534,7 +535,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(1U);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task ScheduledJobs_RunMultipleTimes()
     {
         var counter = new AtomicCounter();
@@ -556,7 +557,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(10U);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task ScheduledJobs_CanBeDynamicallyEnabled()
     {
         var counter = new AtomicCounter();
@@ -592,7 +593,7 @@ public class RecurringJobHostedServiceTests
         await Stop(sut, CancellationToken);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task ScheduledJobs_Interval_IsBetweenRuns()
     {
         var counter = new AtomicCounter();
@@ -611,7 +612,7 @@ public class RecurringJobHostedServiceTests
 
                     return Task.CompletedTask;
                 },
-                services => ValueTask.FromResult(true)),
+                services => ValueTask.FromResult(JobShouldRunResult.Yes)),
         ]);
 
         await Start(sut, CancellationToken);
@@ -634,7 +635,7 @@ public class RecurringJobHostedServiceTests
         await Stop(sut, CancellationToken);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task ScheduledJobs_WithLease_RunsImmediately()
     {
         var counter = new AtomicCounter();
@@ -648,7 +649,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(1U);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task ScheduledJobs_WithLease_ThatRanRecently_AreNotRunImmediately()
     {
         var result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), CancellationToken);
@@ -666,7 +667,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(0U);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task ScheduledJobs_WithLease_CanBeDisabled()
     {
         var counter = new AtomicCounter();
@@ -691,11 +692,7 @@ public class RecurringJobHostedServiceTests
         postLeaseInfo.LastAcquiredAt.ShouldBe(initialLeaseInfo.LastAcquiredAt);
 
         enabled.Set(true);
-        for (var i = 0; i < 9; i++)
-        {
-            // advance forward 9 hours in 1 hour increments to trigger interim timers
-            TimeProvider.Advance(TimeSpan.FromHours(1));
-        }
+        TimeProvider.Advance(TimeSpan.FromMinutes(10)); // disabled jobs are checkd again more frequently
 
         await sut.WaitForRunningScheduledJobs();
         postLeaseInfo = await GetLeaseInfo(leaseName);
@@ -706,7 +703,7 @@ public class RecurringJobHostedServiceTests
         await Stop(sut, CancellationToken);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task ScheduledJobs_WithLease_UsesLeaseTime_ToScheduleRuns()
     {
         var result = await Provider.TryAcquireLease("test", TimeSpan.FromMinutes(1), CancellationToken);
@@ -751,7 +748,7 @@ public class RecurringJobHostedServiceTests
         leaseInfo.LastReleasedAt.ShouldBe(TimeProvider.GetUtcNow());
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task MultipleConditions_AllTrue_Runs()
     {
         var conditions = Enumerable.Range(0, 10).Select(_ => new ConstCondition(true, tags: []));
@@ -766,7 +763,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(1U);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task MultipleConditions_SomeFalse_DoesNotRun()
     {
         var conditions = Enumerable.Range(0, 10).Select(_ => new ConstCondition(true, tags: []));
@@ -781,7 +778,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(0U);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task Conditions_CanTarget_AllJobs()
     {
         var condition = new ConstCondition(false, tags: []);
@@ -796,7 +793,7 @@ public class RecurringJobHostedServiceTests
         counter.Value.ShouldBe(0U);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task Conditions_CanTarget_TaggedJobs()
     {
         var condition = new ConstCondition(false, tags: ["foo"]);
@@ -815,7 +812,7 @@ public class RecurringJobHostedServiceTests
         noTag.Value.ShouldBe(1U);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task CanBeDisposed_MultipleTimes()
     {
         await using var sut = CreateService([]);
@@ -825,7 +822,7 @@ public class RecurringJobHostedServiceTests
         await sut.DisposeAsync(); // should not throw
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task CanBeDisposed_MultipleTimes_InParallel()
     {
         const int THREAD_COUNT = 10;
@@ -909,32 +906,39 @@ public class RecurringJobHostedServiceTests
 
     private sealed class DelegateJob(
         Func<IServiceProvider, Task> run,
-        Func<IServiceProvider, ValueTask<bool>> shouldRun,
+        Func<IServiceProvider, ValueTask<JobShouldRunResult>> shouldRun,
         IServiceProvider services)
         : Job
     {
         protected override Task RunAsync(CancellationToken cancellationToken)
             => run(services);
 
-        protected override ValueTask<bool> ShouldRun(CancellationToken cancellationToken)
+        protected override ValueTask<JobShouldRunResult> ShouldRun(CancellationToken cancellationToken)
             => shouldRun(services);
     }
 
     private sealed class Registration(
-        Func<IServiceProvider, IJob> job,
+        Func<IServiceProvider, Job> job,
         string name,
         string? leaseName,
-        TimeSpan interval,
+        TimeSpan? interval,
         JobHostLifecycles runAt,
         IEnumerable<string> tags,
         Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>? enabled,
         Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady)
-        : JobRegistration(name, leaseName, interval, runAt, tags, enabled, waitForReady)
+        : JobRegistration<Unit>(
+            name,
+            leaseName,
+            interval.HasValue ? new ConstantDelayStrategy<Unit>(interval.Value) : null,
+            runAt,
+            tags,
+            enabled,
+            waitForReady)
     {
         public static JobRegistration Create(
-            Func<IServiceProvider, IJob> job,
+            Func<IServiceProvider, Job> job,
             string? leaseName,
-            TimeSpan interval,
+            TimeSpan? interval,
             JobHostLifecycles runAt,
             IEnumerable<string> tags,
             Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>? enabled,
@@ -943,31 +947,31 @@ public class RecurringJobHostedServiceTests
 
         public static JobRegistration Create(
             Func<IServiceProvider, Task> job,
-            Func<IServiceProvider, ValueTask<bool>> shouldRun,
+            Func<IServiceProvider, ValueTask<JobShouldRunResult>> shouldRun,
             string? leaseName,
-            TimeSpan interval,
+            TimeSpan? interval,
             JobHostLifecycles runAt,
             IEnumerable<string> tags,
             Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>? enabled,
             Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady)
             => new Registration(services => new DelegateJob(job, shouldRun, services), "test", leaseName, interval, runAt, tags, enabled, waitForReady);
 
-        public static new JobRegistration RunAt(JobHostLifecycles runAt, Func<IServiceProvider, IJob> job)
-            => Create(job, null, TimeSpan.Zero, runAt, [], null, null);
+        public static new JobRegistration RunAt(JobHostLifecycles runAt, Func<IServiceProvider, Job> job)
+            => Create(job, null, null, runAt, [], null, null);
 
-        public static new JobRegistration RunAt(JobHostLifecycles runAt, Func<IServiceProvider, Task> job, Func<IServiceProvider, ValueTask<bool>> shouldRun)
-            => Create(job, shouldRun, null, TimeSpan.Zero, runAt, [], null, null);
+        public static new JobRegistration RunAt(JobHostLifecycles runAt, Func<IServiceProvider, Task> job, Func<IServiceProvider, ValueTask<JobShouldRunResult>> shouldRun)
+            => Create(job, shouldRun, null, null, runAt, [], null, null);
 
-        public static new JobRegistration RunAt(JobHostLifecycles runAt, string leaseName, Func<IServiceProvider, IJob> job)
-            => Create(job, leaseName, TimeSpan.Zero, runAt, [], null, null);
+        public static new JobRegistration RunAt(JobHostLifecycles runAt, string leaseName, Func<IServiceProvider, Job> job)
+            => Create(job, leaseName, null, runAt, [], null, null);
 
-        public static new JobRegistration RunAt(JobHostLifecycles runAt, string leaseName, Func<IServiceProvider, Task> job, Func<IServiceProvider, ValueTask<bool>> shouldRun)
-            => Create(job, shouldRun, leaseName, TimeSpan.Zero, runAt, [], null, null);
+        public static new JobRegistration RunAt(JobHostLifecycles runAt, string leaseName, Func<IServiceProvider, Task> job, Func<IServiceProvider, ValueTask<JobShouldRunResult>> shouldRun)
+            => Create(job, shouldRun, leaseName, null, runAt, [], null, null);
 
-        public static JobRegistration Scheduled(TimeSpan interval, Func<IServiceProvider, Task> job, Func<IServiceProvider, ValueTask<bool>> shouldRun)
+        public static JobRegistration Scheduled(TimeSpan interval, Func<IServiceProvider, Task> job, Func<IServiceProvider, ValueTask<JobShouldRunResult>> shouldRun)
             => Create(job, shouldRun, null, interval, JobHostLifecycles.None, [], null, null);
 
-        public override IJob Create(IServiceProvider services)
+        protected override Job Create(IServiceProvider services)
             => job(services);
     }
 
@@ -977,7 +981,7 @@ public class RecurringJobHostedServiceTests
             AtomicCounter counter,
             AtomicBool shouldRun,
             string? leaseName,
-            TimeSpan interval,
+            TimeSpan? interval,
             JobHostLifecycles runAt,
             IEnumerable<string>? tags = null,
             Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>? enabled = null,
@@ -985,7 +989,7 @@ public class RecurringJobHostedServiceTests
         {
             var shouldRunFn = (IServiceProvider services) =>
             {
-                return ValueTask.FromResult(shouldRun.Value);
+                return ValueTask.FromResult(JobShouldRunResult.Conditional("atomic bool disabled", shouldRun.Value));
             };
 
             var job = (IServiceProvider services) =>
@@ -1007,7 +1011,7 @@ public class RecurringJobHostedServiceTests
             IEnumerable<string>? tags = null,
             Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>? enabled = null,
             Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady = null)
-            => Create(counter, new AtomicBool(true), null, TimeSpan.Zero, runAt, tags, enabled, waitForReady);
+            => Create(counter, new AtomicBool(true), null, null, runAt, tags, enabled, waitForReady);
 
         public static JobRegistration RunAt(
             JobHostLifecycles runAt,
@@ -1016,13 +1020,13 @@ public class RecurringJobHostedServiceTests
             IEnumerable<string>? tags = null,
             Func<IServiceProvider, CancellationToken, ValueTask<JobShouldRunResult>>? enabled = null,
             Func<IServiceProvider, CancellationToken, ValueTask>? waitForReady = null)
-            => Create(counter, new AtomicBool(true), leaseName, TimeSpan.Zero, runAt, tags, enabled, waitForReady);
+            => Create(counter, new AtomicBool(true), leaseName, null, runAt, tags, enabled, waitForReady);
 
         public static JobRegistration RunAt(JobHostLifecycles runAt, AtomicCounter counter, Task waitForReady)
-            => Create(counter, new AtomicBool(true), null, TimeSpan.Zero, runAt, null, null, (_, _) => new(waitForReady));
+            => Create(counter, new AtomicBool(true), null, null, runAt, null, null, (_, _) => new(waitForReady));
 
         public static JobRegistration RunAt(JobHostLifecycles runAt, string leaseName, AtomicCounter counter)
-            => Create(counter, new AtomicBool(true), leaseName, TimeSpan.Zero, runAt);
+            => Create(counter, new AtomicBool(true), leaseName, null, runAt);
 
         public static JobRegistration Scheduled(
             TimeSpan interval,
