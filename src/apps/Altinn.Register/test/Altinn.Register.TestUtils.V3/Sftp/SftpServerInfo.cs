@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using Renci.SshNet;
 
 namespace Altinn.Register.TestUtils.Sftp;
 
@@ -26,5 +27,26 @@ public record class SftpServerInfo(
             new($"{sectionKey}:Password", Password),
             new($"{sectionKey}:RemotePath", UploadDirectory),
         ]);
+    }
+
+    /// <summary>
+    /// Uploads the content of <paramref name="content"/> to a file named <paramref name="fileName"/>
+    /// inside this server's <see cref="UploadDirectory"/>.
+    /// </summary>
+    /// <param name="fileName">The file name (without any path component).</param>
+    /// <param name="content">A stream positioned at the start of the bytes to upload.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    public async Task UploadFileAsync(string fileName, Stream content, CancellationToken cancellationToken = default)
+    {
+        using var client = new SftpClient(Host, Port, Username, Password);
+        await client.ConnectAsync(cancellationToken);
+        try
+        {
+            client.UploadFile(content, $"{UploadDirectory}/{fileName}");
+        }
+        finally
+        {
+            client.Disconnect();
+        }
     }
 }

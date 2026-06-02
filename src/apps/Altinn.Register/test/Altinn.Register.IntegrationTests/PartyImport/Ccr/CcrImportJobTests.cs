@@ -33,28 +33,18 @@ public class CcrImportJobTests
         var sftp = await TestContext.Current.GetRequiredFixture<SftpServerFixture>();
         _server = await sftp.CreateTestServer();
 
-        byte[] fileContent;
         using (var stream = _ccrFiles.GetFileInfo("baj00001.txt").CreateReadStream())
-        using (var buffer = new MemoryStream())
         {
-            await stream.CopyToAsync(buffer, CancellationToken);
-            fileContent = buffer.ToArray();
+            await _server.UploadFileAsync("baj00001.txt", stream, CancellationToken);
         }
-
-        await SftpServerFixture.UploadFilesAsync(_server, [("baj00001.txt", fileContent)], CancellationToken);
 
         await base.InitializeAsync();
     }
 
     protected override void ConfigureConfiguration(IConfigurationBuilder configuration)
     {
-        if (_server is null)
-        {
-            throw new InvalidOperationException("SFTP server was not initialized.");
-        }
-
         // Point the production-registered SftpClientSettings at this test's SFTP container dir.
-        _server.Configure(configuration, "Altinn:register:PartyImport:Ccr:Sftp");
+        _server!.Configure(configuration, "Altinn:register:PartyImport:Ccr:Sftp");
     }
 
     [Fact]

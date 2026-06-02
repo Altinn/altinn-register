@@ -16,7 +16,6 @@
 		<EmbeddedResource Include="Testdata/**/*.json" />
 		<EmbeddedResource Include="Testdata/**/*.txt" />
 		<EmbeddedResource Include="Testdata/**/*.xml" />
-		<EmbeddedResource Include="Snapshots/**/*.xml" />
   </ItemGroup>
 
   <ItemGroup>

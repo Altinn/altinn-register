@@ -6,7 +6,6 @@ using Altinn.Register.Tests.Utils;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Sftp;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 
 namespace Altinn.Register.Tests.PartyImport.Ccr;
@@ -28,8 +27,18 @@ public class CcrDataTransferSftpTests
 
         // Local test data is "test1.txt" (the canonical fixture the parser tests share);
         // the SFTP server expects production's filename convention "baj{runId:D5}.txt".
-        var expected = await ReadAllBytesAsync(_ccrFiles.GetFileInfo("test1.txt"), ct);
-        await SftpServerFixture.UploadFilesAsync(server, [("baj00001.txt", expected)], ct);
+        // Buffer the file once: upload reads it after rewinding, and the byte-equality
+        // assertion below takes the same buffer via ToArray().
+        using var stream = new MemoryStream();
+        await using (var source = _ccrFiles.GetFileInfo("test1.txt").CreateReadStream())
+        {
+            await source.CopyToAsync(stream, ct);
+        }
+
+        stream.Position = 0;
+        await server.UploadFileAsync("baj00001.txt", stream, ct);
+
+        var expected = stream.ToArray();
 
         // Wire the production DefaultSftpClientFactory + CcrDataTransfer via real named-options
         // binding, so this also exercises the production DI/options path.
@@ -58,14 +67,6 @@ public class CcrDataTransferSftpTests
         processor.FileName.ShouldBe("baj00001.txt");
         processor.SequenceNumber.ShouldBe(1U);
         processor.Content.ShouldBe(expected);
-    }
-
-    private static async Task<byte[]> ReadAllBytesAsync(IFileInfo file, CancellationToken cancellationToken)
-    {
-        using var stream = file.CreateReadStream();
-        using var buffer = new MemoryStream();
-        await stream.CopyToAsync(buffer, cancellationToken);
-        return buffer.ToArray();
     }
 
     private static async Task<byte[]> ReadAllBytesAsync(PipeReader reader, CancellationToken cancellationToken)

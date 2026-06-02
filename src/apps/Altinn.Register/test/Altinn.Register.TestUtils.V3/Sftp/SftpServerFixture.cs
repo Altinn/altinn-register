@@ -81,34 +81,6 @@ public sealed class SftpServerFixture
     public string UploadRootPath => $"/{UploadDirectory}";
 
     /// <summary>
-    /// Uploads the given files into the upload directory of the supplied <paramref name="server"/>
-    /// (typically obtained from <see cref="CreateTestServer"/>).
-    /// </summary>
-    /// <param name="server">The test-server info pointing at the target upload directory.</param>
-    /// <param name="files">The files to upload, as <c>(name, content)</c> pairs.</param>
-    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
-    public static async Task UploadFilesAsync(
-        SftpServerInfo server,
-        IEnumerable<(string Name, byte[] Content)> files,
-        CancellationToken cancellationToken = default)
-    {
-        using var client = new SftpClient(server.Host, server.Port, server.Username, server.Password);
-        await client.ConnectAsync(cancellationToken);
-        try
-        {
-            foreach (var (name, content) in files)
-            {
-                using var stream = new MemoryStream(content);
-                client.UploadFile(stream, $"{server.UploadDirectory}/{name}");
-            }
-        }
-        finally
-        {
-            client.Disconnect();
-        }
-    }
-
-    /// <summary>
     /// Lazily starts the underlying container exactly once, on the first call to
     /// <see cref="CreateTestServer"/>. Tests that never request a server (the majority in the
     /// assembly) don't pay the container-startup cost.
