@@ -22,9 +22,7 @@ public sealed record ImportCcrXmlCommand
     public required OrganizationIdentifier OrganizationIdentifier { get; init; }
 
     /// <summary>
-    /// Gets the CCR XML document as raw bytes. Stored as <see cref="byte"/>[] (not
-    /// <see cref="System.Buffers.ReadOnlySequence{T}"/>) so it round-trips through MassTransit's
-    /// default JSON serializer (as base64).
+    /// Gets the CCR XML document as raw bytes.
     /// </summary>
     public required byte[] Document { get; init; }
 }
