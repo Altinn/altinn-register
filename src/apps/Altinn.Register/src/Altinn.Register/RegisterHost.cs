@@ -392,6 +392,15 @@ internal static partial class RegisterHost
             };
         });
 
+        if (initOnly)
+        {
+            builder.Host.UseDefaultServiceProvider((context, options) =>
+            {
+                options.ValidateScopes = false;
+                options.ValidateOnBuild = false;
+            });
+        }
+
         return builder.Build();
     }
 

@@ -72,8 +72,13 @@ public partial class CcrController
         [FromQuery(Name = "record")] bool record = true,
         CancellationToken cancellationToken = default)
     {
-        if (Request.Headers.TryGetValue("X-Altinn-Register-Ccr", out var values)
-            && values.Contains("Apply-In-A3", StringComparer.OrdinalIgnoreCase))
+        var hasTestHeader =
+            Request.Headers.TryGetValue("X-Altinn-Register-Ccr", out var values)
+            && values.Contains("Apply-In-A3", StringComparer.OrdinalIgnoreCase);
+
+        var switchedToA3Processing = _configuration.GetValue("Altinn:register:Ccr:Update:Process", defaultValue: false);
+
+        if (hasTestHeader || switchedToA3Processing)
         {
             return HandleInA3(cancellationToken);
         }
@@ -85,7 +90,10 @@ public partial class CcrController
     {
         using RecordOperationState state = new(_timeProvider.GetUtcNow(), Request.GetDisplayUrl());
 
-        state.ReadRequestHeaders(Request.Headers);
+        state.ReadRequestHeaders(Request.Headers, [
+            new("::RemoteIpAddress", HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty),
+            new("::RemotePort", HttpContext.Connection.RemotePort.ToString()),
+        ]);
         await state.ReadRequestBody(Request.BodyReader, cancellationToken);
 
         using var client = _httpClientFactory.CreateClient("a2:ccr");
@@ -380,12 +388,12 @@ public partial class CcrController
             set => _duration = value;
         }
 
-        public void ReadRequestHeaders(IHeaderDictionary headers)
+        public void ReadRequestHeaders(IHeaderDictionary headers, ReadOnlySpan<KeyValuePair<string, StringValues>> additionalHeaders = default)
         {
             Debug.Assert(_requestHeaders is null);
             _requestHeaders = new Sequence<byte>(ArrayPool<byte>.Shared);
 
-            ReadHeaders(_requestHeaders, headers);
+            ReadHeaders(_requestHeaders, headers, additionalHeaders);
         }
 
         public void ReadResponseHeaders(HttpResponseHeaders responseHeaders, HttpContentHeaders contentHeaders)
@@ -400,18 +408,34 @@ public partial class CcrController
             ReadHeaders(_responseHeaders, headers);
         }
 
-        private void ReadHeaders(IBufferWriter<byte> dest, IEnumerable<KeyValuePair<string, StringValues>> headers)
+        private void ReadHeaders(
+            IBufferWriter<byte> dest,
+            IEnumerable<KeyValuePair<string, StringValues>> headers,
+            ReadOnlySpan<KeyValuePair<string, StringValues>> additionalHeaders = default)
         {
             Debug.Assert(dest is not null);
             Debug.Assert(headers is not null);
 
             using var writer = new Utf8JsonWriter(dest);
             writer.WriteStartObject();
+
             foreach (var (name, values) in headers)
+            {
+                WriteHeaderValue(writer, name, values);
+            }
+
+            foreach (var (name, values) in additionalHeaders)
+            {
+                WriteHeaderValue(writer, name, values);
+            }
+
+            writer.WriteEndObject();
+
+            static void WriteHeaderValue(Utf8JsonWriter writer, string name, StringValues values)
             {
                 if (values.Count == 0)
                 {
-                    continue;
+                    return;
                 }
 
                 writer.WritePropertyName(name);
@@ -430,8 +454,6 @@ public partial class CcrController
                     writer.WriteEndArray();
                 }
             }
-
-            writer.WriteEndObject();
         }
 
         public async ValueTask ReadRequestBody(PipeReader reader, CancellationToken cancellationToken)
