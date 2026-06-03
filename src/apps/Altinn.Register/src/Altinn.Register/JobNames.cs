@@ -39,4 +39,9 @@ internal static class JobNames
     /// Job name for CCR import job.
     /// </summary>
     internal const string CcrImport = LeaseNames.CcrImport;
+
+    /// <summary>
+    /// Job name for SIRE import job.
+    /// </summary>
+    internal const string SireImport = LeaseNames.SireImport;
 }

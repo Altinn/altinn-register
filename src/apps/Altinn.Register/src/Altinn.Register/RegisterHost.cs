@@ -30,6 +30,7 @@ using Altinn.Register.PartyImport;
 using Altinn.Register.PartyImport.A2;
 using Altinn.Register.PartyImport.Ccr;
 using Altinn.Register.PartyImport.Npr;
+using Altinn.Register.PartyImport.Sire;
 using Altinn.Register.PartyImport.SystemUser;
 using Altinn.Register.Services;
 using Altinn.Register.Services.Implementation;
@@ -214,6 +215,15 @@ internal static partial class RegisterHost
             .ConfigureBaseAddress("https://sire/")
             .AddMaskinPortenHandler("register-freg"); // we reuse the maskinporten client from freg
 
+        services.AddHttpClient<ISireEventClient, SireEventClient>()
+            .ConfigureBaseAddress("https://sire-events/")
+            .AddMaskinPortenHandler("register-freg");
+
+        // Lets operators tune the SIRE feed's antall page-size from config without code
+        // changes. Unset → SIRE picks its server-side default.
+        services.AddOptions<SireEventClientOptions>()
+            .BindConfiguration("Altinn:register:PartyImport:Sire:Client");
+
         services.AddHttpClient("a2:ccr")
             .ConfigureBaseAddress("https://altinn2/");
 
@@ -299,6 +309,16 @@ internal static partial class RegisterHost
                 settings.WaitForReady = waitForBus;
                 settings.Enabled = JobEnabledBuilder.Default
                     .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:Npr:Enable");
+            });
+
+            services.AddRecurringJob<SireImportJob>(settings =>
+            {
+                settings.Tags.Add(A2PartyImportJobTag);
+                settings.LeaseName = SireImportJob.JobName;
+                settings.Interval = TimeSpan.FromMinutes(10);
+                settings.WaitForReady = waitForBus;
+                settings.Enabled = JobEnabledBuilder.Default
+                    .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:Sire:Listen");
             });
 
             services.AddOptions<SagaStateCleanupSettings>()

@@ -37,4 +37,9 @@ internal static class LeaseNames
     /// Lease name for CCR import job.
     /// </summary>
     internal const string CcrImport = "ccr-file-import";
+
+    /// <summary>
+    /// Lease name for SIRE import job.
+    /// </summary>
+    internal const string SireImport = "sire-import";
 }

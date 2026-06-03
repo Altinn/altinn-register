@@ -21,6 +21,7 @@ public sealed partial class A2PartyImportSaga
     , ISagaStartedBy<A2PartyImportSaga, ImportA2PartyCommand, A2PartyImportSaga.A2PartyImportSagaData>
     , ISagaStartedBy<A2PartyImportSaga, ImportA2UserProfileCommand, A2PartyImportSaga.A2PartyImportSagaData>
     , ISagaStartedBy<A2PartyImportSaga, ImportNprPartyCommand, A2PartyImportSaga.A2PartyImportSagaData>
+    , ISagaStartedBy<A2PartyImportSaga, ImportSirePartyCommand, A2PartyImportSaga.A2PartyImportSagaData>
     , ISagaHandles<A2PartyImportSaga, EnrichA2PartyImportSagaCommand, A2PartyImportSaga.A2PartyImportSagaData>
     , ISagaHandles<A2PartyImportSaga, CompleteA2PartyImportSagaCommand, A2PartyImportSaga.A2PartyImportSagaData>
     , ISagaHandles<A2PartyImportSaga, RetryA2PartyImportSagaCommand, A2PartyImportSaga.A2PartyImportSagaData>

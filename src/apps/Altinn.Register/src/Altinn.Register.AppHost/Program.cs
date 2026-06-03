@@ -85,6 +85,9 @@ var registerApi = builder.AddProject<Projects.Altinn_Register>("register")
     .WithEnvironment("Altinn__register__PartyImport__A2__PartyUserId__Enable", "false")
     .WithEnvironment("Altinn__register__PartyImport__A2__Profiles__Enable", "false")
     .WithEnvironment("Altinn__register__PartyImport__SystemUsers__Enable", "false")
+    .WithEnvironment("Altinn__register__PartyImport__Sire__Listen", "false")
+    .WithEnvironment("Altinn__register__PartyImport__Sire__Enrich", "false")
+    .WithEnvironment("Altinn__register__Party__CreatePartyId", "false")
     .WithHttpHealthCheck("/health");
 
 await builder.Build().RunAsync();
