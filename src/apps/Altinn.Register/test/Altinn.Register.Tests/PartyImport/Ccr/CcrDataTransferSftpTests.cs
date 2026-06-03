@@ -23,20 +23,14 @@ public class CcrDataTransferSftpTests
         var sftp = await TestContext.Current.GetRequiredFixture<SftpServerFixture>();
         var server = await sftp.CreateTestServer();
 
+        var testData = _ccrFiles.GetFileInfo("test1.txt");
+
         // Local test data is "test1.txt" (the canonical fixture the parser tests share);
         // the SFTP server expects production's filename convention "baj{runId:D5}.txt".
-        // Buffer the file once: upload reads it after rewinding, and the byte-equality
-        // assertion below takes the same buffer via ToArray().
-        using var stream = new MemoryStream();
-        await using (var source = _ccrFiles.GetFileInfo("test1.txt").CreateReadStream())
+        await using (var source = testData.CreateReadStream())
         {
-            await source.CopyToAsync(stream, ct);
+            await server.UploadFileAsync("baj00001.txt", source, ct);
         }
-
-        stream.Position = 0;
-        await server.UploadFileAsync("baj00001.txt", stream, ct);
-
-        var expected = stream.ToArray();
 
         // Hand DefaultSftpClientFactory a TestOptionsMonitor preloaded with this test's SFTP
         // settings under the production-expected named-options key.
@@ -61,6 +55,13 @@ public class CcrDataTransferSftpTests
 
         processor.FileName.ShouldBe("baj00001.txt");
         processor.SequenceNumber.ShouldBe(1U);
+
+        var expected = new byte[testData.Length];
+        await using (var verify = testData.CreateReadStream())
+        {
+            await verify.ReadExactlyAsync(expected, ct);
+        }
+
         processor.Content.ShouldBe(expected);
     }
 
