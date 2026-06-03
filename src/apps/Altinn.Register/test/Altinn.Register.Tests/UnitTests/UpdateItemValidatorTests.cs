@@ -138,7 +138,7 @@ public class UpdateItemValidatorTests
 
         var ok = builder.TryValidate(
             path: "/",
-            input,
+            (UpdateItem?)input,
             default(UpdateItemValidator),
             out SireUpdate? result);
 
@@ -165,7 +165,7 @@ public class UpdateItemValidatorTests
 
         var ok = builder.TryValidate(
             path: "/",
-            input,
+            (UpdateItem?)input,
             default(UpdateItemValidator),
             out SireUpdate? result);
 
@@ -193,7 +193,7 @@ public class UpdateItemValidatorTests
 
         var ok = builder.TryValidate(
             path: "/",
-            input,
+            (UpdateItem?)input,
             default(UpdateItemValidator),
             out SireUpdate? result);
 
