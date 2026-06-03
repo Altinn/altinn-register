@@ -16,7 +16,7 @@ public class UpdateItemValidatorTests
     private static readonly DateTimeOffset ValidRegisteredAt
         = new(2026, 5, 27, 12, 0, 0, TimeSpan.Zero);
 
-    private static UpdateItem ValidItem(
+    private static UpdateItem? ValidItem(
         uint sequenceNumber = 1,
         string? identifier = ValidIdentifier,
         DateTimeOffset? registeredAt = null,
@@ -128,7 +128,7 @@ public class UpdateItemValidatorTests
     {
         ValidationProblemBuilder builder = default;
 
-        var input = new UpdateItem
+        UpdateItem? input = new UpdateItem
         {
             SequenceNumber = 1,
             Identifier = ValidIdentifier,
@@ -155,7 +155,7 @@ public class UpdateItemValidatorTests
     {
         ValidationProblemBuilder builder = default;
 
-        var input = new UpdateItem
+        UpdateItem? input = new UpdateItem
         {
             SequenceNumber = 1,
             Identifier = ValidIdentifier,
@@ -183,7 +183,7 @@ public class UpdateItemValidatorTests
     {
         ValidationProblemBuilder builder = default;
 
-        var input = new UpdateItem
+        UpdateItem? input = new UpdateItem
         {
             SequenceNumber = 1,
             Identifier = null,
