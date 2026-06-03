@@ -43,6 +43,7 @@ public sealed partial class ImportCcrXmlConsumer
         var result = await _ccrService.UpdateFromCcr(
             commandId: message.CommandId,
             input: new ReadOnlySequence<byte>(message.Document),
+            federate: true,
             cancellationToken: context.CancellationToken);
 
         await context.PublishBatch(

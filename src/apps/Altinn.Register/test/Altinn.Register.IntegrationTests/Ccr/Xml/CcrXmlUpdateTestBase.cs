@@ -84,6 +84,7 @@ public abstract class CcrXmlUpdateTestBase
         await ccrService.UpdateFromCcr(
             commandId: Guid.CreateVersion7(),
             input: new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes(xml)),
+            federate: true,
             cancellationToken: CancellationToken);
     }
 }

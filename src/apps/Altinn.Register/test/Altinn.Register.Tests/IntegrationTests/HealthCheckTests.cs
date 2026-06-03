@@ -2,6 +2,7 @@ using System.Net;
 using Altinn.Authorization.ServiceDefaults;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Common.AccessTokenClient.Services;
+using Altinn.Register.Core.Ccr;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.Location;
 using Altinn.Register.Core.RateLimiting;
@@ -32,6 +33,7 @@ namespace Altinn.Register.Tests.IntegrationTests
                     services.AddSingleton<IRateLimitProvider, MockRateLimitProvider>();
                     services.AddSingleton<ILocationLookupProvider, MockLocationLookupProvider>();
                     services.AddScoped<ICommandSender, NoOpCommandSender>();
+                    services.AddScoped<ICcrUpdateFederator, NoOpCcrUpdateFederator>();
                 });
             });
         }
