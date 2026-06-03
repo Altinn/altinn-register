@@ -58,11 +58,20 @@ internal sealed partial class SireEnricher
             DeletedAt = FieldValue.From(organization.DeletedAt),
             Source = OrganizationSource.RegisteredWithSkatteetaten,
             MailingAddress = organization.MailingAddress,
+            TelephoneNumber = FieldValue.Null,
+            MobileNumber = FieldValue.Null,
+            FaxNumber = FieldValue.Null,
+            EmailAddress = FieldValue.Null,
+            InternetAddress = FieldValue.Null,
+            BusinessAddress = FieldValue.Null,
         };
 
         MapRoleAssignments(context, organization);
     }
 
+    /// <summary>
+    /// Maps SIRE business relationships to role assignments using the typed
+    /// </summary>
     private static void MapRoleAssignments(
         A2PartyImportSagaEnrichmentRunContext context,
         SireOrganization organization)

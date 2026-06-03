@@ -32,4 +32,9 @@ internal static class LeaseNames
     /// Lease name for NPR import job.
     /// </summary>
     internal const string NprImport = "npr-import";
+
+    /// <summary>
+    /// Lease name for SIRE import job.
+    /// </summary>
+    internal const string SireImport = "sire-import";
 }

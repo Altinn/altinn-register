@@ -9,6 +9,7 @@ public sealed partial class A2PartyImportConsumer
     : IConsumer<ImportA2PartyCommand>
     , IConsumer<ImportA2UserProfileCommand>
     , IConsumer<ImportNprPartyCommand>
+    , IConsumer<ImportSirePartyCommand>
     , IConsumer<CompleteA2PartyImportSagaCommand>
     , IConsumer<EnrichA2PartyImportSagaCommand>
     , IConsumer<RetryA2PartyImportSagaCommand>
@@ -34,6 +35,10 @@ public sealed partial class A2PartyImportConsumer
     /// <inheritdoc />
     public Task Consume(ConsumeContext<ImportNprPartyCommand> context)
         => _manager.StartSaga<A2PartyImportSaga, ImportNprPartyCommand, A2PartyImportSaga.A2PartyImportSagaData>(context);
+
+    /// <inheritdoc />
+    public Task Consume(ConsumeContext<ImportSirePartyCommand> context)
+        => _manager.StartSaga<A2PartyImportSaga, ImportSirePartyCommand, A2PartyImportSaga.A2PartyImportSagaData>(context);
 
     /// <inheritdoc />
     public Task Consume(ConsumeContext<CompleteA2PartyImportSagaCommand> context)
