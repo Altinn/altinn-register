@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Altinn.Authorization.ServiceDefaults;
 using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
+using Altinn.Authorization.ServiceDefaults.StorageQueues;
 using Altinn.Common.AccessToken;
 using Altinn.Common.AccessToken.Configuration;
 using Altinn.Common.AccessToken.Services;
@@ -9,6 +10,7 @@ using Altinn.Common.AccessTokenClient.Services;
 using Altinn.Common.PEP.Authorization;
 using Altinn.Register.ApiDescriptions;
 using Altinn.Register.Authorization;
+using Altinn.Register.Ccr;
 using Altinn.Register.Cleanup;
 using Altinn.Register.Clients;
 using Altinn.Register.Clients.Interfaces;
@@ -17,6 +19,7 @@ using Altinn.Register.Conventions;
 using Altinn.Register.Core;
 using Altinn.Register.Core.A2;
 using Altinn.Register.Core.A2.SblProfile;
+using Altinn.Register.Core.Ccr;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.PartyImport.A2;
@@ -42,6 +45,7 @@ using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OpenTelemetry.Metrics;
@@ -340,6 +344,11 @@ internal static partial class RegisterHost
                 settingv.Enabled = JobEnabledBuilder.Default
                     .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:Ccr:Enable");
             });
+
+            services.TryAddSingleton<ICcrUpdateFederator, CcrUpdateFederator>();
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<StorageQueueSettings>, ConfigureQueueSettingsForCcrFederation>());
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<CcrUpdateFederationSettings>, ConfigureUpdateFederationSettingsFromConfiguration>());
+            services.AddStorageQueueSenderFactory();
         }
         else if (initOnly && mtEnabled)
         {

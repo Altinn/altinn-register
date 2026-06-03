@@ -55,15 +55,26 @@ public static class StorageQueuesServiceCollectionExtensions
         /// <returns>The options builder for the storage queue settings.</returns>
         public OptionsBuilder<StorageQueueSettings> AddStorageQueue(string name)
         {
-            services.AddTokenCredentialProvider();
-            services.TryAddSingleton<StorageQueueFactory>();
-            services.TryAddSingleton<IStorageQueueClientFactory, DefaultStorageQueueClientFactory>();
-            services.TryAddSingleton<IStorageQueueMessageSenderFactory>(s => s.GetRequiredService<StorageQueueFactory>());
+            services.AddStorageQueueSenderFactory();
 
             var builder = services.AddOptions<StorageQueueSettings>(name)
                 .ValidateDataAnnotations();
 
             return builder;
+        }
+
+        /// <summary>
+        /// Adds a storage queue message sender factory to the service collection, along with its dependencies.
+        /// </summary>
+        /// <returns><paramref name="services"/>.</returns>
+        public IServiceCollection AddStorageQueueSenderFactory()
+        {
+            services.AddTokenCredentialProvider();
+            services.TryAddSingleton<StorageQueueFactory>();
+            services.TryAddSingleton<IStorageQueueClientFactory, DefaultStorageQueueClientFactory>();
+            services.TryAddSingleton<IStorageQueueMessageSenderFactory>(s => s.GetRequiredService<StorageQueueFactory>());
+
+            return services;
         }
     }
 

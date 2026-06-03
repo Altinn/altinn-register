@@ -1,4 +1,5 @@
 using Altinn.Common.AccessTokenClient.Services;
+using Altinn.Register.Core.Ccr;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.Location;
 using Altinn.Register.Core.RateLimiting;
@@ -38,6 +39,7 @@ public abstract class BaseControllerTests
         services.AddSingleton<IRateLimitProvider, MockRateLimitProvider>();
         services.TryAddSingleton<IExternalRoleDefinitionPersistence, MockExternalRoleDefinitionPersistence>();
         services.AddSingleton<ILocationLookupProvider, MockLocationLookupProvider>();
+        services.AddScoped<ICcrUpdateFederator, NoOpCcrUpdateFederator>();
     }
 
     protected virtual void ConfigureTestConfiguration(IConfigurationBuilder builder)

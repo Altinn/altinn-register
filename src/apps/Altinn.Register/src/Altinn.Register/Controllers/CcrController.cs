@@ -70,6 +70,7 @@ public partial class CcrController
     [RequestSizeLimit(50_000_000 /* 50 MB */)]
     public Task Update(
         [FromQuery(Name = "record")] bool record = true,
+        [FromQuery(Name = "federate")] bool federate = true,
         CancellationToken cancellationToken = default)
     {
         var hasTestHeader =
@@ -80,7 +81,7 @@ public partial class CcrController
 
         if (hasTestHeader || switchedToA3Processing)
         {
-            return HandleInA3(cancellationToken);
+            return HandleInA3(federate: federate, cancellationToken);
         }
 
         return ProxyToA2(record, cancellationToken);
@@ -132,12 +133,12 @@ public partial class CcrController
         }
     }
 
-    private async Task HandleInA3(CancellationToken cancellationToken)
+    private async Task HandleInA3(bool federate, CancellationToken cancellationToken)
     {
         try
         {
             var receivedAt = _timeProvider.GetUtcNow();
-            await UpdateFromCcr(cancellationToken);
+            await UpdateFromCcr(federate: federate, cancellationToken);
 
             //// TODO: Publish event
 
@@ -164,7 +165,7 @@ public partial class CcrController
         }
     }
 
-    private async Task UpdateFromCcr(CancellationToken cancellationToken)
+    private async Task UpdateFromCcr(bool federate, CancellationToken cancellationToken)
     {
         using var seq = new Sequence<byte>(ArrayPool<byte>.Shared);
         await Request.BodyReader.CopyToAsync(seq, cancellationToken);
@@ -190,6 +191,7 @@ public partial class CcrController
         await ccrService.UpdateFromCcr(
             commandId: Guid.CreateVersion7(),
             seq.AsReadOnlySequence,
+            federate: federate,
             cancellationToken);
     }
 

@@ -25,6 +25,7 @@ public sealed partial class CcrService
 {
     private readonly IUnitOfWorkManager _uowManager;
     private readonly ICcrXmlProcessor _ccrXmlProcessor;
+    private readonly ICcrUpdateFederator _updateFederator;
     private readonly IExternalRoleDefinitionPersistence _roleMapper;
     private readonly ILocationLookupProvider _locationLookupProvider;
     private readonly ILogger<CcrService> _logger;
@@ -37,6 +38,7 @@ public sealed partial class CcrService
     public CcrService(
         IUnitOfWorkManager uowManager,
         ICcrXmlProcessor ccrXmlProcessor,
+        ICcrUpdateFederator updateFederator,
         IExternalRoleDefinitionPersistence roleMapper,
         ILocationLookupProvider locationLookupProvider,
         ILogger<CcrService> logger,
@@ -45,6 +47,7 @@ public sealed partial class CcrService
     {
         _uowManager = uowManager;
         _ccrXmlProcessor = ccrXmlProcessor;
+        _updateFederator = updateFederator;
         _logger = logger;
         _roleMapper = roleMapper;
         _locationLookupProvider = locationLookupProvider;
@@ -57,10 +60,12 @@ public sealed partial class CcrService
     /// </summary>
     /// <param name="commandId">Idempotency disambiguation id for queueing. Together with the Org.PartyUuid refers to a unique upsert. Is a db requirement! </param>
     /// <param name="input">The raw CCR/ER XML byte sequence, without Soap envelope. Normally only one Org is in each XML, but we support several.</param>
+    /// <param name="federate">A boolean indicating whether to federate the update.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     public async Task<CcrUpdateResult> UpdateFromCcr(
         Guid commandId,
         ReadOnlySequence<byte> input,
+        bool federate,
         CancellationToken cancellationToken)
     {
         var now = _timeProvider.GetUtcNow();
@@ -123,6 +128,12 @@ public sealed partial class CcrService
             }
 
             await uowRoles.CommitAsync(cancellationToken);
+        }
+
+        if (federate)
+        {
+            // federate the updates to other systems after we've successfully updated our own database, but ignore any failures as this is just for test environments
+            await _updateFederator.FederateUpdates(input, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         }
 
         return new CcrUpdateResult
