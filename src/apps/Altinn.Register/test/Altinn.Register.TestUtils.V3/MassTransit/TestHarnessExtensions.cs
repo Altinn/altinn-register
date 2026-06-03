@@ -24,13 +24,27 @@ public static class TestHarnessExtensions
     /// <param name="harness">The <see cref="ITestHarness"/>.</param>
     /// <param name="command">The initial command that started the conversation.</param>
     /// <returns>A <see cref="TestHarnessConversation"/>.</returns>
-    public static async Task<TestHarnessConversation> Conversation<TCommand>(
+    public static Task<TestHarnessConversation> Conversation<TCommand>(
         this ITestHarness harness,
         TCommand command,
         CancellationToken cancellationToken = default)
         where TCommand : CommandBase
+            => harness.Conversation<TCommand>(cmd => cmd.CommandId == command.CommandId, cancellationToken);
+
+    /// <summary>
+    /// Gets a conversation helper by the initial command.
+    /// </summary>
+    /// <typeparam name="TCommand">The command type.</typeparam>
+    /// <param name="harness">The <see cref="ITestHarness"/>.</param>
+    /// <param name="commandPredicate">The initial command predicate to match against the command that started the conversation.</param>
+    /// <returns>A <see cref="TestHarnessConversation"/>.</returns>
+    public static async Task<TestHarnessConversation> Conversation<TCommand>(
+        this ITestHarness harness,
+        Predicate<TCommand> commandPredicate,
+        CancellationToken cancellationToken = default)
+        where TCommand : CommandBase
     {
-        var consumed = await harness.Sent.SelectExisting(m => m.Context.CorrelationId == command.CorrelationId).OfType<ISentMessage<TCommand>>().FirstOrDefaultAsync(cancellationToken);
+        var consumed = await harness.Sent.SelectExisting(m => m.MessageObject is TCommand cmd && commandPredicate(cmd)).Cast<ISentMessage<TCommand>>().FirstOrDefaultAsync(cancellationToken);
         if (consumed is null)
         {
             Assert.Fail("Consumed message not found");

@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net;
 using Altinn.Authorization.ModelUtils;
@@ -57,12 +58,14 @@ public sealed partial class CcrService
     /// <param name="commandId">Idempotency disambiguation id for queueing. Together with the Org.PartyUuid refers to a unique upsert. Is a db requirement! </param>
     /// <param name="input">The raw CCR/ER XML byte sequence, without Soap envelope. Normally only one Org is in each XML, but we support several.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
-    public async Task UpdateFromCcr(
+    public async Task<CcrUpdateResult> UpdateFromCcr(
         Guid commandId,
         ReadOnlySequence<byte> input,
         CancellationToken cancellationToken)
     {
         var now = _timeProvider.GetUtcNow();
+        var updatedOrgs = ImmutableArray.CreateBuilder<Guid>();
+        var updatedRoles = ImmutableArray.CreateBuilder<ExternalRoleAssignmentEvent>();
 
         ILocationLookup locationLookup = await _locationLookupProvider.GetLocationLookup(cancellationToken);
         IExternalRoleDefinitionLookup roleMap = await _roleMapper.GetRoleDefinitionLookup(cancellationToken);
@@ -84,6 +87,7 @@ public sealed partial class CcrService
                 result.EnsureSuccess();
 
                 dbUpdates[i] = dbUpdate with { ResolvedOrgPartyUuid = result.Value.PartyUuid.Value };
+                updatedOrgs.Add(result.Value.PartyUuid.Value);
             }
 
             await uowOrg.CommitAsync(cancellationToken);
@@ -105,16 +109,27 @@ public sealed partial class CcrService
                     name: "upsert roles",
                     tags: [new("org.id", dbUpdate.Org.OrganizationIdentifier.Value)]);
 
-                await roles.UpsertExternalRolesFromPartyBySource(
+                var events = roles.UpsertExternalRolesFromPartyBySource(
                     commandId: commandId,
                     partyUuid: dbUpdate.ResolvedOrgPartyUuid.Value,
                     roleSource: ExternalRoleSource.CentralCoordinatingRegister,
                     update: dbUpdate.RolesUpdate,
                     cancellationToken: cancellationToken);
+
+                await foreach (var e in events)
+                {
+                    updatedRoles.Add(e);
+                }
             }
 
             await uowRoles.CommitAsync(cancellationToken);
         }
+
+        return new CcrUpdateResult
+        {
+            UpdatedOrganizationPartyUuids = updatedOrgs.ToImmutableValueArray(),
+            RoleAssignmentEvents = updatedRoles.ToImmutableValueArray(),
+        };
     }
 
     /// <summary>

@@ -27,7 +27,7 @@ internal sealed class CcrDataTransfer
         uint lastRunId,
         CancellationToken cancellationToken = default)
     {
-        await using var client = await _factory.Connect(nameof(CcrDataTransfer), cancellationToken);
+        await using var client = await _factory.Connect(nameof(ICcrFlatFileService), cancellationToken);
 
         try
         {

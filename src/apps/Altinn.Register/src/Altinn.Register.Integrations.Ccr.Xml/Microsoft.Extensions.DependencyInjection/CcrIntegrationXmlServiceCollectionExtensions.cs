@@ -15,7 +15,6 @@ public static class CcrIntegrationXmlServiceCollectionExtensions
         /// <summary>
         /// Registers services for CCR XML processing.
         /// </summary>
-        /// <returns><paramref name="services"/>.</returns>
         public IServiceCollection AddCcrXmlProcessor()
         {
             services.TryAddSingleton<ICcrXmlProcessor, CcrXmlProcessor>();

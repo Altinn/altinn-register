@@ -1,8 +1,11 @@
+using System.Diagnostics;
+
 namespace Altinn.Register.Core.Ccr;
 
 /// <summary>
 /// Represents the result of an operation to process a CCR flat file, indicating whether a file was processed or if there was no file to process.
 /// </summary>
+[DebuggerDisplay("{ToString(),nq}")]
 public readonly record struct CcrFlatFileOperationResult
 {
     /// <summary>
@@ -16,6 +19,9 @@ public readonly record struct CcrFlatFileOperationResult
     /// </summary>
     public static readonly CcrFlatFileOperationResult FileProcessed
         = new(Outcome.FileProcessed);
+
+    /// <inheritdoc/>
+    public override string ToString() => _outcome.ToString();
 
     private readonly Outcome _outcome;
 

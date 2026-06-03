@@ -28,6 +28,7 @@ using Altinn.Register.Model.Extensions;
 using Altinn.Register.ModelBinding;
 using Altinn.Register.PartyImport;
 using Altinn.Register.PartyImport.A2;
+using Altinn.Register.PartyImport.Ccr;
 using Altinn.Register.PartyImport.Npr;
 using Altinn.Register.PartyImport.Sire;
 using Altinn.Register.PartyImport.SystemUser;
@@ -171,8 +172,11 @@ internal static partial class RegisterHost
             });
 
         services.AddRegisterCoreServices();
+
         services.AddCcrFileProcessor();
         services.AddCcrXmlProcessor();
+        services.AddCcrFileImportServices();
+
         services.AddHttpClient<IOrganizationClient, OrganizationClient>();
         services.AddHttpClient<IPersonClient, PersonClient>();
         services.AddHttpClient<IV1PartyService, PartiesClient>();
@@ -326,6 +330,15 @@ internal static partial class RegisterHost
             {
                 settings.LeaseName = SagaStateCleanupJob.JobName;
                 settings.Interval = TimeSpan.FromMinutes(15);
+            });
+
+            services.AddRecurringJob<CcrImportJob>(settingv =>
+            {
+                settingv.LeaseName = CcrImportJob.JobName;
+                settingv.Interval = TimeSpan.FromMinutes(15);
+                settingv.WaitForReady = waitForBus;
+                settingv.Enabled = JobEnabledBuilder.Default
+                    .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:Ccr:Enable");
             });
         }
         else if (initOnly && mtEnabled)

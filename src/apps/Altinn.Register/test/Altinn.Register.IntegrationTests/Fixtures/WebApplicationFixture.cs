@@ -107,11 +107,6 @@ public sealed class WebApplicationFixture
 
             var settings = new ConfigurationBuilder();
 
-            if (configureConfiguration is not null)
-            {
-                configureConfiguration(settings);
-            }
-
             settings.AddInMemoryCollection([
                 /* DB */
                 new("Altinn:Npgsql:register:Enable", "true"),
@@ -131,6 +126,13 @@ public sealed class WebApplicationFixture
                 // feature flags
                 new("Altinn:register:Party:CreatePartyId", "true"),
             ]);
+
+            // Apply test-provided configuration last, so tests can override the defaults above.
+            if (configureConfiguration is not null)
+            {
+                configureConfiguration(settings);
+            }
+
             builder.UseConfiguration(settings.Build());
 
             if (configureServices is not null)

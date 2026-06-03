@@ -34,6 +34,11 @@ internal static class LeaseNames
     internal const string NprImport = "npr-import";
 
     /// <summary>
+    /// Lease name for the CCR import job.
+    /// </summary>
+    internal const string CcrImport = "ccr-file-import";
+
+    /// <summary>
     /// Lease name for SIRE import job.
     /// </summary>
     internal const string SireImport = "sire-import";
