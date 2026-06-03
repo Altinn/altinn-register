@@ -59,7 +59,7 @@ internal sealed partial class SireImportJob
     /// generic <c>IJob&lt;T&gt;</c> from <c>Altinn.Authorization.ServiceDefaults</c>
     /// at CI restore time.
     /// </summary>
-    public Task RunOnceAsync(CancellationToken cancellationToken)
+    internal Task RunOnceAsync(CancellationToken cancellationToken)
         => RunAsync(cancellationToken);
 
     /// <inheritdoc/>
