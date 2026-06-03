@@ -11,7 +11,7 @@ internal static class LeaseNames
     /// <summary>
     /// Lease name for <see cref="A2PartyImportJob"/>.
     /// </summary>
-    internal const string A2PartyImport = "a2-party-import"; 
+    internal const string A2PartyImport = "a2-party-import";
 
     /// <summary>
     /// Lease name for <see cref="A2ProfileImportJob"/>.
@@ -34,7 +34,7 @@ internal static class LeaseNames
     internal const string NprImport = "npr-import";
 
     /// <summary>
-    /// Lease name for CCR import job.
+    /// Lease name for the CCR import job.
     /// </summary>
     internal const string CcrImport = "ccr-file-import";
 
