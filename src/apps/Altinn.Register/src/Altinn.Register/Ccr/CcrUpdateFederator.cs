@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics;
 using Altinn.Authorization.ServiceDefaults.StorageQueues;
 using Altinn.Register.Core.Ccr;
 using Microsoft.Extensions.Options;
@@ -32,9 +33,11 @@ internal sealed class CcrUpdateFederator
 
         if (!settings.Enable || settings.Targets.IsDefaultOrEmpty)
         {
+            Activity.Current?.AddTag("ccr.federation", "skipped");
             return Task.CompletedTask;
         }
 
+        Activity.Current?.AddTag("ccr.federation.count", settings.Targets.Length.ToString());
         var data = ToBinaryData(xmlData);
         var tasks = settings.Targets.Select(target => FederateUpdateToTarget(target, data, cancellationToken));
         return Task.WhenAll(tasks);
