@@ -132,6 +132,8 @@ public sealed partial class CcrService
 
         if (federate)
         {
+            using var activity = RegisterTelemetry.StartActivity(name: "federate changes");
+
             // federate the updates to other systems after we've successfully updated our own database, but ignore any failures as this is just for test environments
             await _updateFederator.FederateUpdates(input, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         }
