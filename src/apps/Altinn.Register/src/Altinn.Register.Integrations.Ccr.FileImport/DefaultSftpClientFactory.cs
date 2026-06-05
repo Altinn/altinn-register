@@ -38,6 +38,7 @@ internal sealed class DefaultSftpClientFactory
             new("server.address", settings.Host),
             new("server.port", settings.Port),
             new("network.protocol.name", "sftp"),
+            new("microsoft.dependency.type", "SFTP"),
             new("sftp.path", settings.RemotePath),
         ]);
 

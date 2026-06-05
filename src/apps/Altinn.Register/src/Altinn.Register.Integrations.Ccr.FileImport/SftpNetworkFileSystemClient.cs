@@ -41,10 +41,11 @@ internal sealed class SftpNetworkFileSystemClient
         // on SftpClient, it doesn't prepend the working directory for relative paths. Resolve it
         // here so callers can use relative paths against the base path supplied at construction.
         var fullPath = Resolve(path);
-        using var activity = RegisterTelemetry.StartActivity(name: "sftp open read", kind: ActivityKind.Client, tags: [
+        using var activity = RegisterTelemetry.StartActivity(name: $"sftp open read {fullPath}", kind: ActivityKind.Client, tags: [
             new("server.address", _settings.Host),
             new("server.port", _settings.Port),
             new("network.protocol.name", "sftp"),
+            new("microsoft.dependency.type", "SFTP"),
             new("sftp.path", fullPath),
         ]);
 
@@ -64,10 +65,11 @@ internal sealed class SftpNetworkFileSystemClient
     {
         var fullSourcePath = Resolve(sourcePath);
         var fullDestinationPath = Resolve(destinationPath);
-        using var activity = RegisterTelemetry.StartActivity(name: "sftp rename file", kind: ActivityKind.Client, tags: [
+        using var activity = RegisterTelemetry.StartActivity(name: $"sftp rename {fullSourcePath}", kind: ActivityKind.Client, tags: [
             new("server.address", _settings.Host),
             new("server.port", _settings.Port),
             new("network.protocol.name", "sftp"),
+            new("microsoft.dependency.type", "SFTP"),
             new("sftp.source.path", fullSourcePath),
             new("sftp.destination.path", fullDestinationPath),
         ]);
