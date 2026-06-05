@@ -10,6 +10,7 @@ using System.Text.Json.Serialization;
 using System.Xml;
 using Altinn.Authorization.ModelUtils.EnumUtils;
 using Altinn.Register.Conventions;
+using Altinn.Register.Core;
 using Altinn.Register.Core.Ccr;
 using Altinn.Register.Core.CcrLog;
 using Altinn.Register.Core.Utils;
@@ -167,10 +168,14 @@ public partial class CcrController
 
     private async Task UpdateFromCcr(bool federate, CancellationToken cancellationToken)
     {
+        using var activity = RegisterTelemetry.StartActivity(name: "handle ccr online update");
+
         using var seq = new Sequence<byte>(ArrayPool<byte>.Shared);
         await Request.BodyReader.CopyToAsync(seq, cancellationToken);
 
         var result = CcrUpdateEnvelopeReader.ReadEnvelope(seq.AsReadOnlySequence);
+        activity?.SetTag("ccr.client.username", result.UserName);
+        activity?.SetTag("ccr.federate", federate);
         seq.Reset();
 
         {
@@ -185,14 +190,23 @@ public partial class CcrController
             || string.IsNullOrWhiteSpace(result.Password)
             || !ccrService.AuthorizeCcrClient(result.UserName, result.Password, HttpContext.Connection.RemoteIpAddress))
         {
+            activity?.SetStatus(ActivityStatusCode.Error, "unauthorized client");
             ThrowHelper.ThrowUnauthorizedAccessException("Invalid CCR client credentials or missing source IP address");
         }
 
-        await ccrService.UpdateFromCcr(
-            commandId: Guid.CreateVersion7(),
-            seq.AsReadOnlySequence,
-            federate: federate,
-            cancellationToken);
+        try
+        {
+            await ccrService.UpdateFromCcr(
+                commandId: Guid.CreateVersion7(),
+                seq.AsReadOnlySequence,
+                federate: federate,
+                cancellationToken);
+        }
+        catch
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, "error processing CCR update");
+            throw;
+        }
     }
 
     private async Task WriteAltinnSoapSuccess(DateTimeOffset timeReceived)
