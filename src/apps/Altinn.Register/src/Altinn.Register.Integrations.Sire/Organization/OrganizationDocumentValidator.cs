@@ -172,6 +172,14 @@ internal sealed class OrganizationDocumentValidator
             return null;
         }
 
+        // Precedence rule: when both norskAdresse and utenlandskAdresse are present on
+        // the same postadresse, the Norwegian one wins and the international one is
+        // dropped. Skatt's data occasionally carries a stale international address
+        // alongside a newer Norwegian one (e.g. after a foreign company re-registers
+        // domestically); the Norwegian address is the authoritative current location.
+        // The control-flow ordering below implements this — don't reorder these two
+        // branches without also updating the OrganizationDocumentValidatorTests case
+        // PostalAddress_BothNorwegianAndInternational_NorwegianWins.
         if (postalAddress.NorwegianAddress is { } norwegian)
         {
             return NormalizeNorwegianAddress(norwegian);
