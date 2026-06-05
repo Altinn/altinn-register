@@ -5,6 +5,7 @@ using Altinn.Register.Integrations.Ccr.FileImport;
 using Altinn.Register.Tests.Utils;
 using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.Sftp;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Altinn.Register.Tests.PartyImport.Ccr;
 
@@ -45,7 +46,9 @@ public class CcrDataTransferSftpTests
                 RemotePath = server.UploadDirectory,
             });
 
-        ICcrFlatFileService service = new CcrDataTransfer(new DefaultSftpClientFactory(optionsMonitor));
+        ICcrFlatFileService service = new CcrDataTransfer(
+            new DefaultSftpClientFactory(optionsMonitor),
+            NullLogger<CcrDataTransfer>.Instance);
 
         var processor = new CapturingProcessor();
         var result = await service.ProcessNextFile(processor, lastRunId: 0, ct);

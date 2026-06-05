@@ -3,6 +3,7 @@ using Altinn.Register.Core.Ccr;
 using Altinn.Register.Core.ImportJobs.FileProcessing;
 using Altinn.Register.Integrations.Ccr.FileImport;
 using Altinn.Register.Tests.Mocks;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Altinn.Register.Tests.UnitTests;
 
@@ -20,7 +21,9 @@ public class CcrDataTransferTests
         });
 
         var processor = new CapturingCcrFileProcessor();
-        var client = new CcrDataTransfer(new MemoryNetworkFileSystemClientFactory(fileSystem));
+        var client = new CcrDataTransfer(
+            new MemoryNetworkFileSystemClientFactory(fileSystem),
+            NullLogger<CcrDataTransfer>.Instance);
 
         var result = await client.ProcessNextFile(processor, 5780, TestContext.Current.CancellationToken);
 
@@ -43,7 +46,9 @@ public class CcrDataTransferTests
         });
 
         var processor = new CapturingCcrFileProcessor();
-        var client = new CcrDataTransfer(new MemoryNetworkFileSystemClientFactory(fileSystem));
+        var client = new CcrDataTransfer(
+            new MemoryNetworkFileSystemClientFactory(fileSystem),
+            NullLogger<CcrDataTransfer>.Instance);
 
         var result = await client.ProcessNextFile(processor, 5780, TestContext.Current.CancellationToken);
 
@@ -62,7 +67,9 @@ public class CcrDataTransferTests
         });
 
         var processor = new CapturingCcrFileProcessor();
-        var client = new CcrDataTransfer(new MemoryNetworkFileSystemClientFactory(fileSystem));
+        var client = new CcrDataTransfer(
+            new MemoryNetworkFileSystemClientFactory(fileSystem),
+            NullLogger<CcrDataTransfer>.Instance);
 
         var exception = await Should.ThrowAsync<InvalidOperationException>(
             () => client.ProcessNextFile(processor, 5780, TestContext.Current.CancellationToken));
@@ -82,7 +89,9 @@ public class CcrDataTransferTests
         });
 
         var processor = new ThrowingCcrFileProcessor();
-        var client = new CcrDataTransfer(new MemoryNetworkFileSystemClientFactory(fileSystem));
+        var client = new CcrDataTransfer(
+            new MemoryNetworkFileSystemClientFactory(fileSystem),
+            NullLogger<CcrDataTransfer>.Instance);
 
         await Should.ThrowAsync<InvalidOperationException>(
             () => client.ProcessNextFile(processor, 5780, TestContext.Current.CancellationToken));
@@ -99,7 +108,9 @@ public class CcrDataTransferTests
             ["baj00001.txt"] = Encoding.UTF8.GetBytes("content"),
         });
 
-        var client = new CcrDataTransfer(new MemoryNetworkFileSystemClientFactory(fileSystem));
+        var client = new CcrDataTransfer(
+            new MemoryNetworkFileSystemClientFactory(fileSystem),
+            NullLogger<CcrDataTransfer>.Instance);
 
         await client.ProcessNextFile(new CapturingCcrFileProcessor(), 0, TestContext.Current.CancellationToken);
 

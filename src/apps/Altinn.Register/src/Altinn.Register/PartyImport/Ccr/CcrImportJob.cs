@@ -4,6 +4,7 @@ using System.Diagnostics.Metrics;
 using Altinn.Authorization.ServiceDefaults.Jobs;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Authorization.ServiceDefaults.Telemetry;
+using Altinn.Register.Contracts;
 using Altinn.Register.Core.Ccr;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.ImportJobs.FileProcessing;
@@ -59,7 +60,7 @@ internal sealed partial class CcrImportJob
         var track = await _tracker.GetStatus(JobName, cancellationToken);
         uint lastRunId = checked((uint)track.EnqueuedMax);
 
-        var processor = new FileProcessor(_sender, _fileproc, _tracker, _meters);
+        var processor = new FileProcessor(_sender, _fileproc, _tracker, _meters, _logger);
 
         await _ccrFlatFileService.ProcessNextFile(processor, lastRunId, cancellationToken);
 
@@ -68,14 +69,11 @@ internal sealed partial class CcrImportJob
 
     private static partial class Log
     {
-        [LoggerMessage(0, LogLevel.Information, "Enqueued {Count} parties for import.")]
-        public static partial void EnqueuedPartiesForImport(ILogger logger, int count);
-
-        [LoggerMessage(3, LogLevel.Information, "Starting party import.")]
-        public static partial void StartingPartyImport(ILogger logger);
-
         [LoggerMessage(4, LogLevel.Information, "Finished party import in {Duration}.")]
         public static partial void FinishedPartyImport(ILogger logger, TimeSpan duration);
+
+        [LoggerMessage(5, LogLevel.Information, "Enqueue {OrganizationIdentifier} for import processing.")]
+        public static partial void EnqueueForProcessing(ILogger logger, OrganizationIdentifier organizationIdentifier);
     }
 
     /// <summary>
@@ -95,7 +93,12 @@ internal sealed partial class CcrImportJob
             => new ImportMeters(meter);
     }
 
-    private sealed class FileProcessor(ICommandSender sender, ICcrFlatFileProcessor processor, IImportJobTracker tracker, ImportMeters meter)
+    private sealed class FileProcessor(
+        ICommandSender sender,
+        ICcrFlatFileProcessor processor,
+        IImportJobTracker tracker,
+        ImportMeters meter,
+        ILogger logger)
         : IFileProcessor<CcrOpenedFileInfo>
     {
         public async Task ProcessFileAsync(CcrOpenedFileInfo fileInfo, CancellationToken cancellationToken)
@@ -109,6 +112,7 @@ internal sealed partial class CcrImportJob
                     Document = item.Document.ToArray(),
                 };
 
+                Log.EnqueueForProcessing(logger, item.OrganizationIdentifier);
                 await sender.Send(cmd, cancellationToken);
                 meter.PartiesEnqueued.Add(1);
             }

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Altinn.Register.Core;
 using Microsoft.Extensions.Options;
 using Renci.SshNet;
 
@@ -33,14 +34,25 @@ internal sealed class DefaultSftpClientFactory
         Debug.Assert(settings.RemotePath is not null);
 
         var client = new SftpClient(settings.Host, settings.Port, settings.User, settings.Password);
+        using var activity = RegisterTelemetry.StartActivity(name: "sftp connect", kind: ActivityKind.Client, tags: [
+            new("server.address", settings.Host),
+            new("server.port", settings.Port),
+            new("network.protocol.name", "sftp"),
+            new("sftp.path", settings.RemotePath),
+        ]);
 
         try
         {
             await client.ConnectAsync(cancellationToken);
 
-            var ret = new SftpNetworkFileSystemClient(client, settings.RemotePath);
+            var ret = new SftpNetworkFileSystemClient(client, settings.RemotePath, settings);
             client = null;
             return ret;
+        }
+        catch
+        {
+            activity?.SetStatus(ActivityStatusCode.Error);
+            throw;
         }
         finally
         {
