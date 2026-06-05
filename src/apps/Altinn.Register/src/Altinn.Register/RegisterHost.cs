@@ -336,12 +336,15 @@ internal static partial class RegisterHost
                 settings.Interval = TimeSpan.FromMinutes(15);
             });
 
-            services.AddRecurringJob<CcrImportJob>(settingv =>
+            services.AddRecurringJob<CcrImportJob>(settings =>
             {
-                settingv.LeaseName = CcrImportJob.JobName;
-                settingv.Interval = TimeSpan.FromMinutes(15);
-                settingv.WaitForReady = waitForBus;
-                settingv.Enabled = JobEnabledBuilder.Default
+                settings.LeaseName = CcrImportJob.JobName;
+                settings.Interval = descriptor.Environment.IsAT
+                    ? TimeSpan.FromMinutes(1)
+                    : TimeSpan.FromMinutes(15);
+
+                settings.WaitForReady = waitForBus;
+                settings.Enabled = JobEnabledBuilder.Default
                     .WithRequireConfigurationValueEnabled("Altinn:register:PartyImport:Ccr:Enable");
             });
 
