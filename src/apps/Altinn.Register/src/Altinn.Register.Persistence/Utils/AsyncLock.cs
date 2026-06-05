@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Runtime.ExceptionServices;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.Persistence.Utils;
@@ -20,6 +22,8 @@ internal class AsyncConcurrencyLimiter
     : IDisposable
 {
     private readonly SemaphoreSlim _semaphoreSlim;
+    private readonly ConcurrentDictionary<uint, LockNotReleasedException> _active = new();
+    private uint _nextId;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AsyncConcurrencyLimiter" /> class.
@@ -48,6 +52,17 @@ internal class AsyncConcurrencyLimiter
         if (disposing)
         {
             _semaphoreSlim.Dispose();
+
+            var exceptions = _active.Values.ToList();
+            switch (exceptions.Count)
+            {
+                case 1:
+                    ExceptionDispatchInfo.Throw(exceptions[0]);
+                    break;
+
+                case > 1:
+                    throw new AggregateException(exceptions);
+            }
         }
     }
 
@@ -57,8 +72,24 @@ internal class AsyncConcurrencyLimiter
     /// <returns>An <see cref="IDisposable" /> that releases the lock on <see cref="IDisposable.Dispose" />.</returns>
     public async Task<IDisposable> Acquire(CancellationToken cancellationToken = default)
     {
+        var exn = new LockNotReleasedException();
+        ExceptionDispatchInfo.SetCurrentStackTrace(exn); // populate stacktrace without throwing
+
+        var ticketId = Interlocked.Increment(ref _nextId);
         await _semaphoreSlim.WaitAsync(cancellationToken);
-        return new Ticket(_semaphoreSlim);
+        _active[ticketId] = exn;
+
+        return new Ticket(this, ticketId);
+    }
+
+    private void Release(uint ticketId)
+    {
+        if (!_active.TryRemove(ticketId, out _))
+        {
+            throw new InvalidOperationException("Invalid ticket ID.");
+        }
+
+        _semaphoreSlim.Release();
     }
 
     /// <summary>
@@ -66,29 +97,33 @@ internal class AsyncConcurrencyLimiter
     /// </summary>
     private sealed class Ticket : IDisposable
     {
-        private SemaphoreSlim? _semaphoreSlim;
+        private AsyncConcurrencyLimiter? _owner;
+        private readonly uint _ticketId;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Ticket" /> class.
         /// </summary>
-        /// <param name="semaphoreSlim">The semaphore slim to synchronize threads.</param>
-        public Ticket(SemaphoreSlim semaphoreSlim)
+        /// <param name="owner">The owner of this ticket.</param>
+        /// <param name="ticketId">The ID of the ticket.</param>
+        public Ticket(AsyncConcurrencyLimiter owner, uint ticketId)
         {
-            _semaphoreSlim = semaphoreSlim;
-        }
-
-        ~Ticket()
-        {
-            if (_semaphoreSlim != null)
-            {
-                ThrowHelper.ThrowInvalidOperationException("Lock not released.");
-            }
+            _owner = owner;
+            _ticketId = ticketId;
         }
 
         public void Dispose()
         {
             GC.SuppressFinalize(this);
-            Interlocked.Exchange(ref _semaphoreSlim, null)?.Release();
+            Interlocked.Exchange(ref _owner, null)?.Release(_ticketId);
+        }
+    }
+
+    private sealed class LockNotReleasedException
+        : InvalidOperationException
+    {
+        public LockNotReleasedException()
+            : base("Lock not released.")
+        {
         }
     }
 }

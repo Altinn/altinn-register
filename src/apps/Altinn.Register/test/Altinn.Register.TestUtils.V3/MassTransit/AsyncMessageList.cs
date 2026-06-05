@@ -67,7 +67,8 @@ internal sealed class AsyncMessageList<T, TOuter, TBase>
         => GetOuterEnumerator(throwOnFaults: true, cancellationToken).Select(_selector).GetAsyncEnumerator(cancellationToken);
 
     /// <inheritdoc/>
-    public override IAsyncEnumerable<T> Completed => _source.SelectExisting(_filter).OfType<TOuter>().Select(_selector);
+    public override IAsyncEnumerable<T> Completed
+        => GetCompleted();
 
     /// <inheritdoc/>
     public override IAsyncEnumerable<TOuter> Outer => GetOuterEnumerator(throwOnFaults: true, default);
@@ -76,6 +77,21 @@ internal sealed class AsyncMessageList<T, TOuter, TBase>
         => throwOnFaults
         ? GetOuterEnumeratorThrowOnFaults(cancellationToken)
         : GetOuterEnumeratorIgnoreFaults(cancellationToken);
+
+    private async IAsyncEnumerable<T> GetCompleted([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        // first, check if there are any existing faults
+        var fault = await _harness.Consumed.SelectExisting(m => m.Exception is not null && _faultFilter(m)).Select(m => m.Exception!).ToListAsync(cancellationToken);
+        if (fault is { Count: > 0 })
+        {
+            throw new AggregateException(fault);
+        }
+
+        await foreach (var item in _source.SelectExisting(_filter).OfType<TOuter>().Select(_selector))
+        {
+            yield return item;
+        }
+    }
 
     private async IAsyncEnumerable<TOuter> GetOuterEnumeratorThrowOnFaults([EnumeratorCancellation] CancellationToken cancellationToken)
     {
