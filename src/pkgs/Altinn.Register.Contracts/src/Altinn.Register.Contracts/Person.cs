@@ -16,6 +16,12 @@ public sealed record Person()
     public required PersonIdentifier PersonIdentifier { get; init; }
 
     /// <summary>
+    /// Gets the source of the person.
+    /// </summary>
+    [JsonPropertyName("source")]
+    public FieldValue<NonExhaustiveEnum<PersonSource>> Source { get; init; }
+
+    /// <summary>
     /// Gets the first name.
     /// </summary>
     [JsonPropertyName("firstName")]

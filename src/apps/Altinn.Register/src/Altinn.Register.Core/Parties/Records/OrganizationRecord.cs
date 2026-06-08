@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Altinn.Authorization.ModelUtils;
+using Altinn.Register.Contracts;
 
 namespace Altinn.Register.Core.Parties.Records;
 

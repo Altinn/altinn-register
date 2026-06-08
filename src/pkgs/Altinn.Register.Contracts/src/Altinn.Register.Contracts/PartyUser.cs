@@ -33,6 +33,12 @@ public sealed record PartyUser
     public FieldValue<ImmutableValueArray<uint>> UserIds { get; }
 
     /// <summary>
+    /// Gets the (historical) usernames of the party.
+    /// </summary>
+    [JsonPropertyName("usernames")]
+    public FieldValue<ImmutableValueArray<string>> Usernames { get; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="PartyUser"/> class.
     /// </summary>
     /// <param name="userId">The current active user id.</param>
@@ -42,6 +48,23 @@ public sealed record PartyUser
         FieldValue<uint> userId,
         FieldValue<string> username,
         FieldValue<ImmutableValueArray<uint>> userIds)
+        : this(userId, username, userIds, username.Select(ImmutableValueArray.Create))
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PartyUser"/> class.
+    /// </summary>
+    /// <param name="userId">The current active user id.</param>
+    /// <param name="username">The username of the party.</param>
+    /// <param name="userIds">The user ids of the party.</param>
+    /// <param name="usernames">The usernames of the party.</param>
+    [JsonConstructor]
+    public PartyUser(
+        FieldValue<uint> userId,
+        FieldValue<string> username,
+        FieldValue<ImmutableValueArray<uint>> userIds,
+        FieldValue<ImmutableValueArray<string>> usernames)
     {
         if (username.HasValue && userId.IsNull)
         {
@@ -69,6 +92,7 @@ public sealed record PartyUser
         UserId = userId;
         Username = username;
         UserIds = userIds;
+        Usernames = usernames;
     }
 
     private bool PrintMembers(StringBuilder builder)
@@ -105,6 +129,16 @@ public sealed record PartyUser
             }
 
             builder.Append(']');
+        }
+
+        builder.Append(", Usernames = ");
+        if (!Usernames.HasValue)
+        {
+            builder.Append(Usernames);
+        }
+        else
+        {
+            builder.Append($"[Count = {Usernames.Value.Length}]");
         }
 
         return true;

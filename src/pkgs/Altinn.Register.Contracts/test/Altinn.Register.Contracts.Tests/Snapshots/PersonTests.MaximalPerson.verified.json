@@ -1,6 +1,7 @@
 ﻿{
   "partyType": "person",
   "personIdentifier": "25871999336",
+  "source": "npr",
   "firstName": "First",
   "middleName": "Middle",
   "lastName": "Last",
@@ -38,6 +39,9 @@
       50,
       30,
       1
+    ],
+    "usernames": [
+      "username"
     ]
   }
 }

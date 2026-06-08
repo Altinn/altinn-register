@@ -1,7 +1,6 @@
-using System.Text.Json.Serialization;
 using Altinn.Authorization.ModelUtils;
 
-namespace Altinn.Register.Core.Parties;
+namespace Altinn.Register.Contracts;
 
 /// <summary>
 /// Specifies the source of a person-party.

@@ -16,6 +16,12 @@ public sealed record Organization()
     public required OrganizationIdentifier OrganizationIdentifier { get; init; }
 
     /// <summary>
+    /// Gets the source of the organization.
+    /// </summary>
+    [JsonPropertyName("source")]
+    public FieldValue<NonExhaustiveEnum<OrganizationSource>> Source { get; init; }
+
+    /// <summary>
     /// Gets the status of the organization.
     /// </summary>
     [JsonPropertyName("unitStatus")]

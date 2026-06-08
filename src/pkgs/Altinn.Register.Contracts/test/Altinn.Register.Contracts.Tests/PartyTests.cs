@@ -18,7 +18,7 @@ public abstract class PartyTests
 
     public static string Username { get; } = "username";
 
-    protected static PartyUser FullUser { get; } = new PartyUser(50, Username, ImmutableValueArray.Create<uint>(50, 30, 1));
+    protected static PartyUser FullUser { get; } = new PartyUser(50, Username, ImmutableValueArray.Create<uint>(50, 30, 1), ImmutableValueArray.Create(Username));
 
     protected static PartyRef OwnerRef { get; } = new PartyRef { Uuid = Guid.Parse("00000000-0000-0000-0000-000000000002") };
 
