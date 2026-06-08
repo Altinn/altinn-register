@@ -14,7 +14,7 @@ public sealed class OrganizationIdentifierJsonConverter
         var str = reader.GetString();
         if (!OrganizationIdentifier.TryParse(str, null, out var result))
         {
-            throw new JsonException("Invalid SSN");
+            throw new JsonException("Invalid org. number");
         }
 
         return result;

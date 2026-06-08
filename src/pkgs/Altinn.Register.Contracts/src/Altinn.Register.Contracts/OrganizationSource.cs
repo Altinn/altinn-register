@@ -1,7 +1,6 @@
-using System.Text.Json.Serialization;
 using Altinn.Authorization.ModelUtils;
 
-namespace Altinn.Register.Core.Parties;
+namespace Altinn.Register.Contracts;
 
 /// <summary>
 /// Specifies the source of an organization-party.
@@ -17,7 +16,7 @@ public enum OrganizationSource
     CentralCoordinatingRegister = 1,
 
     /// <summary>
-    /// Skatteetaten-registrerte selskaper (SIRE)
+    /// Skatteetaten-registrerte selskaper (SIRE).
     /// </summary>
     [JsonStringEnumMemberName("sire")]
     RegisteredWithSkatteetaten

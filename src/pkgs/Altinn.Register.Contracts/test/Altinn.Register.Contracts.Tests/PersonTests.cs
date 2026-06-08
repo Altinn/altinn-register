@@ -27,6 +27,7 @@ public class PersonTests
             VersionId = VersionId,
 
             PersonIdentifier = PersonIdentifier,
+            Source = FieldValue.Unset,
             FirstName = FieldValue.Unset,
             MiddleName = FieldValue.Unset,
             LastName = FieldValue.Unset,
@@ -69,6 +70,7 @@ public class PersonTests
                 VersionId = VersionId,
 
                 PersonIdentifier = PersonIdentifier,
+                Source = NonExhaustiveEnum.Create(PersonSource.NationalPopulationRegister),
                 FirstName = "First",
                 MiddleName = "Middle",
                 LastName = "Last",
@@ -109,8 +111,10 @@ public class PersonTests
               "user": {
                 "userId": 50,
                 "username": "username",
-                "userIds": [ 50, 30, 1 ]
+                "userIds": [ 50, 30, 1 ],
+                "usernames": [ "username" ]
               },
+              "source": "npr",
               "firstName": "First",
               "middleName": "Middle",
               "lastName": "Last",
@@ -153,6 +157,7 @@ public class PersonTests
                 VersionId = VersionId,
 
                 PersonIdentifier = PersonIdentifier,
+                Source = NonExhaustiveEnum.Create(PersonSource.NationalPopulationRegister),
                 FirstName = "First",
                 MiddleName = "Middle",
                 LastName = "Last",
@@ -193,8 +198,10 @@ public class PersonTests
               "user": {
                 "userId": 50,
                 "username": "username",
-                "userIds": [ 50, 30, 1 ]
+                "userIds": [ 50, 30, 1 ],
+                "usernames": [ "username" ]
               },
+              "source": "npr",
               "firstName": "First",
               "middleName": "Middle",
               "lastName": "Last",

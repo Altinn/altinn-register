@@ -148,7 +148,8 @@ public class SelfIdentifiedUserTests
               "user": {
                 "userId": 50,
                 "username": "username",
-                "userIds": [ 50, 30, 1 ]
+                "userIds": [ 50, 30, 1 ],
+                "usernames": [ "username" ]
               },
               "selfIdentifiedUserType": "legacy",
               "email": null
@@ -192,7 +193,8 @@ public class SelfIdentifiedUserTests
               "user": {
                 "userId": 50,
                 "username": "username",
-                "userIds": [ 50, 30, 1 ]
+                "userIds": [ 50, 30, 1 ],
+                "usernames": [ "username" ]
               },
               "selfIdentifiedUserType": "edu",
               "email": null
@@ -236,7 +238,8 @@ public class SelfIdentifiedUserTests
               "user": {
                 "userId": 50,
                 "username": "username",
-                "userIds": [ 50, 30, 1 ]
+                "userIds": [ 50, 30, 1 ],
+                "usernames": [ "username" ]
               },
               "selfIdentifiedUserType": "idporten-email",
               "email": "test@example.com"

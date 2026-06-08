@@ -35,6 +35,7 @@ public static class OrganizationExtensions
                 VersionId = 1UL,
 
                 OrganizationIdentifier = organizationIdentifier,
+                Source = FieldValue.Unset,
                 UnitStatus = FieldValue.Unset,
                 UnitType = FieldValue.Unset,
                 TelephoneNumber = FieldValue.Unset,

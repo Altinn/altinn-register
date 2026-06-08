@@ -16,6 +16,10 @@ public static class PartyUserExtensions
         /// <param name="username">The username.</param>
         /// <returns>A <see cref="PartyUser"/>.</returns>
         public static PartyUser Create(uint userId, FieldValue<string> username = default)
-            => new(userId, username, ImmutableValueArray.Create(userId));
+            => new(
+                userId: userId,
+                username: username,
+                userIds: ImmutableValueArray.Create(userId),
+                usernames: username.HasValue ? [username.Value] : ImmutableValueArray<string>.Empty);
     }
 }

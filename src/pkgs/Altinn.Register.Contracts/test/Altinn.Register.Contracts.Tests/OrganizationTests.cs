@@ -27,6 +27,7 @@ public class OrganizationTests
             VersionId = VersionId,
 
             OrganizationIdentifier = OrganizationIdentifier,
+            Source = FieldValue.Unset,
             UnitStatus = FieldValue.Unset,
             UnitType = FieldValue.Unset,
             TelephoneNumber = FieldValue.Unset,
@@ -70,6 +71,7 @@ public class OrganizationTests
                 VersionId = VersionId,
 
                 OrganizationIdentifier = OrganizationIdentifier,
+                Source = NonExhaustiveEnum.Create(OrganizationSource.CentralCoordinatingRegister),
                 UnitStatus = "Unit Status",
                 UnitType = "Unit Type",
                 TelephoneNumber = "Telephone Number",
@@ -105,6 +107,7 @@ public class OrganizationTests
               "isDeleted": false,
               "deletedAt": null,
               "user": null,
+              "source": "ccr",
               "unitStatus": "Unit Status",
               "unitType": "Unit Type",
               "telephoneNumber": "Telephone Number",

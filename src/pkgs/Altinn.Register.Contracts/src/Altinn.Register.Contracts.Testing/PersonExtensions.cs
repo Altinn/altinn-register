@@ -35,6 +35,7 @@ public static class PersonExtensions
                 VersionId = 1UL,
 
                 PersonIdentifier = personIdentifier,
+                Source = FieldValue.Unset,
                 FirstName = FieldValue.Unset,
                 MiddleName = FieldValue.Unset,
                 LastName = FieldValue.Unset,

@@ -68,7 +68,8 @@ public class EnterpriseUserTests
               "user": {
                 "userId": 50,
                 "username": "username",
-                "userIds": [ 50, 30, 1 ]
+                "userIds": [ 50, 30, 1 ],
+                "usernames": [ "username" ]
               },
               "owner": {
                 "partyUuid": "00000000-0000-0000-0000-000000000002",
