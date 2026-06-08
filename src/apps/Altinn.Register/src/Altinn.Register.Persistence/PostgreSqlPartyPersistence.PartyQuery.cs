@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -269,17 +268,15 @@ internal partial class PostgreSqlPartyPersistence
                 yield break;
             }
 
-            PartyRecord party;
-            bool hasMore;
             do
             {
-                (party, hasMore) = await ReadParty(reader, cancellationToken);
+                var party = await ReadParty(reader, cancellationToken);
                 yield return party;
             }
-            while (hasMore);
+            while (await reader.ReadAsync(cancellationToken));
         }
 
-        private async ValueTask<(PartyRecord Party, bool HasMore)> ReadParty(NpgsqlDataReader reader, CancellationToken cancellationToken = default)
+        private async ValueTask<PartyRecord> ReadParty(NpgsqlDataReader reader, CancellationToken cancellationToken = default)
         {
             var partyType = await reader.GetConditionalFieldValueAsync<PartyRecordType>(_fields.PartyRecordType, cancellationToken);
 
@@ -291,7 +288,7 @@ internal partial class PostgreSqlPartyPersistence
                 { Value: PartyRecordType.SelfIdentifiedUser } => await ReadSelfIdentifiedUserParty(reader, _fields, cancellationToken),
                 { Value: PartyRecordType.SystemUser } => await ReadSystemUserParty(reader, _fields, cancellationToken),
                 { Value: PartyRecordType.EnterpriseUser } => await ReadEnterpriseUserParty(reader, _fields, cancellationToken),
-                _ => Unreachable<(PartyRecord Party, bool HasMore)>(),
+                _ => Unreachable<PartyRecord>(),
             };
 
             static async ValueTask<PartyRecord> ReadCommonFields(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
@@ -310,20 +307,17 @@ internal partial class PostgreSqlPartyPersistence
                     DeletedAt = await reader.GetConditionalFieldValueAsync<DateTimeOffset>(fields.PartyDeletedAt, cancellationToken),
                     VersionId = await reader.GetConditionalFieldValueAsync<long>(fields.PartyVersionId, cancellationToken).Select(static v => (ulong)v),
                     OwnerUuid = await reader.GetConditionalFieldValueAsync<Guid>(fields.PartyOwnerUuid, cancellationToken),
-
-                    // has to be read last as it can be spread over multiple rows
-                    User = FieldValue.Unset,
+                    UserIds = await ReadUserIds(reader, fields.ActiveUserId, fields.UserIds, cancellationToken),
+                    Usernames = await ReadUsernames(reader, fields.ActiveUsername, fields.Usernames, cancellationToken),
                 };
             }
 
-            static async ValueTask<(PartyRecord Party, bool HasMore)> ReadBaseParty(NpgsqlDataReader reader, PartyFields fields, FieldValue<PartyRecordType> partyType, CancellationToken cancellationToken)
+            static async ValueTask<PartyRecord> ReadBaseParty(NpgsqlDataReader reader, PartyFields fields, FieldValue<PartyRecordType> partyType, CancellationToken cancellationToken)
             {
                 var common = await ReadCommonFields(reader, fields, cancellationToken);
 
                 // must be the last read-access to the reader
                 Debug.Assert(common.PartyUuid.HasValue);
-                var partyUuid = common.PartyUuid.Value;
-                var (user, hasMore) = await ReadUser(reader, partyUuid, fields, cancellationToken);
 
                 var party = new PartyRecord(partyType)
                 {
@@ -339,13 +333,14 @@ internal partial class PostgreSqlPartyPersistence
                     DeletedAt = common.DeletedAt,
                     VersionId = common.VersionId,
                     OwnerUuid = common.OwnerUuid,
-                    User = user,
+                    UserIds = common.UserIds,
+                    Usernames = common.Usernames,
                 };
 
-                return (party, hasMore);
+                return party;
             }
 
-            static async ValueTask<(PartyRecord Party, bool HasMore)> ReadPersonParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
+            static async ValueTask<PartyRecord> ReadPersonParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
             {
                 var common = await ReadCommonFields(reader, fields, cancellationToken);
                 var source = await reader.GetConditionalFieldValueAsync<PersonSource>(fields.PersonSource, cancellationToken);
@@ -360,8 +355,6 @@ internal partial class PostgreSqlPartyPersistence
 
                 // must be the last read-access to the reader
                 Debug.Assert(common.PartyUuid.HasValue);
-                var partyUuid = common.PartyUuid.Value;
-                var (user, hasMore) = await ReadUser(reader, partyUuid, fields, cancellationToken);
 
                 var party = new PersonRecord
                 {
@@ -378,7 +371,8 @@ internal partial class PostgreSqlPartyPersistence
                     VersionId = common.VersionId,
                     OwnerUuid = common.OwnerUuid,
                     Source = source,
-                    User = user,
+                    UserIds = common.UserIds,
+                    Usernames = common.Usernames,
                     FirstName = firstName,
                     MiddleName = middleName,
                     LastName = lastName,
@@ -389,10 +383,10 @@ internal partial class PostgreSqlPartyPersistence
                     MailingAddress = mailingAddress,
                 };
 
-                return (party, hasMore);
+                return party;
             }
 
-            static async ValueTask<(PartyRecord Party, bool HasMore)> ReadOrganizationParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
+            static async ValueTask<PartyRecord> ReadOrganizationParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
             {
                 var common = await ReadCommonFields(reader, fields, cancellationToken);
                 var source = await reader.GetConditionalFieldValueAsync<OrganizationSource>(fields.OrganizationSource, cancellationToken);
@@ -414,8 +408,6 @@ internal partial class PostgreSqlPartyPersistence
 
                 // must be the last read-access to the reader
                 Debug.Assert(common.PartyUuid.HasValue);
-                var partyUuid = common.PartyUuid.Value;
-                var (user, hasMore) = await ReadUser(reader, partyUuid, fields, cancellationToken);
 
                 var party = new OrganizationRecord
                 {
@@ -432,7 +424,8 @@ internal partial class PostgreSqlPartyPersistence
                     DeletedAt = common.DeletedAt,
                     VersionId = common.VersionId,
                     OwnerUuid = common.OwnerUuid,
-                    User = user,
+                    UserIds = common.UserIds,
+                    Usernames = common.Usernames,
                     UnitStatus = unitStatus,
                     UnitType = unitType,
                     TelephoneNumber = telephoneNumber,
@@ -445,10 +438,10 @@ internal partial class PostgreSqlPartyPersistence
                     ParentOrganizationUuid = parentOrganizationUuid,
                 };
 
-                return (party, hasMore);
+                return party;
             }
 
-            static async ValueTask<(PartyRecord Party, bool HasMore)> ReadSelfIdentifiedUserParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
+            static async ValueTask<PartyRecord> ReadSelfIdentifiedUserParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
             {
                 var common = await ReadCommonFields(reader, fields, cancellationToken);
                 var selfIdentifiedUserType = await reader.GetConditionalFieldValueAsync<SelfIdentifiedUserType>(fields.SelfIdentifiedUserType, cancellationToken);
@@ -457,8 +450,6 @@ internal partial class PostgreSqlPartyPersistence
 
                 // must be the last read-access to the reader
                 Debug.Assert(common.PartyUuid.HasValue);
-                var partyUuid = common.PartyUuid.Value;
-                var (user, hasMore) = await ReadUser(reader, partyUuid, fields, cancellationToken);
 
                 var party = new SelfIdentifiedUserRecord
                 {
@@ -474,24 +465,23 @@ internal partial class PostgreSqlPartyPersistence
                     DeletedAt = common.DeletedAt,
                     VersionId = common.VersionId,
                     OwnerUuid = common.OwnerUuid,
-                    User = user,
+                    UserIds = common.UserIds,
+                    Usernames = common.Usernames,
                     SelfIdentifiedUserType = selfIdentifiedUserType,
                     Email = email,
                     ExtRef = extRef,
                 };
 
-                return (party, hasMore);
+                return party;
             }
 
-            static async ValueTask<(PartyRecord Party, bool HasMore)> ReadSystemUserParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
+            static async ValueTask<PartyRecord> ReadSystemUserParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
             {
                 var common = await ReadCommonFields(reader, fields, cancellationToken);
                 var systemUserType = await reader.GetConditionalFieldValueAsync<SystemUserRecordType>(fields.SystemUserType, cancellationToken);
 
                 // must be the last read-access to the reader
                 Debug.Assert(common.PartyUuid.HasValue);
-                var partyUuid = common.PartyUuid.Value;
-                var (user, hasMore) = await ReadUser(reader, partyUuid, fields, cancellationToken);
 
                 var party = new SystemUserRecord
                 {
@@ -507,21 +497,20 @@ internal partial class PostgreSqlPartyPersistence
                     DeletedAt = common.DeletedAt,
                     VersionId = common.VersionId,
                     OwnerUuid = common.OwnerUuid,
-                    User = user,
+                    UserIds = common.UserIds,
+                    Usernames = common.Usernames,
                     SystemUserType = systemUserType,
                 };
 
-                return (party, hasMore);
+                return party;
             }
 
-            static async ValueTask<(PartyRecord Party, bool HasMore)> ReadEnterpriseUserParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
+            static async ValueTask<PartyRecord> ReadEnterpriseUserParty(NpgsqlDataReader reader, PartyFields fields, CancellationToken cancellationToken)
             {
                 var common = await ReadCommonFields(reader, fields, cancellationToken);
 
                 // must be the last read-access to the reader
                 Debug.Assert(common.PartyUuid.HasValue);
-                var partyUuid = common.PartyUuid.Value;
-                var (user, hasMore) = await ReadUser(reader, partyUuid, fields, cancellationToken);
 
                 var party = new EnterpriseUserRecord
                 {
@@ -537,81 +526,59 @@ internal partial class PostgreSqlPartyPersistence
                     DeletedAt = common.DeletedAt,
                     VersionId = common.VersionId,
                     OwnerUuid = common.OwnerUuid,
-                    User = user,
+                    UserIds = common.UserIds,
+                    Usernames = common.Usernames,
                 };
 
-                return (party, hasMore);
+                return party;
             }
 
-            static async ValueTask<(FieldValue<PartyUserRecord> User, bool HasMore)> ReadUser(NpgsqlDataReader reader, Guid partyUuid, PartyFields fields, CancellationToken cancellationToken)
+            static async ValueTask<FieldValue<PartyHistoricalAggregate<uint>>> ReadUserIds(NpgsqlDataReader reader, int activeUserIdIndex, int userIdsIndex, CancellationToken cancellationToken)
             {
-                bool hasMore;
-                var isActive = await reader.GetConditionalFieldValueAsync<bool>(fields.UserIsActive, cancellationToken);
-                if (!isActive.HasValue)
+                if (activeUserIdIndex == -1 || userIdsIndex == -1)
                 {
-                    // no user-information available for this party, or user-information not requested
-                    // this means we don't have to aggregate up user-ids
-                    hasMore = await reader.ReadAsync(cancellationToken);
-                    return (isActive.IsNull ? FieldValue.Null : FieldValue.Unset, hasMore);
+                    Debug.Assert(activeUserIdIndex == -1 && userIdsIndex == -1);
+                    return FieldValue.Unset;
                 }
 
-                FieldValue<uint> userId = FieldValue.Unset;
-                FieldValue<string> username = FieldValue.Unset;
-                var userIdsBuilder = ImmutableArray.CreateBuilder<uint>(1);
-                if (isActive.Value)
-                {
-                    // TODO: read userName too
-                    userId = await reader.GetConditionalFieldValueAsync<long>(fields.UserId, cancellationToken).Select(static id => checked((uint)id));
-                    username = await reader.GetConditionalFieldValueAsync<string>(fields.Username, cancellationToken);
+                var activeValue = await reader.GetConditionalFieldValueAsync<long>(activeUserIdIndex, cancellationToken);
+                var values = await reader.GetConditionalFieldValueAsync<long[]>(userIdsIndex, cancellationToken);
 
-                    if (userId.HasValue)
-                    {
-                        userIdsBuilder.Add(userId.Value);
-                    }
+                if (values.IsNull || values.Value!.Length == 0)
+                {
+                    Debug.Assert(activeValue.IsNull);
+                    return PartyHistoricalAggregate<uint>.Empty;
                 }
 
-                // aggregate user-ids
-                while (true)
+                Debug.Assert(activeValue.IsSet);
+                Debug.Assert(values.HasValue);
+
+                var hasActive = activeValue.HasValue;
+                return PartyHistoricalAggregate<uint>.Create(values.Value.Select(static id => checked((uint)id)), hasActive);
+            }
+
+            static async ValueTask<FieldValue<PartyHistoricalAggregate<string>>> ReadUsernames(NpgsqlDataReader reader, int activeUsernameIndex, int usernamesIndex, CancellationToken cancellationToken)
+            {
+                if (activeUsernameIndex == -1 || usernamesIndex == -1)
                 {
-                    hasMore = await reader.ReadAsync(cancellationToken);
-                    if (!hasMore)
-                    {
-                        break;
-                    }
-
-                    var currentRowPartyUuid = await reader.GetFieldValueAsync<Guid>(fields.PartyUuid, cancellationToken);
-                    if (currentRowPartyUuid != partyUuid)
-                    {
-                        // we are done with this party, move on to the next one
-                        break;
-                    }
-
-                    var currentRowUserId = await reader.GetConditionalFieldValueAsync<long>(fields.UserId, cancellationToken).Select(static id => checked((uint)id));
-                    if (currentRowUserId.HasValue)
-                    {
-                        userIdsBuilder.Add(currentRowUserId.Value);
-                    }
+                    Debug.Assert(activeUsernameIndex == -1 && usernamesIndex == -1);
+                    return FieldValue.Unset;
                 }
 
-                FieldValue<PartyUserRecord> user;
-                if (userIdsBuilder.Count == 0 && !userId.HasValue && !username.HasValue)
-                {
-                    user = FieldValue.Null;
-                }
-                else
-                {
-                    FieldValue<ImmutableValueArray<uint>> userIds
-                        = userId.IsUnset
-                        ? FieldValue.Unset
-                        : userIdsBuilder.DrainToImmutableValueArray();
+                var activeValue = await reader.GetConditionalFieldValueAsync<string>(activeUsernameIndex, cancellationToken);
+                var values = await reader.GetConditionalFieldValueAsync<string[]>(usernamesIndex, cancellationToken);
 
-                    user = new PartyUserRecord(
-                        userId: userId,
-                        username: username,
-                        userIds: userIds);
+                if (values.IsNull || values.Value!.Length == 0)
+                {
+                    Debug.Assert(activeValue.IsNull);
+                    return PartyHistoricalAggregate<string>.Empty;
                 }
 
-                return (user, hasMore);
+                Debug.Assert(activeValue.IsSet);
+                Debug.Assert(values.HasValue);
+
+                var hasActive = activeValue.HasValue;
+                return PartyHistoricalAggregate<string>.Create(values.Value, hasActive);
             }
 
             [DoesNotReturn]
@@ -665,9 +632,10 @@ internal partial class PostgreSqlPartyPersistence
                     selfIdentifiedUserEmail: builder._selfIdentifiedUserEmail,
                     selfIdentifiedUserExtRef: builder._selfIdentifiedUserExtRef,
                     systemUserType: builder._systemUserType,
-                    userIsActive: builder._userIsActive,
-                    userId: builder._userId,
-                    username: builder._username);
+                    activeUserId: builder._activeUserId,
+                    userIds: builder._userIds,
+                    activeUsername: builder._activeUsername,
+                    usernames: builder._usernames);
 
                 var commandText = builder._builder.ToString();
                 return new(
@@ -770,9 +738,12 @@ internal partial class PostgreSqlPartyPersistence
             private sbyte _systemUserType = -1;
 
             // register.user
-            private sbyte _userIsActive = -1;
-            private sbyte _userId = -1;
-            private sbyte _username = -1;
+            private sbyte _activeUserId = -1;
+            private sbyte _userIds = -1;
+
+            // register.username
+            private sbyte _activeUsername = -1;
+            private sbyte _usernames = -1;
 
             public void Populate(PartyFieldIncludes includes, PartyQueryFilters filterBy)
             {
@@ -823,9 +794,11 @@ internal partial class PostgreSqlPartyPersistence
 
                 _systemUserType = AddField("sys_u.\"type\"", "p_system_user_type", includes.HasFlag(PartyFieldIncludes.SystemUserType));
 
-                _userIsActive = AddField("\"user\".is_active", "u_is_active", includes.HasAnyFlags(PartyFieldIncludes.User));
-                _userId = AddField("\"user\".user_id", "u_user_id", includes.HasFlag(PartyFieldIncludes.UserId));
-                _username = AddField("\"user\".username", "u_username", includes.HasFlag(PartyFieldIncludes.Username));
+                _activeUserId = AddField("agg_uid.user_id", "u_user_id", includes.HasFlag(PartyFieldIncludes.UserId));
+                _userIds = AddField("agg_uid.user_ids", "u_user_ids", includes.HasFlag(PartyFieldIncludes.UserId));
+
+                _activeUsername = AddField("agg_uname.username", "u_username", includes.HasFlag(PartyFieldIncludes.Username));
+                _usernames = AddField("agg_uname.usernames", "u_usernames", includes.HasFlag(PartyFieldIncludes.Username));
 
                 _builder.AppendLine().Append(/*strpsql*/"FROM uuids AS uuids");
                 _builder.AppendLine().Append(/*strpsql*/"INNER JOIN register.party AS party USING (uuid)");
@@ -850,18 +823,18 @@ internal partial class PostgreSqlPartyPersistence
                     _builder.AppendLine().Append(/*strpsql*/"""LEFT JOIN register.system_user AS sys_u USING (uuid)""");
                 }
 
-                if (includes.HasAnyFlags(PartyFieldIncludes.User))
+                if (includes.HasFlag(PartyFieldIncludes.UserId))
                 {
-                    _builder.AppendLine().Append(/*strpsql*/"""LEFT JOIN filtered_users AS "user" USING (uuid)""");
+                    _builder.AppendLine().Append(/*strpsql*/"""LEFT JOIN aggregated_user_ids AS agg_uid USING (uuid)""");
+                }
+
+                if (includes.HasFlag(PartyFieldIncludes.Username))
+                {
+                    _builder.AppendLine().Append(/*strpsql*/"""LEFT JOIN aggregated_usernames AS agg_uname USING (uuid)""");
                 }
 
                 _builder.AppendLine().AppendLine(/*strpsql*/"ORDER BY").Append(/*strpsql*/"    uuids.sort_first");
                 _builder.AppendLine(",").Append(/*strpsql*/"    uuids.sort_second NULLS FIRST");
-                if (includes.HasAnyFlags(PartyFieldIncludes.User))
-                {
-                    _builder.AppendLine(",").Append(/*strpsql*/"""    "user".is_active DESC""");
-                    _builder.AppendLine(",").Append(/*strpsql*/"""    "user".user_id DESC""");
-                }
             }
 
             private void PopulateCommonTableExpressions(PartyFieldIncludes includes, PartyQueryFilters filterBy)
@@ -896,14 +869,14 @@ internal partial class PostgreSqlPartyPersistence
                         break;
                 }
 
-                if (includes.HasAnyFlags(PartyFieldIncludes.User))
+                if (includes.HasFlag(PartyFieldIncludes.UserId))
                 {
                     switch ((filterBy.LookupIdentifiers.HasFlag(PartyLookupIdentifiers.UserId), filterBy.Mode))
                     {
                         case (false, _):
                             AddCommonTableExpression(
                                 ref firstExpression,
-                                "filtered_users",
+                                "filtered_user_ids",
                                 /*strpsql*/"""
                                 SELECT "user".*
                                 FROM register."user" AS "user"
@@ -914,7 +887,7 @@ internal partial class PostgreSqlPartyPersistence
                         case (true, PartyQueryFilters.QueryMode.LookupOne):
                             AddCommonTableExpression(
                                 ref firstExpression,
-                                "filtered_users",
+                                "filtered_user_ids",
                                 /*strpsql*/"""
                                 SELECT "user".*
                                 FROM register."user" AS "user"
@@ -927,7 +900,7 @@ internal partial class PostgreSqlPartyPersistence
                             Debug.Assert(_paramUserIdList.HasValue);
                             AddCommonTableExpression(
                                 ref firstExpression,
-                                "filtered_users",
+                                "filtered_user_ids",
                                 /*strpsql*/"""
                                 SELECT "user".*
                                 FROM register."user" AS "user"
@@ -936,6 +909,74 @@ internal partial class PostgreSqlPartyPersistence
                                 """);
                             break;
                     }
+
+                    // note: user_id will be NULL if there is no active user
+                    AddCommonTableExpression(
+                        ref firstExpression,
+                        "aggregated_user_ids",
+                        /*strpsql*/"""
+                        SELECT
+                            uuid,
+                            max(user_id) FILTER (WHERE is_active) as user_id,
+                            array_agg(user_id ORDER BY is_active DESC, user_id DESC) as user_ids
+                        FROM filtered_user_ids
+                        GROUP BY uuid
+                        """);
+                }
+
+                if (includes.HasFlag(PartyFieldIncludes.Username))
+                {
+                    switch ((filterBy.LookupIdentifiers.HasFlag(PartyLookupIdentifiers.Username), filterBy.Mode))
+                    {
+                        case (false, _):
+                            AddCommonTableExpression(
+                                ref firstExpression,
+                                "filtered_usernames",
+                                /*strpsql*/"""
+                                SELECT "username".*
+                                FROM register."username" AS "username"
+                                WHERE "username".is_active
+                                """);
+                            break;
+
+                        case (true, PartyQueryFilters.QueryMode.LookupOne):
+                            AddCommonTableExpression(
+                                ref firstExpression,
+                                "filtered_usernames",
+                                /*strpsql*/"""
+                                SELECT "username".*
+                                FROM register."username" AS "username"
+                                WHERE "username".is_active
+                                   OR "username".username = @username
+                                """);
+                            break;
+
+                        default:
+                            Debug.Assert(_paramUsernameList.HasValue);
+                            AddCommonTableExpression(
+                                ref firstExpression,
+                                "filtered_usernames",
+                                /*strpsql*/"""
+                                SELECT "username".*
+                                FROM register."username" AS "username"
+                                WHERE "username".is_active
+                                   OR "username".username = ANY (@usernames)
+                                """);
+                            break;
+                    }
+
+                    // note: username will be NULL if there is no active username
+                    AddCommonTableExpression(
+                        ref firstExpression,
+                        "aggregated_usernames",
+                        /*strpsql*/"""
+                        SELECT
+                            uuid,
+                            max(username) FILTER (WHERE is_active) as username,
+                            array_agg(username ORDER BY is_active DESC, username) as usernames
+                        FROM filtered_usernames
+                        GROUP BY uuid
+                        """);
                 }
 
                 if (includes.HasFlag(PartyFieldIncludes.SubUnits))
@@ -1076,11 +1117,11 @@ internal partial class PostgreSqlPartyPersistence
                             ref firstExpression,
                             name,
                             /*strpsql*/"""
-                                SELECT "user"."uuid", party.version_id
-                                FROM register."user" AS "user"
+                                SELECT "username"."uuid", party.version_id
+                                FROM register."username" AS "username"
                                 INNER JOIN register.party AS party USING (uuid)
-                                WHERE "user".username = @username
-                                  AND "user".is_active
+                                WHERE "username".username = @username
+                                  AND "username".is_active
                                 """);
                         break;
 
@@ -1205,11 +1246,10 @@ internal partial class PostgreSqlPartyPersistence
                         ref firstExpression,
                         "uuids_by_username",
                         /*strpsql*/"""
-                            SELECT "user"."uuid", party.version_id
-                            FROM register."user" AS "user"
+                            SELECT "username"."uuid", party.version_id
+                            FROM register."username" AS "username"
                             INNER JOIN register.party AS party USING (uuid)
-                            WHERE "user".username = ANY (@usernames)
-                              AND "user".is_active
+                            WHERE "username".username = ANY (@usernames)
                             """);
                 }
 
@@ -1414,9 +1454,12 @@ internal partial class PostgreSqlPartyPersistence
             sbyte systemUserType,
 
             // register.user
-            sbyte userIsActive,
-            sbyte userId,
-            sbyte username)
+            sbyte activeUserId,
+            sbyte userIds,
+
+            // register.username
+            sbyte activeUsername,
+            sbyte usernames)
         {
             // meta field
             public int ParentUuid => parentUuid;
@@ -1468,9 +1511,12 @@ internal partial class PostgreSqlPartyPersistence
             public int SystemUserType => systemUserType;
 
             // register.user
-            public int UserIsActive => userIsActive;
-            public int UserId => userId;
-            public int Username => username;
+            public int ActiveUserId => activeUserId;
+            public int UserIds => userIds;
+
+            // register.username
+            public int ActiveUsername => activeUsername;
+            public int Usernames => usernames;
         }
     }
 }

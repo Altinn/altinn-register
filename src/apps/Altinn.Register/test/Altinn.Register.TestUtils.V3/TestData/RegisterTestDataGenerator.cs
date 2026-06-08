@@ -171,7 +171,8 @@ public sealed partial class RegisterTestDataGenerator
             ModifiedAt = modifiedAt,
             IsDeleted = isDeleted.HasValue ? isDeleted.Value : false,
             DeletedAt = isDeleted.HasValue && isDeleted.Value ? modifiedAt : FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = identifier.Value.ToString().StartsWith('0') ? OrganizationSource.RegisteredWithSkatteetaten : OrganizationSource.CentralCoordinatingRegister,
@@ -360,7 +361,18 @@ public sealed partial class RegisterTestDataGenerator
             ModifiedAt = modifiedAt,
             IsDeleted = dateOfDeath.HasValue,
             DeletedAt = dateOfDeath.HasValue ? new DateTimeOffset(dateOfDeath.Value, TimeOnly.MinValue, TimeSpan.Zero) : FieldValue.Null,
-            User = user,
+            UserIds = user.SelectFieldValue(static u => u.UserIds) switch
+            {
+                { IsUnset: true } => FieldValue.Unset,
+                { IsNull: true } => PartyHistoricalAggregate<uint>.Empty,
+                var ids => PartyHistoricalAggregate<uint>.Create(ids.Value, hasActiveValue: !ids.Value.IsEmpty),
+            },
+            Usernames = user.SelectFieldValue(static u => u.Username) switch
+            {
+                { IsUnset: true } => FieldValue.Unset,
+                { IsNull: true } => PartyHistoricalAggregate<string>.Empty,
+                var username => PartyHistoricalAggregate<string>.Create([username.Value!], hasActiveValue: true),
+            },
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = PersonSource.NationalPopulationRegister,
@@ -569,7 +581,18 @@ public sealed partial class RegisterTestDataGenerator
             OrganizationIdentifier = null,
             CreatedAt = createdAt,
             ModifiedAt = modifiedAt,
-            User = user,
+            UserIds = user.SelectFieldValue(static u => u.UserIds) switch
+            {
+                { IsUnset: true } => FieldValue.Unset,
+                { IsNull: true } => PartyHistoricalAggregate<uint>.Empty,
+                var ids => PartyHistoricalAggregate<uint>.Create(ids.Value, hasActiveValue: !ids.Value.IsEmpty),
+            },
+            Usernames = user.SelectFieldValue(static u => u.Username) switch
+            {
+                { IsUnset: true } => FieldValue.Unset,
+                { IsNull: true } => PartyHistoricalAggregate<string>.Empty,
+                var username => PartyHistoricalAggregate<string>.Create([username.Value!], hasActiveValue: true),
+            },
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             IsDeleted = isDeleted.OrDefault(defaultValue: false),
@@ -685,7 +708,18 @@ public sealed partial class RegisterTestDataGenerator
             OrganizationIdentifier = null,
             CreatedAt = createdAt,
             ModifiedAt = modifiedAt,
-            User = user,
+            UserIds = user.SelectFieldValue(static u => u.UserIds) switch
+            {
+                { IsUnset: true } => FieldValue.Unset,
+                { IsNull: true } => PartyHistoricalAggregate<uint>.Empty,
+                var ids => PartyHistoricalAggregate<uint>.Create(ids.Value, hasActiveValue: !ids.Value.IsEmpty),
+            },
+            Usernames = user.SelectFieldValue(static u => u.Username) switch
+            {
+                { IsUnset: true } => FieldValue.Unset,
+                { IsNull: true } => PartyHistoricalAggregate<string>.Empty,
+                var username => PartyHistoricalAggregate<string>.Create([username.Value!], hasActiveValue: true),
+            },
             VersionId = FieldValue.Unset,
             OwnerUuid = owner,
             IsDeleted = isDeleted.OrDefault(defaultValue: false),
@@ -792,7 +826,8 @@ public sealed partial class RegisterTestDataGenerator
             OrganizationIdentifier = null,
             CreatedAt = createdAt,
             ModifiedAt = modifiedAt,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = owner,
             IsDeleted = isDeleted.OrDefault(defaultValue: false),

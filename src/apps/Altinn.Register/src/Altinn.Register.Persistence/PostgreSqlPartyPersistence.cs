@@ -468,25 +468,6 @@ internal partial class PostgreSqlPartyPersistence
             cancellationToken);
     }
 
-    /// <inheritdoc/>
-    public Task<Result<PartyUserRecord>> UpsertPartyUser(
-        Guid partyUuid,
-        PartyUserRecord user,
-        CancellationToken cancellationToken = default)
-    {
-        _handle.ThrowIfCompleted();
-
-        return UpsertPartyQuery.UpsertPartyUser(_connection, partyUuid, user, cancellationToken);
-    }
-
-    /// <inheritdoc/>
-    public Task<Result<UpsertUserRecordResult>> UpsertUserRecord(Guid partyUuid, ulong userId, FieldValue<string> username, bool isActive, CancellationToken cancellationToken = default)
-    {
-        _handle.ThrowIfCompleted();
-
-        return UpsertPartyQuery.UpsertUserRecord(_connection, partyUuid, userId, username, isActive, cancellationToken);
-    }
-
     private IAsyncEnumerable<PartyRecord> PrepareAndReadPartiesAsync(
         NpgsqlCommand cmd,
         PartyQuery query,

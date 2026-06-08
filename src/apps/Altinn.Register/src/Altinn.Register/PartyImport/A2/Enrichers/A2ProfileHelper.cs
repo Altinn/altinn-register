@@ -23,7 +23,11 @@ internal static class A2ProfileHelper
     {
         party = party with
         {
-            User = new PartyUserRecord(profile.UserId, profile.UserName),
+            UserIds = PartyHistoricalAggregate<uint>.CreateCurrent(profile.UserId),
+            Usernames =
+                string.IsNullOrWhiteSpace(profile.UserName)
+                ? PartyHistoricalAggregate<string>.Empty
+                : PartyHistoricalAggregate<string>.CreateCurrent(profile.UserName),
         };
 
         if (profile.ProfileType is A2UserProfileType.SelfIdentifiedUser)

@@ -312,7 +312,8 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
             OrganizationIdentifier = FieldValue.Null,
             CreatedAt = FieldValue.Unset, // will be imported later
             ModifiedAt = FieldValue.Unset, // will be imported later
-            User = new PartyUserRecord(userId, profile.UserName),
+            UserIds = PartyHistoricalAggregate<uint>.CreateCurrent(userId),
+            Usernames = PartyHistoricalAggregate<string>.CreateCurrent(profile.UserName),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
             SelfIdentifiedUserType = type,

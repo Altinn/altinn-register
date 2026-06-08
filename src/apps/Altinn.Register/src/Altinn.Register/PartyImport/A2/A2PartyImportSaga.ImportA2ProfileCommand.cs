@@ -43,8 +43,7 @@ public partial class A2PartyImportSaga
         switch (profile.ProfileType)
         {
             case A2UserProfileType.Person when !profile.IsActive:
-                await UpsertUserRecordAndComplete(profile, cancellationToken);
-                return;
+                throw new NotSupportedException($"We should no longer get inactive person profiles");
 
             case A2UserProfileType.Person:
             case A2UserProfileType.SelfIdentifiedUser:
@@ -97,32 +96,14 @@ public partial class A2PartyImportSaga
                 OrganizationIdentifier = FieldValue.Null,
                 CreatedAt = now,
                 ModifiedAt = now,
-                User = new PartyUserRecord(profile.UserId, profile.UserName, ImmutableValueArray.Create(profile.UserId)),
+                UserIds = PartyHistoricalAggregate<uint>.Create([profile.UserId], hasActiveValue: true),
+                Usernames = PartyHistoricalAggregate<string>.Create([profile.UserName], hasActiveValue: true),
                 IsDeleted = isDeleted,
                 DeletedAt = deletedAt,
                 VersionId = FieldValue.Unset,
             };
 
             return partyRecord;
-        }
-
-        async Task UpsertUserRecordAndComplete(A2ProfileRecord profile, CancellationToken cancellationToken)
-        {
-            await _context.Send(
-                new UpsertUserRecordCommand
-                {
-                    PartyUuid = profile.PartyUuid,
-                    UserId = profile.UserId,
-                    Username = profile.UserName,
-
-                    // Note: The `IsActive` field is recently added to A2, so will be null for older versions of A2. The `IsDeleted` field
-                    // on the message is the opposite of `IsActive`, but get's stored whenever a user is modified, so may be out of date.
-                    IsActive = profile.IsActive,
-                    Tracking = State.Tracking,
-                },
-                cancellationToken);
-
-            MarkComplete();
         }
     }
 }

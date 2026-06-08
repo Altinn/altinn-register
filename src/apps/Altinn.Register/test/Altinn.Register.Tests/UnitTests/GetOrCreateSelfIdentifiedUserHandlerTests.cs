@@ -2,6 +2,7 @@ using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Core.A2.SblProfile;
 using Altinn.Register.Core.Operations;
+using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.PartyImport.A2;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -46,7 +47,7 @@ public class GetOrCreateSelfIdentifiedUserHandlerTests
         var result = await handler.Handle(request, CancellationToken);
 
         result.IsProblem.ShouldBeFalse();
-        result.Value!.Value!.User!.Value!.UserId.Value.ShouldBe(13u);
+        result.Value!.Value!.UserIds.CurrentValue.Value.ShouldBe(13u);
         sender.Verify(s => s.Send(It.IsAny<ImportA2PartyCommand>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

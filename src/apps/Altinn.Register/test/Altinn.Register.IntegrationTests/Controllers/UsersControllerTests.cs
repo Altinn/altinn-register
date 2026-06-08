@@ -5,6 +5,7 @@ using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.A2.SblProfile;
 using Altinn.Register.Core.Errors;
+using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Models;
 using Altinn.Register.TestUtils.TestData;
 
@@ -87,12 +88,13 @@ public class UsersControllerTests
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
         var body = await response.ShouldHaveJsonContent<SelfIdentifiedUser>();
 
-        var existingUser = existing.User.Value!;
+        var existingUserId = existing.UserIds.CurrentValue;
+        var existingUsername = existing.Usernames.CurrentValue;
         body.ShouldNotBeNull();
-        body.User.Value!.UserId.Value.ShouldBe(existingUser.UserId.Value);
+        body.User.Value!.UserId.Value.ShouldBe(existingUserId.Value);
         body.PartyId.Value.ShouldBe(existing.PartyId.Value);
         body.Uuid.ShouldBe(existing.PartyUuid.Value);
-        body.User.Value.Username.Value.ShouldBe(existingUser.Username.Value);
+        body.User.Value.Username.Value.ShouldBe(existingUsername.Value);
         body.SelfIdentifiedUserType.Value.Value.ShouldBe(SelfIdentifiedUserType.IdPortenEmail);
         body.Email.Value.ShouldBe(Email);
         body.ExternalUrn.IsNull.ShouldBeFalse();
@@ -334,12 +336,13 @@ public class UsersControllerTests
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
         var body = await response.ShouldHaveJsonContent<SelfIdentifiedUser>();
 
-        var existingUser = existing.User.Value!;
+        var existingUserId = existing.UserIds.CurrentValue;
+        var existingUsername = existing.Usernames.CurrentValue;
         body.ShouldNotBeNull();
-        body.User.Value!.UserId.Value.ShouldBe(existingUser.UserId.Value);
+        body.User.Value!.UserId.Value.ShouldBe(existingUserId.Value);
         body.PartyId.Value.ShouldBe(existing.PartyId.Value);
         body.Uuid.ShouldBe(existing.PartyUuid.Value);
-        body.User.Value.Username.Value.ShouldBe(existingUser.Username.Value);
+        body.User.Value.Username.Value.ShouldBe(existingUsername.Value);
         body.DisplayName.Value.ShouldBe(UidpUserName);
         body.SelfIdentifiedUserType.Value.Value.ShouldBe(SelfIdentifiedUserType.Educational);
         body.ExternalUrn.IsNull.ShouldBeTrue();

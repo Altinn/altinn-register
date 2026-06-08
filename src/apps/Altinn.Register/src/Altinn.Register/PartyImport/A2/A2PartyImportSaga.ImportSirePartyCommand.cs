@@ -1,13 +1,12 @@
 using System.Diagnostics;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
-using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 
 namespace Altinn.Register.PartyImport.A2;
 
 /// <summary>
-/// Saga handler for SIRE-driven party imports. 
+/// Saga handler for SIRE-driven party imports.
 /// </summary>
 public partial class A2PartyImportSaga
 {
@@ -38,7 +37,8 @@ public partial class A2PartyImportSaga
             OrganizationIdentifier = organizationIdentifier,
             CreatedAt = now,
             ModifiedAt = now,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             IsDeleted = FieldValue.Unset,
             DeletedAt = FieldValue.Unset,
             VersionId = FieldValue.Unset,

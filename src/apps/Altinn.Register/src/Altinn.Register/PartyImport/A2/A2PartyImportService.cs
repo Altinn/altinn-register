@@ -10,7 +10,6 @@ using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Errors;
-using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.PartyImport.A2;
 using CommunityToolkit.Diagnostics;
@@ -544,7 +543,8 @@ internal sealed partial class A2PartyImportService
                 IsDeleted = FieldValue.Unset, // we cannot conclude about the is-deleted status of a SI user based on the party object from A2
                 DeletedAt = FieldValue.Unset,
                 OwnerUuid = FieldValue.Null,
-                User = FieldValue.Unset,
+                UserIds = FieldValue.Unset,
+                Usernames = FieldValue.Unset,
                 VersionId = FieldValue.Unset,
                 SelfIdentifiedUserType = FieldValue.Null, // we cannot conclude about the SI user type based on the party object from A2
                 Email = FieldValue.Null, // we cannot conclude about the email based on the party object from A2
@@ -646,7 +646,8 @@ internal sealed partial class A2PartyImportService
                 ModifiedAt = now,
                 IsDeleted = isDeleted,
                 DeletedAt = deletedAt,
-                User = FieldValue.Unset,
+                UserIds = FieldValue.Unset,
+                Usernames = FieldValue.Unset,
                 VersionId = FieldValue.Unset,
                 OwnerUuid = FieldValue.Null,
 
@@ -758,7 +759,8 @@ internal sealed partial class A2PartyImportService
                 ModifiedAt = now,
                 IsDeleted = isDeleted,
                 DeletedAt = deletedAt,
-                User = FieldValue.Unset,
+                UserIds = FieldValue.Unset,
+                Usernames = FieldValue.Unset,
                 VersionId = FieldValue.Unset,
                 OwnerUuid = FieldValue.Null,
 

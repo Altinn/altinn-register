@@ -19,7 +19,7 @@ internal sealed class A2PartyUserEnricher
     public static bool CanEnrich(A2PartyImportSagaEnrichmentCheckContext context)
         => context.PartyIdentifier.TryGetValue(out Guid _)
         && context.Party.PartyType.Value is (PartyRecordType.Person or PartyRecordType.SelfIdentifiedUser)
-        && context.Party.User.IsUnset;
+        && context.Party.UserIds.IsUnset;
 
     private readonly IA2PartyImportService _importService;
     private readonly TimeProvider _timeProvider;

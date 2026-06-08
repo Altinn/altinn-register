@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
-using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 
 namespace Altinn.Register.PartyImport.A2;
@@ -37,7 +36,8 @@ public partial class A2PartyImportSaga
             OrganizationIdentifier = FieldValue.Null,
             CreatedAt = now,
             ModifiedAt = now,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             IsDeleted = FieldValue.Unset,
             DeletedAt = FieldValue.Unset,
             VersionId = FieldValue.Unset,

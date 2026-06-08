@@ -20,7 +20,8 @@ public readonly struct PartyForImportValidator
     , IValidator<SelfIdentifiedUserRecord, SelfIdentifiedUserRecord>
     , IValidator<SystemUserRecord, SystemUserRecord>
     , IValidator<EnterpriseUserRecord, EnterpriseUserRecord>
-    , IValidator<PartyUserRecord, PartyUserRecord>
+    , IValidator<PartyHistoricalAggregate<uint>, PartyHistoricalAggregate<uint>>
+    , IValidator<PartyHistoricalAggregate<string>, PartyHistoricalAggregate<string>>
 {
     private readonly PersistenceFeatureFlag[] _flags;
 
@@ -193,15 +194,31 @@ public readonly struct PartyForImportValidator
     /// <inheritdoc/>
     public bool TryValidate(
         ref ValidationContext context,
-        PartyUserRecord input,
-        [NotNullWhen(true)] out PartyUserRecord? validated)
+        PartyHistoricalAggregate<uint> input, // user-ids
+        [NotNullWhen(true)] out PartyHistoricalAggregate<uint>? validated)
     {
         validated = input;
 
-        Check(ref context, !input.UserIds.IsNull, ValidationErrors.Null, "/user/userIds");
-        if (input.UserIds.HasValue)
+        // As of now, user-ids can't are generally valid
+        return !context.HasErrors;
+    }
+
+    /// <inheritdoc/>
+    public bool TryValidate(
+        ref ValidationContext context,
+        PartyHistoricalAggregate<string> input, // usernames
+        [NotNullWhen(true)] out PartyHistoricalAggregate<string>? validated)
+    {
+        validated = input;
+
+        if (input.HasHistoricalValues)
         {
-            Check(ref context, !input.UserIds.Value.IsDefaultOrEmpty, ValidationErrors.Empty, "/user/userIds");
+            context.AddProblem(
+                ValidationErrors.InvalidValue,
+                detail: "Setting multiple usernames is not supported.",
+                extensions: [
+                    new("usernames.count", input.Values.Length.ToString()),
+                ]);
         }
 
         return !context.HasErrors;
@@ -250,10 +267,17 @@ public readonly struct PartyForImportValidator
             }
         }
 
-        Check(ref context, !input.User.IsNull, ValidationErrors.Null, "/user");
-        if (input.User.HasValue)
+        Check(ref context, !input.UserIds.IsNull, ValidationErrors.Null, "/userIds");
+        Check(ref context, !input.Usernames.IsNull, ValidationErrors.Null, "/usernames");
+
+        if (input.UserIds.HasValue)
         {
-            context.TryValidateChild(path: "/user", input.User.Value, this, out PartyUserRecord? _);
+            context.TryValidateChild(path: "/userIds", input.UserIds.Value, this, out PartyHistoricalAggregate<uint>? _);
+        }
+
+        if (input.Usernames.HasValue)
+        {
+            context.TryValidateChild(path: "/usernames", input.Usernames.Value, this, out PartyHistoricalAggregate<string>? _);
         }
     }
 

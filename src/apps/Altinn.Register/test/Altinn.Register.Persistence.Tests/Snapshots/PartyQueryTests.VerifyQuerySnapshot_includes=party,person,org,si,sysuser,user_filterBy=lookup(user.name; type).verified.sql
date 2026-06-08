@@ -2,11 +2,10 @@
 -- filter: lookup(user.name; type)
 
 WITH uuids_by_username AS (
-    SELECT "user"."uuid", party.version_id
-    FROM register."user" AS "user"
+    SELECT "username"."uuid", party.version_id
+    FROM register."username" AS "username"
     INNER JOIN register.party AS party USING (uuid)
-    WHERE "user".username = ANY (@usernames)
-      AND "user".is_active
+    WHERE "username".username = ANY (@usernames)
 ),
 top_level_uuids_unfiltered AS (
     SELECT "uuid", version_id FROM uuids_by_username
@@ -17,10 +16,32 @@ top_level_uuids AS (
     INNER JOIN register.party AS party USING (uuid)
     WHERE party.party_type = ANY (@partyTypes)
 ),
-filtered_users AS (
+filtered_user_ids AS (
     SELECT "user".*
     FROM register."user" AS "user"
     WHERE "user".is_active
+),
+aggregated_user_ids AS (
+    SELECT
+        uuid,
+        max(user_id) FILTER (WHERE is_active) as user_id,
+        array_agg(user_id ORDER BY is_active DESC, user_id DESC) as user_ids
+    FROM filtered_user_ids
+    GROUP BY uuid
+),
+filtered_usernames AS (
+    SELECT "username".*
+    FROM register."username" AS "username"
+    WHERE "username".is_active
+       OR "username".username = ANY (@usernames)
+),
+aggregated_usernames AS (
+    SELECT
+        uuid,
+        max(username) FILTER (WHERE is_active) as username,
+        array_agg(username ORDER BY is_active DESC, username) as usernames
+    FROM filtered_usernames
+    GROUP BY uuid
 ),
 uuids AS (
     SELECT
@@ -67,18 +88,18 @@ SELECT
     si_u.email p_self_identified_user_email,
     si_u.ext_ref p_self_identified_user_ext_ref,
     sys_u."type" p_system_user_type,
-    "user".is_active u_is_active,
-    "user".user_id u_user_id,
-    "user".username u_username
+    agg_uid.user_id u_user_id,
+    agg_uid.user_ids u_user_ids,
+    agg_uname.username u_username,
+    agg_uname.usernames u_usernames
 FROM uuids AS uuids
 INNER JOIN register.party AS party USING (uuid)
 LEFT JOIN register.person AS person USING (uuid)
 LEFT JOIN register.organization AS org USING (uuid)
 LEFT JOIN register.self_identified_user AS si_u USING (uuid)
 LEFT JOIN register.system_user AS sys_u USING (uuid)
-LEFT JOIN filtered_users AS "user" USING (uuid)
+LEFT JOIN aggregated_user_ids AS agg_uid USING (uuid)
+LEFT JOIN aggregated_usernames AS agg_uname USING (uuid)
 ORDER BY
     uuids.sort_first,
-    uuids.sort_second NULLS FIRST,
-    "user".is_active DESC,
-    "user".user_id DESC
+    uuids.sort_second NULLS FIRST

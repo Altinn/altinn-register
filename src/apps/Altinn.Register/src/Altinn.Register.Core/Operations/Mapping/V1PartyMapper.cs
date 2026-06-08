@@ -53,10 +53,10 @@ internal static class V1PartyMapper
                 ret.Name = siUser.SelfIdentifiedUserType switch
                 {
                     { HasValue: true, Value: SelfIdentifiedUserType.IdPortenEmail }
-                        => siUser.User.SelectFieldValue(static u => u.Username)
+                        => siUser.Usernames.CurrentValue
                             .Or(siUser.Email.Select(static e => $"epost:{e}"))
                             .OrDefault(siUser.DisplayName.Value),
-                    _ => siUser.User.SelectFieldValue(static u => u.Username)
+                    _ => siUser.Usernames.CurrentValue
                             .OrDefault(siUser.DisplayName.Value),
                 };
                 break;

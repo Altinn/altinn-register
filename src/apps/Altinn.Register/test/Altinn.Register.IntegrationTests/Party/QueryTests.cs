@@ -51,15 +51,15 @@ public class QueryTests
             PartyUrn.PartyUuid.Create(party.PartyUuid.Value),
             PartyUrn.PartyId.Create(party.PartyId.Value),
             PartyUrn.PersonId.Create(party.PersonIdentifier.Value!),
-            PartyUrn.UserId.Create(party.User.Value!.UserId.Value),
-            PartyUrn.Username.Create(UrnEncoded.Create(party.User.Value!.Username.Value!)),
+            PartyUrn.UserId.Create(party.UserIds.CurrentValue.Value),
+            PartyUrn.Username.Create(UrnEncoded.Create(party.Usernames.CurrentValue.Value!)),
 
             // repeat again for good measure
             PartyUrn.PartyUuid.Create(party.PartyUuid.Value),
             PartyUrn.PartyId.Create(party.PartyId.Value),
             PartyUrn.PersonId.Create(party.PersonIdentifier.Value!),
-            PartyUrn.UserId.Create(party.User.Value!.UserId.Value),
-            PartyUrn.Username.Create(UrnEncoded.Create(party.User.Value!.Username.Value!)),
+            PartyUrn.UserId.Create(party.UserIds.CurrentValue.Value),
+            PartyUrn.Username.Create(UrnEncoded.Create(party.Usernames.CurrentValue.Value!)),
         ]);
 
         var response = await HttpClient.PostAsJsonAsync("register/api/v2/internal/parties/query", requestContent, JsonOptions, TestContext.Current.CancellationToken);

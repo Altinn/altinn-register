@@ -2,11 +2,10 @@
 -- filter: lookup(user.name)
 
 WITH uuids_by_username AS (
-    SELECT "user"."uuid", party.version_id
-    FROM register."user" AS "user"
+    SELECT "username"."uuid", party.version_id
+    FROM register."username" AS "username"
     INNER JOIN register.party AS party USING (uuid)
-    WHERE "user".username = ANY (@usernames)
-      AND "user".is_active
+    WHERE "username".username = ANY (@usernames)
 ),
 top_level_uuids AS (
     SELECT "uuid", version_id FROM uuids_by_username
