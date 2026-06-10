@@ -174,7 +174,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     public async Task GetPartyByUserId_Returns_SingleParty()
     {
         var person = await UoW.CreatePerson(cancellationToken: CancellationToken);
-        var personUserId = person.User.SelectFieldValue(static u => u.UserId).ShouldHaveValue();
+        var personUserId = person.UserIds.CurrentValue.ShouldHaveValue();
 
         var result = await Persistence
             .GetPartyByUserId(personUserId, include: PartyFieldIncludes.Party, cancellationToken: CancellationToken)
@@ -188,14 +188,14 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         party.DisplayName.ShouldBe(person.DisplayName);
         party.PersonIdentifier.ShouldBe(person.PersonIdentifier);
         party.OrganizationIdentifier.ShouldBe(person.OrganizationIdentifier);
-        party.User.ShouldBe(new PartyUserRecord(userId: personUserId, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(personUserId)));
+        party.UserIds.CurrentValue.ShouldBe(personUserId);
     }
 
     [Fact]
     public async Task GetPartyByUserId_HistoricalId_Returns_SingleParty_WithMultipleUserIds()
     {
         var person = await UoW.CreatePerson(cancellationToken: CancellationToken);
-        var personUserIds = person.User.SelectFieldValue(static u => u.UserIds).ShouldHaveValue();
+        var personUserIds = person.UserIds.Values.ShouldHaveValue();
         personUserIds.Count().ShouldBeGreaterThanOrEqualTo(3);
 
         var personUserId = personUserIds[0];
@@ -215,7 +215,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             party.DisplayName.ShouldBe(person.DisplayName);
             party.PersonIdentifier.ShouldBe(person.PersonIdentifier);
             party.OrganizationIdentifier.ShouldBe(person.OrganizationIdentifier);
-            party.User.ShouldBe(new PartyUserRecord(userId: personUserId, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(personUserId, historicalUserId1)));
+            party.UserIds.Values.ShouldBe([personUserId, historicalUserId1]);
         }
 
         {
@@ -229,7 +229,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             party.DisplayName.ShouldBe(person.DisplayName);
             party.PersonIdentifier.ShouldBe(person.PersonIdentifier);
             party.OrganizationIdentifier.ShouldBe(person.OrganizationIdentifier);
-            party.User.ShouldBe(new PartyUserRecord(userId: personUserId, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(personUserId, historicalUserId2)));
+            party.UserIds.Values.ShouldBe([personUserId, historicalUserId2]);
         }
     }
 
@@ -399,9 +399,9 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var si = await UoW.CreateSelfIdentifiedUser(type: SelfIdentifiedUserType.IdPortenEmail, cancellationToken: CancellationToken);
         var sysUser = await UoW.CreateSystemUser(OrganizationWithChildrenUuid, cancellationToken: CancellationToken);
 
-        var person1UserId = person1.User.SelectFieldValue(static u => u.UserId).ShouldHaveValue();
-        var person2UserId = person2.User.SelectFieldValue(static u => u.UserId).ShouldHaveValue();
-        var person2HistoricalUserId = person2.User.SelectFieldValue(static u => u.UserIds).ShouldHaveValue()[1];
+        var person1UserId = person1.UserIds.CurrentValue.ShouldHaveValue();
+        var person2UserId = person2.UserIds.CurrentValue.ShouldHaveValue();
+        var person2HistoricalUserId = person2.UserIds.Values.ShouldHaveValue()[1];
 
         var result = await Persistence.LookupParties(
             organizationIdentifiers: [OrganizationWithChildrenIdentifier],
@@ -421,8 +421,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var siResult = result.Where(p => p.PartyUuid == si.PartyUuid).ShouldHaveSingleItem().ShouldBeOfType<SelfIdentifiedUserRecord>();
         var sysUserResult = result.Where(p => p.PartyUuid == sysUser.PartyUuid).ShouldHaveSingleItem().ShouldBeOfType<SystemUserRecord>();
 
-        person1Result.User.ShouldHaveValue().UserIds.ShouldBe(ImmutableValueArray.Create(person1UserId));
-        person2Result.User.ShouldHaveValue().UserIds.ShouldBe(ImmutableValueArray.Create(person2UserId, person2HistoricalUserId));
+        person1Result.UserIds.Values.ShouldBe([person1UserId]);
+        person2Result.UserIds.Values.ShouldBe([person2UserId, person2HistoricalUserId]);
     }
 
     [Fact]
@@ -508,6 +508,29 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             .ToListAsync(CancellationToken);
 
         result.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task LookupParties_ByHistoricalUsername_MinimalReturn()
+    {
+        var userId = (await UoW.GetNewUserIds(count: 1, cancellationToken: CancellationToken))[0];
+        var person = await UoW.CreatePerson(user: new PartyUserRecord(userId, "some-user-name"), cancellationToken: CancellationToken);
+        await UoW.GetPartyPersistence().UpsertParty(
+            person with
+            {
+                Usernames = PartyHistoricalAggregate<string>.CreateCurrent("updated-user-name"),
+            },
+            CancellationToken);
+
+        var result = await Persistence.LookupParties(
+            usernames: ["some-user-name"],
+            include: PartyFieldIncludes.Username,
+            cancellationToken: CancellationToken)
+            .Cast<PersonRecord>()
+            .ToListAsync(CancellationToken);
+
+        result.Count.ShouldBe(1);
+        result[0].Usernames.Values.ShouldBe(["updated-user-name", "some-user-name"]);
     }
 
     [Fact]
@@ -674,7 +697,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = orgNo.ToString().StartsWith('0') ? OrganizationSource.RegisteredWithSkatteetaten : OrganizationSource.CentralCoordinatingRegister,
@@ -691,7 +715,11 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
         var inserted = result.ShouldHaveValue().ShouldBeOfType<OrganizationRecord>();
-        inserted.ShouldBeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+        inserted.ShouldBeEquivalentTo(toInsert with
+        {
+            Usernames = PartyHistoricalAggregate<string>.Empty,
+            VersionId = inserted.VersionId,
+        });
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
         fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
@@ -714,7 +742,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = orgNo.ToString().StartsWith('0') ? OrganizationSource.RegisteredWithSkatteetaten : OrganizationSource.CentralCoordinatingRegister,
@@ -734,7 +763,13 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         inserted.PartyUuid.ShouldHaveValue();
         inserted.PartyId.ShouldHaveValue();
         inserted.PartyId.Value.ShouldBeGreaterThan(1_000_000_000U);
-        inserted.ShouldBeEquivalentTo(toInsert with { PartyId = inserted.PartyId, PartyUuid = inserted.PartyUuid, VersionId = inserted.VersionId });
+        inserted.ShouldBeEquivalentTo(toInsert with
+        {
+            PartyId = inserted.PartyId,
+            PartyUuid = inserted.PartyUuid,
+            Usernames = PartyHistoricalAggregate<string>.Empty,
+            VersionId = inserted.VersionId,
+        });
 
         var fromDb = await Persistence.GetPartyById(inserted.PartyUuid.Value, PartyFieldIncludes.Party | PartyFieldIncludes.Organization, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
         fromDb.ShouldBeEquivalentTo(toInsert with { PartyId = inserted.PartyId, PartyUuid = inserted.PartyUuid, VersionId = fromDb.VersionId });
@@ -759,7 +794,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = orgNo.ToString().StartsWith('0') ? OrganizationSource.RegisteredWithSkatteetaten : OrganizationSource.CentralCoordinatingRegister,
@@ -801,13 +837,18 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var expected = toUpdate with
         {
             CreatedAt = toInsert.CreatedAt, // created at should not change
+            Usernames = PartyHistoricalAggregate<string>.Empty,
         };
 
         var updated = result.Value.ShouldBeOfType<OrganizationRecord>();
         updated.ShouldBeEquivalentTo(expected with { VersionId = updated.VersionId });
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Organization, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
-        fromDb.ShouldBeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+        fromDb.ShouldBeEquivalentTo(expected with
+        {
+            Usernames = FieldValue.Unset,
+            VersionId = fromDb.VersionId,
+        });
     }
 
     [Fact]
@@ -827,7 +868,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = orgNo.ToString().StartsWith('0') ? OrganizationSource.RegisteredWithSkatteetaten : OrganizationSource.CentralCoordinatingRegister,
@@ -873,13 +915,20 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var expected = toUpdate with
         {
             CreatedAt = toInsert.CreatedAt, // created at should not change
+            Usernames = PartyHistoricalAggregate<string>.Empty,
         };
 
         var updated = result.Value.ShouldBeOfType<OrganizationRecord>();
         updated.ShouldBeEquivalentTo(expected with { PartyId = inserted.PartyId, PartyUuid = inserted.PartyUuid, VersionId = updated.VersionId });
 
         var fromDb = await Persistence.GetPartyById(inserted.PartyUuid.Value, PartyFieldIncludes.Party | PartyFieldIncludes.Organization, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
-        fromDb.ShouldBeEquivalentTo(expected with { PartyId = inserted.PartyId, PartyUuid = inserted.PartyUuid, VersionId = fromDb.VersionId });
+        fromDb.ShouldBeEquivalentTo(expected with
+        {
+            PartyId = inserted.PartyId,
+            PartyUuid = inserted.PartyUuid,
+            Usernames = FieldValue.Unset,
+            VersionId = fromDb.VersionId,
+        });
     }
 
     [Fact]
@@ -901,7 +950,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = orgNo.ToString().StartsWith('0') ? OrganizationSource.RegisteredWithSkatteetaten : OrganizationSource.CentralCoordinatingRegister,
@@ -954,7 +1004,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = orgNo.ToString().StartsWith('0') ? OrganizationSource.RegisteredWithSkatteetaten : OrganizationSource.CentralCoordinatingRegister,
@@ -1007,7 +1058,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = orgNo.ToString().StartsWith('0') ? OrganizationSource.RegisteredWithSkatteetaten : OrganizationSource.CentralCoordinatingRegister,
@@ -1041,7 +1093,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = orgNo2.ToString().StartsWith('0') ? OrganizationSource.RegisteredWithSkatteetaten : OrganizationSource.CentralCoordinatingRegister,
@@ -1090,7 +1143,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = PersonSource.NationalPopulationRegister,
@@ -1106,7 +1160,11 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
         var inserted = result.ShouldHaveValue().ShouldBeOfType<PersonRecord>();
-        inserted.ShouldBeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+        inserted.ShouldBeEquivalentTo(toInsert with
+        {
+            Usernames = PartyHistoricalAggregate<string>.Empty,
+            VersionId = inserted.VersionId,
+        });
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
         fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
@@ -1131,7 +1189,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = PersonSource.NationalPopulationRegister,
@@ -1150,12 +1209,13 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         inserted.PartyUuid.ShouldHaveValue();
         inserted.PartyId.ShouldHaveValue();
         inserted.PartyId.Value.ShouldBeGreaterThan(1_000_000_000U);
-        inserted.User.ShouldHaveValue().UserId.ShouldHaveValue().ShouldBe(inserted.PartyId.Value);
+        inserted.UserIds.CurrentValue.ShouldBe(inserted.PartyId.Value);
         inserted.ShouldBeEquivalentTo(toInsert with
         {
             PartyId = inserted.PartyId,
             PartyUuid = inserted.PartyUuid,
-            User = new PartyUserRecord(inserted.PartyId.Value, FieldValue.Null),
+            UserIds = PartyHistoricalAggregate<uint>.CreateCurrent(inserted.PartyId.Value),
+            Usernames = PartyHistoricalAggregate<string>.Empty,
             VersionId = inserted.VersionId,
         });
 
@@ -1164,7 +1224,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyId = inserted.PartyId,
             PartyUuid = inserted.PartyUuid,
-            User = new PartyUserRecord(inserted.PartyId.Value, FieldValue.Null),
+            UserIds = PartyHistoricalAggregate<uint>.CreateCurrent(inserted.PartyId.Value),
+            Usernames = PartyHistoricalAggregate<string>.Empty,
             VersionId = inserted.VersionId,
         });
     }
@@ -1190,7 +1251,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = PersonSource.NationalPopulationRegister,
@@ -1239,13 +1301,18 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var expected = toUpdate with
         {
             CreatedAt = toInsert.CreatedAt, // created at should not change
+            Usernames = PartyHistoricalAggregate<string>.Empty,
         };
 
         var updated = result.Value.ShouldBeOfType<PersonRecord>();
         updated.ShouldBeEquivalentTo(expected with { VersionId = updated.VersionId });
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.Person, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
-        fromDb.ShouldBeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+        fromDb.ShouldBeEquivalentTo(expected with
+        {
+            Usernames = FieldValue.Unset,
+            VersionId = fromDb.VersionId,
+        });
     }
 
     [Fact]
@@ -1267,7 +1334,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = PersonSource.NationalPopulationRegister,
@@ -1327,7 +1395,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyId = inserted.PartyId,
             PartyUuid = inserted.PartyUuid,
-            User = FieldValue.Unset, // user-id is not returned unless updated explicitly
+            UserIds = FieldValue.Unset, // user-id is not returned unless updated explicitly
+            Usernames = PartyHistoricalAggregate<string>.Empty,
             VersionId = updated.VersionId,
         });
 
@@ -1336,7 +1405,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             PartyId = inserted.PartyId,
             PartyUuid = inserted.PartyUuid,
-            User = new PartyUserRecord(inserted.PartyId.Value, FieldValue.Null),
+            UserIds = PartyHistoricalAggregate<uint>.CreateCurrent(inserted.PartyId.Value),
+            Usernames = PartyHistoricalAggregate<string>.Empty,
             VersionId = updated.VersionId,
         });
     }
@@ -1362,7 +1432,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = PersonSource.NationalPopulationRegister,
@@ -1416,7 +1487,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = PersonSource.NationalPopulationRegister,
@@ -1470,7 +1542,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = PersonSource.NationalPopulationRegister,
@@ -1502,7 +1575,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = PersonSource.NationalPopulationRegister,
@@ -1547,7 +1621,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = FieldValue.Null,
@@ -1557,7 +1632,11 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
         var inserted = result.ShouldHaveValue().ShouldBeOfType<SelfIdentifiedUserRecord>();
-        inserted.ShouldBeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+        inserted.ShouldBeEquivalentTo(toInsert with
+        {
+            Usernames = PartyHistoricalAggregate<string>.Empty,
+            VersionId = inserted.VersionId,
+        });
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
         fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
@@ -1581,7 +1660,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = SelfIdentifiedUserType.Legacy,
@@ -1591,7 +1671,11 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
         var inserted = result.ShouldHaveValue().ShouldBeOfType<SelfIdentifiedUserRecord>();
-        inserted.ShouldBeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+        inserted.ShouldBeEquivalentTo(toInsert with
+        {
+            Usernames = PartyHistoricalAggregate<string>.Empty,
+            VersionId = inserted.VersionId,
+        });
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
         fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
@@ -1615,7 +1699,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = SelfIdentifiedUserType.Educational,
@@ -1625,7 +1710,11 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
         var inserted = result.ShouldHaveValue().ShouldBeOfType<SelfIdentifiedUserRecord>();
-        inserted.ShouldBeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+        inserted.ShouldBeEquivalentTo(toInsert with
+        {
+            Usernames = PartyHistoricalAggregate<string>.Empty,
+            VersionId = inserted.VersionId,
+        });
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
         fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
@@ -1649,7 +1738,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
@@ -1659,7 +1749,11 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
         var inserted = result.ShouldHaveValue().ShouldBeOfType<SelfIdentifiedUserRecord>();
-        inserted.ShouldBeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+        inserted.ShouldBeEquivalentTo(toInsert with
+        {
+            Usernames = PartyHistoricalAggregate<string>.Empty,
+            VersionId = inserted.VersionId,
+        });
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
         fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
@@ -1670,6 +1764,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     public async Task UpsertParty_SelfIdentified_Can_Update_SelfIdentifiedType_FromNull(SelfIdentifiedUserType type)
     {
         var id = await UoW.GetNextPartyId(CancellationToken);
+        var userIds = await UoW.GetNewUserIds(1, CancellationToken);
         var uuid = Guid.NewGuid();
 
         var toInsert = new SelfIdentifiedUserRecord
@@ -1684,7 +1779,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = PartyHistoricalAggregate<uint>.CreateCurrent(userIds.Single()),
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = FieldValue.Null,
@@ -1729,12 +1825,14 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var expected = toUpdate with
         {
             CreatedAt = toInsert.CreatedAt, // created at should not change
+            Usernames = PartyHistoricalAggregate<string>.Empty, // populated by the database on upsert
         };
 
         var updated = result.Value.ShouldBeOfType<SelfIdentifiedUserRecord>();
         updated.ShouldBeEquivalentTo(expected with { VersionId = updated.VersionId });
 
-        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
+        var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser | PartyFieldIncludes.User, cancellationToken: CancellationToken)
+            .SingleAsync(CancellationToken);
         fromDb.ShouldBeEquivalentTo(expected with { VersionId = fromDb.VersionId });
     }
 
@@ -1756,7 +1854,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = SelfIdentifiedUserType.Legacy,
@@ -1804,7 +1903,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = SelfIdentifiedUserType.Legacy,
@@ -1830,13 +1930,18 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var expected = toUpdate with
         {
             CreatedAt = toInsert.CreatedAt, // created at should not change
+            Usernames = PartyHistoricalAggregate<string>.Empty,
         };
 
         var updated = result.Value.ShouldBeOfType<SelfIdentifiedUserRecord>();
         updated.ShouldBeEquivalentTo(expected with { VersionId = updated.VersionId });
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
-        fromDb.ShouldBeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+        fromDb.ShouldBeEquivalentTo(expected with
+        {
+            Usernames = FieldValue.Unset,
+            VersionId = fromDb.VersionId,
+        });
     }
 
     [Theory]
@@ -1860,7 +1965,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = isDeleted,
             DeletedAt = isDeleted ? TimeProvider.GetUtcNow() : FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = SelfIdentifiedUserType.Legacy,
@@ -1887,13 +1993,18 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             IsDeleted = toInsert.IsDeleted, // IsDeleted should not change
             DeletedAt = toInsert.DeletedAt, // DeletedAt should not change
             CreatedAt = toInsert.CreatedAt, // created at should not change
+            Usernames = PartyHistoricalAggregate<string>.Empty,
         };
 
         var updated = result.Value.ShouldBeOfType<SelfIdentifiedUserRecord>();
         updated.ShouldBeEquivalentTo(expected with { VersionId = updated.VersionId });
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
-        fromDb.ShouldBeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+        fromDb.ShouldBeEquivalentTo(expected with
+        {
+            Usernames = FieldValue.Unset,
+            VersionId = fromDb.VersionId,
+        });
     }
 
     [Fact]
@@ -1915,7 +2026,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = FieldValue.Unset,
             DeletedAt = FieldValue.Unset,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = SelfIdentifiedUserType.Legacy,
@@ -1930,13 +2042,18 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
+            Usernames = PartyHistoricalAggregate<string>.Empty,
         };
 
         var updated = result.Value.ShouldBeOfType<SelfIdentifiedUserRecord>();
         updated.ShouldBeEquivalentTo(expected with { VersionId = updated.VersionId });
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
-        fromDb.ShouldBeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+        fromDb.ShouldBeEquivalentTo(expected with
+        {
+            Usernames = FieldValue.Unset,
+            VersionId = fromDb.VersionId,
+        });
     }
 
     #endregion
@@ -1963,7 +2080,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = org.PartyUuid,
             SystemUserType = type,
@@ -1971,7 +2089,11 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
         var inserted = result.ShouldHaveValue().ShouldBeOfType<SystemUserRecord>();
-        inserted.ShouldBeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+        inserted.ShouldBeEquivalentTo(toInsert with
+        {
+            Usernames = PartyHistoricalAggregate<string>.Empty,
+            VersionId = inserted.VersionId,
+        });
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SystemUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
         fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
@@ -1995,7 +2117,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = org.PartyUuid,
             SystemUserType = SystemUserRecordType.Standard,
@@ -2019,13 +2142,18 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var expected = toUpdate with
         {
             CreatedAt = toInsert.CreatedAt, // created at should not change
+            Usernames = PartyHistoricalAggregate<string>.Empty,
         };
 
         var updated = result.Value.ShouldBeOfType<SystemUserRecord>();
         updated.ShouldBeEquivalentTo(expected with { VersionId = updated.VersionId });
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SystemUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
-        fromDb.ShouldBeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+        fromDb.ShouldBeEquivalentTo(expected with
+        {
+            Usernames = FieldValue.Unset,
+            VersionId = fromDb.VersionId,
+        });
     }
 
     [Fact]
@@ -2046,7 +2174,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = org.PartyUuid,
             SystemUserType = SystemUserRecordType.Standard,
@@ -2072,13 +2201,18 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         {
             OwnerUuid = toInsert.OwnerUuid, // owner should not change
             CreatedAt = toInsert.CreatedAt, // created at should not change
+            Usernames = PartyHistoricalAggregate<string>.Empty,
         };
 
         var updated = result.Value.ShouldBeOfType<SystemUserRecord>();
         updated.ShouldBeEquivalentTo(expected with { VersionId = updated.VersionId });
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SystemUser, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
-        fromDb.ShouldBeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+        fromDb.ShouldBeEquivalentTo(expected with
+        {
+            Usernames = FieldValue.Unset,
+            VersionId = fromDb.VersionId,
+        });
     }
 
     [Fact]
@@ -2100,7 +2234,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = org1.PartyUuid,
             SystemUserType = SystemUserRecordType.Agent,
@@ -2146,14 +2281,19 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = org.PartyUuid,
         };
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
         var inserted = result.ShouldHaveValue().ShouldBeOfType<EnterpriseUserRecord>();
-        inserted.ShouldBeEquivalentTo(toInsert with { VersionId = inserted.VersionId });
+        inserted.ShouldBeEquivalentTo(toInsert with
+        {
+            Usernames = PartyHistoricalAggregate<string>.Empty,
+            VersionId = inserted.VersionId,
+        });
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
         fromDb.ShouldBeEquivalentTo(toInsert with { VersionId = fromDb.VersionId });
@@ -2177,7 +2317,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = org.PartyUuid,
         };
@@ -2200,13 +2341,18 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         var expected = toUpdate with
         {
             CreatedAt = toInsert.CreatedAt, // created at should not change
+            Usernames = PartyHistoricalAggregate<string>.Empty,
         };
 
         var updated = result.Value.ShouldBeOfType<EnterpriseUserRecord>();
         updated.ShouldBeEquivalentTo(expected with { VersionId = updated.VersionId });
 
         var fromDb = await Persistence.GetPartyById(uuid, PartyFieldIncludes.Party, cancellationToken: CancellationToken).SingleAsync(CancellationToken);
-        fromDb.ShouldBeEquivalentTo(expected with { VersionId = fromDb.VersionId });
+        fromDb.ShouldBeEquivalentTo(expected with
+        {
+            Usernames = FieldValue.Unset,
+            VersionId = fromDb.VersionId,
+        });
     }
 
     #endregion
@@ -2778,7 +2924,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = PersonSource.NationalPopulationRegister,
@@ -2793,18 +2940,18 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         };
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
-        result.ShouldHaveValue().User.ShouldBeUnset();
+        result.ShouldHaveValue().UserIds.ShouldBeUnset();
+        result.ShouldHaveValue().Usernames.Values.ShouldBe([]);
 
         await NewTransaction();
         var userIds = await TestDataGenerator.GetNextUserIds(cancellationToken: CancellationToken);
         var toUpdate = toInsert with
         {
-            User = new PartyUserRecord(userId: userIds[0], username: FieldValue.Unset, userIds: userIds.ToImmutableValueArray()),
+            UserIds = PartyHistoricalAggregate<uint>.Create(userIds, hasActiveValue: true),
         };
 
         result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
-        var updatedUser = result.ShouldHaveValue().User.ShouldHaveValue();
-        updatedUser.UserIds.ShouldHaveValue().Single().ShouldBe(userIds[0]);
+        result.ShouldHaveValue().UserIds.Values.ShouldBe([userIds[0]]);
     }
 
     [Fact]
@@ -2828,7 +2975,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = PersonSource.NationalPopulationRegister,
@@ -2843,22 +2991,21 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         };
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
-        result.ShouldHaveValue().User.ShouldBeUnset();
+        result.ShouldHaveValue().UserIds.ShouldBeUnset();
+        result.ShouldHaveValue().Usernames.Values.ShouldBe([]);
 
         await NewTransaction();
         var userIds = await TestDataGenerator.GetNextUserIds(cancellationToken: CancellationToken);
         var username = $"user_{userIds[0]}";
         var toUpdate = toInsert with
         {
-            User = new PartyUserRecord(userId: userIds[0], username: username, userIds: userIds.ToImmutableValueArray()),
+            UserIds = PartyHistoricalAggregate<uint>.Create(userIds, hasActiveValue: true),
+            Usernames = PartyHistoricalAggregate<string>.CreateCurrent(username),
         };
 
         result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
-        var user = result.ShouldHaveValue().User.ShouldHaveValue();
-
-        user.UserId.ShouldBe(userIds[0]);
-        user.UserIds.ShouldHaveValue().Single().ShouldBe(userIds[0]);
-        user.Username.ShouldBe(username);
+        result.ShouldHaveValue().UserIds.Values.ShouldBe([userIds[0]]);
+        result.ShouldHaveValue().Usernames.Values.ShouldBe([username]);
     }
 
     [Fact]
@@ -2882,7 +3029,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = PersonSource.NationalPopulationRegister,
@@ -2897,71 +3045,17 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         };
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
-        result.ShouldHaveValue().User.ShouldBeUnset();
+        result.ShouldHaveValue().UserIds.ShouldBeUnset();
+        result.ShouldHaveValue().Usernames.Values.ShouldBe([]);
 
         await NewTransaction();
         var toUpdate = toInsert with
         {
-            User = new PartyUserRecord(userId: 10U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
+            UserIds = PartyHistoricalAggregate<uint>.Create([10U, 2U, 5U], hasActiveValue: true),
         };
 
         result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
-        var userIds = result.ShouldHaveValue().User.ShouldHaveValue().UserIds.ShouldHaveValue();
-
-        userIds.Count().ShouldBe(3);
-        userIds[0].ShouldBe(10U);
-        userIds[1].ShouldBe(5U);
-        userIds[2].ShouldBe(2U);
-    }
-
-    [Fact]
-    public async Task Person_CanBeUpdated_WithHistoricalUserIds_Only()
-    {
-        var id = await UoW.GetNextPartyId(CancellationToken);
-        var birthDate = UoW.GetRandomBirthDate();
-        var isDNumber = TestDataGenerator.GetRandomBool(0.1); // 10% chance of D-number
-        var personId = await UoW.GetNewPersonIdentifier(birthDate, isDNumber, CancellationToken);
-        var uuid = Guid.NewGuid();
-
-        var toInsert = new PersonRecord
-        {
-            PartyUuid = uuid,
-            PartyId = id,
-            ExternalUrn = PartyExternalRefUrn.PersonId.Create(personId),
-            DisplayName = "Test Mid Testson",
-            PersonIdentifier = personId,
-            OrganizationIdentifier = null,
-            CreatedAt = TimeProvider.GetUtcNow(),
-            ModifiedAt = TimeProvider.GetUtcNow(),
-            IsDeleted = false,
-            DeletedAt = FieldValue.Null,
-            User = FieldValue.Unset,
-            VersionId = FieldValue.Unset,
-            OwnerUuid = FieldValue.Null,
-            Source = PersonSource.NationalPopulationRegister,
-            FirstName = "Test",
-            MiddleName = "Mid",
-            LastName = "Testson",
-            ShortName = "TESTSON Test Mid",
-            Address = null,
-            MailingAddress = null,
-            DateOfBirth = birthDate,
-            DateOfDeath = FieldValue.Null,
-        };
-
-        var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
-        result.ShouldHaveValue().User.ShouldBeUnset();
-
-        await NewTransaction();
-        var user = new PartyUserRecord(userId: 10U, username: FieldValue.Null, userIds: ImmutableValueArray.Create(10U, 2U, 5U));
-
-        var userResult = await Persistence.UpsertPartyUser(uuid, user, cancellationToken: CancellationToken);
-        var userIds = userResult.ShouldHaveValue().UserIds.ShouldHaveValue();
-
-        userIds.Count().ShouldBe(3);
-        userIds[0].ShouldBe(10U);
-        userIds[1].ShouldBe(5U);
-        userIds[2].ShouldBe(2U);
+        result.ShouldHaveValue().UserIds.Values.ShouldBe([10U, 5U, 2U]);
     }
 
     [Fact]
@@ -2985,7 +3079,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = new PartyUserRecord(userId: 10U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
+            UserIds = PartyHistoricalAggregate<uint>.Create([10U, 2U, 5U], hasActiveValue: true),
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = PersonSource.NationalPopulationRegister,
@@ -3000,12 +3095,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         };
 
         var result = await Persistence.UpsertParty(toInsert, cancellationToken: CancellationToken);
-        var userIds = result.ShouldHaveValue().User.ShouldHaveValue().UserIds.ShouldHaveValue();
-
-        userIds.Count().ShouldBe(3);
-        userIds[0].ShouldBe(10U);
-        userIds[1].ShouldBe(5U);
-        userIds[2].ShouldBe(2U);
+        result.ShouldHaveValue().UserIds.Values.ShouldBe([10U, 5U, 2U]);
     }
 
     [Fact]
@@ -3029,7 +3119,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = new PartyUserRecord(userId: 10U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
+            UserIds = PartyHistoricalAggregate<uint>.Create([10U, 2U, 5U], hasActiveValue: true),
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = PersonSource.NationalPopulationRegister,
@@ -3049,14 +3140,15 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         await NewTransaction();
         var toUpdate = toInsert with
         {
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             DisplayName = "updated"
         };
 
         result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
         var person = result.ShouldHaveValue().ShouldBeOfType<PersonRecord>();
 
-        person.User.ShouldBeUnset();
+        person.UserIds.ShouldBeUnset();
 
         await NewTransaction();
         await using var cmd = Connection.CreateCommand();
@@ -3102,7 +3194,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = new PartyUserRecord(userId: 10U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
+            UserIds = PartyHistoricalAggregate<uint>.Create([10U, 2U, 5U], hasActiveValue: true),
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = PersonSource.NationalPopulationRegister,
@@ -3123,7 +3216,7 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         var toUpdate = toInsert with
         {
-            User = new PartyUserRecord(userId: 12U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(12U, 10U, 2U, 5U)),
+            UserIds = PartyHistoricalAggregate<uint>.Create([12U, 10U, 2U, 5U], hasActiveValue: true),
         };
 
         result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
@@ -3153,7 +3246,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = new PartyUserRecord(userId: 10U, username: "user1", userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
+            UserIds = PartyHistoricalAggregate<uint>.Create([10U, 2U, 5U], hasActiveValue: true),
+            Usernames = PartyHistoricalAggregate<string>.CreateCurrent("user1"),
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = PersonSource.NationalPopulationRegister,
@@ -3174,17 +3268,34 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         var toUpdate = toInsert with
         {
-            User = new PartyUserRecord(userId: 10U, username: "user2", userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
+            UserIds = PartyHistoricalAggregate<uint>.Create([10U, 2U, 5U], hasActiveValue: true),
+            Usernames = PartyHistoricalAggregate<string>.CreateCurrent("user2"),
         };
 
         result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
-        var user = result.ShouldHaveValue().User.ShouldHaveValue();
-        user.UserId.ShouldBe(10U);
-        user.Username.ShouldBe("user2");
+        result.ShouldHaveValue().UserIds.CurrentValue.ShouldBe(10U);
+        result.ShouldHaveValue().Usernames.CurrentValue.ShouldBe("user2");
+
+        await using var cmd = Connection.CreateCommand();
+        cmd.CommandText = /*strpsql*/"SELECT username, is_active FROM register.username WHERE uuid = @partyId ORDER BY username DESC";
+
+        cmd.Parameters.Add<Guid>("partyId", NpgsqlTypes.NpgsqlDbType.Uuid).TypedValue = uuid;
+
+        await using var reader = await cmd.ExecuteReaderAsync(CancellationToken);
+
+        (await reader.ReadAsync(CancellationToken)).ShouldBeTrue();
+        reader.GetString("username").ShouldBe("user2");
+        reader.GetBoolean("is_active").ShouldBeTrue();
+
+        (await reader.ReadAsync(CancellationToken)).ShouldBeTrue();
+        reader.GetString("username").ShouldBe("user1");
+        reader.GetBoolean("is_active").ShouldBeFalse();
+
+        (await reader.ReadAsync(CancellationToken)).ShouldBeFalse();
     }
 
     [Fact]
-    public async Task Person_Can_UnsetActiveUsername()
+    public async Task Person_Can_RemoveActiveUsername()
     {
         var id = await UoW.GetNextPartyId(CancellationToken);
         var birthDate = UoW.GetRandomBirthDate();
@@ -3204,7 +3315,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = new PartyUserRecord(userId: 10U, username: "user1", userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
+            UserIds = PartyHistoricalAggregate<uint>.Create([10U, 2U, 5U], hasActiveValue: true),
+            Usernames = PartyHistoricalAggregate<string>.CreateCurrent("user1"),
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = PersonSource.NationalPopulationRegister,
@@ -3225,13 +3337,26 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         var toUpdate = toInsert with
         {
-            User = new PartyUserRecord(userId: 10U, username: FieldValue.Null, userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
+            UserIds = PartyHistoricalAggregate<uint>.Create([10U, 2U, 5U], hasActiveValue: true),
+            Usernames = PartyHistoricalAggregate<string>.Empty,
         };
 
         result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
-        var user = result.ShouldHaveValue().User.ShouldHaveValue();
-        user.UserId.ShouldBe(10U);
-        user.Username.ShouldBeNull();
+        result.ShouldHaveValue().UserIds.CurrentValue.ShouldBe(10U);
+        result.ShouldHaveValue().Usernames.CurrentValue.ShouldBeNull();
+
+        await using var cmd = Connection.CreateCommand();
+        cmd.CommandText = /*strpsql*/"SELECT username, is_active FROM register.username WHERE uuid = @partyId ORDER BY username DESC";
+
+        cmd.Parameters.Add<Guid>("partyId", NpgsqlTypes.NpgsqlDbType.Uuid).TypedValue = uuid;
+
+        await using var reader = await cmd.ExecuteReaderAsync(CancellationToken);
+
+        (await reader.ReadAsync(CancellationToken)).ShouldBeTrue();
+        reader.GetString("username").ShouldBe("user1");
+        reader.GetBoolean("is_active").ShouldBeFalse();
+
+        (await reader.ReadAsync(CancellationToken)).ShouldBeFalse();
     }
 
     [Fact]
@@ -3255,7 +3380,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = new PartyUserRecord(userId: 10U, username: "user1", userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
+            UserIds = PartyHistoricalAggregate<uint>.Create([10U, 2U, 5U], hasActiveValue: true),
+            Usernames = PartyHistoricalAggregate<string>.CreateCurrent("user1"),
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = PersonSource.NationalPopulationRegister,
@@ -3276,83 +3402,13 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
 
         var toUpdate = toInsert with
         {
-            User = new PartyUserRecord(userId: 10U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
+            UserIds = PartyHistoricalAggregate<uint>.Create([10U, 2U, 5U], hasActiveValue: true),
+            Usernames = FieldValue.Unset,
         };
 
         result = await Persistence.UpsertParty(toUpdate, cancellationToken: CancellationToken);
-        var user = result.ShouldHaveValue().User.ShouldHaveValue();
-        user.UserId.ShouldBe(10U);
-        user.Username.ShouldBe("user1");
-    }
-
-    [Fact]
-    public async Task UpsertUserRecord_CanCreate_New_UserRecord()
-    {
-        var person = await UoW.CreatePerson(user: FieldValue.Null, cancellationToken: CancellationToken);
-
-        var userIds = await TestDataGenerator.GetNextUserIds(cancellationToken: CancellationToken);
-        await Persistence.UpsertUserRecord(person.PartyUuid.Value, userIds[0], "test-user", isActive: true, cancellationToken: CancellationToken);
-
-        var updated = await Persistence.GetPartyById(person.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User, cancellationToken: CancellationToken).FirstOrDefaultAsync(CancellationToken);
-        updated.ShouldNotBeNull();
-        updated.User.ShouldHaveValue();
-        updated.User.Value!.UserId.ShouldBe(userIds[0]);
-        updated.User.Value!.Username.ShouldBe("test-user");
-    }
-
-    [Fact]
-    public async Task UpsertUserRecord_CanUpdate_ExistingRecord()
-    {
-        var ids = await TestDataGenerator.GetNextUserIds(cancellationToken: CancellationToken);
-        var person = await UoW.CreatePerson(user: new PartyUserRecord(ids[0], "test-user-name", ImmutableValueArray.ToImmutableValueArray(ids)), cancellationToken: CancellationToken);
-
-        await Persistence.UpsertUserRecord(person.PartyUuid.Value, ids[0], "updated-user-name", isActive: true, cancellationToken: CancellationToken);
-
-        var updated = await Persistence.GetPartyById(person.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User, cancellationToken: CancellationToken).FirstOrDefaultAsync(CancellationToken);
-        updated.ShouldNotBeNull();
-        updated.User.ShouldHaveValue();
-        updated.User.Value!.UserId.ShouldBe(ids[0]);
-        updated.User.Value!.Username.ShouldBe("updated-user-name");
-    }
-
-    [Fact]
-    public async Task UpsertUserRecord_CanDeactivate_User()
-    {
-        var ids = await TestDataGenerator.GetNextUserIds(cancellationToken: CancellationToken);
-        var person = await UoW.CreatePerson(user: new PartyUserRecord(ids[0], "test-user-name", ImmutableValueArray.ToImmutableValueArray(ids)), cancellationToken: CancellationToken);
-
-        await Persistence.UpsertUserRecord(person.PartyUuid.Value, ids[0], FieldValue.Unset, isActive: false, cancellationToken: CancellationToken);
-
-        var updated = await Persistence.GetPartyById(person.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User, cancellationToken: CancellationToken).FirstOrDefaultAsync(CancellationToken);
-        updated.ShouldNotBeNull();
-        updated.User.ShouldBeNull();
-        updated.VersionId.ShouldHaveValue().ShouldBeGreaterThan(person.VersionId.Value);
-    }
-
-    [Fact]
-    public async Task UpsertUserRecord_Inactive_DoesNotUpdatePartyVersionId()
-    {
-        var ids = await TestDataGenerator.GetNextUserIds(count: 2, cancellationToken: CancellationToken);
-        var person = await UoW.CreatePerson(user: new PartyUserRecord(ids[1], "test-user-name", ImmutableValueArray.Create(ids[1])), cancellationToken: CancellationToken);
-
-        await Persistence.UpsertUserRecord(person.PartyUuid.Value, ids[0], "old-user-name", isActive: false, cancellationToken: CancellationToken);
-
-        var updated = await Persistence.GetPartyById(person.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User, cancellationToken: CancellationToken).FirstOrDefaultAsync(CancellationToken);
-        updated.ShouldNotBeNull();
-        updated.VersionId.ShouldHaveValue().ShouldBe(person.VersionId.Value);
-    }
-
-    [Fact]
-    public async Task UpsertUserRecord_Active_UpdatesPartyVersionId()
-    {
-        var ids = await TestDataGenerator.GetNextUserIds(count: 2, cancellationToken: CancellationToken);
-        var person = await UoW.CreatePerson(user: new PartyUserRecord(ids[1], "test-user-name", ImmutableValueArray.Create(ids[1])), cancellationToken: CancellationToken);
-
-        await Persistence.UpsertUserRecord(person.PartyUuid.Value, ids[1], "old-user-name", isActive: true, cancellationToken: CancellationToken);
-
-        var updated = await Persistence.GetPartyById(person.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User, cancellationToken: CancellationToken).FirstOrDefaultAsync(CancellationToken);
-        updated.ShouldNotBeNull();
-        updated.VersionId.ShouldHaveValue().ShouldBeGreaterThan(person.VersionId.Value);
+        result.ShouldHaveValue().UserIds.CurrentValue.ShouldBe(10U);
+        result.ShouldHaveValue().Usernames.CurrentValue.ShouldBe("user1");
     }
 
     [Fact]
@@ -3374,9 +3430,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         user.Value.Email.ShouldBe(Email);
         user.Value.ExtRef.ShouldBeNull();
         user.Value.DisplayName.ShouldBe(existing.DisplayName);
-        var existingEmailUser = user.Value.User.ShouldHaveValue();
-        existingEmailUser.UserId.ShouldBe(existing.User.SelectFieldValue(static u => u.UserId));
-        existingEmailUser.Username.ShouldBe(existing.User.SelectFieldValue(static u => u.Username));
+        user.Value.UserIds.CurrentValue.ShouldBe(existing.UserIds.CurrentValue);
+        user.Value.Usernames.CurrentValue.ShouldBe(existing.Usernames.CurrentValue);
     }
 
     [Fact]
@@ -3392,7 +3447,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         user.Value.Email.ShouldBe(Email);
         user.Value.ExtRef.ShouldBeNull();
         user.Value.DisplayName.ShouldBe(Email);
-        user.Value.User.ShouldHaveValue().Username.ShouldBeNull();
+        user.Value.UserIds.CurrentValue.ShouldHaveValue();
+        user.Value.Usernames.CurrentValue.ShouldBeNull();
 
         var persisted = await Persistence.LookupParties(
             selfIdentifiedEmails: [Email],
@@ -3408,7 +3464,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         persistedUser.SelfIdentifiedUserType.ShouldBe(SelfIdentifiedUserType.IdPortenEmail);
         persistedUser.Email.ShouldBe(Email);
         persistedUser.ExtRef.ShouldBeNull();
-        persistedUser.User.ShouldBe(user.Value.User);
+        persistedUser.UserIds.CurrentValue.ShouldBe(user.Value.UserIds.CurrentValue);
+        persistedUser.Usernames.CurrentValue.ShouldBe(user.Value.Usernames.CurrentValue);
     }
 
     [Fact]
@@ -3432,9 +3489,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         user.Value.ExtRef.ShouldBe(ExtRef);
         user.Value.Email.ShouldBeNull();
         user.Value.DisplayName.ShouldBe(ExistingUsername);
-        var existingEduUser = user.Value.User.ShouldHaveValue();
-        existingEduUser.UserId.ShouldBe(existing.User.SelectFieldValue(static u => u.UserId));
-        existingEduUser.Username.ShouldBe(existing.User.SelectFieldValue(static u => u.Username));
+        user.Value.UserIds.CurrentValue.ShouldBe(existing.UserIds.CurrentValue);
+        user.Value.Usernames.CurrentValue.ShouldBe(existing.Usernames.CurrentValue);
     }
 
     [Fact]
@@ -3451,7 +3507,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         user.Value.ExtRef.ShouldBe(ExtRef);
         user.Value.Email.ShouldBeNull();
         user.Value.DisplayName.ShouldBe(Username);
-        user.Value.User.ShouldHaveValue().Username.ShouldBeNull();
+        user.Value.UserIds.CurrentValue.ShouldHaveValue();
+        user.Value.Usernames.CurrentValue.ShouldBeNull();
 
         var persisted = await Persistence
             .GetPartyById(user.Value.PartyUuid.Value, include: PartyFieldIncludes.Party | PartyFieldIncludes.User | PartyFieldIncludes.SelfIdentifiedUser, cancellationToken: CancellationToken)
@@ -3465,7 +3522,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         persistedUser.SelfIdentifiedUserType.ShouldBe(SelfIdentifiedUserType.Educational);
         persistedUser.ExtRef.ShouldBe(ExtRef);
         persistedUser.Email.ShouldBeNull();
-        persistedUser.User.ShouldBe(user.Value.User);
+        persistedUser.UserIds.CurrentValue.ShouldBe(user.Value.UserIds.CurrentValue);
+        persistedUser.Usernames.CurrentValue.ShouldBe(user.Value.Usernames.CurrentValue);
     }
 
     #endregion
@@ -3493,7 +3551,8 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = new PartyUserRecord(userId: 10U, username: "user1", userIds: ImmutableValueArray.Create(10U, 2U, 5U)),
+            UserIds = PartyHistoricalAggregate<uint>.Create([10U, 2U, 5U], hasActiveValue: true),
+            Usernames = PartyHistoricalAggregate<string>.CreateCurrent("user1"),
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Null,
             Source = PersonSource.NationalPopulationRegister,

@@ -74,15 +74,6 @@ internal static partial class PartyMapper
         => MapSystemUser(source);
 
     /// <summary>
-    /// Maps a <see cref="PartyUserRecord"/> to a <see cref="PartyUser"/>.
-    /// </summary>
-    /// <param name="source">The source user.</param>
-    /// <returns>A <see cref="PartyUser"/>.</returns>
-    [return: NotNullIfNotNull(nameof(source))]
-    public static PartyUser? ToPlatformModel(this PartyUserRecord? source)
-        => MapPartyUser(source);
-
-    /// <summary>
     /// Maps a <see cref="StreetAddressRecord"/> to a <see cref="StreetAddress"/>.
     /// </summary>
     /// <param name="source">The source street-address.</param>

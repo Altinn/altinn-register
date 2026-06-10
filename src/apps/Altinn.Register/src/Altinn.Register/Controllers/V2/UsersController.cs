@@ -103,7 +103,7 @@ public sealed class UsersController
             _ = await accessManagementClient.CreateSelfIdentifiedUser(
                 partyUuid: result.Value.Value.PartyUuid.Value,
                 partyId: result.Value.Value.PartyId.Value,
-                userId: result.Value.Value.User.Value!.UserId.Value,
+                userId: result.Value.Value.UserIds.Value!.CurrentValue.Value,
                 type: result.Value.Value.SelfIdentifiedUserType.Value,
                 displayName: request.UserName,
                 cancellationToken: cancellationToken);

@@ -2,7 +2,6 @@ using System.Text.Json;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.TestUtils.Shouldly;
 using Altinn.Register.Contracts;
-using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.TestUtils;
 
@@ -27,7 +26,8 @@ public class PartyRecordTests
             ModifiedAt = record.ModifiedAt,
             IsDeleted = record.IsDeleted,
             DeletedAt = record.DeletedAt,
-            User = record.User,
+            UserIds = record.UserIds,
+            Usernames = record.Usernames,
             VersionId = record.VersionId,
             OwnerUuid = record.OwnerUuid,
             Source = FieldValue.Unset,
@@ -54,7 +54,8 @@ public class PartyRecordTests
             ModifiedAt = record.ModifiedAt,
             IsDeleted = record.IsDeleted,
             DeletedAt = record.DeletedAt,
-            User = record.User,
+            UserIds = record.UserIds,
+            Usernames = record.Usernames,
             VersionId = record.VersionId,
             OwnerUuid = record.OwnerUuid,
             Source = FieldValue.Unset,
@@ -82,7 +83,8 @@ public class PartyRecordTests
             ModifiedAt = record.ModifiedAt,
             IsDeleted = record.IsDeleted,
             DeletedAt = record.DeletedAt,
-            User = record.User,
+            UserIds = record.UserIds,
+            Usernames = record.Usernames,
             VersionId = record.VersionId,
             OwnerUuid = record.OwnerUuid,
             SelfIdentifiedUserType = FieldValue.Unset,
@@ -105,7 +107,8 @@ public class PartyRecordTests
             ModifiedAt = FieldValue.Unset,
             IsDeleted = FieldValue.Unset,
             DeletedAt = FieldValue.Unset,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Unset,
         };
@@ -133,7 +136,8 @@ public class PartyRecordTests
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U, 2U)),
+            UserIds = PartyHistoricalAggregate<uint>.Create([1U, 2U], hasActiveValue: true),
+            Usernames = PartyHistoricalAggregate<string>.Empty,
             VersionId = 50,
             OwnerUuid = Guid.Parse("00000000-0000-0000-0000-000000000002"),
         };
@@ -149,9 +153,13 @@ public class PartyRecordTests
                 "modifiedAt": "2000-01-01T00:00:00+00:00",
                 "isDeleted": false,
                 "deletedAt": null,
-                "user": {
-                    "userId": 1,
-                    "userIds": [1, 2]
+                "userIds": {
+                    "hasActiveValue": true,
+                    "values": [1, 2]
+                },
+                "usernames": {
+                    "hasActiveValue": false,
+                    "values": []
                 },
                 "versionId": 50,
                 "ownerUuid": "00000000-0000-0000-0000-000000000002"
@@ -178,7 +186,8 @@ public class PartyRecordTests
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = true,
             DeletedAt = TimeProvider.GetUtcNow(),
-            User = new PartyUserRecord(userId: FieldValue.Unset, username: FieldValue.Unset, userIds: FieldValue.Unset),
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = 42,
             OwnerUuid = FieldValue.Null,
         };
@@ -197,7 +206,6 @@ public class PartyRecordTests
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":true,
                 "deletedAt":"2000-01-01T00:00:00+00:00",
-                "user": {},
                 "versionId":42,
                 "ownerUuid": null
             }
@@ -223,7 +231,8 @@ public class PartyRecordTests
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = new PartyUserRecord(userId: FieldValue.Unset, username: FieldValue.Unset, userIds: FieldValue.Unset),
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = 42,
             OwnerUuid = FieldValue.Null,
         };
@@ -242,7 +251,6 @@ public class PartyRecordTests
                 "modifiedAt": "2000-01-01T00:00:00+00:00",
                 "isDeleted": false,
                 "deletedAt": null,
-                "user": {},
                 "versionId": 42,
                 "ownerUuid": null
             }
@@ -268,7 +276,8 @@ public class PartyRecordTests
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = true,
             DeletedAt = TimeProvider.GetUtcNow(),
-            User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
+            UserIds = PartyHistoricalAggregate<uint>.CreateCurrent(1U),
+            Usernames = PartyHistoricalAggregate<string>.Empty,
             VersionId = 42,
             OwnerUuid = FieldValue.Null,
         };
@@ -287,9 +296,13 @@ public class PartyRecordTests
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":true,
                 "deletedAt":"2000-01-01T00:00:00+00:00",
-                "user": {
-                    "userId": 1,
-                    "userIds": [1]
+                "userIds": {
+                    "hasActiveValue": true,
+                    "values": [1]
+                },
+                "usernames": {
+                    "hasActiveValue": false,
+                    "values": []
                 },
                 "versionId":42,
                 "ownerUuid": null
@@ -316,7 +329,8 @@ public class PartyRecordTests
             ModifiedAt = FieldValue.Unset,
             IsDeleted = FieldValue.Unset,
             DeletedAt = FieldValue.Unset,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Unset,
 
@@ -359,7 +373,8 @@ public class PartyRecordTests
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = new PartyUserRecord(userId: FieldValue.Unset, username: FieldValue.Unset, userIds: FieldValue.Unset),
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = 42,
             OwnerUuid = FieldValue.Null,
 
@@ -388,7 +403,6 @@ public class PartyRecordTests
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":false,
                 "deletedAt": null,
-                "user": {},
                 "versionId":42,
                 "ownerUuid": null
             }
@@ -414,7 +428,8 @@ public class PartyRecordTests
             ModifiedAt = TimeProvider.GetUtcNow() + TimeSpan.FromDays(1),
             IsDeleted = true,
             DeletedAt = TimeProvider.GetUtcNow() + TimeSpan.FromDays(2),
-            User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
+            UserIds = PartyHistoricalAggregate<uint>.CreateCurrent(1U),
+            Usernames = PartyHistoricalAggregate<string>.Empty,
             VersionId = 42,
             OwnerUuid = FieldValue.Null,
 
@@ -457,9 +472,13 @@ public class PartyRecordTests
                 "modifiedAt": "2000-01-02T00:00:00+00:00",
                 "deletedAt": "2000-01-03T00:00:00+00:00",
                 "isDeleted": true,
-                "user": {
-                    "userId": 1,
-                    "userIds": [1]
+                "userIds": {
+                    "hasActiveValue": true,
+                    "values": [1]
+                },
+                "usernames": {
+                    "hasActiveValue": false,
+                    "values": []
                 },
                 "versionId": 42,
                 "ownerUuid": null,
@@ -507,7 +526,8 @@ public class PartyRecordTests
             ModifiedAt = FieldValue.Unset,
             IsDeleted = FieldValue.Unset,
             DeletedAt = FieldValue.Unset,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Unset,
 
@@ -550,7 +570,8 @@ public class PartyRecordTests
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Null,
+            UserIds = FieldValue.Null,
+            Usernames = FieldValue.Null,
             VersionId = 42,
             OwnerUuid = FieldValue.Null,
 
@@ -590,7 +611,8 @@ public class PartyRecordTests
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":false,
                 "deletedAt": null,
-                "user":null,
+                "userIds": null,
+                "usernames": null,
                 "versionId":42,
                 "ownerUuid": null,
                 "source": "ccr",
@@ -634,7 +656,8 @@ public class PartyRecordTests
             ModifiedAt = FieldValue.Unset,
             IsDeleted = FieldValue.Unset,
             DeletedAt = FieldValue.Unset,
-            User = FieldValue.Unset,
+            UserIds = FieldValue.Unset,
+            Usernames = FieldValue.Unset,
             VersionId = FieldValue.Unset,
             OwnerUuid = FieldValue.Unset,
 
@@ -687,7 +710,8 @@ public class PartyRecordTests
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
+            UserIds = PartyHistoricalAggregate<uint>.CreateCurrent(1U),
+            Usernames = PartyHistoricalAggregate<string>.Empty,
             VersionId = 42,
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = FieldValue.Null,
@@ -710,9 +734,13 @@ public class PartyRecordTests
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":false,
                 "deletedAt": null,
-                "user": {
-                    "userId": 1,
-                    "userIds": [1]
+                "userIds": {
+                    "hasActiveValue": true,
+                    "values": [1]
+                },
+                "usernames": {
+                    "hasActiveValue": false,
+                    "values": []
                 },
                 "versionId":42,
                 "ownerUuid": null,
@@ -742,7 +770,8 @@ public class PartyRecordTests
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
+            UserIds = PartyHistoricalAggregate<uint>.CreateCurrent(1U),
+            Usernames = PartyHistoricalAggregate<string>.Empty,
             VersionId = 42,
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = SelfIdentifiedUserType.Legacy,
@@ -765,9 +794,13 @@ public class PartyRecordTests
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":false,
                 "deletedAt": null,
-                "user": {
-                    "userId": 1,
-                    "userIds": [1]
+                "userIds": {
+                    "hasActiveValue": true,
+                    "values": [1]
+                },
+                "usernames": {
+                    "hasActiveValue": false,
+                    "values": []
                 },
                 "versionId":42,
                 "ownerUuid": null,
@@ -797,7 +830,8 @@ public class PartyRecordTests
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
+            UserIds = PartyHistoricalAggregate<uint>.CreateCurrent(1U),
+            Usernames = PartyHistoricalAggregate<string>.Empty,
             VersionId = 42,
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = SelfIdentifiedUserType.Educational,
@@ -820,9 +854,13 @@ public class PartyRecordTests
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":false,
                 "deletedAt": null,
-                "user": {
-                    "userId": 1,
-                    "userIds": [1]
+                "userIds": {
+                    "hasActiveValue": true,
+                    "values": [1]
+                },
+                "usernames": {
+                    "hasActiveValue": false,
+                    "values": []
                 },
                 "versionId":42,
                 "ownerUuid": null,
@@ -852,7 +890,8 @@ public class PartyRecordTests
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = new PartyUserRecord(userId: 1U, username: FieldValue.Unset, userIds: ImmutableValueArray.Create(1U)),
+            UserIds = PartyHistoricalAggregate<uint>.CreateCurrent(1U),
+            Usernames = PartyHistoricalAggregate<string>.Empty,
             VersionId = 42,
             OwnerUuid = FieldValue.Null,
             SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
@@ -875,9 +914,13 @@ public class PartyRecordTests
                 "modifiedAt":"2000-01-01T00:00:00+00:00",
                 "isDeleted":false,
                 "deletedAt": null,
-                "user": {
-                    "userId": 1,
-                    "userIds": [1]
+                "userIds": {
+                    "hasActiveValue": true,
+                    "values": [1]
+                },
+                "usernames": {
+                    "hasActiveValue": false,
+                    "values": []
                 },
                 "versionId":42,
                 "ownerUuid": null,
@@ -890,6 +933,45 @@ public class PartyRecordTests
         var deserialized = JsonSerializer.Deserialize<SelfIdentifiedUserRecord>(json, _options);
         deserialized.ShouldBeOfType<SelfIdentifiedUserRecord>();
         deserialized.ShouldBeEquivalentTo(record);
+    }
+
+    [Fact]
+    public void Deserialize_SIRecord_LegacyUserObject()
+    {
+        var json =
+            """
+            {
+                "partyType": "self-identified-user",
+                "partyUuid":"00000000-0000-0000-0000-000000000001",
+                "partyId":1,
+                "externalUrn": null,
+                "displayName":"1",
+                "personIdentifier": null,
+                "organizationIdentifier": null,
+                "createdAt":"2000-01-01T00:00:00+00:00",
+                "modifiedAt":"2000-01-01T00:00:00+00:00",
+                "isDeleted":false,
+                "deletedAt": null,
+                "user": {
+                    "userId": 1,
+                    "username": "legacy-user",
+                    "userIds": [1, 2]
+                },
+                "versionId":42,
+                "ownerUuid": null,
+                "selfIdentifiedUserType": "legacy",
+                "email": null,
+                "extRef": null
+            }
+            """;
+
+        var deserialized = JsonSerializer.Deserialize<SelfIdentifiedUserRecord>(json, _options);
+
+        deserialized.ShouldNotBeNull();
+        deserialized.UserIds.CurrentValue.ShouldBe(1U);
+        deserialized.UserIds.Values.ShouldBe([1U, 2U]);
+        deserialized.Usernames.CurrentValue.ShouldBe("legacy-user");
+        deserialized.Usernames.Values.ShouldBe(["legacy-user"]);
     }
 
     [Fact]
@@ -909,7 +991,8 @@ public class PartyRecordTests
             ModifiedAt = TimeProvider.GetUtcNow(),
             IsDeleted = false,
             DeletedAt = FieldValue.Null,
-            User = FieldValue.Null,
+            UserIds = FieldValue.Null,
+            Usernames = FieldValue.Null,
             VersionId = 42,
             OwnerUuid = FieldValue.Null,
 
@@ -949,7 +1032,8 @@ public class PartyRecordTests
                 "ModifiedAt":"2000-01-01T00:00:00+00:00",
                 "IsDeleted":false,
                 "DeletedAt": null,
-                "User":null,
+                "UserIds": null,
+                "Usernames": null,
                 "VersionId":42,
                 "OwnerUuid": null,
                 "Source": "ccr",

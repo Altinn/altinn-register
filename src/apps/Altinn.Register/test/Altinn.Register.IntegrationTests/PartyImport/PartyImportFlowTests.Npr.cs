@@ -4,6 +4,7 @@ using Altinn.Register.Contracts.Parties;
 using Altinn.Register.Core.ImportJobs;
 using Altinn.Register.Core.Npr;
 using Altinn.Register.Core.Parties;
+using Altinn.Register.Core.Parties.Records;
 using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.PartyImport.A2;
 using Altinn.Register.TestUtils.MassTransit;
@@ -146,8 +147,8 @@ public partial class PartyImportFlowTests
             person.DateOfBirth.ShouldBe(birthDate);
 
             var partyId = person.PartyId.ShouldHaveValue();
-            person.User.ShouldHaveValue().UserId.ShouldBe(partyId);
-            person.User.Value!.Username.ShouldBeNull();
+            person.UserIds.CurrentValue.ShouldBe(partyId);
+            person.Usernames.CurrentValue.ShouldBeNull();
         });
     }
 }

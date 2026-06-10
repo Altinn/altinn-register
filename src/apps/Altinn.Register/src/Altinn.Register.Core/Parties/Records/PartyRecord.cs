@@ -74,9 +74,14 @@ public record PartyRecord
     public required FieldValue<DateTimeOffset> ModifiedAt { get; init; }
 
     /// <summary>
-    /// Gets user information for the party.
+    /// Gets the historical aggregate of user ids for the party.
     /// </summary>
-    public required FieldValue<PartyUserRecord> User { get; init; }
+    public required FieldValue<PartyHistoricalAggregate<uint>> UserIds { get; init; }
+
+    /// <summary>
+    /// Gets the historical aggregate of usernames for the party.
+    /// </summary>
+    public required FieldValue<PartyHistoricalAggregate<string>> Usernames { get; init; }
 
     /// <summary>
     /// Gets whether the party is deleted.
@@ -92,4 +97,31 @@ public record PartyRecord
     /// Gets the version ID of the party.
     /// </summary>
     public required FieldValue<ulong> VersionId { get; init; }
+
+    /// <summary>
+    /// Backwards-compatible for json deserialization only.
+    /// </summary>
+    /// <remarks>
+    /// Added on 2026-06-08. Needs to be in prod for about 2 months before it can be removed.
+    /// </remarks>
+    [Obsolete("Use UserIds and Usernames instead.")]
+    public FieldValue<PartyUserRecord> User
+    {
+        get => FieldValue.Unset;
+        init
+        {
+            UserIds = value.SelectFieldValue(static u => u.UserIds).Select(static ids => PartyHistoricalAggregate<uint>.Create(ids, hasActiveValue: !ids.IsEmpty));
+            Usernames = value.SelectFieldValue(static u => u.Username).Select(static name => PartyHistoricalAggregate<string>.Create([name], hasActiveValue: true));
+
+            if (UserIds.IsNull)
+            {
+                UserIds = PartyHistoricalAggregate<uint>.Empty;
+            }
+
+            if (Usernames.IsNull)
+            {
+                Usernames = PartyHistoricalAggregate<string>.Empty;
+            }
+        }
+    }
 }

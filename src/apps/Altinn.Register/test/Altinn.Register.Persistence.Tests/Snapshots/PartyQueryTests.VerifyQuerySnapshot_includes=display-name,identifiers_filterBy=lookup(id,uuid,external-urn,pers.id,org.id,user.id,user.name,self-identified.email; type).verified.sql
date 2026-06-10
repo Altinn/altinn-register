@@ -33,11 +33,10 @@ uuids_by_user_id AS (
     WHERE "user".user_id = ANY (@userIds)
 ),
 uuids_by_username AS (
-    SELECT "user"."uuid", party.version_id
-    FROM register."user" AS "user"
+    SELECT "username"."uuid", party.version_id
+    FROM register."username" AS "username"
     INNER JOIN register.party AS party USING (uuid)
-    WHERE "user".username = ANY (@usernames)
-      AND "user".is_active
+    WHERE "username".username = ANY (@usernames)
 ),
 uuids_by_self_identified_email AS (
     SELECT si_u."uuid", party.version_id

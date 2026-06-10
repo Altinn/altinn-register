@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using Altinn.Authorization.ModelUtils;
 using Altinn.Common.AccessToken.Constants;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties.Records;
@@ -140,12 +139,12 @@ public static class HttpRequestUtils
     {
         protected override IEnumerable<Claim> GetClaims()
         {
-            if (person.User.SelectFieldValue(static u => u.UserId) is { HasValue: true, Value: var userId })
+            if (person.UserIds.CurrentValue is { HasValue: true, Value: var userId })
             {
                 yield return new Claim(AltinnCoreClaimTypes.UserId, userId.ToString(), ClaimValueTypes.Integer32, ISSUER);
             }
 
-            if (person.User.SelectFieldValue(static u => u.Username) is { HasValue: true, Value: var username })
+            if (person.Usernames.CurrentValue is { HasValue: true, Value: var username })
             {
                 yield return new Claim(AltinnCoreClaimTypes.UserName, username, ClaimValueTypes.String, ISSUER);
             }
