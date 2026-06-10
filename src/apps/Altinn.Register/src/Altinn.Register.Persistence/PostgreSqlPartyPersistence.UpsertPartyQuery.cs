@@ -152,6 +152,13 @@ internal partial class PostgreSqlPartyPersistence
                             new("constraint", e.ConstraintName ?? "<unknown>"),
                         ]);
                     }
+                    catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.NotNullViolation && e.ColumnName == "display_name")
+                    {
+                        // This happens if the upsert was intended to be a partial update (having no display_name set)
+                        // but the party did not exist beforehand, so the upsert attempted to create a new party without
+                        // a display name, which is not allowed.
+                        problem = Problems.PartyNotFound;
+                    }
                     catch (PostgresException e) when (e.SqlState == "ZZ001")
                     {
                         // ZZ001 is a custom SQLSTATE code used to indicate that the party update is invalid
@@ -494,14 +501,9 @@ internal partial class PostgreSqlPartyPersistence
             {
                 base.ValidateFields(party, flags);
                 Debug.Assert(!party.Source.IsNull, "person cannot have source = null");
-                Debug.Assert(party.FirstName.HasValue, "person must have FirstName set");
-                Debug.Assert(party.MiddleName.IsSet, "person must have MiddleName set");
-                Debug.Assert(party.LastName.HasValue, "person must have LastName set");
-                Debug.Assert(party.ShortName.HasValue, "person must have ShortName set");
-                Debug.Assert(party.Address.IsSet, "person must have Address set");
-                Debug.Assert(party.MailingAddress.IsSet, "person must have MailingAddress set");
-                Debug.Assert(party.DateOfBirth.IsSet, "person must have DateOfBirth set");
-                Debug.Assert(party.DateOfDeath.IsSet, "person must have DateOfDeath set");
+                Debug.Assert(!party.FirstName.IsNull, "person must have FirstName != null");
+                Debug.Assert(!party.LastName.IsNull, "person must have LastName != null");
+                Debug.Assert(!party.ShortName.IsNull, "person must have ShortName != null");
                 Debug.Assert(!party.OwnerUuid.HasValue, "person cannot have OwnerUuid set");
             }
 

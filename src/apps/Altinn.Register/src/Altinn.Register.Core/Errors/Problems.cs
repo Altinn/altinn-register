@@ -55,4 +55,12 @@ public static class Problems
     /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
     public static ProblemDescriptor AccessManagementSelfIdentifiedUserPushFailed { get; }
         = _factory.Create(10, HttpStatusCode.InternalServerError, "Failed to push self-identified user to access management");
+
+    /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
+    public static ProblemDescriptor UsernameInUse { get; }
+        = _factory.Create(11, HttpStatusCode.Conflict, "The specified username is already in use by another party");
+
+    /// <summary>Gets a <see cref="ProblemDescriptor"/>.</summary>
+    public static ProblemDescriptor FeatureDisabled { get; }
+        = _factory.Create(12, (HttpStatusCode)418 /* I'm a teapot */, "The requested operation is disabled");
 }
