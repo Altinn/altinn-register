@@ -157,7 +157,21 @@ BEGIN
     RETURNING * INTO o_party;
   END IF;
 
-  -- Upsert the user
+  p_uuid := o_party.uuid;
+  p_id := o_party.id;
+  p_ext_urn := o_party.ext_urn;
+  p_party_type := o_party.party_type;
+  p_display_name := o_party.display_name;
+  p_person_identifier := o_party.person_identifier;
+  p_organization_identifier := o_party.organization_identifier;
+  p_created := o_party.created;
+  p_updated := o_party.updated;
+  p_is_deleted := o_party.is_deleted;
+  p_deleted_at := o_party.deleted_at;
+  p_owner := o_party.owner;
+  o_version_id := o_party.version_id;
+
+  -- Upsert user-info
   IF p_user_ids IS NOT NULL THEN
     SELECT *
     FROM register.upsert_user(p_uuid, p_is_deleted, p_user_ids)
@@ -176,19 +190,5 @@ BEGIN
       AND u.is_active = TRUE
     INTO p_username;
   END IF;
-
-  p_uuid := o_party.uuid;
-  p_id := o_party.id;
-  p_ext_urn := o_party.ext_urn;
-  p_party_type := o_party.party_type;
-  p_display_name := o_party.display_name;
-  p_person_identifier := o_party.person_identifier;
-  p_organization_identifier := o_party.organization_identifier;
-  p_created := o_party.created;
-  p_updated := o_party.updated;
-  p_is_deleted := o_party.is_deleted;
-  p_deleted_at := o_party.deleted_at;
-  p_owner := o_party.owner;
-  o_version_id := o_party.version_id;
 END;
 $$ LANGUAGE plpgsql;

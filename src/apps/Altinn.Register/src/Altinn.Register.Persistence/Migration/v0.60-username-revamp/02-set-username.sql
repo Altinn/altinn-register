@@ -12,6 +12,7 @@ BEGIN
   FROM register.username u
   WHERE u.uuid = p_uuid
     AND u.is_active = TRUE
+  ORDER BY u.username -- Ensure locks are acquired in a consistent order to prevent deadlocks
   FOR UPDATE;
 
   -- If the username is already set to the requested value, return it

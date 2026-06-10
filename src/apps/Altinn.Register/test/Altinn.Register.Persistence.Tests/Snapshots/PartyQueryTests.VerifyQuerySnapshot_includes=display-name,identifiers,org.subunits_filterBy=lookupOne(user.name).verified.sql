@@ -6,7 +6,6 @@ WITH top_level_uuids AS (
     FROM register."username" AS "username"
     INNER JOIN register.party AS party USING (uuid)
     WHERE "username".username = @username
-      AND "username".is_active
 ),
 sub_units AS (
     SELECT
