@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Altinn.Authorization.ModelUtils;
@@ -28,14 +29,35 @@ public sealed record PartyHistoricalAggregate<T>
     /// <returns>A new instance of <see cref="PartyHistoricalAggregate{T}"/>.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="values"/> is empty and <paramref name="hasActiveValue"/> is <see langword="true"/>.</exception>
     public static PartyHistoricalAggregate<T> Create(IEnumerable<T> values, bool hasActiveValue)
+        => Create(values.ToImmutableValueArray(), hasActiveValue);
+
+    /// <summary>
+    /// Creates a new instance of the <see cref="PartyHistoricalAggregate{T}"/> class.
+    /// </summary>
+    /// <param name="values">The values of the aggregate.</param>
+    /// <param name="hasActiveValue">Indicates whether there is an active value.</param>
+    /// <returns>A new instance of <see cref="PartyHistoricalAggregate{T}"/>.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="values"/> is empty and <paramref name="hasActiveValue"/> is <see langword="true"/>.</exception>
+    [OverloadResolutionPriority(2)]
+    public static PartyHistoricalAggregate<T> Create(ReadOnlySpan<T> values, bool hasActiveValue)
+        => Create(values.ToImmutableValueArray(), hasActiveValue);
+
+    /// <summary>
+    /// Creates a new instance of the <see cref="PartyHistoricalAggregate{T}"/> class.
+    /// </summary>
+    /// <param name="values">The values of the aggregate.</param>
+    /// <param name="hasActiveValue">Indicates whether there is an active value.</param>
+    /// <returns>A new instance of <see cref="PartyHistoricalAggregate{T}"/>.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="values"/> is empty and <paramref name="hasActiveValue"/> is <see langword="true"/>.</exception>
+    [OverloadResolutionPriority(1)]
+    public static PartyHistoricalAggregate<T> Create(ImmutableValueArray<T> values, bool hasActiveValue)
     {
-        var immutableValues = values.ToImmutableValueArray();
-        if (hasActiveValue && immutableValues.Length == 0)
+        if (hasActiveValue && values.Length == 0)
         {
             ThrowHelper.ThrowArgumentException(nameof(values), "Values cannot be empty when there is an active value.");
         }
 
-        return new(hasActiveValue, immutableValues);
+        return new(hasActiveValue, values);
     }
 
     /// <summary>
@@ -65,6 +87,16 @@ public sealed record PartyHistoricalAggregate<T>
 
     private PartyHistoricalAggregate(bool hasActiveValue, ImmutableValueArray<T> values)
     {
+        if (values.IsDefault)
+        {
+            ThrowHelper.ThrowArgumentException(nameof(values), "Values cannot be default.");
+        }
+
+        if (hasActiveValue && values.Length == 0)
+        {
+            ThrowHelper.ThrowArgumentException(nameof(values), "Values cannot be empty when there is an active value.");
+        }
+
         _hasActiveValue = hasActiveValue;
         _values = values;
     }

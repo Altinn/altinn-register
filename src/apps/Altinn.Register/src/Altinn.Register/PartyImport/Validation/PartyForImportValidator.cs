@@ -199,7 +199,7 @@ public readonly struct PartyForImportValidator
     {
         validated = input;
 
-        // As of now, user-ids can't are generally valid
+        // As of now, user-ids are generally valid
         return !context.HasErrors;
     }
 
