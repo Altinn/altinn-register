@@ -7,11 +7,11 @@ using Altinn.Register.TestUtils.TestData;
 namespace Altinn.Register.IntegrationTests.Ccr.Xml;
 
 /// <summary>
-/// Regression test for <c>&lt;samendringer data="T" type="R"&gt;</c> and
-/// <c>&lt;samendringer data="T" type="K"&gt;</c> elements — supplementary free-text role and
-/// connection entries that previously caused <c>CcrXmlProcessor</c> to throw
-/// <c>"unknown samendring type ..."</c>. They should now be consumed silently while structured
-/// <c>data="D"</c> siblings continue to apply normally.
+/// Regression test for <c>&lt;samendringer data="T" type="R"&gt;</c> — supplementary free-text
+/// role entries that previously caused <c>CcrXmlProcessor</c> to throw
+/// <c>"unknown samendring type ..."</c>. The element should now be consumed silently while the
+/// structured <c>data="D"</c> sibling continues to apply normally. Free-text connection
+/// (<c>type="K"</c>) coverage lives in a separate scenario.
 /// </summary>
 public class Scenario26A
     : CcrXmlUpdateTestBase
