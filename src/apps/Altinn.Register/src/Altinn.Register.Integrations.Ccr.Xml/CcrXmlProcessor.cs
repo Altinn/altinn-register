@@ -874,13 +874,18 @@ internal sealed class CcrXmlProcessor
                 }
 
             case ("S", _) when endringstype == "N" || endringstype == "U":
+            case ("R", "T") when endringstype == "N" || endringstype == "U":
+            case ("K", "T") when endringstype == "N" || endringstype == "U":
                 {
-                    // We currently do not have a mapping for samendringsfritekst, whether new, update or delete.
+                    // Free-text samendring/role/connection entries are supplementary descriptive
+                    // text only - the structured ("R", "D") / ("K", "D") siblings (when present)
+                    // carry the actual role-assignment data. We currently have no mapping for any
+                    // samendringsfritekst variant, whether new, update or delete.
                     break;
                 }
 
             default:
-                ThrowHelper.ThrowArgumentException($"XmlReader: unknown samendring type '{type}' (date = '{data}') in <samendringer> element.");
+                ThrowHelper.ThrowArgumentException($"XmlReader: unknown samendring '{felttype}' type '{type}' (data = '{data}') in <samendringer> element.");
                 return; // unreachable
         }
 
