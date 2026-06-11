@@ -180,7 +180,8 @@ public partial class CcrController
 
         {
             using var writer = new BufferTextWriter(seq, Encoding.UTF8);
-            writer.Write(result.Payload);
+            writer.Write("""<?xml version="1.0" encoding="utf-8"?>""");
+            writer.Write(SkipOptionalXmlDeclaration(result.Payload.AsSpan()));
             writer.Flush();
         }
 
@@ -206,6 +207,22 @@ public partial class CcrController
         {
             activity?.SetStatus(ActivityStatusCode.Error, "error processing CCR update");
             throw;
+        }
+
+        static ReadOnlySpan<char> SkipOptionalXmlDeclaration(ReadOnlySpan<char> xml)
+        {
+            if (xml.StartsWith('\uFEFF'))
+            {
+                xml = xml[1..];
+            }
+
+            if (!xml.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase))
+            {
+                return xml;
+            }
+
+            var end = xml.IndexOf("?>", StringComparison.Ordinal);
+            return end >= 0 ? xml[(end + 2)..] : xml;
         }
     }
 
