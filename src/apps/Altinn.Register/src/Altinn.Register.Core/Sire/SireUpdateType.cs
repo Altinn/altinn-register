@@ -23,4 +23,12 @@ public enum SireUpdateType
     /// </summary>
     [JsonStringEnumMemberName("ENDRET")]
     Changed,
+
+    /// <summary>
+    /// An organization has been deleted in SIRE. The full lookup record still resolves
+    /// (with <c>slettetdato</c> populated), so the standard re-fetch + upsert flow
+    /// propagates the deletion via <see cref="SireOrganization.DeletedAt"/>.
+    /// </summary>
+    [JsonStringEnumMemberName("SLETTET")]
+    Deleted,
 }

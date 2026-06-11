@@ -73,7 +73,9 @@ public class SireEventClientTests
     /// <summary>
     /// A populated feed page yields one <see cref="SireUpdatePage"/> whose entries
     /// mirror the wire <c>hendelser</c>. A second call with the advanced cursor returns
-    /// empty and terminates the loop.
+    /// empty and terminates the loop. All three wire <c>hendelsetype</c> values that
+    /// Skatt emits (NY, ENDRET, SLETTET) are exercised here so the enum mapping is
+    /// covered end-to-end.
     /// </summary>
     [Fact]
     public async Task GetUpdates_SinglePage_YieldsOnePageThenTerminates()
@@ -92,6 +94,12 @@ public class SireEventClientTests
                   "identifikator": "090090011",
                   "registreringstidspunkt": "2024-09-17T10:01:31.696Z",
                   "hendelsetype": "ENDRET"
+                },
+                {
+                  "sekvensnummer": 3,
+                  "identifikator": "090090054",
+                  "registreringstidspunkt": "2024-09-20T08:00:00.000Z",
+                  "hendelsetype": "SLETTET"
                 }
               ]
             }
@@ -103,7 +111,7 @@ public class SireEventClientTests
             .WithQuery("antall", "100")
             .Respond(() => new StringContent(firstPageBody, Encoding.UTF8, "application/json"));
         handler.Expect(HttpMethod.Get, FeedPath)
-            .WithQuery("fraSekvensnummer", "3")
+            .WithQuery("fraSekvensnummer", "4")
             .WithQuery("antall", "100")
             .Respond(() => new StringContent("""{"hendelser":[]}""", Encoding.UTF8, "application/json"));
 
@@ -116,13 +124,16 @@ public class SireEventClientTests
         }
 
         var page = Assert.Single(pages);
-        Assert.Equal(2, page.Count);
+        Assert.Equal(3, page.Count);
         Assert.Equal(1u, page[0].SequenceNumber);
         Assert.Equal("090090003", page[0].OrganizationIdentifier.ToString());
         Assert.Equal(SireUpdateType.New, page[0].UpdateType.Value);
         Assert.Equal(2u, page[1].SequenceNumber);
         Assert.Equal("090090011", page[1].OrganizationIdentifier.ToString());
         Assert.Equal(SireUpdateType.Changed, page[1].UpdateType.Value);
+        Assert.Equal(3u, page[2].SequenceNumber);
+        Assert.Equal("090090054", page[2].OrganizationIdentifier.ToString());
+        Assert.Equal(SireUpdateType.Deleted, page[2].UpdateType.Value);
     }
 
     /// <summary>
