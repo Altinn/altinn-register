@@ -61,6 +61,32 @@ public class OrganizationDocumentValidatorTests
             BusinessRelationships = [],
         };
 
+    private static OrganizationDocument DocWithBothAddresses()
+        => new()
+        {
+            Identifier = TestOrgNo,
+            CompanyName = "Test AS",
+            OrganizationForm = "indreSelskap",
+            PostalAddress = new PostalAddress
+            {
+                ValidTo = null,
+                NorwegianAddress = new NorwegianAddress
+                {
+                    AddressLines = ["Testgata 1"],
+                    PostalCode = "0001",
+                    City = "OSLO",
+                },
+                InternationalAddress = new InternationalAddress
+                {
+                    AddressLines = ["1600 Pennsylvania Avenue"],
+                    PostalCode = "20500",
+                    City = "Washington",
+                    CountryCode = "US",
+                },
+            },
+            BusinessRelationships = [],
+        };
+
     private static OrganizationDocument DocWithBusinessRelationship(DateTimeOffset? validTo)
         => new()
         {
@@ -160,6 +186,38 @@ public class OrganizationDocumentValidatorTests
 
         Assert.True(hasError);
         Assert.Null(validated);
+    }
+
+    /// <summary>
+    /// When a SIRE postadresse carries both <c>norskAdresse</c> and <c>utenlandskAdresse</c>
+    /// the Norwegian address wins — the international one is dropped. Skatt's data
+    /// occasionally retains a stale international address alongside a newer Norwegian
+    /// one (e.g. after a foreign company re-registers domestically); the Norwegian
+    /// address is treated as the authoritative current location. This test pins down
+    /// that precedence so a future refactor of <c>NormalizeAddress</c> can't silently
+    /// flip it.
+    /// </summary>
+    [Fact]
+    public void PostalAddress_BothNorwegianAndInternational_NorwegianWins()
+    {
+        var (validated, hasError) = Run(DocWithBothAddresses());
+
+        Assert.False(hasError);
+        Assert.NotNull(validated);
+        Assert.NotNull(validated.MailingAddress);
+
+        // Norwegian branch produces: "Testgata 1 0001 OSLO" with PostalCode="0001"
+        // and City="OSLO". Asserting on the structured PostalCode/City fields keeps
+        // the test resilient to harmless changes in the line-formatting logic.
+        Assert.Equal("0001", validated.MailingAddress.PostalCode);
+        Assert.Equal("OSLO", validated.MailingAddress.City);
+
+        // The international address must NOT have leaked into the result — no
+        // "Washington", "Pennsylvania", or US postal code anywhere.
+        Assert.NotNull(validated.MailingAddress.Address);
+        Assert.DoesNotContain("Washington", validated.MailingAddress.Address);
+        Assert.DoesNotContain("Pennsylvania", validated.MailingAddress.Address);
+        Assert.DoesNotContain("20500", validated.MailingAddress.Address);
     }
 
     /// <summary>

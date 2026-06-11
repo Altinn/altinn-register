@@ -172,6 +172,10 @@ internal sealed class OrganizationDocumentValidator
             return null;
         }
 
+        // Precedence rule: when both norskAdresse and utenlandskAdresse are present on
+        // the same postadresse, the Norwegian one wins and the international one is
+        // dropped.
+        // Test: PostalAddress_BothNorwegianAndInternational_NorwegianWins.
         if (postalAddress.NorwegianAddress is { } norwegian)
         {
             return NormalizeNorwegianAddress(norwegian);
