@@ -1,5 +1,8 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ModelUtils.AspNet;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Register.Contracts;
@@ -27,7 +30,7 @@ namespace Altinn.Register.Controllers.V2;
 [ApiVersion(2.0)]
 [Authorize(Policy = "InternalOrPlatformAccess")]
 [Route("register/api/v{version:apiVersion}/internal/parties")]
-public class PartyController
+public partial class PartyController
     : ControllerBase
 {
     private const PartyFieldIncludes REQUIRED_FIELDS =
@@ -57,15 +60,23 @@ public class PartyController
     public const string ROUTE_GET_EXTERNALROLE_ASSIGNMENTS_STREAM = "external-roles/assignments/stream";
 
     private readonly IUnitOfWorkManager _uowManager;
+    private readonly TimeProvider _timeProvider;
     private readonly Settings _settings;
+    private readonly IConfiguration _configuration;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PartyController"/> class.
     /// </summary>
-    public PartyController(IUnitOfWorkManager uowManager, IOptions<Settings> settings)
+    public PartyController(
+        IUnitOfWorkManager uowManager,
+        IOptions<Settings> settings,
+        TimeProvider timeProvider,
+        IConfiguration configuration)
     {
         _uowManager = uowManager;
         _settings = settings.Value;
+        _configuration = configuration;
+        _timeProvider = timeProvider;
     }
 
     /// <summary>
@@ -569,6 +580,121 @@ public class PartyController
         activity?.AddTag("query.resultCount", result.Count);
         return StatusCode(statusCode, ListObject.Create(result));
     }
+
+    /// <summary>
+    /// Sets the username for a party.
+    /// </summary>
+    /// <param name="request">The request body.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    [HttpPost("set-username")]
+    public async Task<ActionResult> SetUsername(
+        [FromBody] SetUsernameRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!PersistenceFeatureFlag.CanCreatePartyId(_configuration))
+        {
+            return Problems.FeatureDisabled.ToActionResult(
+                detail: "Setting of usernames is still managed by A2");
+        }
+
+        PersonIdentifier? personId = null;
+        ValidationProblemBuilder errors = default;
+
+        if (request.Username is not null)
+        {
+            if (string.IsNullOrWhiteSpace(request.Username))
+            {
+                errors.Add(ValidationErrors.InvalidValue, path: "/username", detail: "Username cannot be empty or whitespace.");
+            }
+            else if (!GetValidUsernameRegex().IsMatch(request.Username))
+            {
+                errors.Add(ValidationErrors.InvalidValue, path: "/username", detail: "Username must be 6-64 characters long, start with a letter, and can only contain letters, digits, dots, underscores, hyphens or @ signs.");
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Party))
+        {
+            errors.Add(StdValidationErrors.Required, path: "/party");
+        }
+
+        if (!PartyExternalRefUrn.TryParse(request.Party, out var partyRef))
+        {
+            errors.Add(ValidationErrors.PartyUrn_Invalid, path: "/party");
+        }
+        else if (!partyRef.IsPersonId(out personId))
+        {
+            errors.Add(ValidationErrors.InvalidValue, path: "/party", detail: "Only person identifiers are allowed at this time.");
+        }
+
+        if (errors.TryToActionResult(out var actionResult))
+        {
+            return actionResult;
+        }
+
+        Debug.Assert(personId is not null);
+        Debug.Assert(request.Username is null || !string.IsNullOrWhiteSpace(request.Username));
+
+        await using var uow = await _uowManager.CreateAsync(activityName: "set username", cancellationToken: cancellationToken);
+        var persistence = uow.GetPartyPersistence();
+
+        var now = _timeProvider.GetUtcNow();
+        var result = await persistence.UpsertParty(
+            new PersonRecord
+            {
+                PersonIdentifier = personId,
+                OrganizationIdentifier = FieldValue.Null,
+                CreatedAt = now, // will not be used, but required
+                ModifiedAt = now,
+                Usernames =
+                    request.Username switch
+                    {
+                        null => PartyHistoricalAggregate<string>.Empty,
+                        { } username => PartyHistoricalAggregate<string>.CreateCurrent(username),
+                    },
+
+                PartyUuid = FieldValue.Unset,
+                PartyId = FieldValue.Unset,
+                OwnerUuid = FieldValue.Unset,
+                ExternalUrn = FieldValue.Unset,
+                DisplayName = FieldValue.Unset,
+                UserIds = FieldValue.Unset,
+                IsDeleted = FieldValue.Unset,
+                DeletedAt = FieldValue.Unset,
+                VersionId = FieldValue.Unset,
+
+                Source = FieldValue.Unset,
+                FirstName = FieldValue.Unset,
+                MiddleName = FieldValue.Unset,
+                LastName = FieldValue.Unset,
+                ShortName = FieldValue.Unset,
+                Address = FieldValue.Unset,
+                MailingAddress = FieldValue.Unset,
+                DateOfBirth = FieldValue.Unset,
+                DateOfDeath = FieldValue.Unset,
+            },
+            cancellationToken);
+
+        if (result.IsProblem)
+        {
+            if (result.Problem.ErrorCode == Problems.PartyNotFound.ErrorCode)
+            {
+                return Problems.ReferencedPartyNotFound.ToActionResult();
+            }
+
+            if (result.Problem.ErrorCode == Problems.PartyConflict.ErrorCode)
+            {
+                return Problems.UsernameInUse.ToActionResult();
+            }
+
+            return result.Problem.ToActionResult();
+        }
+
+        await uow.CommitAsync(cancellationToken);
+        return Ok();
+    }
+
+    [GeneratedRegex(@"^[a-z][a-z0-9._@\-]{5,63}$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 100)]
+    private static partial Regex GetValidUsernameRegex();
 
     private static ExternalRoleReference _hovedenhetRole = new(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet");
     private static ExternalRoleReference _ikkeNaeringsdrivendeHovedenhetRole = new(ExternalRoleSource.CentralCoordinatingRegister, "ikke-naeringsdrivende-hovedenhet");

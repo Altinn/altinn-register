@@ -27,7 +27,7 @@ namespace Altinn.Register.Controllers.V2;
 [ApiVersion(2.0)]
 [Authorize(Policy = "PlatformAccess")]
 [Route("register/api/v{version:apiVersion}/internal/parties/self-identified")]
-public sealed class UsersController
+public sealed class SelfIdentifiedUsersController
     : ControllerBase
 {
     /// <summary>

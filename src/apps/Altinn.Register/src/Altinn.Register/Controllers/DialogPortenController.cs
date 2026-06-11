@@ -43,4 +43,15 @@ public class DialogPortenController(V2.PartyController inner)
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         CancellationToken cancellationToken = default)
         => inner.Query(parties, fields, cancellationToken);
+
+    /// <summary>
+    /// Sets the username for a party.
+    /// </summary>
+    /// <param name="request">The request body.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    [HttpPost("set-username")]
+    public Task<ActionResult> SetUsername(
+        [FromBody] SetUsernameRequest request,
+        CancellationToken cancellationToken = default)
+        => inner.SetUsername(request, cancellationToken);
 }
