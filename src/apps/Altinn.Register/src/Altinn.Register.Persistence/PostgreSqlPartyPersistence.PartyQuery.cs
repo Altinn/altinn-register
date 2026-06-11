@@ -909,19 +909,6 @@ internal partial class PostgreSqlPartyPersistence
                                 """);
                             break;
                     }
-
-                    // note: user_id will be NULL if there is no active user
-                    AddCommonTableExpression(
-                        ref firstExpression,
-                        "aggregated_user_ids",
-                        /*strpsql*/"""
-                        SELECT
-                            uuid,
-                            max(user_id) FILTER (WHERE is_active) as user_id,
-                            array_agg(user_id ORDER BY is_active DESC, user_id DESC) as user_ids
-                        FROM filtered_user_ids
-                        GROUP BY uuid
-                        """);
                 }
 
                 if (includes.HasFlag(PartyFieldIncludes.Username))
@@ -964,19 +951,6 @@ internal partial class PostgreSqlPartyPersistence
                                 """);
                             break;
                     }
-
-                    // note: username will be NULL if there is no active username
-                    AddCommonTableExpression(
-                        ref firstExpression,
-                        "aggregated_usernames",
-                        /*strpsql*/"""
-                        SELECT
-                            uuid,
-                            max(username) FILTER (WHERE is_active) as username,
-                            array_agg(username ORDER BY is_active DESC, username) as usernames
-                        FROM filtered_usernames
-                        GROUP BY uuid
-                        """);
                 }
 
                 if (includes.HasFlag(PartyFieldIncludes.SubUnits))
@@ -1027,6 +1001,40 @@ internal partial class PostgreSqlPartyPersistence
                             version_id AS sort_first,
                             NULL::uuid AS sort_second
                         FROM top_level_uuids
+                        """);
+                }
+
+                if (includes.HasFlag(PartyFieldIncludes.UserId))
+                {
+                    // note: user_id will be NULL if there is no active user
+                    AddCommonTableExpression(
+                        ref firstExpression,
+                        "aggregated_user_ids",
+                        /*strpsql*/"""
+                        SELECT
+                            uuid,
+                            max(user_id) FILTER (WHERE is_active) as user_id,
+                            array_agg(user_id ORDER BY is_active DESC, user_id DESC) as user_ids
+                        FROM filtered_user_ids
+                        INNER JOIN uuids USING (uuid)
+                        GROUP BY uuid
+                        """);
+                }
+
+                if (includes.HasFlag(PartyFieldIncludes.Username))
+                {
+                    // note: username will be NULL if there is no active username
+                    AddCommonTableExpression(
+                        ref firstExpression,
+                        "aggregated_usernames",
+                        /*strpsql*/"""
+                        SELECT
+                            uuid,
+                            max(username) FILTER (WHERE is_active) as username,
+                            array_agg(username ORDER BY is_active DESC, username) as usernames
+                        FROM filtered_usernames
+                        INNER JOIN uuids USING (uuid)
+                        GROUP BY uuid
                         """);
                 }
 

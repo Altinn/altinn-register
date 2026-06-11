@@ -15,27 +15,11 @@ filtered_user_ids AS (
     FROM register."user" AS "user"
     WHERE "user".is_active
 ),
-aggregated_user_ids AS (
-    SELECT
-        uuid,
-        max(user_id) FILTER (WHERE is_active) as user_id,
-        array_agg(user_id ORDER BY is_active DESC, user_id DESC) as user_ids
-    FROM filtered_user_ids
-    GROUP BY uuid
-),
 filtered_usernames AS (
     SELECT "username".*
     FROM register."username" AS "username"
     WHERE "username".is_active
        OR "username".username = ANY (@usernames)
-),
-aggregated_usernames AS (
-    SELECT
-        uuid,
-        max(username) FILTER (WHERE is_active) as username,
-        array_agg(username ORDER BY is_active DESC, username) as usernames
-    FROM filtered_usernames
-    GROUP BY uuid
 ),
 uuids AS (
     SELECT
@@ -44,6 +28,24 @@ uuids AS (
         version_id AS sort_first,
         NULL::uuid AS sort_second
     FROM top_level_uuids
+),
+aggregated_user_ids AS (
+    SELECT
+        uuid,
+        max(user_id) FILTER (WHERE is_active) as user_id,
+        array_agg(user_id ORDER BY is_active DESC, user_id DESC) as user_ids
+    FROM filtered_user_ids
+    INNER JOIN uuids USING (uuid)
+    GROUP BY uuid
+),
+aggregated_usernames AS (
+    SELECT
+        uuid,
+        max(username) FILTER (WHERE is_active) as username,
+        array_agg(username ORDER BY is_active DESC, username) as usernames
+    FROM filtered_usernames
+    INNER JOIN uuids USING (uuid)
+    GROUP BY uuid
 )
 SELECT
     party.uuid p_uuid,
