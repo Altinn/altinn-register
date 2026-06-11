@@ -750,6 +750,152 @@ XML have field X?" can confirm it's intentionally dropped:
 > writer method first; only then can XML-driven scenarios test the
 > downstream DB behavior.
 
+## XML → DB processing (`CcrXmlProcessor`)
+
+Everything above describes the **flat-file → XML** stage
+(`CcrFlatFileProcessor`). There is now a second, separate stage:
+[`CcrXmlProcessor`](../../../src/Altinn.Register.Integrations.Ccr.Xml/CcrXmlProcessor.cs)
+consumes the `batchAjourholdXML` documents described here and produces
+`CcrOrganizationUpdate` records for the Register DB import. It is a
+**deliberately narrow subset** of the legacy Altinn-2 `RegisterERSI.SubmitERData`
+flow — it intentionally does *not* re-implement status, NACE/industry
+codes, foreign legal form, capital, endorsements, party affiliations,
+or sensitive-role deletion. Anyone reasoning about "what reaches the DB"
+must apply *both* this filter and the flat-file-stage
+[Felter parser-en ikke beholder](#felter-parser-en-ikke-beholder-i-xml-en)
+filter.
+
+> **Source format note.** This stage is the *consumer* of the XML, not
+> the producer. The flat-file stage can legitimately emit constructs
+> (e.g. `endringstype="K"`, `data="T" type="R"` records, `<status>`
+> blocks) that this stage still does not accept — see "Known code
+> issues" below.
+
+> **Post-merge update.** Since this section was first written, a merge
+> from `main` brought in #873 (the `update.svc` API), #875/#879/#881
+> (scenario integration tests), and #878 (rolecode bug fix). The
+> consequences below have been re-verified against the current
+> [`CcrXmlProcessor.cs`](../../../src/Altinn.Register.Integrations.Ccr.Xml/CcrXmlProcessor.cs)
+> and the new
+> [`CcrXmlUpdateTestBase`](../../Altinn.Register.IntegrationTests/Ccr/Xml/CcrXmlUpdateTestBase.cs)
+> harness. Issues **I1**, **I2**, and **I4** are now **fixed**; **I3**
+> and **I5** remain.
+
+### Scenario corpus is now executed (not doc-only)
+
+There is now one integration-test class per scenario in
+`Altinn.Register.IntegrationTests/Ccr/Xml/` (`Scenario01A` … `Scenario25A`,
+plus a `ScenarioSamuXxx` class for every `samendringUtgaar` family).
+Each derives from `CcrXmlUpdateTestBase` and runs two tests against a
+real DB:
+
+- **`Run`** — feeds the scenario XML through `CcrService.UpdateFromCcr`
+  and asserts the resulting party/role state in `Verify`.
+- **`CallApi`** — wraps the same XML in a SOAP `SubmitERDataBasic`
+  envelope, POSTs it to `enhets-registeret/api/v1/update.svc`
+  (parsed by [`CcrUpdateEnvelopeReader`](../../../src/Altinn.Register.Integrations.Ccr.Xml/CcrUpdateEnvelopeReader.cs)),
+  and asserts the same state.
+
+The separate **unit** test
+[`CcrXmlProcessorTests`](../../Altinn.Register.Tests/UnitTests/CcrXmlProcessorTests.cs)
+still runs against the **flat-file snapshot** outputs (not these
+scenario XML files); its `test2` case remains `Skip = "Bad data?"`.
+
+### What `CcrXmlProcessor` consumes vs. ignores vs. rejects
+
+| Construct | Behavior in `CcrXmlProcessor` |
+| --- | --- |
+| `<infotype>` `EPOS`, `IADR`, `TFON`, `MTLF`, `TFAX` (`N`/`U`) | **Mapped** to the corresponding org contact field |
+| `<infotype>` `FADR`, `PADR` (`N`/`U`) | **Mapped** to business / mailing address |
+| `<infotype>` `NAVN` (`N`/`U`) | **Mapped** to display name (navn1..navn5 concatenated) |
+| `<infotype>` `naeringskode`, `paategning`, `ULOV`, `UREG`, `FORM`, `R-MV`, `R-FR`, `R-FV`, `R-SR`, `MÅL`, `ISEK`, `STID`, `VEDT`, `FMVA`, `KAPI`, `EDAT`/`BDAT`/`NDAT`, `registrertHjemlandetsRegister`, `underlagtHjemlandetsLovgivning`, and the BR-internal codes | **Silently skipped** — explicit `(felttype, _)` allow-list (any `endringstype`, *including* `K`), so they don't fault, but they have no DB effect. **`FORM` is now in this list (I1 fixed).** |
+| `<infotype>` *mapped* felttype (`EPOS`/`FADR`/`PADR`/`IADR`/`TFON`/`MTLF`/`TFAX`/`NAVN`) with `endringstype` ∉ {`N`,`U`} (i.e. `K`) | **Rejected** — only `("EPOS","N")`, `("EPOS","U")`, … cases exist; `("EPOS","K")` falls to `default:` → `InvalidDataException` (see issue I3) |
+| `<infotype>` any felttype not in the allow-list | **Rejected** — `default:` → `InvalidDataException("unknown felttype …")` |
+| `<samendringer data="D" type="R">` (person role) | **Mapped** to role add (`endringstype="N"`) / remove (`endringstype="U"` **or** `rolleFratraadt="F"`), incl. `KONT` orgform fan-out |
+| `<samendringer data="D" type="K">` (org connection) | **Mapped** to connection add / remove (same N / U-or-`knytningFratraadt="F"` rule, incl. `KONT` fan-out). Felttype is now run through `ConvertToAltinnRoleCode` before `CreateConnection` (rolecode fix #878). **I4 fixed.** |
+| `<samendringer data="T" type="S">` (free-text samendring / signaturrett), `endringstype` `N` or `U` | **Skipped** — explicit `("S", _)` case, no-op (no DB mapping for samendringsfritekst). **I2 fixed for the corpus.** |
+| `<samendringer data="T" type="R">` / `data="T" type="K">`, or `type="S"` with other `endringstype` | **Rejected** — `default:` → `ArgumentException`. No fixture exercises these (residual I2) |
+| `<samendringUtgaar felttype="SAMU">` | **Handled** — `ReadSamu` expands `<samendringstype>` into family bulk-removals: `STYR`→LEDE/NEST/MEDL/VARA/OBS, `DELT`→DTSO/DTPR, `SIGN`→SIGN/SIFE/SIHV, `PROK`→PROK/POHV/POFE, `KONT`→SREVA/KOMK/KNUF/KEMN/KONT, `REVI`→REVI/READ, `REGN`→RFAD/REGN, `HOST`→HLED/HMDL/HNST/HVAR, `ESGR`→ESGR/ETDL, plus a single-role `VerifyRoleCode` fallback (`BEDR`, `AAFY`, `BEST`, `BOBE`, `DAGL`, `KOMP`, `REPR`, `FFØR`, `INNH`, `ADOS`, `AVKL`, `EIKM`, `FGRP`, `HFOR`, `HLSE`, `KDAT`, `KDEB`, `KENK`, `KGRL`, `KIRK`, `KMOR`, `KTRF`, `OPMV`, `ORGL`, `STFT`, `UTBG`, `VIFE`) |
+| `<status …>` (`KONK`, `OPPL`, `SKRR`, …) | **Silently dropped** — `ReadStatus` is commented out, replaced by `reader.Skip()`. No DB effect, including the `KONK` `kjennelsesdato` (see issue I5) |
+| `hovedsakstype="S"` (deletion) | Sets `IsDeleted` / `DeletedAt`. `hovedsakstype="L"` (revived) is not special-cased |
+| `<trai antallEnheter>` | Enforced — a mismatch vs. the number of `<enhet>` read throws |
+
+### Per-scenario consequence
+
+Every scenario below now has a passing `ScenarioNNA` integration test
+(both the `Run` and `CallApi` variants). Applying the table above:
+
+| Scenario | `CcrXmlProcessor` outcome |
+| --- | --- |
+| S1, S2, S6, S9 | OK — `REGN` connection add |
+| S3 | OK — person-role board reshuffle (N/U) |
+| S7, S8 | OK — `FADR` |
+| S10 | OK — `NAVN` + `BEDR` connection (N/U); `EDAT` skipped |
+| S11 | **OK (was throws)** — `FADR` + 4 board roles; `FORM`/`ISEK`/`MÅL`/`STID` skipped (I1 fix); `data="T" type="S"` signaturrett no-op (I2 fix) |
+| S13 | OK — `FADR` + `PADR-U` |
+| S14 | OK — `EPOS`/`IADR`/`MTLF-U` |
+| S18 | OK — `EPOS-U`/`TFON-U` |
+| S22, S23 | **OK (was throws)** — `FORM` now skipped (I1 fix) |
+| S24 | OK — `EPOS`/`MTLF`/`NAVN`/`TFON-U` + `DAGL`/`INNH` roles; `paategning-U` skipped |
+| S4, S5, S12, S19, S20, S25 | **No-op** — only skipped infotypes; org update with no field/role change |
+| S15 | **No-op (was throws)** — only `data="T" type="S"` signaturrett, now a graceful no-op (I2 fix) |
+| S16, S21 | **No-op** — only `<status>` (dropped) |
+| S17 | **Partial** — SAMU bulk-removal + `DAGL-U` role expiry work; `OPPL` status dropped |
+| `ScenarioSamuXxx` | OK — exercises each `samendringUtgaar` family expansion listed above |
+
+### Known code issues (`CcrXmlProcessor`)
+
+These are observations only — fixes are owned by the team working on
+the processor. Status reflects the post-merge code.
+
+- **I1 — `felttype="FORM"` skip (✅ FIXED).** `FORM` is now part of the
+  `(felttype, _)` skip allow-list alongside `paategning`,
+  `naeringskode`, `ULOV`, `UREG`, `registrertHjemlandetsRegister`,
+  `underlagtHjemlandetsLovgivning` and the BR-internal codes. It no
+  longer throws. S11/S22/S23 pass.
+
+- **I2 — Free-text samendringer `data="T"` (✅ FIXED for the corpus).**
+  An explicit `("S", _) when endringstype is "N" or "U"` case now
+  no-ops the signaturrett / samendringsfritekst record instead of
+  throwing. S11/S15 pass. **Residual:** `data="T" type="R"` and
+  `data="T" type="K"`, and a `type="S"` record with any other
+  `endringstype`, still hit `default:` → `ArgumentException`. No
+  fixture exercises these and they are unrelated to Kopi, so the
+  practical gap is closed; full A2-parity (`ImportPartyRoleTexts`
+  Head/Tail placement) is still not implemented — the text is
+  *discarded*, not stored.
+
+- **I3 — `endringstype="K"` (Kopi) not treated as insert (⚠️ STILL
+  OPEN).** The flat-file stage emits `K` and treats it identically to
+  `N` (`IsNewOrUpdateChange` returns true for both — see
+  [`<infotype>`](#infotype--direct-enhet-info)); legacy A2
+  `IsInsertNode` treated `CHANGETYPE_COPY` as an insert. The skip
+  allow-list uses `(felttype, _)` so `K` on a *skipped* felttype is
+  harmless, but a `K` record on a **mapped** felttype
+  (`EPOS`/`FADR`/`PADR`/`IADR`/`TFON`/`MTLF`/`TFAX`/`NAVN`) or on a
+  mapped `<samendringer>` still falls to `default:` and throws. This
+  breaks full-snapshot / `head/@type="K"` deliveries. No fixture
+  exercises `K`, so it is latent in the corpus but real for production
+  batches.
+
+- **I4 — `<knytningFratraadt>` field name (✅ FIXED).** `ReadSamendring`
+  now reads the dictionary key `"knytningFratraadt"` (matching the
+  emitted element and the BR field). A connection marked
+  `knytningFratraadt="F"` is now recognized as a removal (the
+  `(endringstype: _, knytningFratraadt: "F")` case). The equivalent
+  `rolleFratraadt="F"` step-down on person roles is likewise handled.
+  The `ArgumentException` *message* on the connection `default:` still
+  reads `'knytningsFratraadt'` (cosmetic only). Note #878 additionally
+  fixed connections to route `felttype` through `ConvertToAltinnRoleCode`
+  before `CreateConnection`.
+
+- **I5 — `<status>` processing disabled (⚠️ STILL OPEN, by design).**
+  `ReadStatus` exists but is commented out in favour of `reader.Skip()`,
+  so KONK/OPPL/SKRR (and the `KONK` `kjennelsesdato`) produce no DB
+  effect. Consistent with the "narrow subset" design intent but called
+  out explicitly because the `<status>` section above describes it as
+  semantically meaningful at the format level.
+
 ## PII content reference
 
 Documents derived from real production data may contain:
