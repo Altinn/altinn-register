@@ -13,7 +13,7 @@ namespace Altinn.Register.IntegrationTests.Ccr.Xml;
 /// so the property reported on the first child rather than on <c>&lt;enhet&gt;</c> itself —
 /// the inner loop was skipped, <c>&lt;/enhet&gt;</c> was never consumed, and the trailer check
 /// downstream failed with <c>"The number of &lt;enhet&gt; elements read (1) does not match
-/// the 'antallEnheter' attribute in the trailer ()"</c>.
+/// the 'antallEnheter' attribute in the trailer ()"</c>
 /// </summary>
 public class Scenario28A
     : CcrXmlUpdateTestBase
