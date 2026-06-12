@@ -32,30 +32,39 @@ internal sealed class CcrXmlProcessor
     {
         using var reader = XmlReader.Create(xmlData.AsStream());
         int enhet = 0;
-        CcrBatchTrailer? trailer = null;
 
         // 1. Read to root element <batchAjourholdXML>
-        reader.MoveToContent();
         reader.ReadStartElement("batchAjourholdXML");
 
         // 2. Read header <head ... />
-        reader.MoveToContent();
-        _ = ReadHeader(reader);
+        {
+            using var headReader = reader.ReadSubtree("head");
+            _ = ReadHeader(headReader);
+        }
 
         // 3. Read <enhet> nodes
+        reader.Read();
         reader.MoveToContent();
         while (reader.NodeType == XmlNodeType.Element && reader.LocalName == "enhet")
         {
             enhet++;
             cancellationToken.ThrowIfCancellationRequested();
-            yield return ReadEnhet(reader, roleDefs, locations);
+
+            {
+                using var enhetReader = reader.ReadSubtree("enhet");
+                yield return ReadEnhet(enhetReader, roleDefs, locations);
+            }
+
+            reader.Read();
             reader.MoveToContent();
         }
 
         // 4. Read trailer <trai ... />
-        if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "trai")
+        CcrBatchTrailer trailer;
+
         {
-            trailer = ReadTrailer(reader);
+            using var trailerReader = reader.ReadSubtree("trai");
+            trailer = ReadTrailer(trailerReader);
         }
 
         if (enhet == 0)
@@ -63,7 +72,7 @@ internal sealed class CcrXmlProcessor
             ThrowHelper.ThrowInvalidDataException("XmlReader: No <enhet> elements found in the document.");
         }
 
-        if (enhet != trailer?.AntallEnheter)
+        if (enhet != trailer.AntallEnheter)
         {
             ThrowHelper.ThrowInvalidDataException($"XmlReader: The number of <enhet> elements read ({enhet}) does not match the 'antallEnheter' attribute in the trailer ({trailer?.AntallEnheter}).");
         }
@@ -71,9 +80,16 @@ internal sealed class CcrXmlProcessor
 
     private static CcrBatchHeader ReadHeader(XmlReader reader)
     {
+        reader.MoveToContent(); // Move to the <head> element
+
         if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "head")
         {
             ThrowHelper.ThrowInvalidDataException("XmlReader: Expected <head> element at the beginning of the document.");
+        }
+
+        if (!reader.IsEmptyElement)
+        {
+            ThrowHelper.ThrowInvalidDataException("XmlReader: Expected self-closing <head /> element.");
         }
 
         var header = new CcrBatchHeader
@@ -91,6 +107,18 @@ internal sealed class CcrXmlProcessor
 
     private static CcrBatchTrailer ReadTrailer(XmlReader reader)
     {
+        reader.MoveToContent(); // Move to the <trai> element
+
+        if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "trai")
+        {
+            ThrowHelper.ThrowInvalidDataException("XmlReader: Expected <trai> element at the beginning of the document.");
+        }
+
+        if (!reader.IsEmptyElement)
+        {
+            ThrowHelper.ThrowInvalidDataException("XmlReader: Expected self-closing <trai /> element.");
+        }
+
         var trailer = new CcrBatchTrailer
         {
             AntallEnheter = int.TryParse(reader.GetAttribute("antallEnheter"), out var count) ? count : 0,
@@ -123,6 +151,12 @@ internal sealed class CcrXmlProcessor
         ILocationLookup locationLookup)
     {
         OrgBuilder org;
+
+        reader.MoveToContent();
+        if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "enhet")
+        {
+            ThrowHelper.ThrowInvalidDataException("XmlReader: Expected <enhet> element at the beginning of the document.");
+        }
 
         var organisasjonsnummer = reader.GetAttribute("organisasjonsnummer");
         if (string.IsNullOrEmpty(organisasjonsnummer))
@@ -196,8 +230,10 @@ internal sealed class CcrXmlProcessor
             };
         }
 
+        reader.MoveToContent();
+        var isEmpty = reader.IsEmptyElement;
         reader.ReadStartElement("enhet");
-        if (!reader.IsEmptyElement)
+        if (!isEmpty)
         {
             reader.MoveToContent();
 
@@ -205,13 +241,15 @@ internal sealed class CcrXmlProcessor
             {
                 if (reader.LocalName == "infotype")
                 {
-                    ReadInfoType(reader, org, locationLookup);
+                    using var subReader = reader.ReadSubtree("infotype");
+                    ReadInfoType(subReader, org, locationLookup);
                 }
                 else if (reader.LocalName == "samendringer")
                 {
+                    using var subReader = reader.ReadSubtree("samendringer");
                     org.RoleUpdates ??= new();
                     ReadSamendring(
-                        reader,
+                        subReader,
                         orgform: organisasjonsform,
                         additions: org.RoleUpdates.RoleAssignments,
                         removals: org.RoleUpdates.RemoveRoleAssignments,
@@ -222,12 +260,15 @@ internal sealed class CcrXmlProcessor
                 {
                     //// ReadStatus(reader, org);
                     reader.Skip();
+                    reader.MoveToContent();
+                    continue;
                 }
                 else if (reader.LocalName == "samendringUtgaar")
                 {
                     org.RoleUpdates ??= new();
+                    using var subReader = reader.ReadSubtree("samendringUtgaar");
                     ReadSamu(
-                        reader,
+                        subReader,
                         org.RoleUpdates.BulkRemoveRoleAssignments,
                         roleDef);
                 }
@@ -236,6 +277,7 @@ internal sealed class CcrXmlProcessor
                     ThrowHelper.ThrowInvalidDataException("XmlReader: unknown element <" + reader.LocalName + "> in <enhet> element.");
                 }
 
+                reader.Read(); // move the outer reader past the subreader
                 reader.MoveToContent();
             }
 
@@ -247,6 +289,13 @@ internal sealed class CcrXmlProcessor
 
     private static void ReadInfoType(XmlReader reader, OrgBuilder org, ILocationLookup locationLookup)
     {
+        reader.MoveToContent(); // Move to the <infotype> element
+
+        if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "infotype")
+        {
+            ThrowHelper.ThrowInvalidDataException("XmlReader: Expected <infotype> element at the beginning of the document.");
+        }
+
         var felttype = reader.GetAttribute("felttype") ?? string.Empty;
         var endringstype = reader.GetAttribute("endringstype") ?? string.Empty;
 
@@ -552,6 +601,13 @@ internal sealed class CcrXmlProcessor
         ImmutableArray<CcrRoleAssignment>.Builder bulkRemovals,
         IExternalRoleDefinitionLookup roleDef)
     {
+        reader.MoveToContent(); // Move to the <samendringUtgaar> element
+
+        if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "samendringUtgaar")
+        {
+            ThrowHelper.ThrowInvalidDataException("XmlReader: Expected <samendringUtgaar> element at the beginning of the document.");
+        }
+
         reader.ReadStartElement("samendringUtgaar");
         var samuFields = ReadChildFields(reader);
         samuFields.TryGetValue("samendringstype", out var samuType);
@@ -698,6 +754,13 @@ internal sealed class CcrXmlProcessor
         IExternalRoleDefinitionLookup roleDef,
         ILocationLookup locationLookup)
     {
+        reader.MoveToContent(); // Move to the <samendringer> element
+
+        if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "samendringer")
+        {
+            ThrowHelper.ThrowInvalidDataException("XmlReader: Expected <samendringer> element at the beginning of the document.");
+        }
+
         var felttype = reader.GetAttribute("felttype") ?? string.Empty;
         var endringstype = reader.GetAttribute("endringstype") ?? string.Empty;
         var type = reader.GetAttribute("type") ?? string.Empty;

@@ -608,6 +608,14 @@ internal sealed partial class CcrFlatFileProcessor
                         break;
                     }
 
+                /////////////////////////////////////////////////////////////////////////////
+                // ignorerte noder
+                case "MANR": // Matrikkeladresse
+                    {
+                        // not in use, ignored
+                        break;
+                    }
+
                 default:
                     {
                         Log.UnknownOrganizationRecordType(_logger, recordType.Trim().ToString());
