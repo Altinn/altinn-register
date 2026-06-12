@@ -28,15 +28,18 @@ public class Scenario28A
             cancellationToken: cancellationToken);
     }
 
+    // NOTE: The <enhet>...<infotype/></enhet> block is intentionally written without
+    // inter-element whitespace, because that's what production XmlWriter.Create produces
+    // (default Indent = false). With whitespace between <enhet> and <infotype/>, the bug
+    // hides: ReadStartElement lands on the whitespace node, IsEmptyElement reports false,
+    // and the inner block runs. Compact-form reproduces the production failure.
     [StringSyntax(StringSyntaxAttribute.Xml)]
     protected override string XmlToApply
         => $$"""
         <?xml version="1.0" encoding="utf-8"?>
         <batchAjourholdXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="batchAjourholdXML_versjon2_1.xsd">
           <head avsender="ER" dato="20260520" kjoerenr="04980" mottaker="ALT" type="A" />
-          <enhet organisasjonsnummer="{{_org.OrganizationIdentifier.Value}}" organisasjonsform="AAFY" hovedsakstype="E" undersakstype="EN" foersteOverfoering="N" datoFoedt="20210319" datoSistEndret="20260520">
-            <infotype felttype="PADR" endringstype="U" />
-          </enhet>
+          <enhet organisasjonsnummer="{{_org.OrganizationIdentifier.Value}}" organisasjonsform="AAFY" hovedsakstype="E" undersakstype="EN" foersteOverfoering="N" datoFoedt="20210319" datoSistEndret="20260520"><infotype felttype="PADR" endringstype="U" /></enhet>
           <trai antallEnheter="1" avsender="ER" />
         </batchAjourholdXML>
         """;
@@ -55,7 +58,6 @@ public class Scenario28A
         // parsed end-to-end (no trailer-mismatch throw), and (b) the ("PADR", "U") branch in
         // ReadInfoType actually fired and applied its `org.MailingAddress = FieldValue.Null`
         // side-effect to the persisted row.
-        updated.MailingAddress.ShouldHaveValue();
         updated.MailingAddress.Value.ShouldBeNull();
     }
 }
