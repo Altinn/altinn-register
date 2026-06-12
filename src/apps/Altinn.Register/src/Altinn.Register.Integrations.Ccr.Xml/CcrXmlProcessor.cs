@@ -37,13 +37,9 @@ internal sealed class CcrXmlProcessor
         reader.ReadStartElement("batchAjourholdXML");
 
         // 2. Read header <head ... />
-        {
-            using var headReader = reader.ReadSubtree("head");
-            _ = ReadHeader(headReader);
-        }
+        _ = reader.ParseElement<CcrBatchHeader>();
 
         // 3. Read <enhet> nodes
-        reader.Read();
         reader.MoveToContent();
         while (reader.NodeType == XmlNodeType.Element && reader.LocalName == "enhet")
         {
@@ -60,12 +56,7 @@ internal sealed class CcrXmlProcessor
         }
 
         // 4. Read trailer <trai ... />
-        CcrBatchTrailer trailer;
-
-        {
-            using var trailerReader = reader.ReadSubtree("trai");
-            trailer = ReadTrailer(trailerReader);
-        }
+        var trailer = reader.ParseElement<CcrBatchTrailer>();
 
         if (enhet == 0)
         {
@@ -76,57 +67,6 @@ internal sealed class CcrXmlProcessor
         {
             ThrowHelper.ThrowInvalidDataException($"XmlReader: The number of <enhet> elements read ({enhet}) does not match the 'antallEnheter' attribute in the trailer ({trailer?.AntallEnheter}).");
         }
-    }
-
-    private static CcrBatchHeader ReadHeader(XmlReader reader)
-    {
-        reader.MoveToContent(); // Move to the <head> element
-
-        if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "head")
-        {
-            ThrowHelper.ThrowInvalidDataException("XmlReader: Expected <head> element at the beginning of the document.");
-        }
-
-        if (!reader.IsEmptyElement)
-        {
-            ThrowHelper.ThrowInvalidDataException("XmlReader: Expected self-closing <head /> element.");
-        }
-
-        var header = new CcrBatchHeader
-        {
-            Avsender = reader.GetAttribute("avsender") ?? string.Empty,
-            Dato = reader.GetAttribute("dato") ?? string.Empty,
-            Kjoerenr = reader.GetAttribute("kjoerenr") ?? string.Empty,
-            Mottaker = reader.GetAttribute("mottaker") ?? string.Empty,
-            Type = reader.GetAttribute("type") ?? string.Empty,
-        };
-
-        reader.Read(); // consume self-closing <head />
-        return header;
-    }
-
-    private static CcrBatchTrailer ReadTrailer(XmlReader reader)
-    {
-        reader.MoveToContent(); // Move to the <trai> element
-
-        if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "trai")
-        {
-            ThrowHelper.ThrowInvalidDataException("XmlReader: Expected <trai> element at the beginning of the document.");
-        }
-
-        if (!reader.IsEmptyElement)
-        {
-            ThrowHelper.ThrowInvalidDataException("XmlReader: Expected self-closing <trai /> element.");
-        }
-
-        var trailer = new CcrBatchTrailer
-        {
-            AntallEnheter = int.TryParse(reader.GetAttribute("antallEnheter"), out var count) ? count : 0,
-            Avsender = reader.GetAttribute("avsender") ?? string.Empty,
-        };
-
-        reader.Read(); // consume self-closing <trai />
-        return trailer;
     }
 
     [return: NotNullIfNotNull(nameof(value))]
