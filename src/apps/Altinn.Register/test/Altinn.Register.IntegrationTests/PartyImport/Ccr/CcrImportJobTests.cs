@@ -77,10 +77,10 @@ public class CcrImportJobTests
         foreach (var orgNumber in orgIdentifiers)
         {
             var conversation = await TestHarness.Conversation<ImportCcrXmlCommand>(cmd => cmd.OrganizationIdentifier == OrganizationIdentifier.Parse(orgNumber), CancellationToken);
-            conversation.ShouldNotBeNull();
+            conversation.ShouldNotBeNull(customMessage: $"there should be a conversation for organization {orgNumber}");
 
             var completedEvent = await conversation.Events.OfType<CcrXmlImportCompletedEvent>().FirstOrDefaultAsync(CancellationToken);
-            var command = await conversation.Commands.Completed.OfType<ImportCcrXmlCommand>().FirstOrDefaultAsync(CancellationToken);
+            var command = await conversation.Commands.OfType<ImportCcrXmlCommand>().FirstOrDefaultAsync(CancellationToken);
             command.ShouldNotBeNull();
             command.BatchId.ShouldBe(1U);
 
