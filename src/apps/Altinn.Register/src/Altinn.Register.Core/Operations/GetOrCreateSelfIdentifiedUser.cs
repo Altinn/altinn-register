@@ -172,7 +172,7 @@ internal sealed partial class GetOrCreateSelfIdentifiedUserFromBridgeHandler(
         {
             externalIdentity = PartyExternalRefUrn.IDPortenEmail.Create(UrnEncoded.Create(emailRequest.Email)).ToString();
             userName = $"email:{emailRequest.Email}";
-            email = emailRequest.Email;
+            email = emailRequest.Email.ToLowerInvariant();
         }
         else if (request.TryGetValue(out GetOrCreateSelfIdentifiedEduUserRequest eduRequest))
         {
@@ -373,7 +373,7 @@ internal sealed class GetOrCreateSelfIdentifiedUserFromDBHandler(IUnitOfWorkMana
             cancellationToken: cancellationToken);
 
         var parties = uow.GetPartyPersistence();
-        var result = await parties.GetOrCreateSelfIdentifiedEmailUser(request.Email, cancellationToken);
+        var result = await parties.GetOrCreateSelfIdentifiedEmailUser(request.Email.ToLowerInvariant(), cancellationToken);
         if (result.IsProblem)
         {
             return result.Problem;

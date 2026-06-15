@@ -241,6 +241,7 @@ internal partial class PostgreSqlPartyPersistence
                     @email)
                 """;
 
+            Debug.Assert(string.Equals(email.ToLowerInvariant(), email, StringComparison.Ordinal));
             await using var cmd = connection.CreateCommand(QUERY);
 
             cmd.Parameters.Add<PersistenceFeatureFlag[]>("flags").TypedValue = flags;

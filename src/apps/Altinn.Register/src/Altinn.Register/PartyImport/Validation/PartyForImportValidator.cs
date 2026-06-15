@@ -136,6 +136,12 @@ public readonly struct PartyForImportValidator
                 case SelfIdentifiedUserType.IdPortenEmail:
                     CheckRequired(ref context, input.Email.HasValue, "/email");
                     CheckNull(ref context, input.ExtRef, "/extRef");
+
+                    if (input.Email.HasValue)
+                    {
+                        Check(ref context, string.Equals(input.Email.Value.ToLowerInvariant(), input.Email.Value), ValidationErrors.InvalidValue, "/email", detail: "Email must be lowercase");
+                    }
+
                     break;
 
                 case SelfIdentifiedUserType.Educational:
@@ -281,11 +287,11 @@ public readonly struct PartyForImportValidator
         }
     }
 
-    private static void Check(ref ValidationContext context, bool condition, ValidationErrorDescriptor descriptor, string path)
+    private static void Check(ref ValidationContext context, bool condition, ValidationErrorDescriptor descriptor, string path, string? detail = null)
     {
         if (!condition)
         {
-            context.AddChildProblem(descriptor, path);
+            context.AddChildProblem(descriptor, path, detail);
         }
     }
 

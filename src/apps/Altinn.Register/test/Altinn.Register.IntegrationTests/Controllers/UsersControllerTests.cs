@@ -5,9 +5,12 @@ using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.A2.SblProfile;
 using Altinn.Register.Core.Errors;
+using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
+using Altinn.Register.Core.UnitOfWork;
 using Altinn.Register.Models;
 using Altinn.Register.TestUtils.TestData;
+using Altinn.Urn;
 
 namespace Altinn.Register.IntegrationTests.Controllers;
 
@@ -179,6 +182,44 @@ public class UsersControllerTests
         body.SelfIdentifiedUserType.Value.Value.ShouldBe(SelfIdentifiedUserType.IdPortenEmail);
         body.Email.Value.ShouldBe(Email);
         body.ExternalUrn.IsNull.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task GetOrCreate_IdPortenEmail_LookupMiss_WithUppercaseEmail_StoresLowercaseEmailAndExternalUrn()
+    {
+        const string UppercaseEmail = "UPPER@example.com";
+        const string LowercaseEmail = "upper@example.com";
+        var expectedExternalUrn = PartyExternalRefUrn.IDPortenEmail.Create(UrnEncoded.Create(LowercaseEmail));
+
+        ExpectAccessManagementSelfIdentifiedUserCreate();
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl)
+            .WithPlatformToken("unittest");
+        request.Content = JsonContent.Create(new SelfIdentifiedUserCreateRequest
+        {
+            SelfIdentifiedUserType = SelfIdentifiedUserType.IdPortenEmail,
+            ExternalIdentity = expectedExternalUrn.ToString(),
+            UserName = $"epost:{LowercaseEmail}",
+            Email = UppercaseEmail,
+        });
+
+        var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
+        var body = await response.ShouldHaveJsonContent<SelfIdentifiedUser>();
+
+        body.ShouldNotBeNull();
+        body.Email.Value.ShouldBe(LowercaseEmail);
+        body.ExternalUrn.Value.ShouldBe(expectedExternalUrn);
+
+        var stored = await Check(async (uow, ct) =>
+            await uow.GetPartyPersistence()
+                .GetPartyById(body.Uuid, PartyFieldIncludes.Party | PartyFieldIncludes.SelfIdentifiedUser, ct)
+                .FirstAsync(ct));
+
+        var storedSelfIdentifiedUser = stored.ShouldBeOfType<SelfIdentifiedUserRecord>();
+        storedSelfIdentifiedUser.Email.Value.ShouldBe(LowercaseEmail);
+        storedSelfIdentifiedUser.ExternalUrn.Value.ShouldBe(expectedExternalUrn);
     }
 
     [Fact]
