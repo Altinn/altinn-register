@@ -54,8 +54,11 @@ jobs:
       - name: Restore dotnet workloads
         run: dotnet workload restore
 
+      - name: dotnet restore
+        run: dotnet restore Altinn.Register.sln
+
       - name: dotnet build
-        run: dotnet build Altinn.Register.sln -v m
+        run: dotnet build Altinn.Register.sln -v m --no-restore -warnaserror
 
       - name: dotnet test
         timeout-minutes: 20

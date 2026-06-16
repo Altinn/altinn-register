@@ -58,11 +58,15 @@ jobs:
       - name: Restore dotnet workloads
         run: dotnet workload restore
 
+      - name: dotnet restore
+        run: dotnet restore Altinn.Register.sln
+
+      - name: Build
+        run: dotnet build -v m --no-restore -warnaserror
+
       - name: Build & Test
         timeout-minutes: 20
-        run: |
-          dotnet build -v m
-          dotnet test --no-build -v m
+        run: dotnet test --no-build -v m
 
   # analyze:
   #   if: ((github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false) || github.event_name == 'push') && github.repository_owner == 'Altinn' && github.actor != 'dependabot[bot]'
