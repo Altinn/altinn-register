@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using Altinn.Authorization.ModelUtils;
 using Altinn.Authorization.ProblemDetails;
 using Altinn.Authorization.TestUtils.Http;
 using Altinn.Register.Contracts;
@@ -131,7 +133,14 @@ public class UsersControllerTests
             .Expect(HttpMethod.Post, "/profile/api/users/create/")
             .Respond(() => JsonContent.Create(created, options: JsonOptions));
 
-        ExpectAccessManagementSelfIdentifiedUserCreate();
+        ExpectAccessManagementSelfIdentifiedUserCreate(
+            partyUuid: created.UserUuid.Value,
+            partyId: (uint)created.PartyId,
+            userId: (uint)created.UserId,
+            entityVariantType: "SI_EMAIL",
+            displayName: "new@example.com",
+            emailIdentifier: "new@example.com",
+            externalUrn: PartyExternalRefUrn.IDPortenEmail.Create(UrnEncoded.Create("new@example.com")));
 
         using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl)
             .WithPlatformToken("unittest");
@@ -159,7 +168,14 @@ public class UsersControllerTests
         const string UserName = "epost:new@example.com";
         const string Email = "new@example.com";
 
-        ExpectAccessManagementSelfIdentifiedUserCreate();
+        ExpectAccessManagementSelfIdentifiedUserCreate(
+            partyUuid: FieldValue.Unset,
+            partyId: FieldValue.Unset,
+            userId: FieldValue.Unset,
+            entityVariantType: "SI_EMAIL",
+            displayName: Email,
+            emailIdentifier: Email,
+            externalUrn: PartyExternalRefUrn.IDPortenEmail.Create(UrnEncoded.Create(Email)));
 
         using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl)
             .WithPlatformToken("unittest");
@@ -191,7 +207,14 @@ public class UsersControllerTests
         const string LowercaseEmail = "upper@example.com";
         var expectedExternalUrn = PartyExternalRefUrn.IDPortenEmail.Create(UrnEncoded.Create(LowercaseEmail));
 
-        ExpectAccessManagementSelfIdentifiedUserCreate();
+        ExpectAccessManagementSelfIdentifiedUserCreate(
+            partyUuid: FieldValue.Unset,
+            partyId: FieldValue.Unset,
+            userId: FieldValue.Unset,
+            entityVariantType: "SI_EMAIL",
+            displayName: LowercaseEmail,
+            emailIdentifier: LowercaseEmail,
+            externalUrn: expectedExternalUrn);
 
         using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl)
             .WithPlatformToken("unittest");
@@ -252,7 +275,14 @@ public class UsersControllerTests
             .Expect(HttpMethod.Post, "/profile/api/users/create/")
             .Respond(() => JsonContent.Create(created, options: JsonOptions));
 
-        ExpectAccessManagementSelfIdentifiedUserCreate();
+        ExpectAccessManagementSelfIdentifiedUserCreate(
+            partyUuid: created.UserUuid.Value,
+            partyId: (uint)created.PartyId,
+            userId: (uint)created.UserId,
+            entityVariantType: "SI_EDU",
+            displayName: UidpUserName,
+            emailIdentifier: null,
+            externalUrn: null);
 
         using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl)
             .WithPlatformToken("unittest");
@@ -282,7 +312,14 @@ public class UsersControllerTests
         const string ExternalIdentity = "uidp-anonym:66a633c43ef2f656978f957532ce6d0de6f5e13f1e0618b37b4b2a70573e5551";
         const string UidpUserName = "uidp_newhash99x7";
 
-        ExpectAccessManagementSelfIdentifiedUserCreate();
+        ExpectAccessManagementSelfIdentifiedUserCreate(
+            partyUuid: FieldValue.Unset,
+            partyId: FieldValue.Unset,
+            userId: FieldValue.Unset,
+            entityVariantType: "SI_EDU",
+            displayName: UidpUserName,
+            emailIdentifier: null,
+            externalUrn: null);
 
         using var request = new HttpRequestMessage(HttpMethod.Post, EndpointUrl)
             .WithPlatformToken("unittest");
@@ -512,14 +549,64 @@ public class UsersControllerTests
         Configuration["Altinn:register:Party:CreatePartyId"] = value;
     }
 
-    private void ExpectAccessManagementSelfIdentifiedUserCreate()
+    private void ExpectAccessManagementSelfIdentifiedUserCreate(
+        FieldValue<Guid> partyUuid,
+        FieldValue<uint> partyId,
+        FieldValue<uint> userId,
+        string entityVariantType,
+        string displayName,
+        string? emailIdentifier,
+        PartyExternalRefUrn? externalUrn)
     {
+        Guid? actualPartyUuid = null;
+
         FakeHttpHandlers.For<TempWorkarounds.AccessManagementClient>()
             .Expect(HttpMethod.Post, "/api/v1/internal/party")
-            .Respond(HttpStatusCode.OK);
+            .Respond(async (FakeHttpRequestMessage request, CancellationToken cancellationToken) =>
+            {
+                request.Content.ShouldNotBeNull();
+
+                using var json = await request.Content.ReadFromJsonAsync<JsonDocument>(cancellationToken);
+                var root = json!.RootElement;
+
+                actualPartyUuid = root.GetProperty("PartyUuid").GetGuid();
+                actualPartyUuid.Value.ShouldNotBe(Guid.Empty);
+                if (partyUuid.HasValue)
+                {
+                    actualPartyUuid.Value.ShouldBe(partyUuid.Value);
+                }
+
+                var actualPartyId = root.GetProperty("PartyId").GetUInt32();
+                actualPartyId.ShouldBeGreaterThan(0u);
+                if (partyId.HasValue)
+                {
+                    actualPartyId.ShouldBe(partyId.Value);
+                }
+
+                var actualUserId = root.GetProperty("UserId").GetUInt32();
+                actualUserId.ShouldBeGreaterThan(0u);
+                if (userId.HasValue)
+                {
+                    actualUserId.ShouldBe(userId.Value);
+                }
+
+                root.GetProperty("EntityType").GetString().ShouldBe("Selvidentifisert");
+                root.GetProperty("EntityVariantType").GetString().ShouldBe(entityVariantType);
+                root.GetProperty("DisplayName").GetString().ShouldBe(displayName);
+                root.GetProperty("EmailIdentifier").GetString().ShouldBe(emailIdentifier);
+                root.GetProperty("ExternalUrn").GetString().ShouldBe(externalUrn?.ToString());
+
+                return HttpStatusCode.OK;
+            });
 
         FakeHttpHandlers.For<TempWorkarounds.AccessManagementClient>()
             .Expect(HttpMethod.Post, "/api/v1/internal/connections/selfidentifiedusers")
-            .Respond(HttpStatusCode.OK);
+            .Respond((FakeHttpRequestMessage request) =>
+            {
+                var pathAndQuery = request.RequestUri?.PathAndQuery;
+                pathAndQuery.ShouldEndWith($"/api/v1/internal/connections/selfidentifiedusers?from={actualPartyUuid}&to={actualPartyUuid}");
+
+                return HttpStatusCode.OK;
+            });
     }
 }

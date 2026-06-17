@@ -99,13 +99,18 @@ public sealed class SelfIdentifiedUsersController
 
         if (result.Value.IsNew)
         {
+            var displayName = result.Value.Value.DisplayName;
+            Debug.Assert(displayName.HasValue);
+
             // ignore errors
             _ = await accessManagementClient.CreateSelfIdentifiedUser(
                 partyUuid: result.Value.Value.PartyUuid.Value,
                 partyId: result.Value.Value.PartyId.Value,
                 userId: result.Value.Value.UserIds.Value!.CurrentValue.Value,
                 type: result.Value.Value.SelfIdentifiedUserType.Value,
-                displayName: request.UserName,
+                displayName: displayName.Value,
+                emailIdentifier: result.Value.Value.Email.Value,
+                externalUrn: result.Value.Value.ExternalUrn.Value,
                 cancellationToken: cancellationToken);
         }
 
