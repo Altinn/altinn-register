@@ -87,19 +87,19 @@ public class SireEventClientTests
                   "sekvensnummer": 1,
                   "identifikator": "090090003",
                   "registreringstidspunkt": "2024-09-11T14:10:20.514Z",
-                  "hendelsetype": "NY"
+                  "hendelsetype": "Ny"
                 },
                 {
                   "sekvensnummer": 2,
                   "identifikator": "090090011",
                   "registreringstidspunkt": "2024-09-17T10:01:31.696Z",
-                  "hendelsetype": "ENDRET"
+                  "hendelsetype": "Endret"
                 },
                 {
                   "sekvensnummer": 3,
                   "identifikator": "090090054",
                   "registreringstidspunkt": "2024-09-20T08:00:00.000Z",
-                  "hendelsetype": "SLETTET"
+                  "hendelsetype": "Slettet"
                 }
               ]
             }
@@ -150,7 +150,7 @@ public class SireEventClientTests
                   "sekvensnummer": 5,
                   "identifikator": "090090003",
                   "registreringstidspunkt": "2024-09-11T14:10:20.514Z",
-                  "hendelsetype": "NY"
+                  "hendelsetype": "Ny"
                 }
               ]
             }
@@ -163,7 +163,7 @@ public class SireEventClientTests
                   "sekvensnummer": 7,
                   "identifikator": "090090011",
                   "registreringstidspunkt": "2024-09-17T10:01:31.696Z",
-                  "hendelsetype": "ENDRET"
+                  "hendelsetype": "Endret"
                 }
               ]
             }
@@ -234,7 +234,7 @@ public class SireEventClientTests
                   "sekvensnummer": 1,
                   "identifikator": null,
                   "registreringstidspunkt": "2024-09-11T14:10:20.514Z",
-                  "hendelsetype": "NY"
+                  "hendelsetype": "Ny"
                 }
               ]
             }

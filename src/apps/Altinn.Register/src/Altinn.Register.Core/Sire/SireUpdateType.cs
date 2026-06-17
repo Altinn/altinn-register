@@ -15,13 +15,13 @@ public enum SireUpdateType
     /// <summary>
     /// A new organization has been registered in SIRE.
     /// </summary>
-    [JsonStringEnumMemberName("NY")]
+    [JsonStringEnumMemberName("Ny")]
     New = 1,
 
     /// <summary>
     /// An existing organization has been changed in SIRE.
     /// </summary>
-    [JsonStringEnumMemberName("ENDRET")]
+    [JsonStringEnumMemberName("Endret")]
     Changed,
 
     /// <summary>
@@ -29,6 +29,6 @@ public enum SireUpdateType
     /// (with <c>slettetdato</c> populated), so the standard re-fetch + upsert flow
     /// propagates the deletion via <see cref="SireOrganization.DeletedAt"/>.
     /// </summary>
-    [JsonStringEnumMemberName("SLETTET")]
+    [JsonStringEnumMemberName("Slettet")]
     Deleted,
 }
