@@ -29,6 +29,8 @@ public sealed class AccessManagementClient
     /// <param name="userId">The user id.</param>
     /// <param name="type">The self-identified user type.</param>
     /// <param name="displayName">The display name of the user.</param>
+    /// <param name="emailIdentifier">The email identifier of the user, if applicable.</param>
+    /// <param name="externalUrn">The external URN of the user, if applicable.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The result of the operation.</returns>
     public async Task<Result> CreateSelfIdentifiedUser(
@@ -37,6 +39,8 @@ public sealed class AccessManagementClient
         uint userId,
         SelfIdentifiedUserType type,
         string displayName,
+        string? emailIdentifier,
+        PartyExternalRefUrn? externalUrn,
         CancellationToken cancellationToken)
     {
         using var createResponse = await _client.PostAsJsonAsync(
@@ -52,7 +56,9 @@ public sealed class AccessManagementClient
                     SelfIdentifiedUserType.Educational => "SI_EDU",
                     _ => ThrowHelper.ThrowNotSupportedException<string>($"Unsupported self-identified user type: {type}"),
                 },
-                DisplayName: displayName),
+                DisplayName: displayName,
+                EmailIdentifier: emailIdentifier,
+                ExternalUrn: externalUrn),
             cancellationToken: cancellationToken);
 
         if (!createResponse.IsSuccessStatusCode)
@@ -84,5 +90,7 @@ public sealed class AccessManagementClient
         [property: JsonPropertyName("UserId")] uint UserId,
         [property: JsonPropertyName("EntityType")] string EntityType,
         [property: JsonPropertyName("EntityVariantType")] string EntityVariantType,
-        [property: JsonPropertyName("DisplayName")] string DisplayName);
+        [property: JsonPropertyName("DisplayName")] string DisplayName,
+        [property: JsonPropertyName("EmailIdentifier")] string? EmailIdentifier,
+        [property: JsonPropertyName("ExternalUrn")] PartyExternalRefUrn? ExternalUrn);
 }
