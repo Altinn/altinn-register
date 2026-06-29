@@ -27,7 +27,7 @@ internal readonly struct SireRoleMapper
         validated = input switch
         {
             // SL-code shown in trailing comment for traceability against the kodeliste / SQL migration.
-            "erRevisoradresseFor" => "revisoradressat", // READ
+            "ErRevisoradresseFor" => "revisoradressat", // READ
             "administrativEnhetOffentligSektor" => "administrativ-enhet-offentlig-sektor", // ADOS
             "bestyrendeReder" => "bestyrende-reder", // BEST
             "bostyrer" => "bostyrer", // BOBE
