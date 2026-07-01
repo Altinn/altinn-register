@@ -4,6 +4,8 @@ using System.Text;
 using System.Xml;
 using Altinn.Register.Core.Ccr;
 using Altinn.Register.Core.UnitOfWork;
+using Altinn.Register.PartyImport.Ccr;
+using Altinn.Register.TestUtils.MassTransit;
 
 namespace Altinn.Register.IntegrationTests.Ccr.Xml;
 
@@ -70,6 +72,14 @@ public abstract class CcrXmlUpdateTestBase
 
         using var response = await HttpClient.SendAsync(request, CancellationToken);
         response.EnsureSuccessStatusCode();
+
+        response.Headers.TryGetValues("X-Altinn-Register-Ccr-CommandId", out var values).ShouldBeTrue();
+        var value = values.ShouldHaveSingleItem();
+        Guid.TryParse(value, out var commandId).ShouldBeTrue();
+
+        var conversation = await TestHarness.Conversation<ImportCcrXmlCommand>(cmd => cmd.CommandId == commandId, CancellationToken);
+        var completedEvent = await conversation.Events.OfType<CcrXmlImportCompletedEvent>().FirstOrDefaultAsync(CancellationToken);
+        completedEvent.ShouldNotBeNull();
 
         await Check(async (uow, ct) =>
         {
