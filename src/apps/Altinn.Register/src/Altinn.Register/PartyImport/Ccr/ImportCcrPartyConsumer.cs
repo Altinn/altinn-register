@@ -38,12 +38,19 @@ public sealed partial class ImportCcrXmlConsumer
     {
         var message = context.Message;
 
-        Log.ConsumingCcrUpdate(_logger, message.OrganizationIdentifier);
+        if (message.OrganizationIdentifier is { } orgId)
+        {
+            Log.ConsumingCcrUpdate(_logger, orgId);
+        }
+        else
+        {
+            Log.ConsumingCcrUpdateWithoutOrganizationIdentifier(_logger);
+        }
 
         var result = await _ccrService.UpdateFromCcr(
             commandId: message.CommandId,
             input: new ReadOnlySequence<byte>(message.Document),
-            federate: true,
+            federate: message.Federate ?? true,
             cancellationToken: context.CancellationToken);
 
         await context.PublishBatch(
@@ -103,5 +110,8 @@ public sealed partial class ImportCcrXmlConsumer
     {
         [LoggerMessage(0, LogLevel.Information, "Consuming CCR update for organization {OrganizationIdentifier}.")]
         public static partial void ConsumingCcrUpdate(ILogger logger, OrganizationIdentifier organizationIdentifier);
+
+        [LoggerMessage(1, LogLevel.Information, "Consuming CCR update without organization identifier.")]
+        public static partial void ConsumingCcrUpdateWithoutOrganizationIdentifier(ILogger logger);
     }
 }

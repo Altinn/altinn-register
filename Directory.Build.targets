@@ -140,4 +140,33 @@
     <Error Condition="'$(Version)' == ''" Text="Version not defined in '$(VersionFilePath)'" />
   </Target>
 
+  <Target Name="_PatchTestAppHostForDevenvDotNet"
+    AfterTargets="_CreateAppHost"
+    Condition="
+      '$(IsTestProject)' == 'true'
+      And '$(UseAppHost)' == 'true'
+      And '$(TargetFrameworkIdentifier)' == '.NETCoreApp'
+      And Exists('$(MSBuildThisFileDirectory).devenv/profile/share/dotnet')
+      And Exists('@(IntermediateAssembly)')
+      And Exists('$(AppHostSourcePath)')
+    ">
+    <PropertyGroup>
+      <_DevenvDotNetRoot>$(MSBuildThisFileDirectory).devenv/profile/share/dotnet</_DevenvDotNetRoot>
+      <_DevenvDotNetRootRelativeToTargetDir>$([MSBuild]::MakeRelative('$(TargetDir)',
+        '$(_DevenvDotNetRoot)'))</_DevenvDotNetRootRelativeToTargetDir>
+    </PropertyGroup>
+
+    <CreateAppHost AppHostSourcePath="$(AppHostSourcePath)"
+      AppHostDestinationPath="$(AppHostIntermediatePath)"
+      AppBinaryName="$(AssemblyName)$(TargetExt)"
+      IntermediateAssembly="@(IntermediateAssembly->'%(FullPath)')"
+      WindowsGraphicalUserInterface="$(_UseWindowsGraphicalUserInterface)"
+      Retries="$(CopyRetryCount)"
+      RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"
+      EnableMacOSCodeSign="$(_EnableMacOSCodeSign)"
+      DisableCetCompat="$(_DisableCetCompat)"
+      DotNetSearchLocations="AppRelative"
+      AppRelativeDotNet="$(_DevenvDotNetRootRelativeToTargetDir)" />
+  </Target>
+
 </Project>

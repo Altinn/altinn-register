@@ -32,22 +32,22 @@ public sealed class TestHarnessConversation
     /// </summary>
     public AsyncMessageList<EventBase, IPublishedMessage<EventBase>> Events
         => new AsyncMessageList<EventBase, IPublishedMessage<EventBase>, IPublishedMessage>(
-            _harness,
-            (IReceivedMessage m) => m.Context.ConversationId == _conversationId,
-            _harness.Published,
-            (IPublishedMessage m) => m.Context.ConversationId == _conversationId,
-            static m => m.Context.Message,
-            _cancellationToken);
+            harness: _harness,
+            faultFilter: (IReceivedMessage m) => m.Context.ConversationId == _conversationId,
+            source: _harness.Published,
+            filter: (IPublishedMessage m) => m.Context.ConversationId == _conversationId,
+            selector: static m => m.Context.Message,
+            cancellationToken: _cancellationToken);
 
     /// <summary>
     /// Gets the commands in the conversation.
     /// </summary>
     public AsyncMessageList<CommandBase, IReceivedMessage<CommandBase>> Commands
         => new AsyncMessageList<CommandBase, IReceivedMessage<CommandBase>, IReceivedMessage>(
-            _harness,
-            (IReceivedMessage m) => m.Context.ConversationId == _conversationId,
-            _harness.Consumed,
-            (IReceivedMessage m) => m.Context.ConversationId == _conversationId,
-            static m => m.Context.Message,
-            _cancellationToken);
+            harness: _harness,
+            faultFilter: (IReceivedMessage m) => m.Context.ConversationId == _conversationId,
+            source: _harness.Consumed,
+            filter: (IReceivedMessage m) => m.Context.ConversationId == _conversationId,
+            selector: static m => m.Context.Message,
+            cancellationToken: _cancellationToken);
 }
