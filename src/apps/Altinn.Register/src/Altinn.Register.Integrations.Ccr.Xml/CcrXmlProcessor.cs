@@ -892,7 +892,12 @@ internal sealed class CcrXmlProcessor
                 return; // unreachable
         }
 
-        reader.ReadEndElement();
+        // Only consume </samendringer> when the element actually had content. For a
+        // self-closing <samendringer .../> (common for endringstype="U" free-text records)
+        if (hasContent)
+        {
+            reader.ReadEndElement();
+        }
     }
 
     private static MailingAddressRecord? MapAddress(
