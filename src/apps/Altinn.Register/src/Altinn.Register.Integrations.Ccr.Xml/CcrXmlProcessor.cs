@@ -892,7 +892,15 @@ internal sealed class CcrXmlProcessor
                 return; // unreachable
         }
 
-        reader.ReadEndElement();
+        // Only consume </samendringer> when the element actually had content. For a
+        // self-closing <samendringer .../> (common for endringstype="U" free-text records)
+        // ReadStartElement above already consumed the whole element and — because we run on
+        // a subtree reader scoped to just this element — exhausted the subtree. Calling
+        // ReadEndElement here would throw "'None' is an invalid XmlNodeType.". See Scenario29A.
+        if (hasContent)
+        {
+            reader.ReadEndElement();
+        }
     }
 
     private static MailingAddressRecord? MapAddress(
