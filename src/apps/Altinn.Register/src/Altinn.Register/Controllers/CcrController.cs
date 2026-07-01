@@ -9,12 +9,14 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Xml;
 using Altinn.Authorization.ModelUtils.EnumUtils;
+using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Conventions;
 using Altinn.Register.Core;
 using Altinn.Register.Core.Ccr;
 using Altinn.Register.Core.CcrLog;
 using Altinn.Register.Core.Utils;
 using Altinn.Register.Integrations.Ccr.Xml;
+using Altinn.Register.PartyImport.Ccr;
 using Asp.Versioning;
 using CommunityToolkit.Diagnostics;
 using Microsoft.AspNetCore.Http.Extensions;
@@ -185,6 +187,7 @@ public partial class CcrController
             writer.Flush();
         }
 
+        var sender = HttpContext.RequestServices.GetRequiredService<ICommandSender>();
         var ccrService = HttpContext.RequestServices.GetRequiredService<CcrService>();
         if (HttpContext.Connection.RemoteIpAddress is null
             || string.IsNullOrWhiteSpace(result.UserName)
@@ -197,11 +200,16 @@ public partial class CcrController
 
         try
         {
-            await ccrService.UpdateFromCcr(
-                commandId: Guid.CreateVersion7(),
-                seq.AsReadOnlySequence,
-                federate: federate,
-                cancellationToken);
+            var command = new ImportCcrXmlCommand
+            {
+                BatchId = null,
+                OrganizationIdentifier = null,
+                Document = seq.AsReadOnlySequence.ToArray(),
+                Federate = federate,
+            };
+
+            await sender.Send(command, cancellationToken);
+            Response.Headers.Append("X-Altinn-Register-Ccr-CommandId", command.CommandId.ToString("D"));
         }
         catch
         {

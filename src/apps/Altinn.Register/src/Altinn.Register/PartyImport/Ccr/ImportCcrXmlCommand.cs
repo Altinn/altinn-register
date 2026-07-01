@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Altinn.Authorization.ServiceDefaults.MassTransit;
 using Altinn.Register.Contracts;
 
@@ -14,15 +15,27 @@ public sealed record ImportCcrXmlCommand
     /// Gets the unique identifier of the batch, if available.
     /// Is null for sync SOAP requests, but will be set for messages produced by the <see cref="CcrImportJob"/>.
     /// </summary>
-    public required uint? BatchId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public uint? BatchId { get; init; }
 
     /// <summary>
     /// Gets the identifier of the organization this command pertains to.
+    /// Is null for sync SOAP requests, but will be set for messages produced by the <see cref="CcrImportJob"/>.
     /// </summary>
-    public required OrganizationIdentifier OrganizationIdentifier { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public OrganizationIdentifier? OrganizationIdentifier { get; init; }
 
     /// <summary>
     /// Gets the CCR XML document as raw bytes.
     /// </summary>
     public required byte[] Document { get; init; }
+
+    /// <summary>
+    /// Gets whether the update should be federated to other Altinn instances.
+    /// </summary>
+    /// <remarks>
+    /// If <see langword="null"/>, the default behavior is to federate the update.
+    /// </remarks>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Federate { get; init; }
 }
