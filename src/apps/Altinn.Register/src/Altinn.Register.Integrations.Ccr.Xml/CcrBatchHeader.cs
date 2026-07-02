@@ -66,6 +66,7 @@ internal class CcrBatchHeader
 
                 default:
                     // we ignore attributes we don't expect
+                    // todo: log warning about unexpected attribute
                     break;
             }
         }

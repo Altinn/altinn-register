@@ -78,7 +78,7 @@ public sealed record CcrRoleAssignment
             RolePersonalIdentifier = null,
             RoleOrganizationNumber = null,
             PersonName = null,
-            Postadresse = null,
+            MailingAddress = null,
         };
     }
     #endregion
@@ -90,13 +90,13 @@ public sealed record CcrRoleAssignment
     /// <param name="code">The code representing the role to assign. Cannot be null or whitespace.</param>
     /// <param name="pid">The personal identifier associated with the role assignment. Cannot be null or whitespace.</param>
     /// <param name="personName">The given name, and optionally middle names</param>
-    /// <param name="postadresse">A <see cref="MailingAddressRecord"/></param>
+    /// <param name="mailingAddress">A <see cref="MailingAddressRecord"/></param>
     /// <returns>A new instance of <see cref="CcrRoleAssignment"/> representing the personal role assignment.</returns>
     public static CcrRoleAssignment CreatePersonalRoleAssignment(
         string code,
         PersonIdentifier pid,
         PersonName? personName,
-        MailingAddressRecord? postadresse)
+        MailingAddressRecord? mailingAddress)
     {
         if (string.IsNullOrWhiteSpace(code))
         {
@@ -109,7 +109,7 @@ public sealed record CcrRoleAssignment
             RoleCode = code,
             RolePersonalIdentifier = pid,
             PersonName = personName,
-            Postadresse = postadresse,
+            MailingAddress = mailingAddress,
 
             RoleOrganizationNumber = null,
         };
@@ -123,7 +123,7 @@ public sealed record CcrRoleAssignment
     /// <summary>
     /// Gets the postal address associated with the entity.
     /// </summary>
-    public required MailingAddressRecord? Postadresse { get; init; }
+    public required MailingAddressRecord? MailingAddress { get; init; }
     #endregion
 
     #region Connection
@@ -150,7 +150,7 @@ public sealed record CcrRoleAssignment
 
             RolePersonalIdentifier = null,
             PersonName = null,
-            Postadresse = null,
+            MailingAddress = null,
         };
     }
     #endregion
