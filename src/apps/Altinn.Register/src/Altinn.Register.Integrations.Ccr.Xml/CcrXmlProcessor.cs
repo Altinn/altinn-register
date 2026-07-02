@@ -29,7 +29,7 @@ internal sealed class CcrXmlProcessor
         ILocationLookup locations,
         CancellationToken cancellationToken = default)
     {
-        using var reader = XmlReader.Create(xmlData.AsStream());
+        using var reader = XmlReader.Create(xmlData.AsStream(), new XmlReaderSettings { IgnoreWhitespace = true });
         int enhet = 0;
 
         // 1. Read to root element <batchAjourholdXML>
@@ -193,6 +193,8 @@ internal sealed class CcrXmlProcessor
                             removals: org.RoleUpdates.RemoveRoleAssignments,
                             roleLookup: roleDef,
                             locationLookup: locationLookup);
+
+                    continue; // we need to not call the reader.Read() below, as ParseElement already does this correctly
                 }
                 else if (reader.LocalName == "status")
                 {

@@ -36,6 +36,22 @@ public abstract class CcrXmlUpdateTestBase
     }
 
     [Fact]
+    public async Task RunDense()
+    {
+        await Setup(async (uow, ct) =>
+        {
+            await Setup(uow, ct);
+        });
+
+        await ApplyXml(MakeDense(XmlToApply));
+
+        await Check(async (uow, ct) =>
+        {
+            await Verify(uow, ct);
+        });
+    }
+
+    [Fact]
     public async Task CallApi()
     {
         await Setup(async (uow, ct) =>
@@ -96,5 +112,16 @@ public abstract class CcrXmlUpdateTestBase
             input: new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes(xml)),
             federate: true,
             cancellationToken: CancellationToken);
+    }
+
+    private static string MakeDense([StringSyntax(StringSyntaxAttribute.Xml)] string xml)
+    {
+        using var stringWriter = new StringWriter();
+        using var writer = XmlWriter.Create(stringWriter, new XmlWriterSettings { CloseOutput = false, Indent = false, NewLineOnAttributes = false });
+        using var reader = XmlReader.Create(new StringReader(xml), new XmlReaderSettings { IgnoreWhitespace = true });
+
+        writer.WriteNode(reader, defattr: false);
+        writer.Flush();
+        return stringWriter.ToString();
     }
 }

@@ -20,7 +20,7 @@ public sealed class CcrUpdateEnvelopeReader
     /// <returns>A result containing the CCR update envelope or an error.</returns>
     public static CcrUpdateEnvelope ReadEnvelope(ReadOnlySequence<byte> data)
     {
-        using var xmlReader = XmlReader.Create(data.AsStream());
+        using var xmlReader = XmlReader.Create(data.AsStream(), new XmlReaderSettings { IgnoreWhitespace = true });
         var reader = new CcrUpdateEnvelopeReader(xmlReader);
 
         return reader.ReadEnvelope();
