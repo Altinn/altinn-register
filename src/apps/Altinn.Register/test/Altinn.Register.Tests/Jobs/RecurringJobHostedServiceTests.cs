@@ -16,6 +16,7 @@ using Npgsql;
 
 namespace Altinn.Register.Tests.Jobs;
 
+[RunTestsSerially]
 public class RecurringJobHostedServiceTests
     : DatabaseTestBase
 {
