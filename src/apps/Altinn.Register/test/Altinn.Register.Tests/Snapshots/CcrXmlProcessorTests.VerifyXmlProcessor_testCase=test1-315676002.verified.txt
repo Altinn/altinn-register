@@ -22,7 +22,7 @@
             lastName: Navn,
             shortName: Navn ØDE FOLE
           },
-          postadresse: null
+          mailingAddress: null
         }
       ]
     }

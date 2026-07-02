@@ -21,7 +21,7 @@
             lastName: LAGIDRETT,
             shortName: LAGIDRETT HÅNDLAGET
           },
-          postadresse: {
+          mailingAddress: {
             address: null,
             postalCode: 0000,
             city: null
@@ -35,7 +35,7 @@
           rolePersonalIdentifier: 08828296508,
           roleOrganizationNumber: null,
           personName: null,
-          postadresse: null
+          mailingAddress: null
         },
         {
           roleAssignmentType: role-assignment,
@@ -43,7 +43,7 @@
           rolePersonalIdentifier: 08828296508,
           roleOrganizationNumber: null,
           personName: null,
-          postadresse: null
+          mailingAddress: null
         },
         {
           roleAssignmentType: role-assignment,
@@ -51,7 +51,7 @@
           rolePersonalIdentifier: 08828296508,
           roleOrganizationNumber: null,
           personName: null,
-          postadresse: null
+          mailingAddress: null
         },
         {
           roleAssignmentType: role-assignment,
@@ -59,7 +59,7 @@
           rolePersonalIdentifier: 08828296508,
           roleOrganizationNumber: null,
           personName: null,
-          postadresse: null
+          mailingAddress: null
         },
         {
           roleAssignmentType: role-assignment,
@@ -67,7 +67,7 @@
           rolePersonalIdentifier: 08828296508,
           roleOrganizationNumber: null,
           personName: null,
-          postadresse: null
+          mailingAddress: null
         }
       ],
       bulkRemoveRoleAssignments: [
@@ -77,7 +77,7 @@
           rolePersonalIdentifier: null,
           roleOrganizationNumber: null,
           personName: null,
-          postadresse: null
+          mailingAddress: null
         },
         {
           roleAssignmentType: bulk-role-assignment-removal,
@@ -85,7 +85,7 @@
           rolePersonalIdentifier: null,
           roleOrganizationNumber: null,
           personName: null,
-          postadresse: null
+          mailingAddress: null
         },
         {
           roleAssignmentType: bulk-role-assignment-removal,
@@ -93,7 +93,7 @@
           rolePersonalIdentifier: null,
           roleOrganizationNumber: null,
           personName: null,
-          postadresse: null
+          mailingAddress: null
         },
         {
           roleAssignmentType: bulk-role-assignment-removal,
@@ -101,7 +101,7 @@
           rolePersonalIdentifier: null,
           roleOrganizationNumber: null,
           personName: null,
-          postadresse: null
+          mailingAddress: null
         },
         {
           roleAssignmentType: bulk-role-assignment-removal,
@@ -109,7 +109,7 @@
           rolePersonalIdentifier: null,
           roleOrganizationNumber: null,
           personName: null,
-          postadresse: null
+          mailingAddress: null
         }
       ]
     }
