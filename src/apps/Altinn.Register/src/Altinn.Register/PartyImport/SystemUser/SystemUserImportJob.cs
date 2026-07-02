@@ -144,6 +144,7 @@ internal sealed partial class SystemUserImportJob
                     continue;
                 }
 
+                var now = _timeProvider.GetUtcNow();
                 var party = new SystemUserRecord
                 {
                     PartyUuid = systemUser.Id,
@@ -153,12 +154,12 @@ internal sealed partial class SystemUserImportJob
                     DisplayName = systemUser.Name,
                     PersonIdentifier = FieldValue.Null,
                     OrganizationIdentifier = FieldValue.Null,
-                    CreatedAt = systemUser.CreatedAt,
-                    ModifiedAt = systemUser.LastChangedAt,
+                    CreatedAt = now,
+                    ModifiedAt = now,
                     UserIds = FieldValue.Unset,
                     Usernames = FieldValue.Unset,
                     IsDeleted = systemUser.IsDeleted,
-                    DeletedAt = systemUser.IsDeleted ? systemUser.LastChangedAt : FieldValue.Null,
+                    DeletedAt = systemUser.IsDeleted ? now : FieldValue.Null,
                     VersionId = FieldValue.Unset,
                     SystemUserType = systemUser.Type.Value,
                 };
