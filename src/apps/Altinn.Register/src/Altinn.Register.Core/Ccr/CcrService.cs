@@ -251,7 +251,7 @@ public sealed partial class CcrService
             {
                 PersonIdentifier = assignment.RolePersonalIdentifier,
                 Name = assignment.PersonName,
-                MailingAddress = assignment.Postadresse,
+                MailingAddress = assignment.MailingAddress,
             };
         }
 

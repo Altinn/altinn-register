@@ -1,4 +1,4 @@
-[
+﻿[
   {
     organizationIdentifier: 316289622,
     isFirstRegistration: false,
@@ -15,7 +15,7 @@
           rolePersonalIdentifier: null,
           roleOrganizationNumber: 316289584,
           personName: null,
-          postadresse: null
+          mailingAddress: null
         }
       ],
       bulkRemoveRoleAssignments: [
@@ -25,7 +25,7 @@
           rolePersonalIdentifier: null,
           roleOrganizationNumber: null,
           personName: null,
-          postadresse: null
+          mailingAddress: null
         },
         {
           roleAssignmentType: bulk-role-assignment-removal,
@@ -33,7 +33,7 @@
           rolePersonalIdentifier: null,
           roleOrganizationNumber: null,
           personName: null,
-          postadresse: null
+          mailingAddress: null
         }
       ]
     }

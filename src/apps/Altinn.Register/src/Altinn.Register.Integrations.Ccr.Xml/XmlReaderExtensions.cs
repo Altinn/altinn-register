@@ -11,6 +11,11 @@ internal static class XmlReaderExtensions
 {
     extension(XmlReader reader)
     {
+        public bool IsEndElement(string name)
+        {
+            return reader.MoveToContent() == XmlNodeType.EndElement && reader.Name == name;
+        }
+
         // assertion variants of Is* methods
         public void AssertStartElement(string localName)
         {
@@ -26,6 +31,29 @@ internal static class XmlReaderExtensions
             {
                 ThrowHelper.ThrowInvalidDataException($"XmlReader: Expected self-closing element, but found {PrintCurrent(reader)}.");
             }
+        }
+
+        public void AssertNotEmptyElement()
+        {
+            if (reader.IsEmptyElement)
+            {
+                ThrowHelper.ThrowInvalidDataException($"XmlReader: Expected non-empty element, but found {PrintCurrent(reader)}.");
+            }
+        }
+
+        public void AssertEndElement(string localName)
+        {
+            if (!reader.IsEndElement(localName))
+            {
+                ThrowHelper.ThrowInvalidDataException($"XmlReader: Expected </{localName}> end element, but found {PrintCurrent(reader)}.");
+            }
+        }
+
+        public bool ReadEndElement(string expectedLocalName)
+        {
+            reader.AssertEndElement(expectedLocalName);
+
+            return reader.Read();
         }
 
         public XmlReader ReadSubtree(string expectedLocalName)

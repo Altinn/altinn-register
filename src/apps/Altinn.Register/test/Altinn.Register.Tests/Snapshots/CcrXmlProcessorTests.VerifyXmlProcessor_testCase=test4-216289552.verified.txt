@@ -15,7 +15,7 @@
           rolePersonalIdentifier: 17811298492,
           roleOrganizationNumber: null,
           personName: null,
-          postadresse: null
+          mailingAddress: null
         },
         {
           roleAssignmentType: role-assignment,
@@ -23,7 +23,7 @@
           rolePersonalIdentifier: 29842699892,
           roleOrganizationNumber: null,
           personName: null,
-          postadresse: null
+          mailingAddress: null
         }
       ],
       bulkRemoveRoleAssignments: [
@@ -33,7 +33,7 @@
           rolePersonalIdentifier: null,
           roleOrganizationNumber: null,
           personName: null,
-          postadresse: null
+          mailingAddress: null
         },
         {
           roleAssignmentType: bulk-role-assignment-removal,
@@ -41,7 +41,7 @@
           rolePersonalIdentifier: null,
           roleOrganizationNumber: null,
           personName: null,
-          postadresse: null
+          mailingAddress: null
         },
         {
           roleAssignmentType: bulk-role-assignment-removal,
@@ -49,7 +49,7 @@
           rolePersonalIdentifier: null,
           roleOrganizationNumber: null,
           personName: null,
-          postadresse: null
+          mailingAddress: null
         }
       ]
     }

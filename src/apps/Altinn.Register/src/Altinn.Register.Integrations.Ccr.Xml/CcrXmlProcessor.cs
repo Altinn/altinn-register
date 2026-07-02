@@ -9,7 +9,6 @@ using Altinn.Register.Contracts;
 using Altinn.Register.Core.Ccr;
 using Altinn.Register.Core.ExternalRoles;
 using Altinn.Register.Core.Location;
-using Altinn.Register.Core.Parties;
 using Altinn.Register.Core.Parties.Records;
 using CommunityToolkit.Diagnostics;
 using Nerdbank.Streams;
@@ -30,7 +29,7 @@ internal sealed class CcrXmlProcessor
         ILocationLookup locations,
         CancellationToken cancellationToken = default)
     {
-        using var reader = XmlReader.Create(xmlData.AsStream());
+        using var reader = XmlReader.Create(xmlData.AsStream(), new XmlReaderSettings { IgnoreWhitespace = true });
         int enhet = 0;
 
         // 1. Read to root element <batchAjourholdXML>
@@ -186,15 +185,16 @@ internal sealed class CcrXmlProcessor
                 }
                 else if (reader.LocalName == "samendringer")
                 {
-                    using var subReader = reader.ReadSubtree("samendringer");
                     org.RoleUpdates ??= new();
-                    ReadSamendring(
-                        subReader,
-                        orgform: organisasjonsform,
-                        additions: org.RoleUpdates.RoleAssignments,
-                        removals: org.RoleUpdates.RemoveRoleAssignments,
-                        roleDef,
-                        locationLookup);
+                    reader.ParseElement<CcrSamendringNode>()
+                        .Apply(
+                            orgform: organisasjonsform,
+                            additions: org.RoleUpdates.RoleAssignments,
+                            removals: org.RoleUpdates.RemoveRoleAssignments,
+                            roleLookup: roleDef,
+                            locationLookup: locationLookup);
+
+                    continue; // we need to not call the reader.Read() below, as ParseElement already does this correctly
                 }
                 else if (reader.LocalName == "status")
                 {
@@ -684,220 +684,6 @@ internal sealed class CcrXmlProcessor
         }
 
         return roleDefinition.Identifier;
-    }
-
-    private static void ReadSamendring(
-        XmlReader reader,
-        string orgform,
-        ImmutableArray<CcrRoleAssignment>.Builder additions,
-        ImmutableArray<CcrRoleAssignment>.Builder removals,
-        IExternalRoleDefinitionLookup roleDef,
-        ILocationLookup locationLookup)
-    {
-        reader.MoveToContent(); // Move to the <samendringer> element
-
-        if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "samendringer")
-        {
-            ThrowHelper.ThrowInvalidDataException("XmlReader: Expected <samendringer> element at the beginning of the document.");
-        }
-
-        var felttype = reader.GetAttribute("felttype") ?? string.Empty;
-        var endringstype = reader.GetAttribute("endringstype") ?? string.Empty;
-        var type = reader.GetAttribute("type") ?? string.Empty;
-        var data = reader.GetAttribute("data") ?? string.Empty;
-
-        var hasContent = !reader.IsEmptyElement;
-        reader.ReadStartElement("samendringer");
-        var rolleFields = hasContent ? ReadChildFields(reader) : new();
-
-        switch ((type, data))
-        {
-            case ("R", "D"):
-                {
-                    var rolleFoedselsnr = rolleFields.TryGetValue("rolleFoedselsnr", out var fod) ? fod : null;
-                    var rolleFratraadt = rolleFields.TryGetValue("rolleFratraadt", out var rfratr) ? rfratr : null;
-                    var fornavn = rolleFields.TryGetValue("fornavn", out var forn) ? forn : null;
-                    var mellomnavn = rolleFields.TryGetValue("mellomnavn", out var mell) ? mell : null;
-                    var etternavn = rolleFields.TryGetValue("slektsnavn", out var etter) ? etter : null;
-                    var postnr = rolleFields.TryGetValue("postnr", out var post) ? post : null;
-                    var adr1 = rolleFields.TryGetValue("adresse1", out var radr1) ? radr1 : null;
-                    var adr2 = rolleFields.TryGetValue("adresse2", out var radr2) ? radr2 : null;
-                    var adr3 = rolleFields.TryGetValue("adresse3", out var radr3) ? radr3 : null;
-                    var rlandkode = rolleFields.TryGetValue("adresseLandkode", out var rlk) ? rlk : null;
-                    var kommunenr = rolleFields.TryGetValue("kommunenr", out var rkomm) ? rkomm : null;
-                    var poststedIUtland = rolleFields.TryGetValue("poststed", out var rps) ? rps : null;
-
-                    if (string.IsNullOrEmpty(rolleFoedselsnr))
-                    {
-                        ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required field 'rolleFoedselsnr' for role assignment in <samendringer> element.");
-                    }
-
-                    if (!PersonIdentifier.TryParse(rolleFoedselsnr, null, out var personIdentifier))
-                    {
-                        ThrowHelper.ThrowInvalidDataException("XmlReader: Invalid format for required field 'rolleFoedselsnr' for role assignment in <samendringer> element.");
-                    }
-
-                    // Convert CCR role code to Altinn role code
-                    string validatedAltinnRoleCode = ConvertToAltinnRoleCode(felttype, roleDef);
-
-                    switch (endringstype, rolleFratraadt)
-                    {
-                        case (endringstype: _, rolleFratraadt: "F"):
-                        case (endringstype: "U", rolleFratraadt: _):
-                            removals.Add(
-                                CcrRoleAssignment.CreatePersonalRoleAssignment(
-                                    validatedAltinnRoleCode,
-                                    personIdentifier,
-                                    null,
-                                    null));
-
-                            if (felttype == "KONT")
-                            {
-                                removals.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("SREVA", roleDef), personIdentifier, null, null));
-                                removals.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("KOMK", roleDef), personIdentifier, null, null));
-                                removals.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("KNUF", roleDef), personIdentifier, null, null));
-                                removals.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("KEMN", roleDef), personIdentifier, null, null));
-                            }
-
-                            break;
-
-                        case (endringstype: "N", rolleFratraadt: _):
-                            var name = PersonName.Create(fornavn, mellomnavn, etternavn);
-                            var address = MapAddress(
-                                adr1: adr1,
-                                adr2: adr2,
-                                adr3: adr3,
-                                land: rlandkode,
-                                postnr: postnr,
-                                poststedIUtland: poststedIUtland,
-                                kommuneNummer: kommunenr,
-                                locationLookup: locationLookup);
-
-                            additions.Add(
-                                CcrRoleAssignment.CreatePersonalRoleAssignment(validatedAltinnRoleCode, personIdentifier, name, address));
-
-                            if (felttype == "KONT")
-                            {
-                                switch (orgform)
-                                {
-                                    case "KOMM":
-                                    case "FYLK":
-                                        additions.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("KOMK", roleDef), personIdentifier, name, address));
-                                        break;
-
-                                    case "REV":
-                                        additions.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("SREVA", roleDef), personIdentifier, name, address));
-                                        break;
-
-                                    case "NUF":
-                                        additions.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("KNUF", roleDef), personIdentifier, name, address));
-                                        break;
-
-                                    case "ADOS":
-                                        additions.Add(CcrRoleAssignment.CreatePersonalRoleAssignment(ConvertToAltinnRoleCode("KEMN", roleDef), personIdentifier, name, address));
-                                        break;
-                                }
-                            }
-
-                            break;
-
-                        default:
-                            ThrowHelper.ThrowInvalidDataException($"XmlReader: Invalid combination of 'endringstype' and 'rolleFratraadt' values for personal role assignment in <samendringer> element. endringstype: '{endringstype}', rolleFratraadt: '{rolleFratraadt}'");
-                            break;
-                    }
-
-                    break;
-                }
-
-            case ("K", "D"):
-                {
-                    var knytningsOrgnr = rolleFields.TryGetValue("knytningOrganisasjonsnummer", out var kforn) ? kforn : null;
-                    var knytningFratraadt = rolleFields.TryGetValue("knytningFratraadt", out var kfratr) ? kfratr : null;
-
-                    if (string.IsNullOrEmpty(knytningsOrgnr))
-                    {
-                        ThrowHelper.ThrowInvalidDataException("XmlReader: Missing required field 'knytningsOrgnr' for role assignment in <samendringer> element.");
-                    }
-
-                    if (!OrganizationIdentifier.TryParse(knytningsOrgnr, null, out var organizationIdentifier))
-                    {
-                        ThrowHelper.ThrowInvalidDataException("XmlReader: Invalid 'knytningOrganisasjonsnummer' value for organizational role assignment in <samendringer> element. Value: " + knytningsOrgnr);
-                    }
-
-                    switch (endringstype, knytningFratraadt)
-                    {
-                        case (endringstype: _, knytningFratraadt: "F"):
-                        case (endringstype: "U", knytningFratraadt: _):
-                            removals.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode(felttype, roleDef), organizationIdentifier));
-
-                            if (felttype == "KONT")
-                            {
-                                removals.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("SREVA", roleDef), organizationIdentifier));
-                                removals.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("KOMK", roleDef), organizationIdentifier));
-                                removals.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("KNUF", roleDef), organizationIdentifier));
-                                removals.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("KEMN", roleDef), organizationIdentifier));
-                            }
-
-                            break;
-
-                        case (endringstype: "N", knytningFratraadt: _):
-                            additions.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode(felttype, roleDef), organizationIdentifier));
-
-                            if (felttype == "KONT")
-                            {
-                                switch (orgform)
-                                {
-                                    case "KOMM":
-                                    case "FYLK":
-                                        additions.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("KOMK", roleDef), organizationIdentifier));
-                                        break;
-
-                                    case "REV":
-                                        additions.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("SREVA", roleDef), organizationIdentifier));
-                                        break;
-
-                                    case "NUF":
-                                        additions.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("KNUF", roleDef), organizationIdentifier));
-                                        break;
-
-                                    case "ADOS":
-                                        additions.Add(CcrRoleAssignment.CreateConnection(ConvertToAltinnRoleCode("KEMN", roleDef), organizationIdentifier));
-                                        break;
-                                }
-                            }
-
-                            break;
-
-                        default:
-                            ThrowHelper.ThrowInvalidDataException($"XmlReader: Invalid combination of 'endringstype' and 'knytningsFratraadt' values for organizational role assignment in <samendringer> element. endringstype: '{endringstype}', knytningsFratraadt: '{knytningFratraadt}'");
-                            break;
-                    }
-
-                    break;
-                }
-
-            case ("S", _) when endringstype == "N" || endringstype == "U":
-            case ("R", "T") when endringstype == "N" || endringstype == "U":
-            case ("K", "T") when endringstype == "N" || endringstype == "U":
-                {
-                    // Free-text samendring/role/connection entries are supplementary descriptive
-                    // text only - the structured ("R", "D") / ("K", "D") siblings (when present)
-                    // carry the actual role-assignment data. We currently have no mapping for any
-                    // samendringsfritekst variant, whether new, update or delete.
-                    break;
-                }
-
-            default:
-                ThrowHelper.ThrowArgumentException($"XmlReader: unknown samendring '{felttype}' type '{type}' (data = '{data}') in <samendringer> element.");
-                return; // unreachable
-        }
-
-        // Only consume </samendringer> when the element actually had content. For a
-        // self-closing <samendringer .../> (common for endringstype="U" free-text records)
-        if (hasContent)
-        {
-            reader.ReadEndElement();
-        }
     }
 
     private static MailingAddressRecord? MapAddress(
