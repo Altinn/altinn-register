@@ -4,11 +4,13 @@ using Altinn.Register.Contracts;
 using Altinn.Register.Controllers.V2;
 using Altinn.Register.Mapping;
 using Altinn.Register.Models;
+using Altinn.Register.TestUtils;
 using Altinn.Register.TestUtils.TestData;
 using Microsoft.Extensions.Options;
 
 namespace Altinn.Register.IntegrationTests.Party;
 
+[RunTestsSerially]
 public class StreamTests
     : IntegrationTestBase
 {
