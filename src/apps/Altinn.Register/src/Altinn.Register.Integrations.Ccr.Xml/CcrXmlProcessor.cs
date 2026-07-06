@@ -422,6 +422,7 @@ internal sealed class CcrXmlProcessor
             case ("R-FV", _):
             case ("R-MV", _):
             case ("R-SR", _):
+            case ("R-FS", _):
             case ("RSKP", _):
             case ("RVFG", _):
             case ("SLFR", _):

@@ -611,6 +611,7 @@ internal sealed partial class CcrFlatFileProcessor
                 /////////////////////////////////////////////////////////////////////////////
                 // ignorerte noder
                 case "MANR": // Matrikkeladresse
+                case "R-FS": // Utgått infotype
                     {
                         // not in use, ignored
                         break;
