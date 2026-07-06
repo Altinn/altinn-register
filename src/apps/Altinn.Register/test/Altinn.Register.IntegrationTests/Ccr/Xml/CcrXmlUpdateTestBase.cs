@@ -83,7 +83,6 @@ public abstract class CcrXmlUpdateTestBase
         content.Headers.Add("SOAPAction", "http://www.altinn.no/services/Register/ER/2013/06/IRegisterERExternalBasic/SubmitERDataBasic");
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "enhets-registeret/api/v1/update.svc");
-        request.Headers.Add("X-Altinn-Register-Ccr", "Apply-In-A3");
         request.Content = content;
 
         using var response = await HttpClient.SendAsync(request, CancellationToken);

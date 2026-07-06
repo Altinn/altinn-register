@@ -38,4 +38,13 @@ public sealed record ImportCcrXmlCommand
     /// </remarks>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? Federate { get; init; }
+
+    /// <summary>
+    /// Gets the name of the CCR client that sent this command.
+    /// </summary>
+    /// <remarks>
+    /// This is only used for logging and auditing purposes, and does not affect the processing of the command.
+    /// </remarks>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ClientName { get; init; }
 }

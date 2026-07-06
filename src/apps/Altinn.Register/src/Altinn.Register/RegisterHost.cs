@@ -228,9 +228,6 @@ internal static partial class RegisterHost
         services.AddOptions<SireEventClientOptions>()
             .BindConfiguration("Altinn:register:PartyImport:Sire:Client");
 
-        services.AddHttpClient("a2:ccr")
-            .ConfigureBaseAddress("https://altinn2/");
-
         services.TryAddPlatformTokenProvider();
         if (!descriptor.IsLocalDev && !descriptor.IsTest)
         {

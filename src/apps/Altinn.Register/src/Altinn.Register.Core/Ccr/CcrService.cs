@@ -1,8 +1,11 @@
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Metrics;
 using System.Net;
 using Altinn.Authorization.ModelUtils;
+using Altinn.Authorization.ServiceDefaults.Telemetry;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Cryptography;
 using Altinn.Register.Core.ExternalRoles;
@@ -31,6 +34,7 @@ public sealed partial class CcrService
     private readonly ILogger<CcrService> _logger;
     private readonly IOptionsMonitor<CcrServiceSettings> _options;
     private readonly TimeProvider _timeProvider;
+    private readonly CcrServiceMeters _meters;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CcrService"/> class.
@@ -43,7 +47,8 @@ public sealed partial class CcrService
         ILocationLookupProvider locationLookupProvider,
         ILogger<CcrService> logger,
         IOptionsMonitor<CcrServiceSettings> options,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        IMetricsProvider metricsProvider)
     {
         _uowManager = uowManager;
         _ccrXmlProcessor = ccrXmlProcessor;
@@ -53,6 +58,7 @@ public sealed partial class CcrService
         _locationLookupProvider = locationLookupProvider;
         _options = options;
         _timeProvider = timeProvider;
+        _meters = metricsProvider.Get<CcrServiceMeters>();
     }
 
     /// <summary>
@@ -138,6 +144,8 @@ public sealed partial class CcrService
             await _updateFederator.FederateUpdates(input, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         }
 
+        _meters.PartyUpdates.Add(updatedOrgs.Count);
+        _meters.RoleUpdates.Add(updatedRoles.Count);
         return new CcrUpdateResult
         {
             UpdatedOrganizationPartyUuids = updatedOrgs.ToImmutableValueArray(),
@@ -151,13 +159,15 @@ public sealed partial class CcrService
     /// <param name="userName">The username of the CCR client.</param>
     /// <param name="password">The password of the CCR client.</param>
     /// <param name="sourceIp">The source IP address of the CCR client.</param>
+    /// <param name="settings">The settings of the authorized CCR client, if authorization is successful.</param>
     /// <returns><see langword="true"/> if the client is authorized; otherwise, <see langword="false"/>.</returns>
     public bool AuthorizeCcrClient(
         string userName,
         string password,
-        IPAddress sourceIp)
+        IPAddress sourceIp,
+        [NotNullWhen(true)] out CcrClientIdentitySettings? settings)
     {
-        if (!_options.CurrentValue.Clients.TryGetValue(userName, out CcrClientIdentitySettings? settings))
+        if (!_options.CurrentValue.Clients.TryGetValue(userName, out settings))
         {
             Log.UnknownCcrClient(_logger, userName, sourceIp);
             return false;
@@ -313,5 +323,24 @@ public sealed partial class CcrService
 
         [LoggerMessage(3, LogLevel.Warning, "CCR client with username '{UserName}' attempted to authenticate from unauthorized IP address '{SourceIp}'.")]
         public static partial void InvalidCcrClientSourceIp(ILogger logger, string userName, IPAddress sourceIp);
+    }
+
+    private sealed class CcrServiceMeters(Meter meter)
+        : IMetrics<CcrServiceMeters>
+    {
+        /// <summary>
+        /// Gets a counter for the number of parties updated from CCR updates.
+        /// </summary>
+        public Counter<int> PartyUpdates { get; }
+            = meter.CreateCounter<int>("altinn.register.ccr.party-updates", description: "The number of parties updated from CCR updates.");
+
+        /// <summary>
+        /// Gets a counter for the number of role assignments updated from CCR updates.
+        /// </summary>
+        public Counter<int> RoleUpdates { get; }
+            = meter.CreateCounter<int>("altinn.register.ccr.role-updates", description: "The number of role assignments updated from CCR updates.");
+
+        public static CcrServiceMeters Create(Meter meter)
+            => new(meter);
     }
 }
