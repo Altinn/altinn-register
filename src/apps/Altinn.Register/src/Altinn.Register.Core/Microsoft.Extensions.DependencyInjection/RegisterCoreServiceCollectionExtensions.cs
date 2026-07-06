@@ -170,9 +170,12 @@ public static class RegisterCoreServiceCollectionExtensions
 
         public List<string> AllowedSourceNetworks { get; set; } = [];
 
+        public bool? Federate { get; set; }
+
         public void Apply(CcrClientIdentitySettings settings)
         {
             settings.PasswordHash = PasswordHash;
+            settings.Federate = Federate;
 
             settings.AllowedSourceNetworks.EnsureCapacity(settings.AllowedSourceNetworks.Count + AllowedSourceNetworks.Count);
             foreach (var network in AllowedSourceNetworks)

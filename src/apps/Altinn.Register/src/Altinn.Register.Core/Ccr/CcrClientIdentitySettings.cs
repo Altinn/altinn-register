@@ -19,4 +19,9 @@ public sealed class CcrClientIdentitySettings
     /// </summary>
     [MinLength(1, ErrorMessage = "At least one allowed source network must be specified.")]
     public List<IPNetwork> AllowedSourceNetworks { get; set; } = [];
+
+    /// <summary>
+    /// Whether updates from this client should be federated to other Altinn instances. If <see langword="null"/>, the default behavior is to federate.
+    /// </summary>
+    public bool? Federate { get; set; }
 }
