@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json.Serialization;
 using Altinn.Authorization.ProblemDetails;
@@ -274,7 +275,8 @@ public class DebugController
     public ActionResult<ActivityInfo> Trace()
     {
         var activity = GetRootmost(Activity.Current);
-        return new ActivityInfo(activity, Request.Headers.TraceParent);
+        var requestInfo = GetRequestInfo(Request);
+        return new ActivityInfo(activity, Request.Headers.TraceParent, requestInfo);
 
         static Activity? GetRootmost(Activity? activity)
         {
@@ -289,6 +291,16 @@ public class DebugController
             }
 
             return activity;
+        }
+
+        static RequestInfo GetRequestInfo(HttpRequest request)
+        {
+            var method = request.Method;
+            var host = request.Host;
+            var path = request.Path;
+            var remoteIp = request.HttpContext.Connection.RemoteIpAddress;
+
+            return new RequestInfo(method, host, path, remoteIp);
         }
     }
 
@@ -359,9 +371,7 @@ public class DebugController
     /// <summary>
     /// Activity info for debugging purposes.
     /// </summary>
-    /// <param name="activity">The current context.</param>
-    /// <param name="traceParent">The traceparent header(s).</param>
-    public sealed class ActivityInfo(Activity? activity, StringValues traceParent)
+    public sealed class ActivityInfo(Activity? activity, StringValues traceParent, RequestInfo requestInfo)
     {
         /// <summary>Gets the trace id.</summary>
         public string TraceId => (activity?.Context ?? default).TraceId.ToString();
@@ -383,6 +393,35 @@ public class DebugController
 
         /// <summary>Gets the trace header(s).</summary>
         public IEnumerable<string> TraceParent => traceParent;
+
+        /// <summary>Gets the request info.</summary>
+        public RequestInfo RequestInfo => requestInfo;
+    }
+
+    /// <summary>
+    /// Request info for debugging purposes.
+    /// </summary>
+    public sealed class RequestInfo(string method, HostString host, PathString path, IPAddress? remoteIp)
+    {
+        /// <summary>
+        /// Gets the request method.
+        /// </summary>
+        public string Method => method;
+
+        /// <summary>
+        /// Gets the request path.
+        /// </summary>
+        public string Path => path;
+
+        /// <summary>
+        /// Gets the hostname of the request.
+        /// </summary>
+        public string? Host => host.Value;
+
+        /// <summary>
+        /// Gets the remote IP address of the request.
+        /// </summary>
+        public IPAddress? RemoteIp => remoteIp;
     }
 
     private sealed class HttpProxyResult
