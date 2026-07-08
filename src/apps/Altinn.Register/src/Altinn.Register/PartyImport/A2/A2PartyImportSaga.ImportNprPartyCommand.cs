@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties.Records;
@@ -20,11 +19,12 @@ public partial class A2PartyImportSaga
 
     /// <inheritdoc/>
     public async Task Handle(ImportNprPartyCommand message, CancellationToken cancellationToken)
+        => await HandleImportNprParty(message.PersonIdentifier, cancellationToken);
+
+    private async Task HandleImportNprParty(PersonIdentifier personIdentifier, CancellationToken cancellationToken)
     {
         var now = _timeProvider.GetUtcNow();
-        State.PartyIdentifier.TryGetValue(out PersonIdentifier? personIdentifier);
 
-        Debug.Assert(personIdentifier is not null && personIdentifier == message.PersonIdentifier);
         State.Party = new PersonRecord
         {
             PartyUuid = FieldValue.Unset,
