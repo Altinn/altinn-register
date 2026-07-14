@@ -102,6 +102,22 @@ public class PostgreSqlFunctionsTests(ITestOutputHelper output)
         maxSafeval.ShouldBe(long.MaxValue);
     }
 
+    [Fact]
+    public async Task Function_tx_max_safeval_Returns_Number_Before_Concurrent_Transactions_When_Sequence_Is_Past_32_Bits()
+    {
+        const long firstValuePast32Bits = 4294967297L;
+
+        await SetNextSequenceValue(firstValuePast32Bits);
+
+        await using var uow = await UnitOfWorkManager.CreateAsync(CancellationToken);
+        var nv = await TxNextval(uow);
+
+        nv.ShouldBe(firstValuePast32Bits);
+
+        var maxSafeval = await TxMaxSafeval();
+        maxSafeval.ShouldBe(nv - 1);
+    }
+
     private async Task<long> TxMaxSafeval()
     {
         await using var uow = await UnitOfWorkManager.CreateAsync(CancellationToken);
@@ -111,6 +127,14 @@ public class PostgreSqlFunctionsTests(ITestOutputHelper output)
 
     private Task<long> TxNextval(IUnitOfWork uow)
         => GetSingleValue(uow, /*strpsql*/$"""SELECT register.tx_nextval('{SequenceName}') AS nextval""");
+
+    private async Task SetNextSequenceValue(long value)
+    {
+        await using var uow = await UnitOfWorkManager.CreateAsync(CancellationToken);
+
+        await GetSingleValue(uow, /*strpsql*/$"""SELECT setval('{SequenceName}', {value}, false)""");
+        await uow.CommitAsync(CancellationToken);
+    }
 
     private async Task<long> GetSingleValue(IUnitOfWork uow, string query)
     {
