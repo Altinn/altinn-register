@@ -676,6 +676,28 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         items.Count.ShouldBe(100);
     }
 
+    [Fact]
+    public async Task GetPartyStream_IgnoresSequenceLocksFromOtherDatabases()
+    {
+        await using var otherDatabase = await CreateDatabaseFromTemplate(CancellationToken);
+        await using var otherConnection = new NpgsqlConnection(otherDatabase.ConnectionString);
+        await otherConnection.OpenAsync(CancellationToken);
+        await using var otherTransaction = await otherConnection.BeginTransactionAsync(CancellationToken);
+        await using var otherCommand = otherConnection.CreateCommand();
+        otherCommand.CommandText = /*strpsql*/"SELECT register.tx_nextval('register.party_version_id_seq')";
+        await otherCommand.ExecuteNonQueryAsync(CancellationToken);
+
+        await using var maxSafeValueCommand = Connection.CreateCommand();
+        maxSafeValueCommand.CommandText = /*strpsql*/"SELECT register.tx_max_safeval('register.party_version_id_seq')";
+        var maxSafeValue = (long)(await maxSafeValueCommand.ExecuteScalarAsync(CancellationToken))!;
+
+        maxSafeValue.ShouldBe(long.MaxValue);
+
+        var items = await Persistence.GetPartyStream(0, 100, PartyFieldIncludes.Party, cancellationToken: CancellationToken).ToListAsync(CancellationToken);
+
+        items.Count.ShouldBe(100);
+    }
+
     #region Upsert Org
 
     [Fact]
