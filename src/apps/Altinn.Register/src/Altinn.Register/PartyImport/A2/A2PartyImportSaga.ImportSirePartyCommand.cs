@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Altinn.Authorization.ModelUtils;
 using Altinn.Register.Contracts;
 using Altinn.Register.Core.Parties.Records;
@@ -20,11 +19,12 @@ public partial class A2PartyImportSaga
 
     /// <inheritdoc/>
     public async Task Handle(ImportSirePartyCommand message, CancellationToken cancellationToken)
+        => await HandleImportSireParty(message.OrganizationIdentifier, cancellationToken);
+
+    private async Task HandleImportSireParty(OrganizationIdentifier organizationIdentifier, CancellationToken cancellationToken)
     {
         var now = _timeProvider.GetUtcNow();
-        State.PartyIdentifier.TryGetValue(out OrganizationIdentifier? organizationIdentifier);
 
-        Debug.Assert(organizationIdentifier is not null && organizationIdentifier == message.OrganizationIdentifier);
         State.Party = new OrganizationRecord
         {
             // party fields — placeholders, the enrichment chain fills these in
