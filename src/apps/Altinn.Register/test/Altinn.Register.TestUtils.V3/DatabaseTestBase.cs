@@ -15,6 +15,8 @@ public abstract class DatabaseTestBase
     : HostTestBase
 {
     private PostgresDatabase? _db;
+    private PostgresServerFixture? _serverFixture;
+    private PostgresServerFixture.TemplateDb? _template;
 
     /// <summary>
     /// Gets whether database seed data should be enabled.
@@ -32,6 +34,12 @@ public abstract class DatabaseTestBase
     protected RegisterTestDataGenerator TestDataGenerator => GetRequiredService<RegisterTestDataGenerator>();
 
     /// <summary>
+    /// Creates another uniquely named database from the same template as the per-test database.
+    /// </summary>
+    protected Task<PostgresDatabase> CreateDatabaseFromTemplate(CancellationToken cancellationToken = default)
+        => _serverFixture!.CreateDatabase(_template, cancellationToken);
+
+    /// <summary>
     /// Gets the application configuration.
     /// </summary>
     protected IConfigurationManager Configuration
@@ -41,12 +49,12 @@ public abstract class DatabaseTestBase
     protected override async ValueTask ConfigureHost(IHostApplicationBuilder builder)
     {
         var testContext = TestContext.Current;
-        var serverFixture = await testContext.GetRequiredFixture<PostgresServerFixture>();
-        var template = await serverFixture.GetOrCreateTemplateDatabase(
+        _serverFixture = await testContext.GetRequiredFixture<PostgresServerFixture>();
+        _template = await _serverFixture.GetOrCreateTemplateDatabase(
             "persistence-tests-template",
             InitializeTemplateDatabase,
             testContext.CancellationToken);
-        _db = await serverFixture.CreateDatabase(template, testContext.CancellationToken);
+        _db = await _serverFixture.CreateDatabase(_template, testContext.CancellationToken);
 
         await base.ConfigureHost(builder);
 
