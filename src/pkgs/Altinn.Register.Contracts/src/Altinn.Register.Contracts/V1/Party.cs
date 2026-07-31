@@ -16,6 +16,11 @@ public record Party
     public Guid? PartyUuid { get; set; }
 
     /// <summary>
+    /// Gets or sets the external reference of the party
+    /// </summary>
+    public PartyExternalRefUrn? ExternalUrn { get; set; }
+
+    /// <summary>
     /// Gets or sets the type of party
     /// </summary>
     public PartyType PartyTypeName { get; set; }
