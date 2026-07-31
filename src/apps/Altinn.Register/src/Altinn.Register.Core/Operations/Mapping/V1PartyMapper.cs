@@ -23,6 +23,7 @@ internal static class V1PartyMapper
         {
             PartyUuid = party.PartyUuid.Value,
             PartyId = checked((int)party.PartyId.Value),
+            ExternalUrn = party.ExternalUrn.Value,
             Name = party.DisplayName.Value,
             IsDeleted = party.IsDeleted.Value,
             OnlyHierarchyElementWithNoAccess = false,
