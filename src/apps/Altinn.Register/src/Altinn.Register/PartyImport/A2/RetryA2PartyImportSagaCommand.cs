@@ -9,7 +9,7 @@ public sealed record RetryA2PartyImportSagaCommand
     : CommandBase
 {
     /// <summary>
-    /// Gets the party UUID.
+    /// Gets the unique identifier for the party.
     /// </summary>
-    public Guid? PartyUuid { get; init; }
+    public required ImportPartyIdentifier PartyIdentifier { get; init; }
 }
