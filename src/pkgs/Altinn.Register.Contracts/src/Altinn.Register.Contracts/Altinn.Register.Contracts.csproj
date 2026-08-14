@@ -14,7 +14,6 @@
     <PackageReference Include="Altinn.Swashbuckle.Abstractions" />
     <PackageReference Include="Altinn.Urn" />
     <PackageReference Include="System.ComponentModel.Annotations" />
-    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 
   <ItemGroup>

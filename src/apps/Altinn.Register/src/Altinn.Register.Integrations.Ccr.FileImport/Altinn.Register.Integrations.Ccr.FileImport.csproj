@@ -5,7 +5,6 @@
     <PackageReference Include="Altinn.Authorization.ServiceDefaults.Telemetry" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <PackageReference Include="Nerdbank.Streams" />
-    <PackageReference Include="System.Linq.AsyncEnumerable" />
     <PackageReference Include="SSH.NET" />
   </ItemGroup>
 

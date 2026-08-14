@@ -15,8 +15,6 @@
     <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
     <PackageReference Include="Nerdbank.Streams" />
     <PackageReference Include="Polly" />
-    <PackageReference Include="System.Linq.AsyncEnumerable" />
-    <PackageReference Include="System.Text.RegularExpressions" />
   </ItemGroup>
 
   <ItemGroup>

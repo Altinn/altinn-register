@@ -51,8 +51,6 @@ jobs:
         uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
         with:
           dotnet-version: |
-            8.0.x
-            9.0.x
             10.0.x
 
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
@@ -73,7 +71,7 @@ jobs:
 
       - name: Test
         working-directory: ${{ matrix.path }}
-        run: dotnet test -c Release --no-build
+        run: dotnet test --solution . -c Release --no-build
 
       - name: Pack
         working-directory: ${{ matrix.path }}
