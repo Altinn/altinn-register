@@ -1,4 +1,4 @@
-name: Code test and analysis (fork)
+name: Code test and analysis (fork, disabled)
 on:
   pull_request:
     branches: [main]
@@ -14,8 +14,7 @@ jobs:
         uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
         with:
           dotnet-version: |
-            8.0.x
-            9.0.x
+            10.0.x
 
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
@@ -44,8 +43,7 @@ jobs:
         uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
         with:
           dotnet-version: |
-            8.0.x
-            9.0.x
+            10.0.x
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -62,12 +60,12 @@ jobs:
 
       - name: dotnet test
         timeout-minutes: 20
-        run: dotnet test Altinn.Register.sln --results-directory TestResults/ --collect:"XPlat Code Coverage" -v m
+        run: dotnet test --solution Altinn.Register.sln --results-directory TestResults/ --coverlet --coverlet-output-format cobertura -v m
 
       - name: Generate coverage results
         run: |
           dotnet tool install --global dotnet-reportgenerator-globaltool
-          reportgenerator -reports:TestResults/**/coverage.cobertura.xml -targetdir:TestResults/Output/CoverageReport -reporttypes:Cobertura
+          reportgenerator -reports:TestResults/**/coverage*.xml -targetdir:TestResults/Output/CoverageReport -reporttypes:Cobertura
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

@@ -21,8 +21,7 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            8.0.x
-            9.0.x
+            10.0.x
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -46,13 +45,12 @@ jobs:
 
           dotnet build Altinn.Platform.Models/Altinn.Platform.Models.sln -v q
 
-          dotnet test Altinn.Platform.Models/Altinn.Platform.Models.sln \
+          dotnet test --solution Altinn.Platform.Models/Altinn.Platform.Models.sln \
           -v q \
-          --collect:"XPlat Code Coverage" \
           --results-directory TestResults/ \
-          --logger "trx;" \
           --configuration release \
-          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+          --coverlet \
+          --coverlet-output-format opencover
 
       - name: Complete sonar analysis
         if: always()

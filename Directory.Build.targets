@@ -18,14 +18,13 @@
       </ItemGroup>
 
       <ItemGroup>
-        <PackageReference Include="coverlet.collector">
+        <PackageReference Include="coverlet.MTP">
           <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="Shouldly" Condition=" '$(XUnitVersion)' == 'v3' " />
         <PackageReference Include="Microsoft.NET.Test.Sdk" />
         <PackageReference Include="Xunit.Combinatorial" Condition=" '$(XUnitVersion)' == 'v3' " />
-        <PackageReference Include="xunit.v3" Condition=" '$(XUnitVersion)' == 'v3' " />
+        <PackageReference Include="xunit.v3.mtp-v2" Condition=" '$(XUnitVersion)' == 'v3' " />
         <PackageReference Include="xunit.runner.visualstudio">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
