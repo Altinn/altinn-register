@@ -17,7 +17,7 @@ namespace Altinn.Register.Integrations.Ccr.FileImport;
 /// </summary>
 internal sealed partial class CcrFlatFileProcessor
 {
-    private static readonly Encoding _encoding = LegacyEncodings.Latin9;
+    private static readonly Encoding _encoding = LegacyEncodings.Windows1252;
 
     /// <summary>
     /// Processes a CCR flat file from the given PipeReader, writing XML documents for each organization to the provided ChannelWriter.
