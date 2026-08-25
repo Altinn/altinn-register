@@ -38,7 +38,6 @@ internal sealed partial class CcrImportJob
         IImportJobTracker tracker,
         ICommandSender sender,
         ICcrFlatFileService ccrFlatFileService,
-        JobCleanupHelper cleanupHelper,
         TimeProvider timeProvider,
         IMetricsProvider metricsProvider,
         ICcrFlatFileProcessor fileproc)
@@ -79,7 +78,7 @@ internal sealed partial class CcrImportJob
     /// <summary>
     /// Meters for <see cref="CcrImportJob"/>.
     /// </summary>
-    private sealed class ImportMeters(Meter meter)
+    internal sealed class ImportMeters(Meter meter)
         : IMetrics<ImportMeters>
     {
         /// <summary>
