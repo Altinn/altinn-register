@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.0](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.7.0...Altinn.Register.Contracts-v1.8.0) (2026-08-26)
+
+
+### Features
+
+* add ExternalUrn to legacy party model ([#945](https://github.com/Altinn/altinn-register/issues/945)) ([5bc7b05](https://github.com/Altinn/altinn-register/commit/5bc7b0574dca98dc663fbecd41b7e4a7b9d30a35))
+* add source and multiple usernames support ([#908](https://github.com/Altinn/altinn-register/issues/908)) ([6ddcdc7](https://github.com/Altinn/altinn-register/commit/6ddcdc730ae835f2ba35992189d853f40329f64d))
+
 ## [1.7.0](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.6.0...Altinn.Register.Contracts-v1.7.0) (2026-03-06)
 
 
