@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - main
+      - release/altinn-register-contracts/1.x
 
 name: release-please
 
@@ -20,6 +20,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+          target-branch: release/altinn-register-contracts/1.x
 
       - name: Log release output
         env:
