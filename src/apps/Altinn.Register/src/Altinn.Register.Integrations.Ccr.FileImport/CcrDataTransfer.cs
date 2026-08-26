@@ -81,6 +81,33 @@ internal sealed partial class CcrDataTransfer
         }
     }
 
+    /// <inheritdoc/>
+    public async Task<Result> ProcessManualFile(
+        IFileProcessor<CcrOpenedFileInfo> processor,
+        string fileName,
+        uint runId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var client = await _factory.Connect(nameof(ICcrFlatFileService), cancellationToken);
+
+        {
+            await using var fs = await client.OpenReadAsync(fileName, cancellationToken);
+            Log.FileFound(_logger, fileName);
+
+            var reader = PipeReader.Create(fs);
+            var fileInfo = new CcrOpenedFileInfo(fileName, reader, runId);
+
+            await processor.ProcessFileAsync(fileInfo, cancellationToken);
+            Log.FileProcessed(_logger, fileName);
+        }
+
+        var newName = $"{fileName}retrieved";
+        await client.RenameFileAsync(fileName, newName, cancellationToken);
+        Log.FileRenamed(_logger, fileName, newName);
+
+        return Result.Success;
+    }
+
     private async Task<bool> Exists(INetworkFileSystemClient client, string path, CancellationToken cancellationToken)
     {
         try
