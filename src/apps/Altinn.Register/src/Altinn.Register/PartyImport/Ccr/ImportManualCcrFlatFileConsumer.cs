@@ -12,7 +12,7 @@ namespace Altinn.Register.PartyImport.Ccr;
 /// Consumes <see cref="ImportManualCcrFlatFileCommand"/> messages that are manually
 /// produced when an out-of-the-ordinary CCR flat file import is requested.
 /// </summary>
-internal sealed partial class ImportManualCcrFlatFileConsumer
+public sealed partial class ImportManualCcrFlatFileConsumer
     : IConsumer<ImportManualCcrFlatFileCommand>
 {
     private readonly ICcrFlatFileService _ccrService;
