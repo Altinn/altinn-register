@@ -19,6 +19,8 @@ internal static class V1PartyMapper
     /// <returns>The mapped v1 party.</returns>
     internal static V1Models.Party ToV1Party(PartyRecord party)
     {
+        Debug.Assert(party.DisplayName.HasValue);
+
         var ret = new V1Models.Party
         {
             PartyUuid = party.PartyUuid.Value,
@@ -56,9 +58,9 @@ internal static class V1PartyMapper
                     { HasValue: true, Value: SelfIdentifiedUserType.IdPortenEmail }
                         => siUser.Usernames.CurrentValue
                             .Or(siUser.Email.Select(static e => $"epost:{e}"))
-                            .OrDefault(siUser.DisplayName.Value),
+                            .OrDefault(siUser.DisplayName.Value)!,
                     _ => siUser.Usernames.CurrentValue
-                            .OrDefault(siUser.DisplayName.Value),
+                            .OrDefault(siUser.DisplayName.Value)!,
                 };
                 break;
 
@@ -90,9 +92,12 @@ internal static class V1PartyMapper
     /// <returns>The mapped v1 organization.</returns>
     internal static V1Models.Organization ToV1Organization(OrganizationRecord org)
     {
+        Debug.Assert(org.OrganizationIdentifier.HasValue);
+        Debug.Assert(org.DisplayName.HasValue);
+
         var ret = new V1Models.Organization
         {
-            OrgNumber = org.OrganizationIdentifier.Value!.ToString(),
+            OrgNumber = org.OrganizationIdentifier.Value.ToString(),
             Name = org.DisplayName.Value,
             UnitType = org.UnitType.Value,
             TelephoneNumber = org.TelephoneNumber.Value,
@@ -129,9 +134,12 @@ internal static class V1PartyMapper
     /// <returns>The mapped v1 person.</returns>
     internal static V1Models.Person ToV1Person(PersonRecord person)
     {
+        Debug.Assert(person.PersonIdentifier.HasValue);
+        Debug.Assert(person.DisplayName.HasValue);
+
         var ret = new V1Models.Person
         {
-            SSN = person.PersonIdentifier.Value!.ToString(),
+            SSN = person.PersonIdentifier.Value.ToString(),
             Name = person.ShortName.HasValue ? person.ShortName.Value : person.DisplayName.Value,
             FirstName = person.FirstName.Value,
             MiddleName = person.MiddleName.Value,
@@ -201,7 +209,7 @@ internal static class V1PartyMapper
             {
                 Debug.Assert(currentParent is not null);
                 Debug.Assert(children is not null);
-                Debug.Assert(currentParent.PartyUuid.HasValue && currentParent.PartyUuid.Value == org.ParentOrganizationUuid.Value);
+                Debug.Assert(currentParent.PartyUuid == org.ParentOrganizationUuid.Value);
                 children.Add(ToV1Party(org));
                 continue;
             }

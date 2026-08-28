@@ -47,7 +47,7 @@ public record PartyIdentifiers
         return new PartyIdentifiers
         {
             PartyId = checked((uint)party.PartyId),
-            Uuid = party.PartyUuid!.Value,
+            Uuid = party.PartyUuid,
             OrganizationIdentifier = ParseOrganizationIdentifier(party.OrgNumber),
             PersonIdentifier = includePersonIdentifier ? ParsePersonIdentifier(party.SSN) : null,
         };
