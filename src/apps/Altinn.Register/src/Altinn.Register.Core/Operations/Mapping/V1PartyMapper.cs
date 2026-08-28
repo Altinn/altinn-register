@@ -90,9 +90,12 @@ internal static class V1PartyMapper
     /// <returns>The mapped v1 organization.</returns>
     internal static V1Models.Organization ToV1Organization(OrganizationRecord org)
     {
+        Debug.Assert(org.OrganizationIdentifier.HasValue);
+        Debug.Assert(org.DisplayName.HasValue);
+
         var ret = new V1Models.Organization
         {
-            OrgNumber = org.OrganizationIdentifier.Value!.ToString(),
+            OrgNumber = org.OrganizationIdentifier.Value.ToString(),
             Name = org.DisplayName.Value,
             UnitType = org.UnitType.Value,
             TelephoneNumber = org.TelephoneNumber.Value,

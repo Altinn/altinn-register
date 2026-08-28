@@ -8,12 +8,12 @@ public record Organization
     /// <summary>
     /// Gets or sets the organization number
     /// </summary>
-    public string? OrgNumber { get; set; }
+    public required string OrgNumber { get; set; }
 
     /// <summary>
     /// Gets or sets the name of the organization
     /// </summary>
-    public string? Name { get; set; }
+    public required string Name { get; set; }
 
     /// <summary>
     /// Gets or sets the unit type
