@@ -8,12 +8,12 @@ public record Party
     /// <summary>
     /// Gets or sets the ID of the party
     /// </summary>
-    public int PartyId { get; set; }
+    public required int PartyId { get; set; }
 
     /// <summary>
     /// Gets or sets the UUID of the party
     /// </summary>
-    public Guid? PartyUuid { get; set; }
+    public required Guid PartyUuid { get; set; }
 
     /// <summary>
     /// Gets or sets the external reference of the party
@@ -43,7 +43,7 @@ public record Party
     /// <summary>
     /// Gets or sets the Name
     /// </summary>
-    public string? Name { get; set; }
+    public required string Name { get; set; }
 
     /// <summary>
     /// Gets or sets the IsDeleted

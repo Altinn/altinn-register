@@ -170,13 +170,13 @@ public class A2PartyImportConsumerTests
             ChildParties = null,
         };
 
-        party.Name = input.Name;
-        party.Person.Name = input.Name;
+        party.Name = input.Name!;
+        party.Person.Name = input.Name!;
         party.Person.FirstName = input.FirstName;
         party.Person.MiddleName = input.MiddleName;
         party.Person.LastName = input.LastName;
 
-        var partyUuid = party.PartyUuid!.Value;
+        var partyUuid = party.PartyUuid;
         FakeHttpHandlers.For<IA2PartyImportService>()
             .Expect(HttpMethod.Get, "/register/api/parties")
             .WithQuery("partyuuid", partyUuid.ToString())

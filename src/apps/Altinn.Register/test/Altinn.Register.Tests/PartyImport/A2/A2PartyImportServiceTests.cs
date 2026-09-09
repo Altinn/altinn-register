@@ -28,7 +28,7 @@ public class A2PartyImportServiceTests
         var party = await TestDataLoader.Load<Contracts.V1.Party>(partyId.ToString(CultureInfo.InvariantCulture));
         Assert.NotNull(party);
 
-        var partyUuid = party.PartyUuid!.Value;
+        var partyUuid = party.PartyUuid;
 
         using var handler = new FakeHttpMessageHandler();
         handler.Expect(HttpMethod.Get, "/register/api/parties")
@@ -76,7 +76,7 @@ public class A2PartyImportServiceTests
         var party = await TestDataLoader.Load<Contracts.V1.Party>(partyId.ToString(CultureInfo.InvariantCulture));
         Assert.NotNull(party);
 
-        var partyUuid = party.PartyUuid!.Value;
+        var partyUuid = party.PartyUuid;
 
         using var handler = new FakeHttpMessageHandler();
         handler.Expect(HttpMethod.Get, "/register/api/parties")
@@ -128,7 +128,7 @@ public class A2PartyImportServiceTests
         var party = await TestDataLoader.Load<Contracts.V1.Party>(partyId.ToString(CultureInfo.InvariantCulture));
         Assert.NotNull(party);
 
-        var partyUuid = party.PartyUuid!.Value;
+        var partyUuid = party.PartyUuid;
 
         using var handler = new FakeHttpMessageHandler();
         handler.Expect(HttpMethod.Get, "/register/api/parties")
@@ -158,7 +158,7 @@ public class A2PartyImportServiceTests
         var party = await TestDataLoader.Load<Contracts.V1.Party>(partyId.ToString(CultureInfo.InvariantCulture));
         Assert.NotNull(party);
 
-        var partyUuid = party.PartyUuid!.Value;
+        var partyUuid = party.PartyUuid;
 
         using var handler = new FakeHttpMessageHandler();
         handler.Expect(HttpMethod.Get, "/register/api/parties/partyroles/{fromPartyId}")
@@ -196,7 +196,7 @@ public class A2PartyImportServiceTests
         var party = await TestDataLoader.Load<Contracts.V1.Party>(partyId.ToString(CultureInfo.InvariantCulture));
         Assert.NotNull(party);
 
-        var partyUuid = party.PartyUuid!.Value;
+        var partyUuid = party.PartyUuid;
 
         using var handler = new FakeHttpMessageHandler();
         handler.Expect(HttpMethod.Get, "/register/api/parties/partyroles/{fromPartyId}")

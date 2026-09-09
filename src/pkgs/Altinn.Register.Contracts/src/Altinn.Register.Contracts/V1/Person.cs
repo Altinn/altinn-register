@@ -8,12 +8,12 @@ public record Person
     /// <summary>
     /// Gets or sets the social security number
     /// </summary>
-    public string? SSN { get; set; }
+    public required string SSN { get; set; }
 
     /// <summary>
     /// Gets a persons name
     /// </summary>
-    public string? Name { get; set; }
+    public required string Name { get; set; }
 
     /// <summary>
     /// Gets or sets the first name

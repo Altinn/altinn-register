@@ -60,7 +60,7 @@ public sealed class PersonLookupServiceTests
     [Fact]
     public async Task GetPerson_CorrectInput_ReturnsPersonAndCachesResult()
     {
-        Person person = new() { LastName = "lastname", };
+        Person person = new() { SSN = "personnumber", Name = "lastname", LastName = "lastname", };
         _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(person);
 
         var target = CreateTarget();
@@ -131,7 +131,7 @@ public sealed class PersonLookupServiceTests
     [Fact]
     public async Task GetPerson_CachedResult_DoesNotInvokePersonClientAgain()
     {
-        Person person = new() { LastName = "lastname", };
+        Person person = new() { SSN = "personnumber", Name = "lastname", LastName = "lastname", };
         _persons.Setup(s => s.GetPerson(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(person);
 
         var target = CreateTarget();

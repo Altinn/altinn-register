@@ -33,7 +33,13 @@ public class PersonClientTests
         {
             sblRequest = request;
 
-            Person person = new Person { LastName = "làstnâme", FirstName = "firstname" };
+            Person person = new Person
+            {
+                SSN = "thisperson",
+                Name = "firstname làstnâme",
+                LastName = "làstnâme",
+                FirstName = "firstname",
+            };
             return await CreateHttpResponseMessage(person);
         });
 

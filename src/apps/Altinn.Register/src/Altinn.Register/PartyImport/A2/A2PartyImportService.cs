@@ -335,7 +335,6 @@ internal sealed partial class A2PartyImportService
         var profileType = MapUserType(profile.UserType);
         var partyUuid = profile.Party.PartyUuid;
         var partyId = profile.Party.PartyId;
-        Debug.Assert(partyUuid.HasValue);
 
         return new A2ProfileRecord
         {
@@ -344,7 +343,7 @@ internal sealed partial class A2PartyImportService
             IsActive = profile.IsActive,
             UserName = userName,
             ProfileType = profileType,
-            PartyUuid = partyUuid.Value,
+            PartyUuid = partyUuid,
             PartyId = checked((uint)partyId),
             ExternalAuthenticationReference = Normalize(profile.ExternalIdentity),
             LastChangedAt = profile.Party.LastChangedInExternalRegister ?? profile.Party.LastChangedInAltinn,
@@ -520,7 +519,7 @@ internal sealed partial class A2PartyImportService
 
         static SelfIdentifiedUserRecord MapSelfIdentifiedUser(V1Models.Party party, DateTimeOffset now)
         {
-            var partyUuid = party.PartyUuid!.Value;
+            var partyUuid = party.PartyUuid;
             var partyId = checked((uint)party.PartyId);
             var displayName = Normalize(party.Name);
 
@@ -554,9 +553,10 @@ internal sealed partial class A2PartyImportService
 
         static PersonRecord MapPerson(V1Models.Party party, DateTimeOffset now)
         {
-            var person = party.Person!;
+            Debug.Assert(party.Person is not null);
+            var person = party.Person;
 
-            var partyUuid = party.PartyUuid!.Value;
+            var partyUuid = party.PartyUuid;
             var partyId = checked((uint)party.PartyId);
             var personIdentifier = MapPersonIdentifier(person.SSN.AsSpan().Trim());
             var firstName = Normalize(person.FirstName);
@@ -710,9 +710,10 @@ internal sealed partial class A2PartyImportService
 
         static OrganizationRecord MapOrganization(V1Models.Party party, DateTimeOffset now)
         {
-            var organization = party.Organization!;
+            Debug.Assert(party.Organization is not null);
+            var organization = party.Organization;
 
-            var partyUuid = party.PartyUuid!.Value;
+            var partyUuid = party.PartyUuid;
             var partyId = checked((uint)party.PartyId);
             var organizationNumber = MapOrganizationIdentifier(organization.OrgNumber.AsSpan().Trim());
             var name = Normalize(organization.Name);
