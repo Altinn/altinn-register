@@ -4,7 +4,7 @@
 WITH maxval AS (
     SELECT register.tx_max_safeval('register.party_version_id_seq') maxval
 ),
-top_level_uuids AS (
+top_level_uuids_untransformed AS (
     SELECT party."uuid", party.version_id
     FROM register.party AS party
     CROSS JOIN maxval mv
@@ -14,13 +14,21 @@ top_level_uuids AS (
     ORDER BY party.version_id ASC
     LIMIT @streamLimit
 ),
-uuids AS (
+trans_input AS (
     SELECT
         "uuid" AS "uuid",
         NULL::uuid AS parent_uuid,
         version_id AS sort_first,
         NULL::uuid AS sort_second
-    FROM top_level_uuids
+    FROM top_level_uuids_untransformed
+),
+uuids AS (
+    SELECT
+        "uuid",
+        parent_uuid,
+        sort_first,
+        sort_second
+    FROM trans_input
 )
 SELECT
     party.uuid p_uuid,

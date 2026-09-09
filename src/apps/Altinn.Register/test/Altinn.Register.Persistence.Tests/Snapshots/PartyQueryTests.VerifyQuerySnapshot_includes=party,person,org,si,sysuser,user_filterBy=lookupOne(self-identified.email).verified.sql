@@ -1,11 +1,27 @@
 ﻿-- include: party,person,org,si,sysuser,user
 -- filter: lookupOne(self-identified.email)
 
-WITH top_level_uuids AS (
+WITH top_level_uuids_untransformed AS (
     SELECT si_u."uuid", party.version_id
     FROM register.self_identified_user AS si_u
     INNER JOIN register.party AS party USING (uuid)
     WHERE si_u.email = @selfIdentifiedEmail
+),
+trans_input AS (
+    SELECT
+        "uuid" AS "uuid",
+        NULL::uuid AS parent_uuid,
+        version_id AS sort_first,
+        NULL::uuid AS sort_second
+    FROM top_level_uuids_untransformed
+),
+uuids AS (
+    SELECT
+        "uuid",
+        parent_uuid,
+        sort_first,
+        sort_second
+    FROM trans_input
 ),
 filtered_user_ids AS (
     SELECT "user".*
@@ -16,14 +32,6 @@ filtered_usernames AS (
     SELECT "username".*
     FROM register."username" AS "username"
     WHERE "username".is_active
-),
-uuids AS (
-    SELECT
-        "uuid" AS "uuid",
-        NULL::uuid AS parent_uuid,
-        version_id AS sort_first,
-        NULL::uuid AS sort_second
-    FROM top_level_uuids
 ),
 aggregated_user_ids AS (
     SELECT
