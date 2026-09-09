@@ -36,4 +36,27 @@ public sealed record ExternalRoleDefinition
     /// Gets the legacy role-code of the external role, if it has one.
     /// </summary>
     public required string? Code { get; init; }
+
+    /// <summary>
+    /// Gets the role flags associated with the external role.
+    /// </summary>
+    public required RoleFlags Flags { get; init; }
+
+    /// <summary>
+    /// Gets the role flags associated with the external role.
+    /// </summary>
+    [Flags]
+    public enum RoleFlags
+        : ushort
+    {
+        /// <summary>
+        /// No special role flags are set.
+        /// </summary>
+        None = 0,
+
+        /// <summary>
+        /// Indicates that the target of this role is considered the main unit of the organization.
+        /// </summary>
+        MainUnit = 1 << 0,
+    }
 }

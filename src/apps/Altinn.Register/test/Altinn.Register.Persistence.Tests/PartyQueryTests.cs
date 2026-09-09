@@ -101,9 +101,16 @@ public class PartyQueryTests
             PartyListFilters.PartyType,
         ];
 
+        IEnumerable<PartyListTransforms> listTransforms = [
+            PartyListTransforms.None,
+            PartyListTransforms.ReplaceWithMainUnits,
+            PartyListTransforms.IncludeSubUnits,
+            PartyListTransforms.ReplaceWithMainUnits | PartyListTransforms.IncludeSubUnits,
+        ];
+
         IEnumerable<PartyQueryFilters> filters = [
             .. singleIdentifiers.Select(LookupOne),
-            .. multipleIdentifiers.SelectMany(ids => listFilters.Select(f => Lookup(ids, f))),
+            .. multipleIdentifiers.SelectMany(ids => listFilters.SelectMany(f => listTransforms.Select(t => Lookup(ids, t, f)))),
             .. listFilters.Select(Stream),
         ];
 
@@ -113,22 +120,11 @@ public class PartyQueryTests
             data.Add(PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName, filter);
         }
 
-        // with subunits
-        foreach (var filter in filters.Where(static f => !f.IsStream))
-        {
-            data.Add(PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName | PartyFieldIncludes.SubUnits, filter);
-        }
-
         // full includes
         foreach (var filter in filters)
         {
             var allFields = PartyFieldIncludes.Party | PartyFieldIncludes.User | PartyFieldIncludes.Organization | PartyFieldIncludes.Person | PartyFieldIncludes.SystemUser | PartyFieldIncludes.SelfIdentifiedUser;
             data.Add(allFields, filter);
-
-            if (!filter.IsStream)
-            {
-                data.Add(allFields | PartyFieldIncludes.SubUnits, filter);
-            }
         }
 
         return data;
@@ -143,6 +139,7 @@ public class PartyQueryTests
         {
             var mode = info.GetValue<QueryMode>("mode");
             PartyLookupIdentifiers identifiers;
+            PartyListTransforms transforms;
             PartyListFilters filters;
 
             switch (mode)
@@ -154,8 +151,9 @@ public class PartyQueryTests
 
                 case QueryMode.LookupMultiple:
                     identifiers = info.GetValue<PartyLookupIdentifiers>("identifiers");
+                    transforms = info.GetValue<PartyListTransforms>("transforms");
                     filters = info.GetValue<PartyListFilters>("filters");
-                    _value = Lookup(identifiers, filters);
+                    _value = Lookup(identifiers, transforms, filters);
                     break;
 
                 case QueryMode.FilteredStream:
@@ -184,6 +182,7 @@ public class PartyQueryTests
 
                 case QueryMode.LookupMultiple:
                     info.AddValue("identifiers", identifiers, typeof(PartyLookupIdentifiers));
+                    info.AddValue("transforms", _value.Transforms, typeof(PartyListTransforms));
                     info.AddValue("filters", filters, typeof(PartyListFilters));
 
                     break;

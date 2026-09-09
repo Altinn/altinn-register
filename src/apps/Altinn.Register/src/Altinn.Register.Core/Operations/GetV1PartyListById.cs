@@ -53,13 +53,14 @@ internal sealed class GetV1PartyListByIdFromDBRequestHandler(IUnitOfWorkManager 
         }
 
         var include = PartyFieldIncludes.Party | PartyFieldIncludes.Person | PartyFieldIncludes.Organization | PartyFieldIncludes.User;
+        var transforms = PartyListTransforms.None;
         if (request.FetchSubUnits)
         {
-            include |= PartyFieldIncludes.SubUnits;
+            transforms |= PartyListTransforms.IncludeSubUnits;
         }
 
         await foreach (var party in V1PartyMapper.ToV1PartyList(
-            persistence.LookupParties(partyIds: request.PartyIds, include: include, cancellationToken: cancellationToken),
+            persistence.LookupParties(partyIds: request.PartyIds, include: include, transforms: transforms, cancellationToken: cancellationToken),
             cancellationToken))
         {
             yield return party;
