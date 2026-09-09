@@ -720,10 +720,10 @@ public class PartiesControllerTests
         parent1Actual!.ChildParties.ShouldNotBeNull();
         parent2Actual!.ChildParties.ShouldNotBeNull();
 
-        parent1Actual.ChildParties!.Select(static party => party.PartyUuid!.Value)
+        parent1Actual.ChildParties!.Select(static party => party.PartyUuid)
             .ShouldBe(parent1Children.Select(child => child.PartyUuid.Value), ignoreOrder: true);
 
-        parent2Actual.ChildParties!.Select(static party => party.PartyUuid!.Value)
+        parent2Actual.ChildParties!.Select(static party => party.PartyUuid)
             .ShouldBe(parent2Children.Select(child => child.PartyUuid.Value), ignoreOrder: true);
     }
 
@@ -1776,8 +1776,7 @@ public class PartiesControllerTests
             .Where(static party => party.PartyId > 0)
             .ToDictionary(static party => party.PartyId);
         var partiesByUuid = parties
-            .Where(static party => party.PartyUuid is { })
-            .ToDictionary(static party => party.PartyUuid!.Value);
+            .ToDictionary(static party => party.PartyUuid);
         var partiesByOrganizationNumber = parties
             .Where(static party => !string.IsNullOrEmpty(party.OrgNumber))
             .ToDictionary(static party => party.OrgNumber!, StringComparer.Ordinal);
