@@ -304,63 +304,6 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task GetPartyById_CanGet_SubUnits()
-    {
-        var result = await Persistence.GetPartyById(
-            OrganizationWithChildrenUuid,
-            include: PartyFieldIncludes.Party | PartyFieldIncludes.Organization | PartyFieldIncludes.SubUnits,
-            cancellationToken: CancellationToken)
-            .ToListAsync(CancellationToken);
-
-        result.Count.ShouldBe(2);
-
-        var parent = result[0].ShouldBeOfType<OrganizationRecord>();
-        var child = result[1].ShouldBeOfType<OrganizationRecord>();
-
-        {
-            parent.PartyUuid.ShouldBe(OrganizationWithChildrenUuid);
-            parent.PartyId.ShouldBe(OrganizationWithChildrenId);
-            parent.PartyType.ShouldBe(PartyRecordType.Organization);
-            parent.DisplayName.ShouldBe("MOEN OG BJØRNEVATN");
-            parent.PersonIdentifier.ShouldBeNull();
-            parent.OrganizationIdentifier.ShouldBe(OrganizationWithChildrenIdentifier);
-
-            parent.UnitStatus.ShouldBe("N");
-            parent.UnitType.ShouldBe("FLI");
-            parent.TelephoneNumber.ShouldBeNull();
-            parent.MobileNumber.ShouldBeNull();
-            parent.FaxNumber.ShouldBeNull();
-            parent.EmailAddress.ShouldBe("test@test.test");
-            parent.InternetAddress.ShouldBeNull();
-            parent.MailingAddress.ShouldBeNull();
-            parent.BusinessAddress.ShouldBeNull();
-
-            parent.ParentOrganizationUuid.ShouldBeUnset();
-        }
-
-        {
-            child.PartyUuid.ShouldBe(ChildOrganizationUuid);
-            child.PartyId.ShouldBe(50056655);
-            child.PartyType.ShouldBe(PartyRecordType.Organization);
-            child.DisplayName.ShouldBe("NERLANDSØY OG DYRANUT");
-            child.PersonIdentifier.ShouldBeNull();
-            child.OrganizationIdentifier.ShouldHaveValue().ShouldBe(OrganizationIdentifier.Parse("910056077"));
-
-            child.UnitStatus.ShouldBe("N");
-            child.UnitType.ShouldBe("BEDR");
-            child.TelephoneNumber.ShouldBeNull();
-            child.MobileNumber.ShouldBeNull();
-            child.FaxNumber.ShouldBeNull();
-            child.EmailAddress.ShouldBe("test@test.test");
-            child.InternetAddress.ShouldBeNull();
-            child.MailingAddress.ShouldBeNull();
-            child.BusinessAddress.ShouldBeNull();
-
-            child.ParentOrganizationUuid.ShouldBe(OrganizationWithChildrenUuid);
-        }
-    }
-
-    [Fact]
     public async Task LookupParties_MultipleIdentifiers_ToSameParty_ReturnsSingleParty()
     {
         var result = await Persistence.LookupParties(
@@ -428,17 +371,27 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
     [Fact]
     public async Task LookupParties_With_SubUnits_OrdersCorrectly()
     {
+        var administrativeSubUnitUuid = Guid.Parse("d0000000-0000-4000-8000-000000000001");
+        await UoW.CreateOrg(uuid: administrativeSubUnitUuid, unitType: "BEDR", cancellationToken: CancellationToken);
+        await UoW.AddRole(
+            ExternalRoleSource.CentralCoordinatingRegister,
+            "administrativ-enhet-offentlig-sektor",
+            from: administrativeSubUnitUuid,
+            to: Guid.Parse("e2081abd-a16f-4302-93b0-05aaa42023e8"),
+            cancellationToken: CancellationToken);
+
         var result = await Persistence.LookupParties(
             partyUuids: [
                 Guid.Parse("b6368d0a-bce4-4798-8460-f4f86fc354c2"),
                 Guid.Parse("e2081abd-a16f-4302-93b0-05aaa42023e8"),
             ],
-            include: PartyFieldIncludes.Party | PartyFieldIncludes.SubUnits,
+            include: PartyFieldIncludes.Party,
+            transforms: PartyListTransforms.IncludeSubUnits,
             cancellationToken: CancellationToken)
             .Cast<OrganizationRecord>()
             .ToListAsync(CancellationToken);
 
-        result.Count.ShouldBe(6);
+        result.Count.ShouldBe(7);
 
         result[0].PartyUuid.ShouldHaveValue().ShouldBe(Guid.Parse("e2081abd-a16f-4302-93b0-05aaa42023e8"));
         result[0].ParentOrganizationUuid.ShouldBeUnset();
@@ -449,36 +402,43 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         result[2].PartyUuid.ShouldHaveValue().ShouldBe(Guid.Parse("ad18578d-94cb-4774-8f37-5b24801c219b"));
         result[2].ParentOrganizationUuid.ShouldHaveValue().ShouldBe(Guid.Parse("e2081abd-a16f-4302-93b0-05aaa42023e8"));
 
-        result[3].PartyUuid.ShouldHaveValue().ShouldBe(Guid.Parse("ec09feda-5dba-4b84-ad0b-f7886e6082cd"));
+        result[3].PartyUuid.ShouldHaveValue().ShouldBe(administrativeSubUnitUuid);
         result[3].ParentOrganizationUuid.ShouldHaveValue().ShouldBe(Guid.Parse("e2081abd-a16f-4302-93b0-05aaa42023e8"));
 
-        result[4].PartyUuid.ShouldHaveValue().ShouldBe(Guid.Parse("b6368d0a-bce4-4798-8460-f4f86fc354c2"));
-        result[4].ParentOrganizationUuid.ShouldBeUnset();
+        result[4].PartyUuid.ShouldHaveValue().ShouldBe(Guid.Parse("ec09feda-5dba-4b84-ad0b-f7886e6082cd"));
+        result[4].ParentOrganizationUuid.ShouldHaveValue().ShouldBe(Guid.Parse("e2081abd-a16f-4302-93b0-05aaa42023e8"));
 
-        result[5].PartyUuid.ShouldHaveValue().ShouldBe(Guid.Parse("08cb91ff-75a4-45a4-b141-3c6be1bf8728"));
-        result[5].ParentOrganizationUuid.ShouldHaveValue().ShouldBe(Guid.Parse("b6368d0a-bce4-4798-8460-f4f86fc354c2"));
+        result[5].PartyUuid.ShouldHaveValue().ShouldBe(Guid.Parse("b6368d0a-bce4-4798-8460-f4f86fc354c2"));
+        result[5].ParentOrganizationUuid.ShouldBeUnset();
+
+        result[6].PartyUuid.ShouldHaveValue().ShouldBe(Guid.Parse("08cb91ff-75a4-45a4-b141-3c6be1bf8728"));
+        result[6].ParentOrganizationUuid.ShouldHaveValue().ShouldBe(Guid.Parse("b6368d0a-bce4-4798-8460-f4f86fc354c2"));
     }
 
     [Fact]
     public async Task LookupParties_Shared_SubUnit()
     {
-        var child = await UoW.CreateOrg(unitType: "BEDR", cancellationToken: CancellationToken);
+        var child = await UoW.CreateOrg(uuid: Guid.Parse("10000000-0000-4000-8000-000000000001"), unitType: "BEDR", cancellationToken: CancellationToken);
+        var administrativeChild = await UoW.CreateOrg(uuid: Guid.Parse("20000000-0000-4000-8000-000000000001"), unitType: "BEDR", cancellationToken: CancellationToken);
         var parent1 = await UoW.CreateOrg(unitType: "AS", cancellationToken: CancellationToken);
         var parent2 = await UoW.CreateOrg(unitType: "AS", cancellationToken: CancellationToken);
 
         await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet", from: child.PartyUuid.Value, to: parent1.PartyUuid.Value, cancellationToken: CancellationToken);
         await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet", from: child.PartyUuid.Value, to: parent2.PartyUuid.Value, cancellationToken: CancellationToken);
+        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "administrativ-enhet-offentlig-sektor", from: administrativeChild.PartyUuid.Value, to: parent1.PartyUuid.Value, cancellationToken: CancellationToken);
+        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "administrativ-enhet-offentlig-sektor", from: administrativeChild.PartyUuid.Value, to: parent2.PartyUuid.Value, cancellationToken: CancellationToken);
 
         var result = await Persistence.LookupParties(
             partyUuids: [parent1.PartyUuid.Value, parent2.PartyUuid.Value],
-            include: PartyFieldIncludes.Party | PartyFieldIncludes.Organization | PartyFieldIncludes.SubUnits,
+            include: PartyFieldIncludes.Party | PartyFieldIncludes.Organization,
+            transforms: PartyListTransforms.IncludeSubUnits,
             cancellationToken: CancellationToken)
             .Cast<OrganizationRecord>()
             .ToListAsync(CancellationToken);
 
-        result.Count.ShouldBe(4);
+        result.Count.ShouldBe(6);
 
-        List<OrganizationRecord> parents = [result[0], result[2]];
+        List<OrganizationRecord> parents = [result[0], result[3]];
         parents.Sort(static (a, b) => a.VersionId.Value.CompareTo(b.VersionId.Value));
 
         result[0].PartyUuid.ShouldBe(parents[0].PartyUuid);
@@ -487,11 +447,122 @@ public class PostgreSqlPartyPersistenceTests(ITestOutputHelper output)
         result[1].PartyUuid.ShouldBe(child.PartyUuid);
         result[1].ParentOrganizationUuid.ShouldBe(parents[0].PartyUuid);
 
-        result[2].PartyUuid.ShouldBe(parents[1].PartyUuid);
-        result[2].ParentOrganizationUuid.ShouldBeUnset();
+        result[2].PartyUuid.ShouldBe(administrativeChild.PartyUuid);
+        result[2].ParentOrganizationUuid.ShouldBe(parents[0].PartyUuid);
 
-        result[3].PartyUuid.ShouldBe(child.PartyUuid);
-        result[3].ParentOrganizationUuid.ShouldBe(parents[1].PartyUuid);
+        result[3].PartyUuid.ShouldBe(parents[1].PartyUuid);
+        result[3].ParentOrganizationUuid.ShouldBeUnset();
+
+        result[4].PartyUuid.ShouldBe(child.PartyUuid);
+        result[4].ParentOrganizationUuid.ShouldBe(parents[1].PartyUuid);
+
+        result[5].PartyUuid.ShouldBe(administrativeChild.PartyUuid);
+        result[5].ParentOrganizationUuid.ShouldBe(parents[1].PartyUuid);
+    }
+
+    [Fact]
+    public async Task LookupParties_ReplaceWithMainUnits()
+    {
+        var subUnit1 = await UoW.CreateOrg(uuid: Guid.Parse("10000000-0000-4000-8000-000000000002"), unitType: "BEDR", cancellationToken: CancellationToken);
+        var subUnit2 = await UoW.CreateOrg(uuid: Guid.Parse("20000000-0000-4000-8000-000000000002"), unitType: "BEDR", cancellationToken: CancellationToken);
+        var sharedSubUnit = await UoW.CreateOrg(uuid: Guid.Parse("30000000-0000-4000-8000-000000000002"), unitType: "BEDR", cancellationToken: CancellationToken);
+        var administrativeSubUnit = await UoW.CreateOrg(uuid: Guid.Parse("40000000-0000-4000-8000-000000000002"), unitType: "BEDR", cancellationToken: CancellationToken);
+        var withoutMainUnit = await UoW.CreateOrg(unitType: "AS", cancellationToken: CancellationToken);
+        var mainUnit1 = await UoW.CreateOrg(unitType: "AS", cancellationToken: CancellationToken);
+        var mainUnit2 = await UoW.CreateOrg(unitType: "AS", cancellationToken: CancellationToken);
+
+        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet", from: subUnit1.PartyUuid.Value, to: mainUnit1.PartyUuid.Value, cancellationToken: CancellationToken);
+        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet", from: subUnit2.PartyUuid.Value, to: mainUnit1.PartyUuid.Value, cancellationToken: CancellationToken);
+        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet", from: sharedSubUnit.PartyUuid.Value, to: mainUnit1.PartyUuid.Value, cancellationToken: CancellationToken);
+        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "ikke-naeringsdrivende-hovedenhet", from: sharedSubUnit.PartyUuid.Value, to: mainUnit2.PartyUuid.Value, cancellationToken: CancellationToken);
+        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "administrativ-enhet-offentlig-sektor", from: administrativeSubUnit.PartyUuid.Value, to: mainUnit2.PartyUuid.Value, cancellationToken: CancellationToken);
+
+        var result = await Persistence.LookupParties(
+            partyUuids: [
+                subUnit1.PartyUuid.Value,
+                subUnit2.PartyUuid.Value,
+                sharedSubUnit.PartyUuid.Value,
+                administrativeSubUnit.PartyUuid.Value,
+                withoutMainUnit.PartyUuid.Value,
+                mainUnit1.PartyUuid.Value,
+            ],
+            include: PartyFieldIncludes.Party | PartyFieldIncludes.Organization,
+            transforms: PartyListTransforms.ReplaceWithMainUnits,
+            cancellationToken: CancellationToken)
+            .Cast<OrganizationRecord>()
+            .ToListAsync(CancellationToken);
+
+        // sub-units sharing a main unit collapse into a single entry, a sub-unit with several
+        // main units yields all of them, and parties without a main unit are dropped
+        result.Count.ShouldBe(2);
+        result.Select(static r => r.PartyUuid.Value).ShouldBe([mainUnit1.PartyUuid.Value, mainUnit2.PartyUuid.Value], ignoreOrder: true);
+        result[0].VersionId.Value.ShouldBeLessThan(result[1].VersionId.Value);
+
+        result[0].ParentOrganizationUuid.ShouldBeUnset();
+        result[1].ParentOrganizationUuid.ShouldBeUnset();
+    }
+
+    [Fact]
+    public async Task LookupParties_ReplaceWithMainUnits_IncludeSubUnits()
+    {
+        var subUnit1 = await UoW.CreateOrg(uuid: Guid.Parse("10000000-0000-4000-8000-000000000003"), unitType: "BEDR", cancellationToken: CancellationToken);
+        var subUnit2 = await UoW.CreateOrg(uuid: Guid.Parse("20000000-0000-4000-8000-000000000003"), unitType: "BEDR", cancellationToken: CancellationToken);
+        var sharedSubUnit = await UoW.CreateOrg(uuid: Guid.Parse("30000000-0000-4000-8000-000000000003"), unitType: "BEDR", cancellationToken: CancellationToken);
+        var administrativeSubUnit = await UoW.CreateOrg(uuid: Guid.Parse("40000000-0000-4000-8000-000000000003"), unitType: "BEDR", cancellationToken: CancellationToken);
+        var withoutMainUnit = await UoW.CreateOrg(unitType: "AS", cancellationToken: CancellationToken);
+        var mainUnit1 = await UoW.CreateOrg(unitType: "AS", cancellationToken: CancellationToken);
+        var mainUnit2 = await UoW.CreateOrg(unitType: "AS", cancellationToken: CancellationToken);
+
+        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet", from: subUnit1.PartyUuid.Value, to: mainUnit1.PartyUuid.Value, cancellationToken: CancellationToken);
+        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet", from: subUnit2.PartyUuid.Value, to: mainUnit1.PartyUuid.Value, cancellationToken: CancellationToken);
+        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet", from: sharedSubUnit.PartyUuid.Value, to: mainUnit1.PartyUuid.Value, cancellationToken: CancellationToken);
+        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "ikke-naeringsdrivende-hovedenhet", from: sharedSubUnit.PartyUuid.Value, to: mainUnit2.PartyUuid.Value, cancellationToken: CancellationToken);
+        await UoW.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "administrativ-enhet-offentlig-sektor", from: administrativeSubUnit.PartyUuid.Value, to: mainUnit2.PartyUuid.Value, cancellationToken: CancellationToken);
+
+        // only one sub-unit per main unit is looked up; the siblings are expected
+        // to come back through the sub-unit expansion of the replaced main units
+        var result = await Persistence.LookupParties(
+            partyUuids: [
+                subUnit1.PartyUuid.Value,
+                administrativeSubUnit.PartyUuid.Value,
+                withoutMainUnit.PartyUuid.Value,
+            ],
+            include: PartyFieldIncludes.Party | PartyFieldIncludes.Organization,
+            transforms: PartyListTransforms.ReplaceWithMainUnits | PartyListTransforms.IncludeSubUnits,
+            cancellationToken: CancellationToken)
+            .Cast<OrganizationRecord>()
+            .ToListAsync(CancellationToken);
+
+        Dictionary<Guid, Guid[]> expectedSubUnits = new()
+        {
+            [mainUnit1.PartyUuid.Value] = [subUnit1.PartyUuid.Value, subUnit2.PartyUuid.Value, sharedSubUnit.PartyUuid.Value],
+            [mainUnit2.PartyUuid.Value] = [sharedSubUnit.PartyUuid.Value, administrativeSubUnit.PartyUuid.Value],
+        };
+
+        result.Count.ShouldBe(7);
+
+        var mainUnits = result.Where(static r => r.ParentOrganizationUuid.IsUnset).ToList();
+        mainUnits.Count.ShouldBe(2);
+        mainUnits.Select(static r => r.PartyUuid.Value).ShouldBe([mainUnit1.PartyUuid.Value, mainUnit2.PartyUuid.Value], ignoreOrder: true);
+        mainUnits[0].VersionId.Value.ShouldBeLessThan(mainUnits[1].VersionId.Value);
+
+        // each main unit is directly followed by its sub-units, ordered by sub-unit uuid
+        var index = 0;
+        foreach (var mainUnit in mainUnits)
+        {
+            result[index].PartyUuid.ShouldBe(mainUnit.PartyUuid);
+            result[index].ParentOrganizationUuid.ShouldBeUnset();
+            index++;
+
+            foreach (var subUnitUuid in expectedSubUnits[mainUnit.PartyUuid.Value])
+            {
+                result[index].PartyUuid.ShouldHaveValue().ShouldBe(subUnitUuid);
+                result[index].ParentOrganizationUuid.ShouldBe(mainUnit.PartyUuid);
+                index++;
+            }
+        }
+
+        index.ShouldBe(result.Count);
     }
 
     [Fact]

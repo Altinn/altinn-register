@@ -415,7 +415,7 @@ public static class PartyPersistenceExtensions
             /*strpsql*/"""
             INSERT INTO register.external_role_definition (source, identifier, name, description)
             VALUES (@source, @identifier, @name, @name)
-            RETURNING *
+            RETURNING *, false as is_main_unit
             """;
 
         var conn = uow.GetRequiredService<NpgsqlConnection>();

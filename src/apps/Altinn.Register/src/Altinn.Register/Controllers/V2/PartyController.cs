@@ -100,17 +100,6 @@ public partial class PartyController
         var pageSize = _settings.PartyStreamPageSize;
         IReadOnlySet<PartyRecordType>? partyTypes = partyTypesInput.Value == PartyTypes.None ? null : new PartyTypesSet(partyTypesInput.Value);
 
-        ValidationProblemBuilder errors = default;
-        if (fields.HasFlag(PartyFieldIncludes.SubUnits))
-        {
-            errors.Add(ValidationErrors.PartyFields_SubUnits_Forbidden, "/$QUERY/fields");
-        }
-
-        if (errors.TryToActionResult(out var actionResult))
-        {
-            return actionResult;
-        }
-
         await using var uow = await _uowManager.CreateAsync(cancellationToken);
         var persistence = uow.GetPartyPersistence();
 
@@ -390,17 +379,6 @@ public partial class PartyController
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         CancellationToken cancellationToken = default)
     {
-        ValidationProblemBuilder errors = default;
-        if (fields.HasFlag(PartyFieldIncludes.SubUnits))
-        {
-            errors.Add(ValidationErrors.PartyFields_SubUnits_Forbidden, "/$QUERY/fields");
-        }
-
-        if (errors.TryToActionResult(out var actionResult))
-        {
-            return actionResult;
-        }
-
         await using var uow = await _uowManager.CreateAsync(cancellationToken);
         var persistence = uow.GetPartyPersistence();
 
@@ -435,18 +413,23 @@ public partial class PartyController
     [HttpPost("query")]
     [ProducesResponseType<ListObject<Party>>(StatusCodes.Status200OK)]
     [ProducesResponseType<ListObject<Party>>(StatusCodes.Status206PartialContent)]
-    public async Task<ActionResult<ListObject<Party>>> Query(
+    public Task<ActionResult<ListObject<Party>>> Query(
         [FromBody] ListObject<PartyUrn> parties,
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         CancellationToken cancellationToken = default)
+        => QueryCore<Party>(parties.Items, fields, PartyListTransforms.None, cancellationToken);
+
+    [NonAction]
+    private async Task<ActionResult<ListObject<TParty>>> QueryCore<TParty>(
+        IEnumerable<PartyUrn> parties,
+        PartyFieldIncludes fields,
+        PartyListTransforms transforms,
+        CancellationToken cancellationToken)
+        where TParty : Party
     {
         const int MAX_ITEMS = PARTY_QUERY_MAX_ITEMS;
 
         ValidationProblemBuilder errors = default;
-        if (fields.HasFlag(PartyFieldIncludes.SubUnits))
-        {
-            errors.Add(ValidationErrors.PartyFields_SubUnits_Forbidden, "/$QUERY/fields");
-        }
 
         List<Guid>? uuids = null;
         List<uint>? ids = null;
@@ -457,7 +440,7 @@ public partial class PartyController
         List<string>? idpEmails = null;
 
         var count = 0;
-        foreach (var item in parties.Items)
+        foreach (var item in parties)
         {
             switch (item)
             {
@@ -543,38 +526,45 @@ public partial class PartyController
             usernames: usernames,
             selfIdentifiedEmails: idpEmails,
             include: fields | REQUIRED_FIELDS,
+            transforms: transforms,
             cancellationToken: cancellationToken)
             .Select(static p => p.ToPlatformModel())
+            .Cast<TParty>()
             .ToListAsync(cancellationToken);
 
-        // TODO: rewrite this to give out which inputs matched which outputs
-        // see https://github.com/Altinn/altinn-register/issues/659
+        // We currently only have enough information to check for "missing" if we do not transform the list
         var statusCode = StatusCodes.Status200OK;
-        var missingById = ids.OrEmpty().Any(id => !result.Any(p => p.PartyId.Value == id));
-        var missingByUuid = uuids.OrEmpty().Any(uuid => !result.Any(p => p.Uuid == uuid));
-        var missingByOrgId = orgIds.OrEmpty().Any(orgId => !result.Any(p => p is Organization o && o.OrganizationIdentifier == orgId));
-        var missingByPersonId = personIds.OrEmpty().Any(personId => !result.Any(p => p is Person pp && pp.PersonIdentifier == personId));
-        var missingByUserId = userIds.OrEmpty().Any(uid => !result.Any(p => p.User.HasValue && p.User.Value.UserIds.HasValue && p.User.Value.UserIds.Value.Contains(uid)));
-        var missingByUsername = usernames.OrEmpty().Any(username => !result.Any(p => p.User.HasValue && p.User.Value.Username.HasValue && string.Equals(p.User.Value.Username.Value, username, StringComparison.OrdinalIgnoreCase)));
-        var missingByIdpEmail = idpEmails.OrEmpty().Any(email => !result.Any(p => p is SelfIdentifiedUser s && s.Email.HasValue && string.Equals(s.Email.Value, email, StringComparison.OrdinalIgnoreCase)));
-        var anyMissing = missingById || missingByUuid || missingByOrgId || missingByPersonId || missingByUserId || missingByUsername || missingByIdpEmail;
-
-        if (anyMissing)
+        if (transforms is PartyListTransforms.None)
         {
-            // in case we requested a single item, it was not found, and the item was an organization, we log the query
-            if (count == 1 && orgIds is { Count: 1 })
-            {
-                activity?.AddTag("query.urn", parties.Items.First().ToString());
-            }
+            // TODO: rewrite this to give out which inputs matched which outputs
+            // see https://github.com/Altinn/altinn-register/issues/659
+            var missingById = ids.OrEmpty().Any(id => !result.Any(p => p.PartyId.Value == id));
+            var missingByUuid = uuids.OrEmpty().Any(uuid => !result.Any(p => p.Uuid == uuid));
+            var missingByOrgId = orgIds.OrEmpty().Any(orgId => !result.Any(p => p is Organization o && o.OrganizationIdentifier == orgId));
+            var missingByPersonId = personIds.OrEmpty().Any(personId => !result.Any(p => p is Person pp && pp.PersonIdentifier == personId));
+            var missingByUserId = userIds.OrEmpty().Any(uid => !result.Any(p => p.User.HasValue && p.User.Value.UserIds.HasValue && p.User.Value.UserIds.Value.Contains(uid)));
+            var missingByUsername = usernames.OrEmpty().Any(username => !result.Any(p => p.User.HasValue && p.User.Value.Username.HasValue && string.Equals(p.User.Value.Username.Value, username, StringComparison.OrdinalIgnoreCase)));
+            var missingByIdpEmail = idpEmails.OrEmpty().Any(email => !result.Any(p => p is SelfIdentifiedUser s && s.Email.HasValue && string.Equals(s.Email.Value, email, StringComparison.OrdinalIgnoreCase)));
+            var anyMissing = missingById || missingByUuid || missingByOrgId || missingByPersonId || missingByUserId || missingByUsername || missingByIdpEmail;
 
-            activity?.AddTag("query.missing.by-id", missingById);
-            activity?.AddTag("query.missing.by-uuid", missingByUuid);
-            activity?.AddTag("query.missing.by-org-id", missingByOrgId);
-            activity?.AddTag("query.missing.by-person-id", missingByPersonId);
-            activity?.AddTag("query.missing.by-user-id", missingByUserId);
-            activity?.AddTag("query.missing.by-username", missingByUsername);
-            activity?.AddTag("query.missing.by-idp-email", missingByIdpEmail);
-            statusCode = StatusCodes.Status206PartialContent;
+            if (anyMissing)
+            {
+                // in case we requested a single item, it was not found, and the item was an organization, we log the query
+                if (count == 1 && orgIds is { Count: 1 })
+                {
+                    // we're in an "error" case here, so we're fine with double-iterating over the parties enumerable
+                    activity?.AddTag("query.urn", parties.First().ToString());
+                }
+
+                activity?.AddTag("query.missing.by-id", missingById);
+                activity?.AddTag("query.missing.by-uuid", missingByUuid);
+                activity?.AddTag("query.missing.by-org-id", missingByOrgId);
+                activity?.AddTag("query.missing.by-person-id", missingByPersonId);
+                activity?.AddTag("query.missing.by-user-id", missingByUserId);
+                activity?.AddTag("query.missing.by-username", missingByUsername);
+                activity?.AddTag("query.missing.by-idp-email", missingByIdpEmail);
+                statusCode = StatusCodes.Status206PartialContent;
+            }
         }
 
         activity?.AddTag("query.resultCount", result.Count);
@@ -696,9 +686,6 @@ public partial class PartyController
     [GeneratedRegex(@"^[a-z][a-z0-9._@\-]{5,63}$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 100)]
     private static partial Regex GetValidUsernameRegex();
 
-    private static ExternalRoleReference _hovedenhetRole = new(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet");
-    private static ExternalRoleReference _ikkeNaeringsdrivendeHovedenhetRole = new(ExternalRoleSource.CentralCoordinatingRegister, "ikke-naeringsdrivende-hovedenhet");
-
     /// <summary>
     /// Gets the main units of an organization (if any).
     /// </summary>
@@ -708,70 +695,18 @@ public partial class PartyController
     /// <returns>All organizations that are the main-units of the input organization.</returns>
     [HttpPost("main-units")]
     [ProducesResponseType<ListObject<Organization>>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<ListObject<Organization>>> GetMainUnits(
+    public Task<ActionResult<ListObject<Organization>>> GetMainUnits(
         [FromBody] DataObject<OrganizationUrn> request,
         [FromQuery(Name = "fields")] PartyFieldIncludes fields = PartyFieldIncludes.Identifiers | PartyFieldIncludes.PartyDisplayName,
         CancellationToken cancellationToken = default)
     {
-        ValidationProblemBuilder errors = default;
-        if (fields.HasFlag(PartyFieldIncludes.SubUnits))
-        {
-            errors.Add(ValidationErrors.PartyFields_SubUnits_Forbidden, "/$QUERY/fields");
-        }
-
-        if (errors.TryToActionResult(out var actionResult))
-        {
-            return actionResult;
-        }
-
-        await using var uow = await _uowManager.CreateAsync(cancellationToken);
-        var partyPersistence = uow.GetPartyPersistence();
-        var rolePersistence = uow.GetPartyExternalRolePersistence();
-
-        if (!request.Item.IsPartyUuid(out var partyUuid))
-        {
-            PartyRecord? party = request.Item switch
-            {
-                OrganizationUrn.PartyId { Value: var partyId } => await partyPersistence
-                    .GetPartyById(partyId, PartyFieldIncludes.PartyUuid | PartyFieldIncludes.PartyType, cancellationToken)
-                    .FirstOrDefaultAsync(cancellationToken),
-                OrganizationUrn.OrganizationId { Value: var orgId } => await partyPersistence
-                    .GetOrganizationByIdentifier(orgId, PartyFieldIncludes.PartyUuid, cancellationToken)
-                    .FirstOrDefaultAsync(cancellationToken),
-                _ => Unreachable<PartyRecord>(),
-            };
-
-            if (party is not OrganizationRecord { PartyUuid.HasValue: true })
-            {
-                // only organizations can have main units
-                return ListObject.Create<Organization>([]);
-            }
-
-            partyUuid = party.PartyUuid.Value;
-        }
-
-        var mainUnitIds = await rolePersistence.GetExternalRoleAssignmentsFromParty(
-            partyUuid,
-            [_hovedenhetRole, _ikkeNaeringsdrivendeHovedenhetRole],
-            PartyExternalRoleAssignmentFieldIncludes.RoleToParty,
-            cancellationToken)
-            .Select(static r => r.ToParty.Value)
-            .ToListAsync(cancellationToken);
-
-        if (mainUnitIds.Count == 0)
-        {
-            return ListObject.Create<Organization>([]);
-        }
-
-        var mainUnits = await partyPersistence.LookupParties(
-            partyUuids: mainUnitIds,
-            include: fields | REQUIRED_FIELDS,
-            cancellationToken: cancellationToken)
-            .OfType<OrganizationRecord>()
-            .Select(static o => o.ToPlatformModel())
-            .ToListAsync(cancellationToken);
-
-        return ListObject.Create(mainUnits);
+        // all valid organization urns **shoulde** be valid party urns
+        var partyUrn = PartyUrn.Parse(request.Item.ToString());
+        return QueryCore<Organization>(
+            [partyUrn],
+            fields,
+            PartyListTransforms.ReplaceWithMainUnits,
+            cancellationToken);
     }
 
     [DoesNotReturn]

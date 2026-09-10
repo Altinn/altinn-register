@@ -1,18 +1,26 @@
 ﻿-- include: display-name,identifiers
 -- filter: lookupOne(uuid)
 
-WITH top_level_uuids AS (
+WITH top_level_uuids_untransformed AS (
     SELECT party."uuid", party.version_id
     FROM register.party AS party
     WHERE party."uuid" = @partyUuid
 ),
-uuids AS (
+trans_input AS (
     SELECT
         "uuid" AS "uuid",
         NULL::uuid AS parent_uuid,
         version_id AS sort_first,
         NULL::uuid AS sort_second
-    FROM top_level_uuids
+    FROM top_level_uuids_untransformed
+),
+uuids AS (
+    SELECT
+        "uuid",
+        parent_uuid,
+        sort_first,
+        sort_second
+    FROM trans_input
 )
 SELECT
     party.uuid p_uuid,

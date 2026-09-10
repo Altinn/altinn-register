@@ -181,7 +181,7 @@ internal static class V1PartyMapper
     /// <remarks>
     /// This method requires a strict ordering where a parent organization appears before any of its child units,
     /// and each child unit follows its parent immediately. This ordering contract is fulfilled by
-    /// <see cref="Parties.IPartyPersistence.LookupParties(IReadOnlyList{Guid}?, IReadOnlyList{uint}?, IReadOnlyList{Altinn.Register.Contracts.PartyExternalRefUrn}?, IReadOnlyList{Altinn.Register.Contracts.OrganizationIdentifier}?, IReadOnlyList{Altinn.Register.Contracts.PersonIdentifier}?, IReadOnlyList{uint}?, IReadOnlyList{string}?, IReadOnlyList{string}?, Parties.PartyFieldIncludes, CancellationToken)"/>.
+    /// <see cref="Parties.IPartyPersistence.LookupParties(IReadOnlyList{Guid}?, IReadOnlyList{uint}?, IReadOnlyList{Altinn.Register.Contracts.PartyExternalRefUrn}?, IReadOnlyList{Altinn.Register.Contracts.OrganizationIdentifier}?, IReadOnlyList{Altinn.Register.Contracts.PersonIdentifier}?, IReadOnlyList{uint}?, IReadOnlyList{string}?, IReadOnlyList{string}?, Parties.PartyFieldIncludes, Parties.PartyListTransforms, CancellationToken)"/>.
     /// </remarks>
     internal static async IAsyncEnumerable<V1Models.Party> ToV1PartyList(
         IAsyncEnumerable<PartyRecord> parties,

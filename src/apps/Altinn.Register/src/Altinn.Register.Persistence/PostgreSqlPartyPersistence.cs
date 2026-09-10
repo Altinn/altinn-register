@@ -154,7 +154,7 @@ internal partial class PostgreSqlPartyPersistence
         include |= PartyFieldIncludes.PartyPersonIdentifier;
 
         // filter out organization fields as result is guaranteed to be a person
-        include &= ~(PartyFieldIncludes.Organization & PartyFieldIncludes.SubUnits);
+        include &= ~PartyFieldIncludes.Organization;
 
         var query = PartyQuery.Get(include, PartyQueryFilters.LookupOne(PartyLookupIdentifiers.PersonIdentifier));
         NpgsqlCommand? cmd = null;
@@ -212,6 +212,7 @@ internal partial class PostgreSqlPartyPersistence
         IReadOnlyList<string>? usernames = null,
         IReadOnlyList<string>? selfIdentifiedEmails = null,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
+        PartyListTransforms transforms = PartyListTransforms.None,
         CancellationToken cancellationToken = default)
     {
         _handle.ThrowIfCompleted();
@@ -283,7 +284,8 @@ internal partial class PostgreSqlPartyPersistence
         if (!orgs)
         {
             // filter out organization fields as result is guaranteed to not be organizations
-            include &= ~(PartyFieldIncludes.Organization & PartyFieldIncludes.SubUnits);
+            include &= ~PartyFieldIncludes.Organization;
+            transforms &= ~PartyListTransforms.IncludeSubUnits;
         }
 
         if (!persons)
@@ -292,7 +294,7 @@ internal partial class PostgreSqlPartyPersistence
             include &= ~PartyFieldIncludes.Person;
         }
 
-        var query = PartyQuery.Get(include, PartyQueryFilters.Lookup(identifiers));
+        var query = PartyQuery.Get(include, PartyQueryFilters.Lookup(identifiers, transforms));
         NpgsqlCommand? cmd = null;
         try
         {
@@ -356,7 +358,6 @@ internal partial class PostgreSqlPartyPersistence
         CancellationToken cancellationToken = default)
     {
         _handle.ThrowIfCompleted();
-        Guard.IsFalse(include.HasFlag(PartyFieldIncludes.SubUnits), nameof(include), $"{nameof(PartyFieldIncludes)}.{nameof(PartyFieldIncludes.SubUnits)} is not allowed");
 
         var filter = PartyListFilters.None;
         if (filterByPartyType is { Count: > 0 })
