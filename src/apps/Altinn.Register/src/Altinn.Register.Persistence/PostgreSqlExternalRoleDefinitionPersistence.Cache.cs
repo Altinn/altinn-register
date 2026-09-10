@@ -195,7 +195,7 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
                 , code
                 , mu.identifier IS NULL AS is_main_unit
                 FROM register.external_role_definition
-                LEFT JOIN register register.external_main_unit_role mu using (source, identifier)
+                LEFT JOIN register.external_main_unit_role mu using (source, identifier)
                 """;
 
             Log.FetchingExternalRoleDefinitions(_logger);
