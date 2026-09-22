@@ -289,22 +289,16 @@ public enum PartyFieldIncludes
     SystemUserType = 1UL << 35,
 
     /// <summary>
-    /// Include subunits (if party is an organization).
-    /// </summary>
-    [JsonStringEnumMemberName("org.subunits")]
-    SubUnits = 1UL << 36,
-
-    /// <summary>
     /// The user id(s), if the party has an associated user.
     /// </summary>
     [JsonStringEnumMemberName("user.id")]
-    UserId = 1UL << 37,
+    UserId = 1UL << 36,
 
     /// <summary>
     /// The username, if the party has an associated user.
     /// </summary>
     [JsonStringEnumMemberName("user.name")]
-    Username = 1UL << 38,
+    Username = 1UL << 37,
 
     /// <summary>
     /// All user fields.

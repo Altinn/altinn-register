@@ -1,11 +1,27 @@
 ﻿-- include: party,person,org,si,sysuser,user
 -- filter: lookupOne(user.name)
 
-WITH top_level_uuids AS (
+WITH top_level_uuids_untransformed AS (
     SELECT "username"."uuid", party.version_id
     FROM register."username" AS "username"
     INNER JOIN register.party AS party USING (uuid)
     WHERE "username".username = @username
+),
+trans_input AS (
+    SELECT
+        "uuid" AS "uuid",
+        NULL::uuid AS parent_uuid,
+        version_id AS sort_first,
+        NULL::uuid AS sort_second
+    FROM top_level_uuids_untransformed
+),
+uuids AS (
+    SELECT
+        "uuid",
+        parent_uuid,
+        sort_first,
+        sort_second
+    FROM trans_input
 ),
 filtered_user_ids AS (
     SELECT "user".*
@@ -17,14 +33,6 @@ filtered_usernames AS (
     FROM register."username" AS "username"
     WHERE "username".is_active
        OR "username".username = @username
-),
-uuids AS (
-    SELECT
-        "uuid" AS "uuid",
-        NULL::uuid AS parent_uuid,
-        version_id AS sort_first,
-        NULL::uuid AS sort_second
-    FROM top_level_uuids
 ),
 aggregated_user_ids AS (
     SELECT

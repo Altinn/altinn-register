@@ -92,16 +92,18 @@ public class GetMainUnitsTests
     [MemberData(nameof(MainUnitsPaths))]
     public async Task MultipleMainUnits(string path)
     {
-        var (subUnit, mainUnit1, mainUnit2) = await Setup(async (uow, ct) =>
+        var (subUnit, mainUnit1, mainUnit2, mainUnit3) = await Setup(async (uow, ct) =>
         {
-            var units = await uow.CreateOrgs(3, cancellationToken: ct);
+            var units = await uow.CreateOrgs(4, cancellationToken: ct);
             var subUnit = units[0];
             var mainUnit1 = units[1];
             var mainUnit2 = units[2];
+            var mainUnit3 = units[3];
 
             await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "hovedenhet", from: subUnit.PartyUuid.Value, to: mainUnit1.PartyUuid.Value, cancellationToken: ct);
             await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "ikke-naeringsdrivende-hovedenhet", from: subUnit.PartyUuid.Value, to: mainUnit2.PartyUuid.Value, cancellationToken: ct);
-            return (subUnit, mainUnit1, mainUnit2);
+            await uow.AddRole(ExternalRoleSource.CentralCoordinatingRegister, "administrativ-enhet-offentlig-sektor", from: subUnit.PartyUuid.Value, to: mainUnit3.PartyUuid.Value, cancellationToken: ct);
+            return (subUnit, mainUnit1, mainUnit2, mainUnit3);
         });
 
         var requestContent = DataObject.Create(OrganizationUrn.PartyUuid.Create(subUnit.PartyUuid.Value));
@@ -111,10 +113,11 @@ public class GetMainUnitsTests
         await response.ShouldHaveStatusCode(HttpStatusCode.OK);
         var content = await response.ShouldHaveJsonContent<ListObject<Organization>>();
         var items = content.Items.ToList();
-        items.Count.ShouldBe(2);
+        items.Count.ShouldBe(3);
 
         items[0].Uuid.ShouldBe(mainUnit1.PartyUuid.Value);
         items[1].Uuid.ShouldBe(mainUnit2.PartyUuid.Value);
+        items[2].Uuid.ShouldBe(mainUnit3.PartyUuid.Value);
     }
 
     [Theory]

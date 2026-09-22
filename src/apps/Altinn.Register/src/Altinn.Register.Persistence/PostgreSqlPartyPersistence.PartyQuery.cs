@@ -751,7 +751,7 @@ internal partial class PostgreSqlPartyPersistence
 
                 _builder.Append(/*strpsql*/"SELECT");
 
-                _parentUuid = AddField("uuids.parent_uuid", "p_parent_uuid", include: includes.HasFlag(PartyFieldIncludes.SubUnits));
+                _parentUuid = AddField("uuids.parent_uuid", "p_parent_uuid", include: filterBy.Transforms.HasFlag(PartyListTransforms.IncludeSubUnits));
 
                 _partyUuid = AddField("party.uuid", "p_uuid", includes.HasFlag(PartyFieldIncludes.PartyUuid));
                 _partyId = AddField("party.id", "p_id", includes.HasFlag(PartyFieldIncludes.PartyId));
@@ -839,29 +839,40 @@ internal partial class PostgreSqlPartyPersistence
 
             private void PopulateCommonTableExpressions(PartyFieldIncludes includes, PartyQueryFilters filterBy)
             {
-                const string TOP_LEVEL_UUIDS = "top_level_uuids";
+                const string TOP_LEVEL_UUIDS = "uuids";
+                const string TOP_LEVEL_UNTRANSFORMED = "top_level_uuids_untransformed";
                 const string TOP_LEVEL_UNFILTERED = "top_level_uuids_unfiltered";
 
                 var firstExpression = true;
                 switch (filterBy.Mode)
                 {
                     case PartyQueryFilters.QueryMode.LookupOne:
-                        PopulateLookupOneCommonTableExpression(TOP_LEVEL_UUIDS, filterBy.LookupIdentifiers, ref firstExpression);
+                        Debug.Assert(filterBy.Transforms is PartyListTransforms.None);
+                        PopulateLookupOneCommonTableExpression(name: TOP_LEVEL_UNTRANSFORMED, filterBy.LookupIdentifiers, ref firstExpression);
+                        PopulateListTransformCommonTableExpression(name: TOP_LEVEL_UUIDS, source: TOP_LEVEL_UNTRANSFORMED, transforms: PartyListTransforms.None, ref firstExpression);
                         break;
 
                     case PartyQueryFilters.QueryMode.LookupMultiple:
                         var hasFilters = filterBy.ListFilters is not PartyListFilters.None;
-                        var cteName = !hasFilters ? TOP_LEVEL_UUIDS : TOP_LEVEL_UNFILTERED;
-                        PopulateLookupMultipleCommonTableExpression(cteName, filterBy.LookupIdentifiers, ref firstExpression);
+
+                        var cteName = TOP_LEVEL_UNTRANSFORMED;
+                        PopulateLookupMultipleCommonTableExpression(name: TOP_LEVEL_UNTRANSFORMED, filterBy.LookupIdentifiers, ref firstExpression);
+
+                        var nextName = !hasFilters ? TOP_LEVEL_UUIDS : TOP_LEVEL_UNFILTERED;
+                        PopulateListTransformCommonTableExpression(name: nextName, source: cteName, transforms: filterBy.Transforms, ref firstExpression);
+                        cteName = nextName;
+
                         if (hasFilters)
                         {
-                            PopulateListFilterCommonTableExpression(TOP_LEVEL_UUIDS, source: TOP_LEVEL_UNFILTERED, filterBy.ListFilters, streamPage: false, ref firstExpression);
+                            PopulateListFilterCommonTableExpression(name: TOP_LEVEL_UUIDS, source: cteName, filterBy.ListFilters, streamPage: false, ref firstExpression);
                         }
 
                         break;
 
                     case PartyQueryFilters.QueryMode.FilteredStream:
-                        PopulateListFilterCommonTableExpression(TOP_LEVEL_UUIDS, source: null, filterBy.ListFilters, streamPage: true, ref firstExpression);
+                        Debug.Assert(filterBy.Transforms is PartyListTransforms.None);
+                        PopulateListFilterCommonTableExpression(name: TOP_LEVEL_UNTRANSFORMED, source: null, filterBy.ListFilters, streamPage: true, ref firstExpression);
+                        PopulateListTransformCommonTableExpression(name: TOP_LEVEL_UUIDS, source: TOP_LEVEL_UNTRANSFORMED, transforms: PartyListTransforms.None, ref firstExpression);
                         break;
 
                     default:
@@ -951,57 +962,6 @@ internal partial class PostgreSqlPartyPersistence
                                 """);
                             break;
                     }
-                }
-
-                if (includes.HasFlag(PartyFieldIncludes.SubUnits))
-                {
-                    AddCommonTableExpression(
-                        ref firstExpression,
-                        "sub_units",
-                        /*strpsql*/"""
-                        SELECT
-                            parent."uuid" AS parent_uuid,
-                            parent.version_id AS parent_version_id,
-                            ra."from_party" AS child_uuid
-                        FROM top_level_uuids AS parent
-                        JOIN register.external_role_assignment ra
-                             ON ra.to_party = parent."uuid"
-                            AND ra.source = 'ccr'
-                            AND (ra.identifier = 'ikke-naeringsdrivende-hovedenhet' OR ra.identifier = 'hovedenhet')
-                        """);
-
-                    AddCommonTableExpression(
-                        ref firstExpression,
-                        "uuids",
-                        /*strpsql*/"""
-                        SELECT
-                            "uuid" AS "uuid",
-                            NULL::uuid AS parent_uuid,
-                            version_id AS sort_first,
-                            NULL::uuid AS sort_second
-                        FROM top_level_uuids
-                        UNION
-                        SELECT
-                            child_uuid AS "uuid",
-                            parent_uuid,
-                            parent_version_id AS sort_first,
-                            child_uuid AS sort_second
-                        FROM sub_units
-                        """);
-                }
-                else
-                {
-                    AddCommonTableExpression(
-                        ref firstExpression,
-                        "uuids",
-                        /*strpsql*/"""
-                        SELECT
-                            "uuid" AS "uuid",
-                            NULL::uuid AS parent_uuid,
-                            version_id AS sort_first,
-                            NULL::uuid AS sort_second
-                        FROM top_level_uuids
-                        """);
                 }
 
                 if (includes.HasFlag(PartyFieldIncludes.UserId))
@@ -1291,6 +1251,105 @@ internal partial class PostgreSqlPartyPersistence
                 }
 
                 _builder.Append(')');
+            }
+
+            private void PopulateListTransformCommonTableExpression(string name, string source, PartyListTransforms transforms, ref bool firstExpression)
+            {
+                // source input is expected to have the columns "uuid" and "version_id"
+                // Output columns:
+                // - uuid: the returned party UUID
+                // - parent_uuid: the parent UUID for subunits; otherwise NULL
+                // - sort_first: the party's own version ID, or its parent's version ID for an included subunit
+                // - sort_second: the child UUID for subunits; otherwise NULL
+                AddCommonTableExpression(
+                    ref firstExpression,
+                    "trans_input",
+                    $"""
+                        SELECT
+                            "uuid" AS "uuid",
+                            NULL::uuid AS parent_uuid,
+                            version_id AS sort_first,
+                            NULL::uuid AS sort_second
+                        FROM {source}
+                        """);
+
+                source = "trans_input";
+
+                if (transforms.HasFlag(PartyListTransforms.ReplaceWithMainUnits))
+                {
+                    AddCommonTableExpression(
+                        ref firstExpression,
+                        "main_unit_trans",
+                        /*strpsql*/$"""
+                        SELECT DISTINCT
+                            party."uuid" AS "uuid",
+                            NULL::uuid AS parent_uuid,
+                            party.version_id AS sort_first,
+                            NULL::uuid AS sort_second
+                        FROM register.external_main_unit_role mur
+                        JOIN register.external_role_assignment ra ON mur.source = ra.source AND mur.identifier = ra.identifier
+                        JOIN register.party party ON ra.to_party = party."uuid"
+                        JOIN {source} source ON ra.from_party = source."uuid"
+                        """);
+
+                    source = "main_unit_trans";
+                }
+
+                if (transforms.HasFlag(PartyListTransforms.IncludeSubUnits))
+                {
+                    // A given main-unit/sub-unit pair should have at most one main-unit role assignment.
+                    // For example, sub-unit "Sub" should not point to main unit "Main" using both
+                    // "hovedenhet" and "ikke-naeringsdrivende-hovedenhet".
+                    // A sub-unit pointing to multiple distinct main units is also invalid, but is known
+                    // to occur in source datasets and is intentionally preserved.
+                    AddCommonTableExpression(
+                        ref firstExpression,
+                        "sub_units",
+                        /*strpsql*/$"""
+                        SELECT
+                            source."uuid" AS parent_uuid,
+                            source.sort_first AS sort_first,
+                            ra."from_party" AS child_uuid
+                        FROM {source} AS source
+                        JOIN register.external_role_assignment ra ON ra.to_party = source."uuid"
+                        JOIN register.external_main_unit_role mur ON mur.source = ra.source AND mur.identifier = ra.identifier
+                        """);
+
+                    AddCommonTableExpression(
+                        ref firstExpression,
+                        "sub_units_trans",
+                        /*strpsql*/$"""
+                        SELECT
+                            "uuid" AS "uuid",
+                            NULL::uuid AS parent_uuid,
+                            sort_first AS sort_first,
+                            NULL::uuid AS sort_second
+                        FROM {source}
+
+                        UNION ALL
+
+                        SELECT
+                            child_uuid AS "uuid",
+                            parent_uuid,
+                            sort_first,
+                            child_uuid AS sort_second
+                        FROM sub_units
+                        """);
+
+                    source = "sub_units_trans";
+                }
+
+                AddCommonTableExpression(
+                    ref firstExpression,
+                    name,
+                    /*strpsql*/$"""
+                    SELECT
+                        "uuid",
+                        parent_uuid,
+                        sort_first,
+                        sort_second
+                    FROM {source}
+                    """);
             }
 
             private void PopulateListFilterCommonTableExpression(string name, string? source, PartyListFilters filters, bool streamPage, ref bool firstExpression)

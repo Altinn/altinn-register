@@ -154,17 +154,12 @@ public interface IPartyPersistence
     /// <param name="usernames"><see cref="PartyRecord.Usernames"/>.</param>
     /// <param name="selfIdentifiedEmails"><see cref="SelfIdentifiedUserRecord.Email"/>s.</param>
     /// <param name="include">Data/fields to include.</param>
+    /// <param name="transforms">Transforms to apply to the party list.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>
     /// A <see cref="IAsyncEnumerable{T}"/> containing the parties that match the provided identifiers,
     /// and optionally all their direct child units if requested.
     /// </returns>
-    /// <remarks>
-    /// If <paramref name="include"/> has the <see cref="PartyFieldIncludes.SubUnits"/> flag set,
-    /// the result will contain all direct child units of the matched parties that are organizations
-    /// and has child units. Any child unit will follow immediately after it's parent.
-    /// </remarks>
-    // TODO: https://github.com/npgsql/npgsql/issues/5655 - change to IReadOnlyList when Npgsql supports it
     public IAsyncEnumerable<PartyRecord> LookupParties(
         IReadOnlyList<Guid>? partyUuids = null,
         IReadOnlyList<uint>? partyIds = null,
@@ -175,6 +170,7 @@ public interface IPartyPersistence
         IReadOnlyList<string>? usernames = null,
         IReadOnlyList<string>? selfIdentifiedEmails = null,
         PartyFieldIncludes include = PartyFieldIncludes.Party,
+        PartyListTransforms transforms = PartyListTransforms.None,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -188,9 +184,6 @@ public interface IPartyPersistence
     /// <returns>
     /// A <see cref="IAsyncEnumerable{T}"/> containing a page of parties.
     /// </returns>
-    /// <remarks>
-    /// <paramref name="include"/> is not allowed to specify <see cref="PartyFieldIncludes.SubUnits"/>.
-    /// </remarks>
     public IAsyncEnumerable<PartyRecord> GetPartyStream(
         ulong fromExclusive,
         ushort limit,

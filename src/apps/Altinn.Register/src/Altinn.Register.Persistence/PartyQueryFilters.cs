@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Numerics;
 using Altinn.Authorization.ModelUtils.EnumUtils;
+using Altinn.Register.Core.Parties;
 using CommunityToolkit.Diagnostics;
 
 namespace Altinn.Register.Persistence;
@@ -12,6 +13,7 @@ namespace Altinn.Register.Persistence;
 public readonly record struct PartyQueryFilters
 {
     private readonly static FlagsEnumModel<PartyLookupIdentifiers> _identifiersModel = FlagsEnumModel.Create<PartyLookupIdentifiers>();
+    private readonly static FlagsEnumModel<PartyListTransforms> _transformsModel = FlagsEnumModel.Create<PartyListTransforms>();
     private readonly static FlagsEnumModel<PartyListFilters> _filtersModel = FlagsEnumModel.Create<PartyListFilters>();
 
     /// <summary>
@@ -32,7 +34,7 @@ public readonly record struct PartyQueryFilters
             ThrowHelper.ThrowArgumentOutOfRangeException(nameof(identifier), identifier, $"Only a single party lookup identifier can be set when using {nameof(LookupOne)}");
         }
 
-        return new PartyQueryFilters(QueryMode.LookupOne, identifier, PartyListFilters.None);
+        return new PartyQueryFilters(QueryMode.LookupOne, identifier, PartyListTransforms.None, PartyListFilters.None);
     }
 
     /// <summary>
@@ -40,9 +42,10 @@ public readonly record struct PartyQueryFilters
     /// selected by the specified identifiers, and optionally filtered by additional list filters.
     /// </summary>
     /// <param name="identifiers">The party identifiers to lookup based on.</param>
+    /// <param name="transforms">Optional set of transforms to apply to the party list.</param>
     /// <param name="filters">Optional set of filters to apply post-lookup.</param>
     /// <returns>A <see cref="PartyQueryFilters"/>.</returns>
-    public static PartyQueryFilters Lookup(PartyLookupIdentifiers identifiers, PartyListFilters filters = PartyListFilters.None)
+    public static PartyQueryFilters Lookup(PartyLookupIdentifiers identifiers, PartyListTransforms transforms = PartyListTransforms.None, PartyListFilters filters = PartyListFilters.None)
     {
         var bitsSet = BitOperations.PopCount((uint)identifiers);
         if (bitsSet == 0)
@@ -50,7 +53,7 @@ public readonly record struct PartyQueryFilters
             ThrowHelper.ThrowArgumentOutOfRangeException(nameof(identifiers), identifiers, $"At least a single party lookup identifier must be set when using {nameof(Lookup)}");
         }
 
-        return new PartyQueryFilters(QueryMode.LookupMultiple, identifiers, filters);
+        return new PartyQueryFilters(QueryMode.LookupMultiple, identifiers, transforms, filters);
     }
 
     /// <summary>
@@ -60,15 +63,16 @@ public readonly record struct PartyQueryFilters
     /// <returns>A <see cref="PartyQueryFilters"/>.</returns>
     public static PartyQueryFilters Stream(PartyListFilters filters = PartyListFilters.None)
     {
-        return new PartyQueryFilters(QueryMode.FilteredStream, PartyLookupIdentifiers.None, filters);
+        return new PartyQueryFilters(QueryMode.FilteredStream, PartyLookupIdentifiers.None, PartyListTransforms.None, filters);
     }
 
     private readonly QueryMode _mode;
     private readonly PartyLookupIdentifiers _identifiers;
+    private readonly PartyListTransforms _transforms;
     private readonly PartyListFilters _filters;
 
-    private PartyQueryFilters(QueryMode mode, PartyLookupIdentifiers identifiers, PartyListFilters filters)
-        => (_mode, _identifiers, _filters) = (mode, identifiers, filters);
+    private PartyQueryFilters(QueryMode mode, PartyLookupIdentifiers identifiers, PartyListTransforms transforms, PartyListFilters filters)
+        => (_mode, _identifiers, _transforms, _filters) = (mode, identifiers, transforms, filters);
 
     /// <summary>
     /// Validates the current <see cref="PartyQueryFilters"/> instance.
@@ -92,6 +96,11 @@ public readonly record struct PartyQueryFilters
     internal readonly PartyLookupIdentifiers LookupIdentifiers => _identifiers;
 
     /// <summary>
+    /// Gets the list transforms applied to the party list.
+    /// </summary>
+    internal readonly PartyListTransforms Transforms => _transforms;
+
+    /// <summary>
     /// Gets the list filters.
     /// </summary>
     internal readonly PartyListFilters ListFilters => _filters;
@@ -107,24 +116,30 @@ public readonly record struct PartyQueryFilters
         switch (_mode)
         {
             case QueryMode.LookupOne:
-                return $"lookupOne({_identifiersModel.Format(_identifiers)})";
-
-            case QueryMode.LookupMultiple when _filters is PartyListFilters.None:
-                return $"lookup({_identifiersModel.Format(_identifiers)})";
+                return $"lookupOne({Format(_identifiers)})";
 
             case QueryMode.LookupMultiple:
-                return $"lookup({_identifiersModel.Format(_identifiers)}; {_filtersModel.Format(_filters)})";
+                return $"lookup({Format(_identifiers)}; transforms: {Format(_transforms)}; filters: {Format(_filters)})";
 
             case QueryMode.FilteredStream when _filters is PartyListFilters.None:
                 return $"stream()";
 
             case QueryMode.FilteredStream:
-                return $"stream({_filtersModel.Format(_filters)})";
+                return $"stream({Format(_filters)})";
 
             default:
                 return "invalid";
         }
     }
+
+    private static string Format(PartyLookupIdentifiers identifiers)
+        => identifiers is PartyLookupIdentifiers.None ? "none" : _identifiersModel.Format(identifiers);
+
+    private static string Format(PartyListTransforms transforms)
+        => transforms is PartyListTransforms.None ? "none" : _transformsModel.Format(transforms);
+
+    private static string Format(PartyListFilters filters)
+        => filters is PartyListFilters.None ? "none" : _filtersModel.Format(filters);
 
     /// <summary>
     /// Specifies the available modes for querying parties.

@@ -187,8 +187,15 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
         {
             const string QUERY
                 = /*strpsql*/"""
-                SELECT source, identifier, name, description, code
+                SELECT
+                  source
+                , identifier
+                , name
+                , description
+                , code
+                , mu.identifier IS NULL AS is_main_unit
                 FROM register.external_role_definition
+                LEFT JOIN register.external_main_unit_role mu using (source, identifier)
                 """;
 
             Log.FetchingExternalRoleDefinitions(_logger);
@@ -230,6 +237,7 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
             var nameOrdinal = reader.GetOrdinal("name");
             var descriptionOrdinal = reader.GetOrdinal("description");
             var codeOrdinal = reader.GetOrdinal("code");
+            var isMainUnitOrdinal = reader.GetOrdinal("is_main_unit");
 
             while (await reader.ReadAsync(cancellationToken))
             {
@@ -239,6 +247,9 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
                 var description = await reader.GetConvertibleFieldValueAsync(descriptionOrdinal, TranslatedTextConverter.FromDb, cancellationToken);
                 var code = await reader.GetFieldValueOrDefaultAsync<string>(codeOrdinal, cancellationToken);
 
+                var flags = ExternalRoleDefinition.RoleFlags.None;
+                flags |= await ReadFlag(reader, isMainUnitOrdinal, ExternalRoleDefinition.RoleFlags.MainUnit, cancellationToken);
+
                 var roleDefinition = new ExternalRoleDefinition()
                 {
                     Source = source,
@@ -246,9 +257,20 @@ internal sealed partial class PostgreSqlExternalRoleDefinitionPersistence
                     Name = name,
                     Description = description,
                     Code = code,
+                    Flags = flags,
                 };
 
                 yield return roleDefinition;
+            }
+
+            static async ValueTask<ExternalRoleDefinition.RoleFlags> ReadFlag(
+                NpgsqlDataReader reader,
+                int ordinal,
+                ExternalRoleDefinition.RoleFlags flag,
+                CancellationToken cancellationToken)
+            {
+                var isSet = await reader.GetFieldValueAsync<bool>(ordinal, cancellationToken);
+                return isSet ? flag : default;
             }
         }
 
