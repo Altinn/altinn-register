@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.0.0](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.7.0...Altinn.Register.Contracts-v2.0.0) (2026-09-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* mark some v1 party contract fields as required ([#962](https://github.com/Altinn/altinn-register/issues/962))
+* update to net10 ([#948](https://github.com/Altinn/altinn-register/issues/948))
+
+### Features
+
+* add ExternalUrn to legacy party model ([#945](https://github.com/Altinn/altinn-register/issues/945)) ([5bc7b05](https://github.com/Altinn/altinn-register/commit/5bc7b0574dca98dc663fbecd41b7e4a7b9d30a35))
+* add source and multiple usernames support ([#908](https://github.com/Altinn/altinn-register/issues/908)) ([6ddcdc7](https://github.com/Altinn/altinn-register/commit/6ddcdc730ae835f2ba35992189d853f40329f64d))
+* mark some v1 party contract fields as required ([#962](https://github.com/Altinn/altinn-register/issues/962)) ([1bdb478](https://github.com/Altinn/altinn-register/commit/1bdb4789d7a8abd726abe6bf92ef7da9fd4cbb55))
+* update to net10 ([#948](https://github.com/Altinn/altinn-register/issues/948)) ([6e85efa](https://github.com/Altinn/altinn-register/commit/6e85efa2e9566dafee03c8c70fbc82ddc7baaabc))
+
 ## [1.7.0](https://github.com/Altinn/altinn-register/compare/Altinn.Register.Contracts-v1.6.0...Altinn.Register.Contracts-v1.7.0) (2026-03-06)
 
 
