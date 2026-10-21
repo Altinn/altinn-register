@@ -146,13 +146,14 @@ public partial class CcrController
                 xml = xml[1..];
             }
 
+            xml = xml.Trim();
             if (!xml.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase))
             {
                 return xml;
             }
 
             var end = xml.IndexOf("?>", StringComparison.Ordinal);
-            return end >= 0 ? xml[(end + 2)..] : xml;
+            return end >= 0 ? xml[(end + 2)..].TrimStart() : xml;
         }
     }
 
