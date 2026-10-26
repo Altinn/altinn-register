@@ -12,14 +12,14 @@
     <PackageVersion Include="Altinn.Authorization.ProblemDetails.Abstractions" Version="5.4.0" />
     <PackageVersion Include="Altinn.Authorization.ProblemDetails.Validation" Version="5.4.0" />
     <PackageVersion Include="Altinn.Authorization.ProblemDetails" Version="5.4.0" />
-    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Abstractions" Version="5.5.0" />
-    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.HttpClient" Version="5.5.0" />
-    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.HttpClient.MaskinPorten" Version="5.5.0" />
-    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql.TestSeed" Version="5.5.0" />
-    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql" Version="5.5.0" />
-    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql" Version="5.5.0" />
-    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Telemetry" Version="5.5.0" />
-    <PackageVersion Include="Altinn.Authorization.ServiceDefaults" Version="5.5.0" />
+    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Abstractions" Version="6.0.0" />
+    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.HttpClient" Version="6.0.0" />
+    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.HttpClient.MaskinPorten" Version="6.0.0" />
+    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql.TestSeed" Version="6.0.0" />
+    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql.Yuniql" Version="6.0.0" />
+    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Npgsql" Version="6.0.0" />
+    <PackageVersion Include="Altinn.Authorization.ServiceDefaults.Telemetry" Version="6.0.0" />
+    <PackageVersion Include="Altinn.Authorization.ServiceDefaults" Version="6.0.0" />
     <PackageVersion Include="Altinn.Authorization.TestUtils" Version="3.8.0" />
     <PackageVersion Include="Altinn.Authorization.TestUtils.Http" Version="3.8.0" />
     <PackageVersion Include="Altinn.Common.AccessToken" Version="5.1.11" />
