@@ -100,6 +100,35 @@ public class SetUsernameTests
     }
 
     [Fact]
+    public async Task SettingUsername_PreservesExternalUrn()
+    {
+        const string Username = "preserve-urn-user";
+
+        var party = await Setup((uow, ct) => uow.CreatePerson(cancellationToken: ct));
+        var expectedUrn = PartyExternalRefUrn.PersonId.Create(party.PersonIdentifier.Value!);
+
+        await AssertExternalUrn();
+
+        using var response = await SetUsername(party, Username);
+
+        await response.ShouldHaveStatusCode(HttpStatusCode.OK);
+        await AssertUsernames(party, current: Username, values: [Username], versionIdChanged: true);
+        await AssertExternalUrn();
+
+        async Task AssertExternalUrn()
+        {
+            await Check(async (uow, ct) =>
+            {
+                var fromDb = await uow.GetPartyPersistence()
+                    .GetPartyById(party.PartyUuid.Value, PartyFieldIncludes.PartyExternalUrn, ct)
+                    .FirstAsync(ct);
+
+                fromDb.ExternalUrn.Value.ShouldBe(expectedUrn);
+            });
+        }
+    }
+
+    [Fact]
     public async Task DeleteUsernameWhenPartyHasNoUsername_ReturnsOkAndKeepsNoUsername()
     {
         var party = await Setup((uow, ct) => uow.CreatePerson(cancellationToken: ct));

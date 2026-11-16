@@ -320,7 +320,7 @@ internal partial class PostgreSqlPartyPersistence
                 @flags,
                 @set_uuid, @uuid,
                 @set_id, @id,
-                @ext_urn,
+                @set_ext_urn, @ext_urn,
                 @user_ids,
                 @set_username, @username,
                 @party_type,
@@ -437,7 +437,7 @@ internal partial class PostgreSqlPartyPersistence
                 parameters.Add<PersistenceFeatureFlag[]>("flags").TypedValue = flags;
                 parameters.AddOptional("set_uuid", "uuid", NpgsqlDbType.Uuid, party.PartyUuid);
                 parameters.AddOptional("set_id", "id", NpgsqlDbType.Bigint, party.PartyId.Select(static id => checked((long)id)));
-                parameters.Add<string?>("ext_urn", NpgsqlDbType.Text).TypedValue = party.ExternalUrn.Value?.Urn;
+                parameters.AddOptional("set_ext_urn", "ext_urn", NpgsqlDbType.Text, party.ExternalUrn.Select(static urn => urn.Urn));
                 parameters.Add<int[]?>("user_ids", NpgsqlDbType.Bigint | NpgsqlDbType.Array).TypedValue = userIds;
                 parameters.AddOptional("set_username", "username", NpgsqlDbType.Text, username);
                 parameters.Add<PartyRecordType>("party_type").TypedValue = party.PartyType.Value;
@@ -472,7 +472,7 @@ internal partial class PostgreSqlPartyPersistence
                     @flags,
                     @set_uuid, @uuid,
                     @set_id, @id,
-                    @ext_urn,
+                    @set_ext_urn, @ext_urn,
                     @user_ids,
                     @set_username, @username,
                     @party_type,
@@ -564,7 +564,7 @@ internal partial class PostgreSqlPartyPersistence
                     @flags,
                     @set_uuid, @uuid,
                     @set_id, @id,
-                    @ext_urn,
+                    @set_ext_urn, @ext_urn,
                     @user_ids,
                     @set_username, @username,
                     @party_type,
@@ -666,7 +666,7 @@ internal partial class PostgreSqlPartyPersistence
                     @flags,
                     @set_uuid, @uuid,
                     @set_id, @id,
-                    @ext_urn,
+                    @set_ext_urn, @ext_urn,
                     @user_ids,
                     @set_username, @username,
                     @party_type,
@@ -787,7 +787,7 @@ internal partial class PostgreSqlPartyPersistence
                     @flags,
                     @set_uuid, @uuid,
                     @set_id, @id,
-                    @ext_urn,
+                    @set_ext_urn, @ext_urn,
                     @user_ids,
                     @set_username, @username,
                     @party_type,
