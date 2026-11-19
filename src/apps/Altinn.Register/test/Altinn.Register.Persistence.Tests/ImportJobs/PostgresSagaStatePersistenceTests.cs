@@ -204,6 +204,7 @@ public class PostgresSagaStatePersistenceTests
                 var inProgressCutoff = now - TimeSpan.FromDays(90);
 
                 var deleted = await persistence.DeleteOldStates(
+                    batchSize: 1_000,
                     completedBefore: completedCutoff,
                     faultedBefore: faultedCutoff,
                     inProgressBefore: inProgressCutoff);
@@ -238,6 +239,46 @@ public class PostgresSagaStatePersistenceTests
                 }
             });
         }
+    }
+
+    [Fact]
+    public async Task DeleteOldStates_Deletes_In_Batches()
+    {
+        var sagaIds = new List<Guid>();
+        for (var i = 0; i < 201; i++)
+        {
+            var id = Guid.CreateVersion7();
+            sagaIds.Add(id);
+            await Unit(async persistence =>
+            {
+                var state = await persistence.GetState<PersonState>(id);
+                state.Data = new PersonState { Age = 30, Name = "Alice" };
+                state.Status = SagaStatus.Completed;
+                state.Messages.Add(id);
+                await persistence.SaveState(state);
+            });
+        }
+
+        TimeProvider.Advance(TimeSpan.FromDays(8));
+        var cutoff = TimeProvider.GetUtcNow() - TimeSpan.FromDays(7);
+
+        foreach (var expectedDeleted in new[] { 100, 100, 1, 0 })
+        {
+            await Unit(async persistence =>
+            {
+                var deleted = await persistence.DeleteOldStates(batchSize: 100, completedBefore: cutoff);
+                deleted.ShouldBe(expectedDeleted);
+            });
+        }
+
+        await Unit(async persistence =>
+        {
+            foreach (var id in sagaIds)
+            {
+                var state = await persistence.GetState<PersonState>(id);
+                state.Data.ShouldBeNull();
+            }
+        });
     }
 
     private async Task Unit(Func<PostgresSagaStatePersistence, Task> action, [CallerMemberName] string name = "")

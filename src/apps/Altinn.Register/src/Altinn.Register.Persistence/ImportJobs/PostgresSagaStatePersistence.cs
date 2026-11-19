@@ -162,6 +162,7 @@ internal sealed class PostgresSagaStatePersistence
 
     /// <inheritdoc/>
     public async Task<int> DeleteOldStates(
+        uint batchSize,
         DateTimeOffset? completedBefore = null,
         DateTimeOffset? faultedBefore = null,
         DateTimeOffset? inProgressBefore = null,
@@ -169,11 +170,21 @@ internal sealed class PostgresSagaStatePersistence
     {
         const string QUERY =
             /*strpsql*/"""
-            DELETE FROM register.saga_state s
-             WHERE (s.updated < @completedBefore AND s.status = 'completed')
-                OR (s.updated < @faultedBefore AND s.status = 'faulted')
-                OR (s.updated < @inProgressBefore AND s.status = 'in_progress')
+            DELETE FROM register.saga_state
+             WHERE id IN (
+                SELECT s.id
+                  FROM register.saga_state s
+                 WHERE (s.updated < @completedBefore AND s.status = 'completed')
+                    OR (s.updated < @faultedBefore AND s.status = 'faulted')
+                    OR (s.updated < @inProgressBefore AND s.status = 'in_progress')
+                 ORDER BY s.updated
+                 LIMIT @batchSize
+                 FOR UPDATE
+             )
             """;
+
+        Guard.IsGreaterThanOrEqualTo(batchSize, 100);
+        Guard.IsLessThanOrEqualTo(batchSize, (uint)int.MaxValue);
 
         if (completedBefore is null && faultedBefore is null && inProgressBefore is null)
         {
@@ -184,6 +195,8 @@ internal sealed class PostgresSagaStatePersistence
 
         await using var cmd = _connection.CreateCommand(QUERY);
 
+        Debug.Assert(batchSize >= 100 && batchSize <= int.MaxValue);
+        cmd.Parameters.Add<int>("batchSize", NpgsqlDbType.Integer).TypedValue = unchecked((int)batchSize);
         cmd.Parameters.Add<DateTimeOffset>("completedBefore", NpgsqlDbType.TimestampTz).TypedValue = completedBefore ?? DateTimeOffset.UnixEpoch;
         cmd.Parameters.Add<DateTimeOffset>("faultedBefore", NpgsqlDbType.TimestampTz).TypedValue = faultedBefore ?? DateTimeOffset.UnixEpoch;
         cmd.Parameters.Add<DateTimeOffset>("inProgressBefore", NpgsqlDbType.TimestampTz).TypedValue = inProgressBefore ?? DateTimeOffset.UnixEpoch;

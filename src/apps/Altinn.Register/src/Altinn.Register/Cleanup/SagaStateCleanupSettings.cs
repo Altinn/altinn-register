@@ -10,6 +10,12 @@ public class SagaStateCleanupSettings
     : IValidatableObject
 {
     /// <summary>
+    /// Gets or sets the maximum number of saga states deleted per transaction. Must be at least 100.
+    /// </summary>
+    [Range(100, int.MaxValue)]
+    public uint BatchSize { get; set; } = 1_000;
+
+    /// <summary>
     /// Gets or sets the number of days to retain completed saga states before they are deleted.
     /// </summary>
     public uint DeleteCompletedSagaStatesAfterDays { get; set; } = 7;
