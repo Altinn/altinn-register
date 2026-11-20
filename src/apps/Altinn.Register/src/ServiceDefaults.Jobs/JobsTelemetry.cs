@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using Altinn.Authorization.ServiceDefaults.Telemetry;
@@ -16,6 +17,7 @@ internal class JobsTelemetry
     private static readonly ActivitySource _activitySource = new(Name);
 
     private readonly Meter _meter;
+    private readonly ConcurrentDictionary<string, long> _lastSuccessfulRuns = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JobsTelemetry"/> class.
@@ -23,6 +25,27 @@ internal class JobsTelemetry
     public JobsTelemetry(IMeterFactory meterFactory)
     {
         _meter = meterFactory.Create(Name);
+        _meter.CreateObservableGauge(
+            "register.jobs.last_success_time",
+            ObserveLastSuccessfulRuns,
+            unit: "s",
+            description: "Time of the last successful job completion, in seconds since the Unix epoch. Per instance; absent until the first success and lost on restart.");
+    }
+
+    /// <summary>
+    /// Records a successful run for a logical job, across all run sources on this instance.
+    /// </summary>
+    /// <param name="jobName">The job name.</param>
+    /// <param name="completedAt">The completion time.</param>
+    public void RecordJobSuccess(string jobName, DateTimeOffset completedAt)
+        => _lastSuccessfulRuns.AddOrUpdate(jobName, completedAt.ToUnixTimeSeconds(), (_, previous) => Math.Max(previous, completedAt.ToUnixTimeSeconds()));
+
+    private IEnumerable<Measurement<long>> ObserveLastSuccessfulRuns()
+    {
+        foreach (var (jobName, timestamp) in _lastSuccessfulRuns)
+        {
+            yield return new(timestamp, new KeyValuePair<string, object?>("job.name", jobName));
+        }
     }
 
     /// <inheritdoc cref="Meter.CreateCounter{T}(string, string?, string?)"/>

@@ -27,6 +27,7 @@ internal sealed partial class RecurringJobHostedService
     private readonly Counter<int> _jobsFailed;
     private readonly Counter<int> _jobsSucceeded;
     private readonly Counter<int> _jobsSkipped;
+    private readonly JobsTelemetry _telemetry;
 
     private readonly AltinnServiceDescriptor _serviceDescriptor;
     private readonly TimeProvider _timeProvider;
@@ -74,6 +75,7 @@ internal sealed partial class RecurringJobHostedService
         _jobsSucceeded = telemetry.CreateCounter<int>("register.jobs.succeeded", unit: "jobs", description: "The number of jobs that have succeeded");
         _jobsSkipped = telemetry.CreateCounter<int>("register.jobs.skipped", unit: "jobs", description: "The number of jobs that have been skipped");
 
+        _telemetry = telemetry;
         _serviceDescriptor = serviceDescriptor;
         _timeProvider = timeProvider;
         _leaseManager = leaseManager;
@@ -601,6 +603,7 @@ internal sealed partial class RecurringJobHostedService
     {
         public void JobCompleted(TimeSpan duration)
         {
+            service._telemetry.RecordJobSuccess(registration.JobName, service._timeProvider.GetUtcNow());
             service._jobsSucceeded.Add(1, tags.AsSpan());
             Log.JobCompleted(service._logger, registration.JobName, duration);
         }
