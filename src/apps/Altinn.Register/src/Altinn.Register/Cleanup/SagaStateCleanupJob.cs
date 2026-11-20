@@ -40,32 +40,49 @@ public sealed partial class SagaStateCleanupJob
     {
         var settings = _settings.CurrentValue;
 
-        await using var uow = await _manager.CreateAsync(cancellationToken, activityName: "cleanup saga states");
-        var cleanup = uow.GetRequiredService<ISagaStateCleanup>();
-
         var now = _timeProvider.GetUtcNow();
         var completedCutoff = now - TimeSpan.FromDays(settings.DeleteCompletedSagaStatesAfterDays);
         var faultedCutoff = now - TimeSpan.FromDays(settings.DeleteFaultedSagaStatesAfterDays);
         var inProgressCutoff = now - TimeSpan.FromDays(settings.DeleteInProgressSagaStatesAfterDays);
 
-        var deleted = await cleanup.DeleteOldStates(
-            completedBefore: completedCutoff,
-            faultedBefore: faultedCutoff,
-            inProgressBefore: inProgressCutoff,
-            cancellationToken);
+        long totalDeleted = 0;
+        int deleted;
+        do
+        {
+            cancellationToken.ThrowIfCancellationRequested();
 
-        await uow.CommitAsync(cancellationToken);
-        Log.DeletedSagaStates(_logger, deleted, completedCutoff, faultedCutoff, inProgressCutoff);
+            await using var uow = await _manager.CreateAsync(cancellationToken, activityName: "cleanup saga states");
+            var cleanup = uow.GetRequiredService<ISagaStateCleanup>();
+
+            deleted = await cleanup.DeleteOldStates(
+                batchSize: settings.BatchSize,
+                completedBefore: completedCutoff,
+                faultedBefore: faultedCutoff,
+                inProgressBefore: inProgressCutoff,
+                cancellationToken);
+
+            await uow.CommitAsync(cancellationToken);
+            totalDeleted += deleted;
+            Log.DeletedSagaStateBatch(_logger, deleted);
+        }
+        while (deleted == settings.BatchSize);
+
+        Log.DeletedSagaStates(_logger, totalDeleted, completedCutoff, faultedCutoff, inProgressCutoff);
     }
 
     private static partial class Log
     {
         [LoggerMessage(0, LogLevel.Information, "Deleted {Deleted} saga states. Completed before {CompletedCutoff}, faulted before {FaultedCutoff}, in-progress before {InProgressCutoff}.")]
         public static partial void DeletedSagaStates(
-            ILogger<SagaStateCleanupJob> logger,
-            int deleted,
+            ILogger logger,
+            long deleted,
             DateTimeOffset completedCutoff,
             DateTimeOffset faultedCutoff,
             DateTimeOffset inProgressCutoff);
+
+        [LoggerMessage(1, LogLevel.Debug, "Deleted {Deleted} saga states in batch.")]
+        public static partial void DeletedSagaStateBatch(
+            ILogger logger,
+            int deleted);
     }
 }
